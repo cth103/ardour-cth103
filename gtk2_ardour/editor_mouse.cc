@@ -61,6 +61,7 @@
 #include "mouse_cursors.h"
 #include "editor_cursors.h"
 #include "verbose_cursor.h"
+#include "hints.h"
 
 #include "ardour/types.h"
 #include "ardour/profile.h"
@@ -1596,6 +1597,9 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 	switch (item_type) {
 	case ControlPointItem:
 		if (mouse_mode == MouseGain || mouse_mode == MouseObject) {
+
+			_hints->set (_("Click and drag to move control point.  Shift and right-click to delete control point."));
+			
 			cp = static_cast<ControlPoint*>(item->get_data ("control_point"));
 			cp->set_visible (true);
 
@@ -1695,6 +1699,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 			if (mouse_mode == MouseObject && is_drawable()) {
 				set_canvas_cursor_for_region_view (event->crossing.x, entered_regionview);
 				_over_region_trim_target = true;
+				_hints->set (_("Click and drag to trim region."));
 			}
 		}
 		break;
@@ -1762,6 +1767,11 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 
 	case FadeOutHandleItem:
 		if (mouse_mode == MouseObject && !internal_editing()) {
+			if (item_type == FadeInHandleItem) {
+				_hints->set (_("Click and drag to alter region fade-in."));
+			} else {
+				_hints->set (_("Click and drag to alter region fade-out."));
+			}
 			ArdourCanvas::SimpleRect *rect = dynamic_cast<ArdourCanvas::SimpleRect *> (item);
 			if (rect) {
 				rect->property_fill_color_rgba() = 0xBBBBBBAA;

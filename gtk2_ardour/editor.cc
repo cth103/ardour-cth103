@@ -121,6 +121,7 @@
 #include "tempo_lines.h"
 #include "time_axis_view.h"
 #include "utils.h"
+#include "hints.h"
 
 #include "i18n.h"
 
@@ -460,6 +461,7 @@ Editor::Editor ()
 	initialize_canvas ();
 
 	_summary = new EditorSummary (this);
+	_hints = new Hints;
 
 	selection->TimeChanged.connect (sigc::mem_fun(*this, &Editor::time_selection_changed));
 	selection->TracksChanged.connect (sigc::mem_fun(*this, &Editor::track_selection_changed));
@@ -622,6 +624,7 @@ Editor::Editor ()
 
 	global_vpacker.pack_start (top_hbox, false, false);
 	global_vpacker.pack_start (*hbox, true, true);
+	global_vpacker.pack_start (_hints->widget (), false, false);
 
 	global_hpacker.pack_start (global_vpacker, true, true);
 

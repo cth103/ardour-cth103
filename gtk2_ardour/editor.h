@@ -134,6 +134,7 @@ class ProgressReporter;
 class EditorCursor;
 class MouseCursors;
 class VerboseCursor;
+class Hints;
 
 /* <CMT Additions> */
 class ImageFrameView;
@@ -448,6 +449,10 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	MouseCursors const * cursors () const {
 		return _cursors;
+	}
+	
+	Hints* hints () const {
+		return _hints;
 	}
 
 	VerboseCursor* verbose_cursor () const {
@@ -2030,6 +2035,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	Gtk::HBox _summary_hbox;
 	EditorSummary* _summary;
 
+	Hints* _hints;
+	
 	void region_view_added (RegionView *);
 	void region_view_removed ();
 
