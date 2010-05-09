@@ -114,20 +114,20 @@ RouteUI::init ()
 
 	mute_button = manage (new ArdourButton);
 	mute_button->set_name ("mute button");
-	UI::instance()->set_tip (mute_button, _("Mute this track"), "");
+	UI::instance()->set_tip (mute_button, _("Mute this track"), _("Left-click to mute this track.  Right-click to open the mute menu."));
 
 	solo_button = manage (new ArdourButton);
 	solo_button->set_name ("solo button");
-	UI::instance()->set_tip (solo_button, _("Mute other (non-soloed) tracks"), "");
+	UI::instance()->set_tip (solo_button, _("Mute other (non-soloed) tracks"), _("Left-click to mute other (non-soloed) tracks."));
 	solo_button->set_no_show_all (true);
 
 	rec_enable_button = manage (new ArdourButton);
 	rec_enable_button->set_name ("record enable button");
-	UI::instance()->set_tip (rec_enable_button, _("Enable recording on this track"), "");
+	UI::instance()->set_tip (rec_enable_button, _("Enable recording on this track"), _("Left-click to enable recording on this track"));
 
 	show_sends_button = manage (new ArdourButton);
 	show_sends_button->set_name ("send alert button");
-	UI::instance()->set_tip (show_sends_button, _("make mixer strips show sends to this bus"), "");
+	UI::instance()->set_tip (show_sends_button, _("make mixer strips show sends to this bus"), _("Left-click to make mixer strips show sends to this bus"));
 
 	monitor_input_button = manage (new ArdourButton (ArdourButton::led_default_elements));
 	monitor_input_button->set_name ("monitor");

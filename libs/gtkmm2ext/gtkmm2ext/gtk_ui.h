@@ -31,9 +31,6 @@
 
 #include <gtkmm/widget.h>
 #include <gtkmm/style.h>
-#ifndef GTK_NEW_TOOLTIP_API
-#include <gtkmm/tooltips.h>
-#endif
 #include <gtkmm/textbuffer.h>
 #include <gtkmm/main.h>
 #include <gdkmm/color.h>
@@ -79,6 +76,7 @@ struct UIRequest : public BaseUI::BaseRequestObject {
     UIRequest () {
             type = NullMessage;
     }
+    const char *hint;
     
     ~UIRequest () { 
 	    if (type == ErrorMessage && msg) {
@@ -119,9 +117,9 @@ class UI : public Receiver, public AbstractUI<UIRequest>
 	void toggle_errors ();
 	void show_errors ();
 	void touch_display (Touchable *);
-	void set_tip (Gtk::Widget &w, const gchar *tip);
-	void set_tip (Gtk::Widget &w, const std::string &tip);
-	void set_tip (Gtk::Widget *w, const gchar *tip, const gchar *hlp="");
+	void set_tip (Gtk::Widget &w, const gchar *tip, const gchar *hint = 0);
+	void set_tip (Gtk::Widget &w, const std::string &tip, const std::string &hint = "");
+	void set_tip (Gtk::Widget *w, const gchar *tip, const gchar *hint = 0);
 	void idle_add (int (*func)(void *), void *arg);
 
 	Gtk::Main& main() const { return *theMain; }
@@ -145,6 +143,8 @@ class UI : public Receiver, public AbstractUI<UIRequest>
 	sigc::signal<void> stopping;
 
 	sigc::signal<void> theme_changed;
+	sigc::signal<void, Glib::ustring> tipped_widget_entered;
+	sigc::signal<void> tipped_widget_left;
 
 	static bool just_hide_it (GdkEventAny *, Gtk::Window *);
 
@@ -161,9 +161,6 @@ class UI : public Receiver, public AbstractUI<UIRequest>
 	static Glib::Thread* gui_thread;
 	bool _active;
 	Gtk::Main *theMain;
-#ifndef GTK_NEW_TOOLTIP_API
-	Gtk::Tooltips *tips;
-#endif
 	TextViewer *errors;
 	Glib::RefPtr<Gtk::TextBuffer::Tag> error_ptag;
 	Glib::RefPtr<Gtk::TextBuffer::Tag> error_mtag;
@@ -183,6 +180,9 @@ class UI : public Receiver, public AbstractUI<UIRequest>
 	bool color_picked;
 
 	void do_request (UIRequest*);
+
+	bool enter_tipped_widget (GdkEventCrossing *, Gtk::Widget *);
+	bool leave_tipped_widget (GdkEventCrossing *);
 };
 
 } /* namespace */

@@ -318,20 +318,35 @@ UI::touch_display (Touchable *display)
 	send_request (req);
 }
 
+/** Set tooltip and hint for a widget.
+ *  @param w Widget.
+ *  @param tip Tooltip.
+ *  @param hint Hint text, or 0 to just use the tooltip.
+ */
 void
-UI::set_tip (Widget &w, const gchar *tip)
+UI::set_tip (Widget &w, const gchar *tip, const gchar* hint)
 {
-	set_tip(&w, tip, "");
+	set_tip(&w, tip, hint);
 }
 
+/** Set tooltip and hint for a widget.
+ *  @param w Widget.
+ *  @param tip Tooltip.
+ *  @param hint Hint text, or empty to just use the tooltip.
+ */
 void
-UI::set_tip (Widget &w, const std::string& tip)
+UI::set_tip (Widget &w, const std::string& tip, const std::string& hint)
 {
-	set_tip(&w, tip.c_str(), "");
+	set_tip(&w, tip.c_str(), hint.empty() ? 0 : hint.c_str());
 }
 
+/** Set tooltip and hint for a widget.
+ *  @param w Widget.
+ *  @param tip Tooltip.
+ *  @param hint Hint text, or 0 to just use the tooltip.
+ */
 void
-UI::set_tip (Widget *w, const gchar *tip, const gchar *hlp)
+UI::set_tip (Widget *w, const gchar *tip, const gchar *hint)
 {
 	UIRequest *req = get_request (SetTip);
 
@@ -369,7 +384,7 @@ UI::set_tip (Widget *w, const gchar *tip, const gchar *hlp)
 
 	req->widget = w;
 	req->msg = msg.c_str();
-	req->msg2 = hlp;
+	req->hint = hint;
 
 	send_request (req);
 }
@@ -458,6 +473,11 @@ UI::do_request (UIRequest* req)
 	} else if (req->type == SetTip) {
 
 		gtk_widget_set_tooltip_markup (req->widget->gobj(), req->msg);
+		if (req->hint) {
+			req->widget->set_data ("hint", strdup (req->hint), free_parameter);
+		}
+		req->widget->signal_enter_notify_event().connect (bind (sigc::mem_fun (*this, &UI::enter_tipped_widget), req->widget));
+		req->widget->signal_leave_notify_event().connect (sigc::mem_fun (*this, &UI::leave_tipped_widget));
 
 	} else {
 
@@ -737,4 +757,25 @@ UI::color_selection_deleted (GdkEventAny */*ev*/)
 {
 	Main::quit ();
 	return true;
+}
+
+bool
+UI::enter_tipped_widget (GdkEventCrossing *, Gtk::Widget* w)
+{
+	void* d = w->get_data ("hint");
+	if (d) {
+		Glib::ustring const h ((char *) d);
+		tipped_widget_entered (Glib::ustring ((char *) d)); /* EMIT SIGNAL */
+	} else {
+		tipped_widget_entered (w->get_tooltip_text ()); /* EMIT SIGNAL */
+	}
+	
+	return false;
+}
+
+bool
+UI::leave_tipped_widget (GdkEventCrossing *)
+{
+	tipped_widget_left (); /* EMIT SIGNAL */
+	return false;
 }

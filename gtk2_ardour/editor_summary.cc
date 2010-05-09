@@ -32,6 +32,8 @@
 #include "route_time_axis.h"
 #include "hints.h"
 
+#include "i18n.h"
+
 using namespace std;
 using namespace ARDOUR;
 using Gtkmm2ext::Keyboard;

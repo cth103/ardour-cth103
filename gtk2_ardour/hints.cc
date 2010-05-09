@@ -1,4 +1,5 @@
 #include <gtkmm/box.h>
+#include "ardour_ui.h"
 #include "hints.h"
 #include "i18n.h"
 
@@ -15,6 +16,8 @@ Hints::Hints ()
 	_label.set_alignment (0, 0.5);
 	_label.set_use_markup ();
 	_label.set_markup (_("<b>Welcome to Ardour!</b>"));
+
+	ARDOUR_UI::instance()->tipped_widget_entered.connect (sigc::mem_fun (*this, &Hints::set));
 }
 
 Gtk::Widget&
