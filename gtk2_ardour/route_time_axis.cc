@@ -206,11 +206,9 @@ RouteTimeAxisView::set_route (boost::shared_ptr<Route> rt)
 	controls_table.attach (route_group_button, 7, 8, 1, 2, Gtk::FILL|Gtk::EXPAND, Gtk::FILL|Gtk::EXPAND, 0, 0);
 	controls_table.attach (gm.get_gain_slider(), 0, 5, 1, 2, Gtk::SHRINK, Gtk::SHRINK, 0, 0);
 
-	ARDOUR_UI::instance()->set_tip(*solo_button,_("Solo"));
-	ARDOUR_UI::instance()->set_tip(*mute_button,_("Mute"));
-	ARDOUR_UI::instance()->set_tip(route_group_button, _("Route Group"));
-	ARDOUR_UI::instance()->set_tip(playlist_button,_("Playlist"));
-	ARDOUR_UI::instance()->set_tip(automation_button, _("Automation"));
+	ARDOUR_UI::instance()->set_tip(route_group_button, _("Route Group"), _("Click to open the route group menu."));
+	ARDOUR_UI::instance()->set_tip(playlist_button,_("Playlist"), _("Click to open the playlist menu."));
+	ARDOUR_UI::instance()->set_tip(automation_button, _("Automation"), _("Click to open the automation menu."));
 
 	label_view ();
 
@@ -340,6 +338,12 @@ RouteTimeAxisView::label_view ()
 	}
 
 	ARDOUR_UI::instance()->set_tip (name_entry, x);
+
+	if (is_track()) {
+		ARDOUR_UI::instance()->set_tip (name_entry, x, _("Left-click to edit the track name"));
+	} else {
+		ARDOUR_UI::instance()->set_tip (name_entry, x, _("Left-click to edit the bus name"));
+	}
 }
 
 void

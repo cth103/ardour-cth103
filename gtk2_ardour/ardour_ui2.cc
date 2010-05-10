@@ -125,9 +125,9 @@ ARDOUR_UI::setup_windows ()
 void
 ARDOUR_UI::setup_tooltips ()
 {
-	set_tip (roll_button, _("Play from playhead"));
-	set_tip (stop_button, _("Stop playback"));
-	set_tip (rec_button, _("Toggle record"));
+	set_tip (roll_button, _("Play from playhead"), _("Left-click to play from the playhead."));
+	set_tip (stop_button, _("Stop playback"), _("Left-click to stop playback."));
+	set_tip (rec_button, _("Toggle record"), _("Left-click to toggle record."));
 	set_tip (play_selection_button, _("Play range/selection"));
 	set_tip (join_play_range_button, _("Always play range/selection"));
 	set_tip (goto_start_button, _("Go to start of session"));
