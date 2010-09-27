@@ -296,22 +296,6 @@ EditorSummary::centre_on_click (GdkEventButton* ev)
 	set_editor (ex, ey);
 }
 
-EditorSummary::Position
-EditorSummary::position (double x, double y) const
-{
-	pair<double, double> ex;
-	pair<double, double> ey;
-	get_editor (&ex, &ey);
-
-	if (ex.first <= x && x <= ex.second && ey.first <= y && y <= ey.second) {
-		return IN_VIEWBOX;
-	} else if (ex.first < x && x <= ex.second) {
-		return BELOW_OR_ABOVE_VIEWBOX;
-	}
-
-	return TO_LEFT_OR_RIGHT_OF_VIEWBOX;
-}
-
 /** Handle a button press.
  *  @param ev GTK event.
  */
@@ -566,15 +550,15 @@ EditorSummary::on_motion_notify_event (GdkEventMotion* ev)
 
 	} else {
 
-		Position const p = position (ev->x, ev->y);
+		Position const p = get_position (ev->x, ev->y);
 
 		set_cursor (p);
 
 		string msg = _("Shift-click to centre the view around the pointer.  ");
 		
-		if (p == IN_VIEWBOX) {
+		if (p == INSIDE) {
 			msg += _("Click and drag to move view area.  Ctrl-click and drag to zoom in or out.");
-		} else if (p == BELOW_OR_ABOVE_VIEWBOX) {
+		} else if (p == BELOW_OR_ABOVE) {
 			msg += _("Click and drag to move view area up or down.  Ctrl-click and drag to zoom in or out.");
 		} else {
 			msg += _("Click and drag to move view area backwards or forwards in time.  Ctrl-click and drag to zoom in or out.");
