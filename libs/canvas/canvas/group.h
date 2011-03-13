@@ -11,6 +11,7 @@ public:
 	Group (Group *);
 
 	void add (Item *);
+	void remove (Item *);
 
 	void render (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
 	Rect bounding_box () const;

@@ -10,3 +10,11 @@ Item::Item (Group* parent)
 		_parent->add (this);
 	}
 }
+
+Item::~Item ()
+{
+	if (_parent) {
+		_parent->remove (this);
+	}
+}
+		

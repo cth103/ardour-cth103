@@ -14,7 +14,7 @@ class Item
 {
 public:
 	Item (Group *);
-	virtual ~Item () {}
+	virtual ~Item ();
 
 	/** @param area Area in parent's coordinates */
 	virtual void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const = 0;

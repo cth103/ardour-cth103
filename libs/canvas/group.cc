@@ -53,3 +53,9 @@ Group::add (Item* i)
 {
 	_items.push_back (i);
 }
+
+void
+Group::remove (Item* i)
+{
+	_items.remove (i);
+}
