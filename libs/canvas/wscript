@@ -45,7 +45,7 @@ def build(bld):
 	obj.source = canvas_sources
 	obj.export_incdirs = ['.']
 	obj.includes     = ['.']
-	obj.uselib       = 'SIGCPP CAIROMM'
+	obj.uselib       = 'SIGCPP CAIROMM GTKMM'
 	obj.name         = 'libcanvas'
 	obj.target       = 'canvas'
 	obj.vnum         = CANVAS_LIB_VERSION
@@ -56,20 +56,36 @@ def build(bld):
 				os.path.normpath(bld.env['DATADIRNAME']), 'locale') + '"']
 
 	if bld.env['BUILD_TESTS'] and bld.env['HAVE_CPPUNIT']:
-		testobj              = bld.new_task_gen('cxx', 'program')
-		testobj.source       = '''
+		
+		manual_tests              = '''
+			test/hello_world.cc
+			test/gtk.cc
+		'''.split()
+
+		for t in manual_tests:
+			manual_testobj = bld.new_task_gen('cxx', 'program')
+			manual_testobj.source = t
+			manual_testobj.includes = obj.includes + ['test', '../pbd']
+			manual_testobj.uselib       = 'CPPUNIT SIGCPP CAIROMM GTKMM'
+			manual_testobj.uselib_local = 'libcanvas'
+			manual_testobj.name         = 'libcanvas-manual-tests'
+			manual_testobj.target       = t[:-3]
+			manual_testobj.install_path = ''
+
+		unit_testobj              = bld.new_task_gen('cxx', 'program')
+		unit_testobj.source       = '''
 			test/hello_world.cc
 		'''.split()
-		testobj.includes     = obj.includes + ['test', '../pbd']
-		testobj.uselib       = 'CPPUNIT SIGCPP CAIROMM'
-		testobj.uselib_local = 'libcanvas'
-		testobj.name         = 'libcanvas-tests'
-		testobj.target       = 'run-tests'
-		testobj.install_path = ''
-		testobj.cxxflags     = ['-DPACKAGE="libcanvastest"']
-		testobj.cxxflags     += ['-DDATA_DIR="' + os.path.normpath(bld.env['DATADIR']) + '"']
-		testobj.cxxflags     += ['-DCONFIG_DIR="' + os.path.normpath(bld.env['CONFIGDIR']) + '"']
-		testobj.cxxflags     += ['-DMODULE_DIR="' + os.path.normpath(bld.env['LIBDIR']) + '"']
+		unit_testobj.includes     = obj.includes + ['test', '../pbd']
+		unit_testobj.uselib       = 'CPPUNIT SIGCPP CAIROMM GTKMM'
+		unit_testobj.uselib_local = 'libcanvas'
+		unit_testobj.name         = 'libcanvas-unit-tests'
+		unit_testobj.target       = 'run-unit-tests'
+		unit_testobj.install_path = ''
+		unit_testobj.cxxflags     = ['-DPACKAGE="libcanvastest"']
+		unit_testobj.cxxflags     += ['-DDATA_DIR="' + os.path.normpath(bld.env['DATADIR']) + '"']
+		unit_testobj.cxxflags     += ['-DCONFIG_DIR="' + os.path.normpath(bld.env['CONFIGDIR']) + '"']
+		unit_testobj.cxxflags     += ['-DMODULE_DIR="' + os.path.normpath(bld.env['LIBDIR']) + '"']
 
 def shutdown():
 	autowaf.shutdown()

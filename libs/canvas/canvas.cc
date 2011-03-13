@@ -10,38 +10,23 @@ Canvas::Canvas ()
 
 }
 
-Canvas*
-Canvas::create_image ()
-{
-	ImageCanvas* c = new ImageCanvas;
-	c->_surface = c->create_surface ();
-	c->_context = c->create_context ();
-	return c;
-}
-
-Cairo::RefPtr<Cairo::Context>
-Canvas::create_context ()
-{
-	assert (_surface);
-	return Cairo::Context::create (_surface);
-}
-
 /** @param area Area in canvas coordinates */
 void
-Canvas::render (Rect const & area) const
+Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
 {
-	_root.render (_root.bounding_box().intersection (area), _context);
+	_root.render (_root.bounding_box().intersection (area), context);
 }
 
 ImageCanvas::ImageCanvas ()
+	: _surface (Cairo::ImageSurface::create (Cairo::FORMAT_ARGB32, 1024, 1024))
 {
-
+	_context = Cairo::Context::create (_surface);
 }
-		
-Cairo::RefPtr<Cairo::Surface>
-ImageCanvas::create_surface ()
+
+void
+ImageCanvas::render_to_image (Rect const & area) const
 {
-	return Cairo::ImageSurface::create (Cairo::FORMAT_ARGB32, 1024, 1024);
+	render (area, _context);
 }
 
 void
@@ -49,4 +34,9 @@ ImageCanvas::write_to_png (string const & f)
 {
 	assert (_surface);
 	_surface->write_to_png (f);
+}
+
+GtkCanvas::GtkCanvas ()
+{
+	
 }
