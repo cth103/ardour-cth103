@@ -14,7 +14,12 @@ Canvas::Canvas ()
 void
 Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
 {
-	_root.render (_root.bounding_box().intersection (area), context);
+	context->rectangle (area.x0, area.y0, area.width(), area.height());
+	context->clip ();
+	Rect const draw = _root.bounding_box().intersection (area);
+	if (draw.width() > 0 && draw.height() > 0) {
+		_root.render (draw, context);
+	}
 }
 
 ImageCanvas::ImageCanvas ()

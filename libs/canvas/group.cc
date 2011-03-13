@@ -15,14 +15,15 @@ Group::Group (Group* parent)
 void
 Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
-	cout << "=> render group " << area << "\n";
-	
 	context->save ();
 	Rect const our_bbox = bounding_box ();
 	context->translate (our_bbox.x0, our_bbox.y0);
 	
 	for (list<Item*>::const_iterator i = _items.begin(); i != _items.end(); ++i) {
-		(*i)->render ((*i)->bounding_box().intersection (area), context);
+		Rect const draw = (*i)->bounding_box().intersection (area);
+		if (draw.width() > 0 && draw.height() > 0) {
+			(*i)->render (draw, context);
+		}
 	}
 
 	context->restore ();

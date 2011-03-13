@@ -14,7 +14,6 @@ Rectangle::Rectangle (Group* parent)
 void
 Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
-	cout << "=> render rectangle " << area << ": rect " << _rect << "\n";
 	context->set_source_rgb (1, 0, 0);
 	context->rectangle (_rect.x0, _rect.y0, _rect.width(), _rect.height());
 	context->stroke ();
