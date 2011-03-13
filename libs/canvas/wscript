@@ -1,0 +1,76 @@
+#!/usr/bin/env python
+import autowaf
+import os
+
+# Version of this package (even if built as a child)
+MAJOR = '0'
+MINOR = '0'
+MICRO = '0'
+CANVAS_VERSION = "%s.%s.%s" % (MAJOR, MINOR, MICRO)
+
+# Library version (UNIX style major, minor, micro)
+# major increment <=> incompatible changes
+# minor increment <=> compatible changes (additions)
+# micro increment <=> no interface changes
+CANVAS_LIB_VERSION = '0.0.0'
+
+# Variables for 'waf dist'
+APPNAME = 'canvas'
+VERSION = CANVAS_VERSION
+
+canvas_sources = [
+	'canvas.cc',
+	'item.cc',
+	'group.cc',
+	'rectangle.cc',
+	'types.cc'
+]
+
+# Mandatory variables
+srcdir = '.'
+blddir = 'build'
+
+path_prefix = 'libs/canvas/'
+
+def set_options(opt):
+	autowaf.set_options(opt)
+
+def configure(conf):
+	autowaf.configure(conf)
+	autowaf.check_pkg(conf, 'cairomm-1.0', uselib_store='CAIROMM', atleast_version='1.8.4')
+	conf.check_tool('compiler_cxx')
+
+def build(bld):
+	obj = bld.new_task_gen(features = 'cxx cshlib')
+	obj.source = canvas_sources
+	obj.export_incdirs = ['.']
+	obj.includes     = ['.']
+	obj.uselib       = 'SIGCPP CAIROMM'
+	obj.name         = 'libcanvas'
+	obj.target       = 'canvas'
+	obj.vnum         = CANVAS_LIB_VERSION
+	obj.install_path = os.path.join(bld.env['LIBDIR'], 'ardour3')
+	obj.cxxflags     = [
+			'-DPACKAGE="libcanvas"',
+			'-DLOCALEDIR="' + os.path.join(
+				os.path.normpath(bld.env['DATADIRNAME']), 'locale') + '"']
+
+	if bld.env['BUILD_TESTS'] and bld.env['HAVE_CPPUNIT']:
+		testobj              = bld.new_task_gen('cxx', 'program')
+		testobj.source       = '''
+			test/hello_world.cc
+		'''.split()
+		testobj.includes     = obj.includes + ['test', '../pbd']
+		testobj.uselib       = 'CPPUNIT SIGCPP CAIROMM'
+		testobj.uselib_local = 'libcanvas'
+		testobj.name         = 'libcanvas-tests'
+		testobj.target       = 'run-tests'
+		testobj.install_path = ''
+		testobj.cxxflags     = ['-DPACKAGE="libcanvastest"']
+		testobj.cxxflags     += ['-DDATA_DIR="' + os.path.normpath(bld.env['DATADIR']) + '"']
+		testobj.cxxflags     += ['-DCONFIG_DIR="' + os.path.normpath(bld.env['CONFIGDIR']) + '"']
+		testobj.cxxflags     += ['-DMODULE_DIR="' + os.path.normpath(bld.env['LIBDIR']) + '"']
+
+def shutdown():
+	autowaf.shutdown()
+
