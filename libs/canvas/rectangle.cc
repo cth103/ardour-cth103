@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cairomm/context.h>
 #include "canvas/rectangle.h"
+#include "canvas/debug.h"
 
 using namespace std;
 using namespace ArdourCanvas;
@@ -17,6 +18,8 @@ Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) con
 	context->set_source_rgb (1, 0, 0);
 	context->rectangle (_rect.x0, _rect.y0, _rect.width(), _rect.height());
 	context->stroke ();
+
+	Debug::instance()->render_object_count++;
 }
 
 Rect

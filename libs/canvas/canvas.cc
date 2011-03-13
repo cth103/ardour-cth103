@@ -1,5 +1,6 @@
 #include <cassert>
 #include "canvas/canvas.h"
+#include "canvas/debug.h"
 
 using namespace std;
 using namespace ArdourCanvas;
@@ -14,12 +15,17 @@ Canvas::Canvas ()
 void
 Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
 {
+	Debug::instance()->render_object_count = 0;
+	
 	context->rectangle (area.x0, area.y0, area.width(), area.height());
 	context->clip ();
+	
 	Rect const draw = _root.bounding_box().intersection (area);
 	if (draw.width() > 0 && draw.height() > 0) {
 		_root.render (draw, context);
 	}
+
+	cout << "Rendered: " << Debug::instance()->render_object_count << "\n";
 }
 
 ImageCanvas::ImageCanvas ()

@@ -20,6 +20,7 @@ VERSION = CANVAS_VERSION
 
 canvas_sources = [
 	'canvas.cc',
+	'debug.cc',
 	'item.cc',
 	'group.cc',
 	'rectangle.cc',
