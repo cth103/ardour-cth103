@@ -38,11 +38,10 @@ LookupTable::build ()
 		return;
 	}
 
-	_cell_size.x = bbox.get().width() / _dimension;
-	_cell_size.y = bbox.get().height() / _dimension;
+	_cell_size.x = bbox.get().x1 / _dimension;
+	_cell_size.y = bbox.get().y1 / _dimension;
 
 	for (list<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
-		int x0, y0, x1, y1;
 
 		/* item bbox in its own coordinates */
 		boost::optional<Rect> item_bbox = (*i)->bounding_box ();
@@ -53,6 +52,7 @@ LookupTable::build ()
 		/* and in the group's coordinates */
 		Rect const item_bbox_in_group = (*i)->item_to_parent (item_bbox.get ());
 		
+		int x0, y0, x1, y1;
 		area_to_indices (item_bbox_in_group, x0, y0, x1, y1);
 
 		assert (x0 <= _dimension);

@@ -24,4 +24,8 @@ Item::item_to_parent (Rect const & r) const
 	return r.translate (_position);
 }
 
-	
+void
+Item::set_position (Duple p)
+{
+	_position = p;
+}
