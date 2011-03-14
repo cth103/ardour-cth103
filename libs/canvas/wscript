@@ -77,6 +77,7 @@ def build(bld):
 		unit_testobj              = bld.new_task_gen('cxx', 'program')
 		unit_testobj.source       = '''
 			test/lookup_table.cc
+			test/types.cc
 			test/testrunner.cpp
 		'''.split()
 		unit_testobj.includes     = obj.includes + ['test', '../pbd']

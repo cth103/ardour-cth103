@@ -17,7 +17,6 @@ public:
 		int max_x = 1024;
 		int max_y = 1024;
 
-		srand (42);
 		for (int x = 0; x < Ns; ++x) {
 			for (int y = 0; y < Ns; ++y) {
 				Rectangle* r = new Rectangle (_canvas->root ());

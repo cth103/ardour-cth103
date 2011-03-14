@@ -6,10 +6,16 @@
 using namespace std;
 using namespace ArdourCanvas;
 
+Group::Group ()
+	: Item (0)
+	, _lut (*this, 64)
+{
+}
+
 Group::Group (Group* parent)
 	: Item (parent)
+	, _lut (*this, 64)
 {
-
 }
 
 void
@@ -18,11 +24,13 @@ Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 	context->save ();
 	Rect const our_bbox = bounding_box ();
 	context->translate (our_bbox.x0, our_bbox.y0);
+
+	list<Item*> items = _lut.get (area);
 	
-	for (list<Item*>::const_iterator i = _items.begin(); i != _items.end(); ++i) {
-		Rect const draw = (*i)->bounding_box().intersection (area);
-		if (draw.width() > 0 && draw.height() > 0) {
-			(*i)->render (draw, context);
+	for (list<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
+		boost::optional<Rect> r = (*i)->bounding_box().intersection (area);
+		if (r) {
+			(*i)->render (*r, context);
 		}
 	}
 
@@ -53,10 +61,12 @@ void
 Group::add (Item* i)
 {
 	_items.push_back (i);
+	_lut.add ();
 }
 
 void
 Group::remove (Item* i)
 {
 	_items.remove (i);
+	_lut.remove (i);
 }

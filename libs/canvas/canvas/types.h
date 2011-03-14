@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <cfloat>
+#include <boost/optional.hpp>
 
 namespace ArdourCanvas
 {
@@ -51,7 +52,7 @@ struct Rect
 	Coord x1;
 	Coord y1;
 
-	Rect intersection (Rect const &) const;
+	boost::optional<Rect> intersection (Rect const &) const;
 	void extend (Rect const &);
 	void translate (Duple const &);
 

@@ -5,17 +5,21 @@
 using namespace std;
 using namespace ArdourCanvas;
 
-Rect
+boost::optional<Rect>
 Rect::intersection (Rect const & o) const
 {
 	Rect i;
 	
 	i.x0 = max (x0, o.x0);
 	i.y0 = max (y0, o.y0);
-	i.x1 = max (x1, o.x1);
-	i.y1 = max (y1, o.y1);
+	i.x1 = min (x1, o.x1);
+	i.y1 = min (y1, o.y1);
+
+	if (i.x0 > i.x1 || i.y0 > i.y1) {
+		return boost::optional<Rect> ();
+	}
 	
-	return i;
+	return boost::optional<Rect> (i);
 }
 
 void

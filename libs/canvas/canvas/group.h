@@ -1,6 +1,7 @@
 #include <list>
 #include "canvas/item.h"
 #include "canvas/types.h"
+#include "canvas/lookup_table.h"
 
 namespace ArdourCanvas
 {
@@ -8,7 +9,8 @@ namespace ArdourCanvas
 class Group : public Item
 {
 public:
-	Group (Group *);
+	Group ();
+	explicit Group (Group *);
 
 	void add (Item *);
 	void remove (Item *);
@@ -20,8 +22,12 @@ public:
 	Rect bounding_box () const;
 
 private:
+	Group (Group const &);
+	
 	std::list<Item*> _items;
 	Duple _position;
+
+	mutable LookupTable _lut;
 };
 
 }
