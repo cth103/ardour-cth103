@@ -19,7 +19,7 @@ public:
 	}
 
 	void render (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
-	Rect bounding_box () const;
+	boost::optional<Rect> bounding_box () const;
 
 private:
 	Group (Group const &);

@@ -29,3 +29,20 @@ TypesTest::intersect ()
 		CPPUNIT_ASSERT (!c.is_initialized ());
 	}
 }
+
+void
+TypesTest::extend ()
+{
+	{
+		Rect a (50, 60, 70, 80);
+		Rect b (100, 110, 120, 130);
+		Rect c = a.extend (b);
+
+		CPPUNIT_ASSERT (c.x0 == 50);
+		CPPUNIT_ASSERT (c.y0 == 60);
+		CPPUNIT_ASSERT (c.x1 == 120);
+		CPPUNIT_ASSERT (c.y1 == 130);
+	}
+}
+		
+		

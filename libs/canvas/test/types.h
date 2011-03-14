@@ -9,6 +9,7 @@ class TypesTest : public CppUnit::TestFixture
 
 public:
 	void intersect ();
+	void extend ();
 };
 
 	

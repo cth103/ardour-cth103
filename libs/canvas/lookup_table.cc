@@ -24,19 +24,36 @@ LookupTable::build ()
 {
 	list<Item*> const & items = _group.items ();
 
+	/* number of cells */
 	int const cells = items.size() / _items_per_cell;
+	/* hence number down each side of the table's square */
 	_dimension = max (1, int (rint (sqrt (cells))));
 
 	boost::multi_array<Cell, 2>::extent_gen extents;
 	_cells.resize (extents[_dimension][_dimension]);
 
-	Rect const bbox = _group.bounding_box ();
-	_cell_size.x = bbox.width() / _dimension;
-	_cell_size.y = bbox.height() / _dimension;
+	/* our group's bounding box in its coordinates */
+	boost::optional<Rect> bbox = _group.bounding_box ();
+	if (!bbox) {
+		return;
+	}
+
+	_cell_size.x = bbox.get().width() / _dimension;
+	_cell_size.y = bbox.get().height() / _dimension;
 
 	for (list<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
 		int x0, y0, x1, y1;
-		area_to_indices ((*i)->bounding_box (), x0, y0, x1, y1);
+
+		/* item bbox in its own coordinates */
+		boost::optional<Rect> item_bbox = (*i)->bounding_box ();
+		if (!item_bbox) {
+			continue;
+		}
+
+		/* and in the group's coordinates */
+		Rect const item_bbox_in_group = (*i)->item_to_parent (item_bbox.get ());
+		
+		area_to_indices (item_bbox_in_group, x0, y0, x1, y1);
 
 		assert (x0 <= _dimension);
 		assert (y0 <= _dimension);
@@ -65,7 +82,7 @@ LookupTable::area_to_indices (Rect const & area, int& x0, int& y0, int& x1, int&
 	y1 = ceil (area.y1 / _cell_size.y);
 }
 	
-
+/** @param area Area in our owning item's coordinates */
 list<Item*>
 LookupTable::get (Rect const & area)
 {
@@ -77,7 +94,11 @@ LookupTable::get (Rect const & area)
 			list<Item*> const & items = _group.items ();
 			for (list<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
 				int x0, y0, x1, y1;
-				area_to_indices ((*i)->bounding_box (), x0, y0, x1, y1);
+				boost::optional<Rect> item_bbox = (*i)->bounding_box ();
+				if (!item_bbox) {
+					continue;
+				}
+				area_to_indices (item_bbox.get(), x0, y0, x1, y1);
 				if (x0 >= _dimension || x1 >= _dimension || y0 >= _dimension || y1 >= _dimension) {
 					build_needed = true;
 					break;
@@ -129,8 +150,13 @@ LookupTable::add ()
 void
 LookupTable::add_to_existing (Item* i)
 {
+	boost::optional<Rect> item_bbox = i->bounding_box ();
+	if (!item_bbox) {
+		return;
+	}
+
 	int x0, y0, x1, y1;
-	area_to_indices (i->bounding_box (), x0, y0, x1, y1);
+	area_to_indices (item_bbox.get(), x0, y0, x1, y1);
 
 	for (int x = x0; x < x1; ++x) {
 		for (int y = y0; y < y1; ++y) {

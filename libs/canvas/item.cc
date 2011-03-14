@@ -17,4 +17,11 @@ Item::~Item ()
 		_parent->remove (this);
 	}
 }
-		
+
+Rect
+Item::item_to_parent (Rect const & r) const
+{
+	return r.translate (_position);
+}
+
+	

@@ -19,8 +19,13 @@ Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context
 		
 	context->rectangle (area.x0, area.y0, area.width(), area.height());
 	context->clip ();
-	
-	boost::optional<Rect> draw = _root.bounding_box().intersection (area);
+
+	boost::optional<Rect> root_bbox = _root.bounding_box();
+	if (!root_bbox) {
+		return;
+	}
+
+	boost::optional<Rect> draw = root_bbox.get().intersection (area);
 	if (draw) {
 		_root.render (*draw, context);
 	}

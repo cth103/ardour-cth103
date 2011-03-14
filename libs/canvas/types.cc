@@ -22,22 +22,26 @@ Rect::intersection (Rect const & o) const
 	return boost::optional<Rect> (i);
 }
 
-void
-Rect::translate (Duple const & t)
+Rect
+Rect::translate (Duple const & t) const
 {
-	x0 += t.x;
-	y0 += t.y;
-	x1 += t.x;
-	y1 += t.y;
+	Rect r;
+	r.x0 = x0 + t.x;
+	r.y0 = y0 + t.y;
+	r.x1 = x1 + t.x;
+	r.y1 = y1 + t.y;
+	return r;
 }
 
-void
-Rect::extend (Rect const & o)
+Rect
+Rect::extend (Rect const & o) const
 {
-	x0 = min (x0, o.x0);
-	y0 = min (y0, o.y0);
-	x1 = max (x1, o.x1);
-	y1 = max (y1, o.y1);
+	Rect r;
+	r.x0 = min (x0, o.x0);
+	r.y0 = min (y0, o.y0);
+	r.x1 = max (x1, o.x1);
+	r.y1 = max (y1, o.y1);
+	return r;
 }
 
 Duple

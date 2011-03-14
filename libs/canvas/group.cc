@@ -18,42 +18,59 @@ Group::Group (Group* parent)
 {
 }
 
+/** @param area Area to draw in this group's coordinates.
+ *  @param context Context, set up with its origin at this group's position.
+ */
 void
 Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
-	context->save ();
-	Rect const our_bbox = bounding_box ();
-	context->translate (our_bbox.x0, our_bbox.y0);
-
 	list<Item*> items = _lut.get (area);
 	
 	for (list<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
-		boost::optional<Rect> r = (*i)->bounding_box().intersection (area);
+		boost::optional<Rect> item_bbox = (*i)->bounding_box ();
+		if (!item_bbox) {
+			continue;
+		}
+		
+		Rect const group_bbox = (*i)->item_to_parent (*item_bbox);
+		boost::optional<Rect> r = group_bbox.intersection (area);
 		if (r) {
-			(*i)->render (*r, context);
+			context->save ();
+			context->translate ((*i)->position().x, (*i)->position().y);
+			Rect sub_area = *r;
+			sub_area.translate ((*i)->position ());
+			(*i)->render (sub_area, context);
+			context->restore ();
 		}
 	}
-
-	context->restore ();
 }
 
-Rect
+boost::optional<Rect>
 Group::bounding_box () const
 {
 	if (_items.empty ()) {
-		return Rect (_position.x, _position.y, 0, 0);
+		return boost::optional<Rect> ();
 	}
+
+	bool have_initial = false;
+
+	Rect bbox;
 	
-	list<Item*>::const_iterator i = _items.begin();
-	Rect bbox = (*i)->bounding_box ();
-	++i;
+	for (list<Item*>::const_iterator i = _items.begin(); i != _items.end(); ++i) {
+		boost::optional<Rect> item_bbox = (*i)->bounding_box ();
+		if (!item_bbox) {
+			continue;
+		}
 
-	while (i != _items.end()) {
-		bbox.extend ((*i)->bounding_box ());
-		++i;
+		Rect group_bbox = item_bbox.get().translate ((*i)->position ());
+		if (have_initial) {
+			bbox = bbox.extend (group_bbox);
+		} else {
+			bbox = group_bbox;
+			have_initial = true;
+		}
 	}
 
-	bbox.translate (-_position);
 	return bbox;
 }
 

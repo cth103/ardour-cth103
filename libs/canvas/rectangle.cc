@@ -29,10 +29,10 @@ Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) con
 	Debug::instance()->render_object_count++;
 }
 
-Rect
+boost::optional<Rect>
 Rectangle::bounding_box () const
 {
-	return _rect;
+	return boost::optional<Rect> (_rect);
 }
 
 void

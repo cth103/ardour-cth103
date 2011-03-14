@@ -53,8 +53,8 @@ struct Rect
 	Coord y1;
 
 	boost::optional<Rect> intersection (Rect const &) const;
-	void extend (Rect const &);
-	void translate (Duple const &);
+	Rect extend (Rect const &) const;
+	Rect translate (Duple const &) const;
 
 	Distance width () const {
 		return x1 - x0;
