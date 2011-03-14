@@ -5,9 +5,23 @@ using namespace std;
 using namespace ArdourCanvas;
 
 LookupTable::LookupTable (Group const & group, int items_per_cell)
-	: _items_per_cell (items_per_cell)
+	: _group (group)
+	, _items_per_cell (items_per_cell)
 {
-	list<Item*> const & items = group.items ();
+	build ();
+}
+
+void
+LookupTable::clear ()
+{
+	boost::multi_array<Cell, 2>::extent_gen extents;
+	_cells.resize (extents[0][0]);
+}
+
+void
+LookupTable::build ()
+{
+	list<Item*> const & items = _group.items ();
 	
 	if (items.empty ()) {
 		return;
@@ -19,7 +33,7 @@ LookupTable::LookupTable (Group const & group, int items_per_cell)
 	boost::multi_array<Cell, 2>::extent_gen extents;
 	_cells.resize (extents[dim][dim]);
 
-	Rect const bbox = group.bounding_box ();
+	Rect const bbox = _group.bounding_box ();
 	_cell_size.x = bbox.width() / dim;
 	_cell_size.y = bbox.height() / dim;
 

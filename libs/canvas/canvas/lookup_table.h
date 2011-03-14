@@ -18,10 +18,13 @@ public:
 
 private:
 
+	void clear ();
+	void build ();
 	void area_to_indices (Rect const &, int&, int&, int&, int&) const;
 	
 	friend class ::LookupTableTest;
-	
+
+	Group const & _group;
 	typedef std::list<Item*> Cell;
 	int _items_per_cell;
 	Duple _cell_size;
