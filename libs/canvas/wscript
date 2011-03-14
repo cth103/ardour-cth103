@@ -61,7 +61,8 @@ def build(bld):
 		
 		manual_tests              = '''
 			test/hello_world.cc
-			test/gtk.cc
+			test/gtk-many.cc
+			test/gtk-scene.cc
 		'''.split()
 
 		for t in manual_tests:
