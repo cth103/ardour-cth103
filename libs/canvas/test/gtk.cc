@@ -6,25 +6,6 @@
 using namespace std;
 using namespace ArdourCanvas;
 
-class Area : public Gtk::DrawingArea
-{
-public:
-	Area () {
-		_canvas = new GtkCanvas;
-
-	}
-
-protected:
-	virtual bool on_expose_event (GdkEventExpose* ev) {
-		Cairo::RefPtr<Cairo::Context> cr = get_window()->create_cairo_context ();
-		_canvas->render (Rect (ev->area.x, ev->area.y, ev->area.x + ev->area.width, ev->area.y + ev->area.height), cr);
-		return true;
-	}
-
-private:
-	GtkCanvas* _canvas;
-};
-
 int main (int argc, char* argv[])
 {
 	Gtk::Main kit (argc, argv);
