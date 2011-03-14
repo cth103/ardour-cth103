@@ -31,7 +31,6 @@ public:
 	virtual void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const = 0;
 
 	Rect item_to_parent (Rect const &) const;
-	Rect item_to_canvas (Rect const &) const;
 	
 protected:
 	Group* _parent;
