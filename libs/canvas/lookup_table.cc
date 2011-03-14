@@ -24,21 +24,49 @@ LookupTable::LookupTable (Group const & group, int items_per_cell)
 	_cell_size.y = bbox.height() / dim;
 
 	for (list<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
-		Rect const item_bbox = (*i)->bounding_box ();
-		int const x0 = item_bbox.x0 / _cell_size.x;
-		int const y0 = item_bbox.y0 / _cell_size.y;
-		int const x1 = ((item_bbox.x1 - COORD_EPSILON) / _cell_size.x) + 1;
-		int const y1 = ((item_bbox.y1 - COORD_EPSILON) / _cell_size.y) + 1;
+		int x0, y0, x1, y1;
+		area_to_indices ((*i)->bounding_box (), x0, y0, x1, y1);
 
 		assert (x0 <= dim);
 		assert (y0 <= dim);
 		assert (x1 <= dim);
 		assert (y1 <= dim);
-
+		
 		for (int x = x0; x < x1; ++x) {
 			for (int y = y0; y < y1; ++y) {
 				_cells[x][y].push_back (*i);
 			}
 		}
 	}
+}
+
+void
+LookupTable::area_to_indices (Rect const & area, int& x0, int& y0, int& x1, int& y1) const
+{
+	x0 = area.x0 / _cell_size.x;
+	y0 = area.y0 / _cell_size.y;
+	x1 = ((area.x1 - COORD_EPSILON) / _cell_size.x) + 1;
+	y1 = ((area.y1 - COORD_EPSILON) / _cell_size.y) + 1;
+}
+	
+
+list<Item*>
+LookupTable::get (Rect const & area)
+{
+	list<Item*> items;
+	int x0, y0, x1, y1;
+	area_to_indices (area, x0, y0, x1, y1);
+
+	for (int x = x0; x < x1; ++x) {
+		for (int y = y0; y < y1; ++y) {
+			for (Cell::const_iterator i = _cells[x][y].begin(); i != _cells[x][y].end(); ++i) {
+				items.push_back (*i);
+			}
+		}
+	}
+
+	items.sort ();
+	items.unique ();
+
+	return items;
 }

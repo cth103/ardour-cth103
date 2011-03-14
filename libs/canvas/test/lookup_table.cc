@@ -18,7 +18,7 @@ LookupTableTest::build ()
 	Rectangle c (&group, Rect (33, 0, 64, 32));
 	Rectangle d (&group, Rect (33, 33, 64, 64));
 	LookupTable table (group, 1);
-
+	
 	CPPUNIT_ASSERT (table._items_per_cell == 1);
 	CPPUNIT_ASSERT (table._cell_size.x == 32);
 	CPPUNIT_ASSERT (table._cell_size.y == 32);
@@ -28,5 +28,19 @@ LookupTableTest::build ()
 	CPPUNIT_ASSERT (table._cells[1][1].front() == &d);
 }
 
+void
+LookupTableTest::get ()
+{
+	Group group ((Group *) 0);
+	Rectangle a (&group, Rect (0, 0, 32, 32));
+	Rectangle b (&group, Rect (0, 33, 32, 64));
+	Rectangle c (&group, Rect (33, 0, 64, 32));
+	Rectangle d (&group, Rect (33, 33, 64, 64));
+	LookupTable table (group, 1);
 
+	list<Item*> items = table.get (Rect (16, 16, 48, 48));
+	assert (items.size() == 4);
 
+	items = table.get (Rect (32, 32, 33, 33));
+	assert (items.size() == 1);
+}

@@ -14,8 +14,12 @@ class LookupTable
 {
 public:
 	LookupTable (Group const &, int);
+	std::list<Item*> get (Rect const &);
 
 private:
+
+	void area_to_indices (Rect const &, int&, int&, int&, int&) const;
+	
 	friend class ::LookupTableTest;
 	
 	typedef std::list<Item*> Cell;
