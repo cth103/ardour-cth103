@@ -47,13 +47,10 @@ public:
 	GtkCanvas ();
 };
 
-class GtkCanvasDrawingArea : public Gtk::DrawingArea
+class GtkCanvasDrawingArea : public Gtk::DrawingArea, public GtkCanvas
 {
 public:
 	GtkCanvasDrawingArea ();
-	GtkCanvas& canvas () {
-		return _canvas;
-	}
 
 protected:
 	bool on_expose_event (GdkEventExpose *);

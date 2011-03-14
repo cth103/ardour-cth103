@@ -32,10 +32,8 @@ int main (int argc, char* argv[])
 	Gtk::Window window;
 	window.set_title ("Hello world");
 	window.set_size_request (512, 512);
-	GtkCanvasDrawingArea area;
-	area.set_size_request (2048, 2048);
-
-	GtkCanvas& c = area.canvas ();
+	GtkCanvasDrawingArea canvas;
+	canvas.set_size_request (2048, 2048);
 
 	int const N = 10000;
 	double Ns = sqrt (N);
@@ -44,15 +42,15 @@ int main (int argc, char* argv[])
 	
 	for (int x = 0; x < Ns; ++x) {
 		for (int y = 0; y < Ns; ++y) {
-			Rectangle* r = new Rectangle (c.root ());
+			Rectangle* r = new Rectangle (canvas.root ());
 			r->set (Rect (x * max_x / Ns, y * max_y / Ns, (x + 1) * max_x / Ns, (y + 1) * max_y / Ns));
 		}
 	}
 	
 	Gtk::ScrolledWindow scroller;
-	scroller.add (area);
+	scroller.add (canvas);
 	window.add (scroller);
-	area.show ();
+	canvas.show ();
 	window.show_all ();
 	
 	Gtk::Main::run (window);
