@@ -51,3 +51,16 @@ GtkCanvas::GtkCanvas ()
 {
 	
 }
+
+GtkCanvasDrawingArea::GtkCanvasDrawingArea ()
+{
+	
+}
+
+bool
+GtkCanvasDrawingArea::on_expose_event (GdkEventExpose* ev)
+{
+	Cairo::RefPtr<Cairo::Context> c = get_window()->create_cairo_context ();
+	_canvas.render (Rect (ev->area.x, ev->area.y, ev->area.x + ev->area.width, ev->area.y + ev->area.height), c);
+	return true;
+}

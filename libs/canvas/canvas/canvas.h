@@ -1,4 +1,5 @@
 #include <gdkmm/window.h>
+#include <gtkmm/drawingarea.h>
 #include <cairomm/surface.h>
 #include <cairomm/context.h>
 #include "canvas/group.h"
@@ -44,6 +45,21 @@ class GtkCanvas : public Canvas
 {
 public:
 	GtkCanvas ();
+};
+
+class GtkCanvasDrawingArea : public Gtk::DrawingArea
+{
+public:
+	GtkCanvasDrawingArea ();
+	GtkCanvas& canvas () {
+		return _canvas;
+	}
+
+protected:
+	bool on_expose_event (GdkEventExpose *);
+
+private:
+	GtkCanvas _canvas;
 };
 
 }
