@@ -29,6 +29,31 @@ LookupTableTest::build ()
 }
 
 void
+LookupTableTest::build_incrementally ()
+{
+	Group group ((Group *) 0);
+	LookupTable table (group, 1);
+	CPPUNIT_ASSERT (table._items_per_cell == 1);
+
+	Rectangle a (&group, Rect (0, 0, 32, 32));
+	table.add (&a);
+	Rectangle b (&group, Rect (0, 33, 32, 64));
+	table.add (&b);
+	Rectangle c (&group, Rect (33, 0, 64, 32));
+	table.add (&c);
+	Rectangle d (&group, Rect (33, 33, 64, 64));
+	table.add (&d);
+	
+	CPPUNIT_ASSERT (table._items_per_cell == 1);
+	CPPUNIT_ASSERT (table._cell_size.x == 32);
+	CPPUNIT_ASSERT (table._cell_size.y == 32);
+	CPPUNIT_ASSERT (table._cells[0][0].front() == &a);
+	CPPUNIT_ASSERT (table._cells[0][1].front() == &b);
+	CPPUNIT_ASSERT (table._cells[1][0].front() == &c);
+	CPPUNIT_ASSERT (table._cells[1][1].front() == &d);
+}
+
+void
 LookupTableTest::get ()
 {
 	Group group ((Group *) 0);

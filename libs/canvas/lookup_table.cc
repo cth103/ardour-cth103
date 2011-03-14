@@ -24,27 +24,28 @@ LookupTable::build ()
 	list<Item*> const & items = _group.items ();
 	
 	if (items.empty ()) {
+		_dimension = 0;
 		return;
 	}
 
 	int const cells = items.size() / _items_per_cell;
-	int const dim = max (1.0, sqrt (cells));
+	_dimension = max (1.0, sqrt (cells));
 
 	boost::multi_array<Cell, 2>::extent_gen extents;
-	_cells.resize (extents[dim][dim]);
+	_cells.resize (extents[_dimension][_dimension]);
 
 	Rect const bbox = _group.bounding_box ();
-	_cell_size.x = bbox.width() / dim;
-	_cell_size.y = bbox.height() / dim;
+	_cell_size.x = bbox.width() / _dimension;
+	_cell_size.y = bbox.height() / _dimension;
 
 	for (list<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
 		int x0, y0, x1, y1;
 		area_to_indices ((*i)->bounding_box (), x0, y0, x1, y1);
 
-		assert (x0 <= dim);
-		assert (y0 <= dim);
-		assert (x1 <= dim);
-		assert (y1 <= dim);
+		assert (x0 <= _dimension);
+		assert (y0 <= _dimension);
+		assert (x1 <= _dimension);
+		assert (y1 <= _dimension);
 		
 		for (int x = x0; x < x1; ++x) {
 			for (int y = y0; y < y1; ++y) {
@@ -57,6 +58,11 @@ LookupTable::build ()
 void
 LookupTable::area_to_indices (Rect const & area, int& x0, int& y0, int& x1, int& y1) const
 {
+	if (_cell_size.x == 0 || _cell_size.y == 0) {
+		x0 = y0 = x1 = y1 = 0;
+		return;
+	}
+	
 	x0 = area.x0 / _cell_size.x;
 	y0 = area.y0 / _cell_size.y;
 	x1 = ((area.x1 - COORD_EPSILON) / _cell_size.x) + 1;
@@ -83,4 +89,22 @@ LookupTable::get (Rect const & area)
 	items.unique ();
 
 	return items;
+}
+
+void
+LookupTable::add (Item* i)
+{
+	int x0, y0, x1, y1;
+	area_to_indices (i->bounding_box (), x0, y0, x1, y1);
+
+	if (x0 >= _dimension || x1 >= _dimension || y0 >= _dimension || y1 >= _dimension) {
+		clear ();
+		build ();
+	} else {
+		for (int x = x0; x < x1; ++x) {
+			for (int y = y0; y < y1; ++y) {
+				_cells[x][y].push_back (i);
+			}
+		}
+	}
 }

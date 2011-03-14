@@ -15,6 +15,7 @@ class LookupTable
 public:
 	LookupTable (Group const &, int);
 	std::list<Item*> get (Rect const &);
+	void add (Item *);
 
 private:
 
@@ -27,6 +28,7 @@ private:
 	Group const & _group;
 	typedef std::list<Item*> Cell;
 	int _items_per_cell;
+	int _dimension;
 	Duple _cell_size;
 	boost::multi_array<Cell, 2> _cells;
 };
