@@ -1,10 +1,11 @@
 #include "canvas/item.h"
 #include "canvas/types.h"
+#include "canvas/outline.h"
 
 namespace ArdourCanvas
 {
 
-class Rectangle : public Item
+class Rectangle : public Item, public Outline
 {
 public:
 	Rectangle (Group *);

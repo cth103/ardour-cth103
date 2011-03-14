@@ -24,8 +24,10 @@ canvas_sources = [
 	'item.cc',
 	'group.cc',
 	'lookup_table.cc',
+	'outline.cc',
 	'rectangle.cc',
-	'types.cc'
+	'types.cc',
+	'utils.cc'
 ]
 
 # Mandatory variables
@@ -61,8 +63,8 @@ def build(bld):
 		
 		manual_tests              = '''
 			test/hello_world.cc
-			test/gtk-many.cc
-			test/gtk-scene.cc
+			test/gtk_many.cc
+			test/gtk_scene.cc
 		'''.split()
 
 		for t in manual_tests:

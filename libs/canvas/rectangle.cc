@@ -2,6 +2,7 @@
 #include <cairomm/context.h>
 #include "canvas/rectangle.h"
 #include "canvas/debug.h"
+#include "canvas/utils.h"
 
 using namespace std;
 using namespace ArdourCanvas;
@@ -22,8 +23,10 @@ Rectangle::Rectangle (Group* parent, Rect const & rect)
 void
 Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
-	context->set_source_rgb (1, 0, 0);
+	set_source_rgba (context, _outline_color);
+	
 	context->rectangle (_rect.x0, _rect.y0, _rect.width(), _rect.height());
+	context->set_line_width (_outline_width);
 	context->stroke ();
 
 	Debug::instance()->render_object_count++;
