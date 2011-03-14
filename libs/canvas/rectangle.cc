@@ -12,6 +12,13 @@ Rectangle::Rectangle (Group* parent)
 
 }
 
+Rectangle::Rectangle (Group* parent, Rect const & rect)
+	: Item (parent)
+	, _rect (rect)
+{
+
+}
+
 void
 Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {

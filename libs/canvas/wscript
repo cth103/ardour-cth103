@@ -23,6 +23,7 @@ canvas_sources = [
 	'debug.cc',
 	'item.cc',
 	'group.cc',
+	'lookup_table.cc',
 	'rectangle.cc',
 	'types.cc'
 ]
@@ -75,13 +76,14 @@ def build(bld):
 
 		unit_testobj              = bld.new_task_gen('cxx', 'program')
 		unit_testobj.source       = '''
-			test/hello_world.cc
+			test/lookup_table.cc
+			test/testrunner.cpp
 		'''.split()
 		unit_testobj.includes     = obj.includes + ['test', '../pbd']
 		unit_testobj.uselib       = 'CPPUNIT SIGCPP CAIROMM GTKMM'
 		unit_testobj.uselib_local = 'libcanvas'
 		unit_testobj.name         = 'libcanvas-unit-tests'
-		unit_testobj.target       = 'run-unit-tests'
+		unit_testobj.target       = 'run-tests'
 		unit_testobj.install_path = ''
 		unit_testobj.cxxflags     = ['-DPACKAGE="libcanvastest"']
 		unit_testobj.cxxflags     += ['-DDATA_DIR="' + os.path.normpath(bld.env['DATADIR']) + '"']

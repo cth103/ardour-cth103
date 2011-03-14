@@ -43,6 +43,13 @@ ArdourCanvas::operator- (Duple const & o)
 }
 
 ostream &
+ArdourCanvas::operator<< (ostream & s, Duple const & r)
+{
+	s << "(" << r.x << ", " << r.y << ")";
+	return s;
+}
+
+ostream &
 ArdourCanvas::operator<< (ostream & s, Rect const & r)
 {
 	s << "[(" << r.x0 << ", " << r.y0 << "), (" << r.x1 << ", " << r.y1 << ")]";

@@ -2,11 +2,13 @@
 #define __CANVAS_TYPES_H__
 
 #include <iostream>
+#include <cfloat>
 
 namespace ArdourCanvas
 {
 
 typedef double Coord;
+#define COORD_EPSILON DBL_EPSILON
 typedef double Distance;
 
 struct Duple
@@ -26,6 +28,7 @@ struct Duple
 };
 
 extern Duple operator- (Duple const & o);
+extern std::ostream & operator<< (std::ostream &, Duple const &);
 
 struct Rect
 {

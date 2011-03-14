@@ -8,6 +8,7 @@ class Rectangle : public Item
 {
 public:
 	Rectangle (Group *);
+	Rectangle (Group *, Rect const &);
 
 	void render (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
 	Rect bounding_box () const;

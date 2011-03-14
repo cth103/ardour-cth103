@@ -12,6 +12,9 @@ public:
 
 	void add (Item *);
 	void remove (Item *);
+	std::list<Item*> const & items () const {
+		return _items;
+	}
 
 	void render (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
 	Rect bounding_box () const;
