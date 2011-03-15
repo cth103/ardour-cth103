@@ -24,7 +24,6 @@
 #include <gdkmm/color.h>
 
 #include "ardour/location.h"
-#include "simplerect.h"
 #include "canvas.h"
 
 class PublicEditor;

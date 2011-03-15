@@ -27,7 +27,6 @@
 #include "marker_view.h"
 #include "imageframe_view.h"
 #include "imageframe_time_axis.h"
-#include "canvas-simplerect.h"
 #include "public_editor.h"
 #include "rgb_macros.h"
 #include "gui_thread.h"

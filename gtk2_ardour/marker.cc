@@ -32,7 +32,6 @@
 #include "utils.h"
 #include "canvas_impl.h"
 #include "simpleline.h"
-#include "simplerect.h"
 #include "rgb_macros.h"
 
 #include <gtkmm2ext/utils.h>

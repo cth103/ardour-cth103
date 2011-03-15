@@ -30,7 +30,6 @@
 #include "ardour/dB.h"
 #include "evoral/Curve.hpp"
 
-#include "simplerect.h"
 #include "automation_line.h"
 #include "control_point.h"
 #include "gui_thread.h"

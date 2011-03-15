@@ -32,7 +32,6 @@
 
 #include "public_editor.h"
 #include "imageframe_time_axis.h"
-#include "simplerect.h"
 #include "enums.h"
 #include "imageframe_time_axis_view.h"
 #include "imageframe_time_axis_group.h"

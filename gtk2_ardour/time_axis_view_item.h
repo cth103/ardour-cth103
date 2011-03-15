@@ -26,7 +26,6 @@
 #include "pbd/signals.h"
 
 #include "selectable.h"
-#include "simplerect.h"
 #include "canvas.h"
 
 class TimeAxisView;

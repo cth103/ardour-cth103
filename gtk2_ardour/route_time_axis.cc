@@ -77,7 +77,6 @@
 #include "region_view.h"
 #include "rgb_macros.h"
 #include "selection.h"
-#include "simplerect.h"
 #include "streamview.h"
 #include "utils.h"
 #include "route_group_menu.h"

@@ -82,7 +82,6 @@
 #include "rgb_macros.h"
 #include "selection.h"
 #include "step_editor.h"
-#include "simplerect.h"
 #include "utils.h"
 
 #include "ardour/midi_track.h"

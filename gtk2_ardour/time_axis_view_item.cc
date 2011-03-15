@@ -36,7 +36,6 @@
 #include "public_editor.h"
 #include "time_axis_view_item.h"
 #include "time_axis_view.h"
-#include "simplerect.h"
 #include "utils.h"
 #include "canvas_impl.h"
 #include "rgb_macros.h"

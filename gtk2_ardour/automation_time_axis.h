@@ -32,7 +32,6 @@
 
 #include "canvas.h"
 #include "time_axis_view.h"
-#include "simplerect.h"
 #include "automation_controller.h"
 
 namespace ARDOUR {

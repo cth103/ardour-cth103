@@ -26,7 +26,6 @@
 #include "imageframe_time_axis_view.h"
 #include "imageframe_view.h"
 #include "imageframe_time_axis.h"
-#include "canvas-simplerect.h"
 #include "region_selection.h"
 #include "public_editor.h"
 #include "gui_thread.h"

@@ -22,7 +22,6 @@
 #include "ardour/region.h"
 #include <gtkmm2ext/doi.h>
 
-#include "canvas-simplerect.h"
 #include "canvas-curve.h"
 #include "crossfade_view.h"
 #include "global_signals.h"

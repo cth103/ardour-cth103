@@ -33,7 +33,6 @@
 #include "route_time_axis.h"
 #include "automation_line.h"
 #include "public_editor.h"
-#include "simplerect.h"
 #include "selection.h"
 #include "rgb_macros.h"
 #include "point_selection.h"

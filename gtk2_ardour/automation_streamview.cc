@@ -32,7 +32,6 @@
 #include "region_view.h"
 #include "automation_region_view.h"
 #include "automation_time_axis.h"
-#include "canvas-simplerect.h"
 #include "region_selection.h"
 #include "selection.h"
 #include "public_editor.h"
@@ -40,7 +39,6 @@
 #include "rgb_macros.h"
 #include "gui_thread.h"
 #include "utils.h"
-#include "simplerect.h"
 #include "simpleline.h"
 
 using namespace std;

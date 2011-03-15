@@ -63,7 +63,6 @@
 #include "prompter.h"
 #include "public_editor.h"
 #include "audio_region_view.h"
-#include "simplerect.h"
 #include "audio_streamview.h"
 #include "utils.h"
 

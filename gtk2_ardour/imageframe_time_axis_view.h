@@ -28,7 +28,6 @@
 #include <jack/jack.h>
 
 #include "canvas.h"
-#include "simplerect.h"
 
 
 class PublicEditor ;

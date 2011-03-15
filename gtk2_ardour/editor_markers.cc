@@ -33,7 +33,6 @@
 #include "selection.h"
 #include "editing.h"
 #include "gui_thread.h"
-#include "simplerect.h"
 #include "actions.h"
 #include "prompter.h"
 #include "editor_drag.h"

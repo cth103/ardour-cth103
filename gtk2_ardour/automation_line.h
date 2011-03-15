@@ -27,7 +27,6 @@
 
 #include <sigc++/signal.h>
 #include "canvas.h"
-#include "simplerect.h"
 
 #include "evoral/TimeConverter.hpp"
 

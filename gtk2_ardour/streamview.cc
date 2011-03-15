@@ -34,7 +34,6 @@
 #include "region_view.h"
 #include "route_time_axis.h"
 #include "canvas-waveview.h"
-#include "canvas-simplerect.h"
 #include "region_selection.h"
 #include "selection.h"
 #include "public_editor.h"

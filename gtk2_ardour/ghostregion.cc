@@ -25,7 +25,6 @@
 #include "midi_streamview.h"
 #include "midi_time_axis.h"
 #include "rgb_macros.h"
-#include "simplerect.h"
 #include "waveview.h"
 
 using namespace std;

@@ -34,7 +34,6 @@
 #include "ardour/session.h"
 
 #include "ardour_ui.h"
-#include "canvas-simplerect.h"
 #include "global_signals.h"
 #include "gui_thread.h"
 #include "lineset.h"
@@ -47,7 +46,6 @@
 #include "region_view.h"
 #include "rgb_macros.h"
 #include "selection.h"
-#include "simplerect.h"
 #include "utils.h"
 
 using namespace std;

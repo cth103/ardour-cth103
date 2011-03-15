@@ -46,7 +46,6 @@
 #include "utils.h"
 #include "gui_thread.h"
 #include "canvas_impl.h"
-#include "simplerect.h"
 #include "waveview.h"
 #include "actions.h"
 

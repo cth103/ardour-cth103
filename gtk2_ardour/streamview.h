@@ -26,7 +26,6 @@
 
 #include "ardour/location.h"
 #include "enums.h"
-#include "simplerect.h"
 #include "canvas.h"
 
 namespace Gdk {
