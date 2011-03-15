@@ -23,10 +23,6 @@ Rectangle::Rectangle (Group* parent, Rect const & rect)
 void
 Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
-	if (_watch) {
-		cout << "* RENDER " << _rect << "\n";
-	}
-
 	setup_context (context);
 	
 	context->rectangle (_rect.x0, _rect.y0, _rect.width(), _rect.height());
