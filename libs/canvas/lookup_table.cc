@@ -31,8 +31,10 @@ LookupTable::build ()
 		return;
 	}
 
-	_cell_size.x = bbox.get().x1 / _dimension;
-	_cell_size.y = bbox.get().y1 / _dimension;
+	_cell_size.x = bbox.get().width() / _dimension;
+	_cell_size.y = bbox.get().width() / _dimension;
+	_offset.x = bbox.get().x0;
+	_offset.y = bbox.get().y0;
 
 	for (list<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
 
@@ -44,9 +46,12 @@ LookupTable::build ()
 
 		/* and in the group's coordinates */
 		Rect const item_bbox_in_group = (*i)->item_to_parent (item_bbox.get ());
+
+		/* apply our offset */
+		Rect const offset_bbox = item_bbox_in_group.translate (-_offset);
 		
 		int x0, y0, x1, y1;
-		area_to_indices (item_bbox_in_group, x0, y0, x1, y1);
+		area_to_indices (offset_bbox, x0, y0, x1, y1);
 
 		assert (x0 <= _dimension);
 		assert (y0 <= _dimension);

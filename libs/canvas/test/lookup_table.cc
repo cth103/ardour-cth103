@@ -29,6 +29,14 @@ LookupTableTest::build ()
 }
 
 void
+LookupTableTest::build_negative ()
+{
+	Group group;
+	Rectangle a (&group, Rect (-32, -32, 32, 32));
+	LookupTable table (group, 1);
+}
+
+void
 LookupTableTest::get_small ()
 {
 	Group group;

@@ -31,6 +31,7 @@ private:
 	int _items_per_cell;
 	int _dimension;
 	Duple _cell_size;
+	Duple _offset;
 	boost::multi_array<Cell, 2> _cells;
 	bool _added;
 };
