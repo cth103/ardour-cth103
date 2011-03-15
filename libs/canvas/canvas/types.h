@@ -59,6 +59,7 @@ struct Rect
 	boost::optional<Rect> intersection (Rect const &) const;
 	Rect extend (Rect const &) const;
 	Rect translate (Duple const &) const;
+	Rect expand (Distance) const;
 
 	Distance width () const {
 		return x1 - x0;

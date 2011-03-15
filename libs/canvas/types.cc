@@ -53,6 +53,17 @@ Rect::extend (Rect const & o) const
 	return r;
 }
 
+Rect
+Rect::expand (Distance d) const
+{
+	Rect r;
+	r.x0 = x0 - d;
+	r.y0 = y0 - d;
+	r.x1 = x1 + d;
+	r.y1 = y1 + d;
+	return r;
+}
+
 Duple
 ArdourCanvas::operator- (Duple const & o)
 {

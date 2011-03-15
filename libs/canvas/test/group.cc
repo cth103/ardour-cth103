@@ -1,6 +1,7 @@
 #include "canvas/group.h"
 #include "canvas/types.h"
 #include "canvas/rectangle.h"
+#include "canvas/canvas.h"
 #include "group.h"
 
 using namespace std;
@@ -13,7 +14,8 @@ extern Rectangle* shitcunt;
 void
 GroupTest::bounding_box ()
 {
-	Group group;
+	ImageCanvas canvas;
+	Group group (&canvas);
 	Rectangle a (&group, Rect (0, 0, 32, 32));
 	Rectangle b (&group, Rect (0, 33, 32, 64));
 	Rectangle c (&group, Rect (33, 0, 64, 32));
@@ -30,7 +32,8 @@ GroupTest::bounding_box ()
 void
 GroupTest::layers ()
 {
-	Group group;
+	ImageCanvas canvas;
+	Group group (&canvas);
 	Rectangle a (&group, Rect (0, 0, 32, 32));
 	Rectangle b (&group, Rect (0, 0, 32, 32));
 	Rectangle c (&group, Rect (0, 0, 32, 32));

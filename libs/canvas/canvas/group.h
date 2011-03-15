@@ -11,7 +11,7 @@ namespace ArdourCanvas {
 class Group : public Item
 {
 public:
-	Group ();
+	explicit Group (Canvas *);
 	explicit Group (Group *);
 	explicit Group (Group *, Duple);
 	~Group ();

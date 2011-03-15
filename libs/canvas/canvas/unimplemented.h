@@ -106,7 +106,7 @@ private:
 class Pixbuf : public Item {
 public:
 	Pixbuf (Group* p) : Item (p) {}
-	Pixbuf (Glib::RefPtr<Gdk::Pixbuf>) : Item (0) {}
+	Pixbuf (Glib::RefPtr<Gdk::Pixbuf>) : Item ((Group *) 0) {}
 	Pixbuf (Group* p, double, double, Glib::RefPtr<Gdk::Pixbuf>) : Item (p) {}
 
 	void compute_bounding_box () const {}
@@ -164,7 +164,7 @@ public:
 		return _foo_uint;
 	}
 	
-	CanvasNoteEvent (MidiRegionView& rv, Item*, const boost::shared_ptr<Evoral::Note<ARDOUR::MidiModel::TimeType> >) : Item (0), _foo_region_view (rv) {}
+	CanvasNoteEvent (MidiRegionView& rv, Item*, const boost::shared_ptr<Evoral::Note<ARDOUR::MidiModel::TimeType> >) : Item ((Group *) 0), _foo_region_view (rv) {}
 	const boost::shared_ptr<Evoral::Note<ARDOUR::MidiModel::TimeType> > note () {
 		return boost::shared_ptr<Evoral::Note<ARDOUR::MidiModel::TimeType> > ();
 	}
@@ -291,7 +291,7 @@ public:
 	void compute_bounding_box () const {}
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
 	
-	CanvasSysEx (MidiRegionView &, Group *, std::string, double, double, double) : Item (0) {}
+	CanvasSysEx (MidiRegionView &, Group *, std::string, double, double, double) : Item ((Group *) 0) {}
 };
 
 class CanvasHit : public CanvasNoteEvent {

@@ -34,7 +34,8 @@ Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) con
 void
 Rectangle::compute_bounding_box () const
 {
-	_bounding_box = boost::optional<Rect> (_rect);
+	_bounding_box = boost::optional<Rect> (_rect.expand (_outline_width / 2));
+	
 	_bounding_box_dirty = false;
 }
 

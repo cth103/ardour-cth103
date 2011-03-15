@@ -18,6 +18,7 @@ class Rect;
 class Item
 {
 public:
+	Item (Canvas *);
 	Item (Group *);
 	Item (Group *, Duple);
 	virtual ~Item ();
@@ -88,6 +89,7 @@ protected:
 	void begin_change ();
 	void end_change ();
 
+	Canvas* _canvas;
 	Group* _parent;
 	/** position of this item in parent coordinates */
 	Duple _position;

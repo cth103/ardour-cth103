@@ -6,8 +6,8 @@
 using namespace std;
 using namespace ArdourCanvas;
 
-Group::Group ()
-	: Item (0)
+Group::Group (Canvas* canvas)
+	: Item (canvas)
 	, _lut (0)
 {
 	

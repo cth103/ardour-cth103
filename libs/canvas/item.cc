@@ -1,5 +1,6 @@
 #include "canvas/group.h"
 #include "canvas/item.h"
+#include "canvas/canvas.h"
 
 using namespace std;
 using namespace ArdourCanvas;

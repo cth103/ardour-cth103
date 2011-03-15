@@ -2,6 +2,7 @@
 #include "canvas/types.h"
 #include "canvas/rectangle.h"
 #include "canvas/group.h"
+#include "canvas/canvas.h"
 #include "lookup_table.h"
 
 using namespace std;
@@ -12,7 +13,8 @@ CPPUNIT_TEST_SUITE_REGISTRATION (LookupTableTest);
 void
 LookupTableTest::build_1 ()
 {
-	Group group;
+	ImageCanvas canvas;
+	Group group (&canvas);
 	Rectangle a (&group, Rect (0, 0, 32, 32));
 	Rectangle b (&group, Rect (0, 33, 32, 64));
 	Rectangle c (&group, Rect (33, 0, 64, 32));
@@ -31,7 +33,8 @@ LookupTableTest::build_1 ()
 void
 LookupTableTest::build_2 ()
 {
-	Group group;
+	ImageCanvas canvas;
+	Group group (&canvas);
 	Rectangle a (&group, Rect (0, 0, 713, 1024));
 	Rectangle b (&group, Rect (0, 0, 0, 1024));
 	LookupTable table (group, 64);
@@ -40,7 +43,8 @@ LookupTableTest::build_2 ()
 void
 LookupTableTest::build_negative ()
 {
-	Group group;
+	ImageCanvas canvas;
+	Group group (&canvas);
 	Rectangle a (&group, Rect (-32, -32, 32, 32));
 	LookupTable table (group, 1);
 }
@@ -48,7 +52,8 @@ LookupTableTest::build_negative ()
 void
 LookupTableTest::get_small ()
 {
-	Group group;
+	ImageCanvas canvas;
+	Group group (&canvas);
 	Rectangle a (&group, Rect (0, 0, 32, 32));
 	Rectangle b (&group, Rect (0, 33, 32, 64));
 	Rectangle c (&group, Rect (33, 0, 64, 32));
@@ -65,7 +70,8 @@ LookupTableTest::get_small ()
 void
 LookupTableTest::get_big ()
 {
-	Group group;
+	ImageCanvas canvas;
+	Group group (&canvas);
 
 	double const s = 8;
 	int const N = 1024;
