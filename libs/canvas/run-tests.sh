@@ -17,6 +17,8 @@ export LD_LIBRARY_PATH=$libs/canvas:$LD_LIBRARY_PATH
 
 if [ "$1" == "--debug" ]; then
         gdb ./libs/canvas/run-tests
+elif [ "$1" == "--valgrind" ]; then
+        valgrind --tool="memcheck" ./libs/canvas/run-tests
 else 
         ./libs/canvas/run-tests
 fi

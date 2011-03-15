@@ -8,14 +8,25 @@ using namespace ArdourCanvas;
 
 Group::Group ()
 	: Item (0)
-	, _lut (*this, 64)
+	, _lut (0)
 {
+	
 }
 
 Group::Group (Group* parent)
 	: Item (parent)
-	, _lut (*this, 64)
+	, _lut (0)
 {
+	
+}
+
+Group::~Group ()
+{
+	for (list<Item*>::iterator i = _items.begin(); i != _items.end(); ++i) {
+		(*i)->unparent ();
+	}
+
+	_items.clear ();
 }
 
 /** @param area Area to draw in this group's coordinates.
@@ -24,9 +35,14 @@ Group::Group (Group* parent)
 void
 Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
-	list<Item*> items = _lut.get (area);
+	ensure_lut ();
+	list<Item*> items = _lut->get (area);
 	
 	for (list<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
+		if (!(*i)->visible ()) {
+			continue;
+		}
+		
 		boost::optional<Rect> item_bbox = (*i)->bounding_box ();
 		if (!item_bbox) {
 			continue;
@@ -53,7 +69,6 @@ Group::bounding_box () const
 	}
 
 	bool have_initial = false;
-
 	Rect bbox;
 	
 	for (list<Item*>::const_iterator i = _items.begin(); i != _items.end(); ++i) {
@@ -78,12 +93,64 @@ void
 Group::add (Item* i)
 {
 	_items.push_back (i);
-	_lut.add ();
+	invalidate_lut ();
 }
 
 void
 Group::remove (Item* i)
 {
 	_items.remove (i);
-	_lut.remove (i);
+	if (_lut) {
+		_lut->remove (i);
+	}
 }
+
+void
+Group::raise_to_top (Item* i)
+{
+	_items.remove (i);
+	_items.push_back (i);
+	invalidate_lut ();
+}
+
+void
+Group::raise (Item* i, int levels)
+{
+	list<Item*>::iterator j = find (_items.begin(), _items.end(), i);
+	assert (j != _items.end ());
+
+	++j;
+	_items.remove (i);
+
+	while (levels > 0 && j != _items.end ()) {
+		++j;
+		--levels;
+	}
+
+	_items.insert (j, i);
+	invalidate_lut ();
+}
+
+void
+Group::lower_to_bottom (Item* i)
+{
+	_items.remove (i);
+	_items.push_front (i);
+	invalidate_lut ();
+}
+
+void
+Group::ensure_lut () const
+{
+	if (!_lut) {
+		_lut = new LookupTable (*this, 64);
+	}
+}
+
+void
+Group::invalidate_lut () const
+{
+	delete _lut;
+	_lut = 0;
+}
+		

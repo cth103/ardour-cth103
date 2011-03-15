@@ -17,7 +17,7 @@ Rectangle::Rectangle (Group* parent, Rect const & rect)
 	: Item (parent)
 	, _rect (rect)
 {
-
+	
 }
 
 void

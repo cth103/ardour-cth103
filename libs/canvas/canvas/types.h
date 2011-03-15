@@ -26,6 +26,8 @@ struct Duple
 		     
 	Coord x;
 	Coord y;
+
+	Duple translate (Duple) const;
 };
 
 extern Duple operator- (Duple const & o);

@@ -5,6 +5,15 @@
 using namespace std;
 using namespace ArdourCanvas;
 
+Duple
+Duple::translate (Duple t) const
+{
+	Duple d;
+	d.x = x + t.x;
+	d.y = y + t.y;
+	return d;
+}
+
 boost::optional<Rect>
 Rect::intersection (Rect const & o) const
 {

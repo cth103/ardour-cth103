@@ -13,13 +13,6 @@ LookupTable::LookupTable (Group const & group, int items_per_cell)
 }
 
 void
-LookupTable::clear ()
-{
-	boost::multi_array<Cell, 2>::extent_gen extents;
-	_cells.resize (extents[0][0]);
-}
-
-void
 LookupTable::build ()
 {
 	list<Item*> const & items = _group.items ();
@@ -82,42 +75,10 @@ LookupTable::area_to_indices (Rect const & area, int& x0, int& y0, int& x1, int&
 	y1 = ceil (area.y1 / _cell_size.y);
 }
 	
-/** @param area Area in our owning item's coordinates */
+/** @param area Area in our owning group's coordinates */
 list<Item*>
 LookupTable::get (Rect const & area)
 {
-	if (_added) {
-		if (_cell_size.x == 0 && _cell_size.y == 0) {
-			build ();
-		} else {
-			bool build_needed = false;
-			list<Item*> const & items = _group.items ();
-			for (list<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
-				int x0, y0, x1, y1;
-				boost::optional<Rect> item_bbox = (*i)->bounding_box ();
-				if (!item_bbox) {
-					continue;
-				}
-				area_to_indices (item_bbox.get(), x0, y0, x1, y1);
-				if (x0 >= _dimension || x1 >= _dimension || y0 >= _dimension || y1 >= _dimension) {
-					build_needed = true;
-					break;
-				}
-			}
-			
-			if (build_needed) {
-				clear ();
-				build ();
-			} else {
-				for (list<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
-					add_to_existing (*i);
-				}
-			}
-		}
-		
-		_added = false;
-	}
-
 	list<Item*> items;
 	int x0, y0, x1, y1;
 	area_to_indices (area, x0, y0, x1, y1);
@@ -139,30 +100,6 @@ LookupTable::get (Rect const & area)
 	items.unique ();
 
 	return items;
-}
-
-void
-LookupTable::add ()
-{
-	_added = true;
-}
-
-void
-LookupTable::add_to_existing (Item* i)
-{
-	boost::optional<Rect> item_bbox = i->bounding_box ();
-	if (!item_bbox) {
-		return;
-	}
-
-	int x0, y0, x1, y1;
-	area_to_indices (item_bbox.get(), x0, y0, x1, y1);
-
-	for (int x = x0; x < x1; ++x) {
-		for (int y = y0; y < y1; ++y) {
-			_cells[x][y].push_back (i);
-		}
-	}
 }
 
 void

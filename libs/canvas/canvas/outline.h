@@ -23,6 +23,15 @@ public:
 	
 	void set_outline_width (Distance);
 
+#ifdef CANVAS_COMPATIBILITY
+	uint32_t& property_outline_color_rgba () {
+		return _outline_color;
+	}
+	double& property_outline_pixels () {
+		return _outline_width;
+	}
+#endif	
+
 protected:
 	uint32_t _outline_color;
 	Distance _outline_width;

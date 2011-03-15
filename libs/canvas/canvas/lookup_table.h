@@ -7,8 +7,7 @@
 
 class LookupTableTest;
 
-namespace ArdourCanvas
-{
+namespace ArdourCanvas {
 
 class Item;
 class Group;
@@ -18,15 +17,12 @@ class LookupTable
 public:
 	LookupTable (Group const &, int);
 	std::list<Item*> get (Rect const &);
-	void add ();
 	void remove (Item *);
+	void build ();
 
 private:
 
-	void clear ();
-	void build ();
 	void area_to_indices (Rect const &, int&, int&, int&, int&) const;
-	void add_to_existing (Item *);
 	
 	friend class ::LookupTableTest;
 
