@@ -45,10 +45,8 @@ class AutomationTimeAxisView;
 class Selectable;
 class Selection;
 
-namespace Gnome {
-	namespace Canvas {
-		class SimpleRect;
-	}
+namespace ArdourCanvas {
+	class Rectangle;
 }
 
 /** A GUI representation of an ARDOUR::AutomationList */
