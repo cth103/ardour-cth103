@@ -25,6 +25,16 @@ public:
 	void render (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
 	boost::optional<Rect> bounding_box () const;
 
+#ifdef CANVAS_COMPATIBILITY
+	Coord& property_x () {
+		return _position.x;
+	}
+
+	Coord& property_y () {
+		return _position.y;
+	}
+#endif	
+	
 private:
 	Group (Group const &);
 	void ensure_lut () const;
@@ -32,7 +42,6 @@ private:
 
 	/* our items, from lowest to highest in the stack */
 	std::list<Item*> _items;
-	Duple _position;
 
 	mutable LookupTable* _lut;
 };

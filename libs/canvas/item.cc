@@ -82,6 +82,19 @@ Item::unparent ()
 	_parent = 0;
 }
 
+void
+Item::reparent (Group* new_parent)
+{
+	if (_parent) {
+		_parent->remove (this);
+	}
+
+	assert (new_parent);
+
+	_parent = new_parent;
+	_parent->add (this);
+}
+
 #ifdef CANVAS_COMPATIBILITY
 void
 Item::set_data (char const * key, void* data)
