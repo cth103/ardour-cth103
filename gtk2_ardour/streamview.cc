@@ -67,7 +67,6 @@ StreamView::StreamView (RouteTimeAxisView& tv, ArdourCanvas::Group* background_g
 	/* set_position() will position the group */
 
 	canvas_rect = new ArdourCanvas::Rectangle (_background_group);
-	canvas_rect->watch ();
 	canvas_rect->set (ArdourCanvas::Rect (0, 0, Gtkmm2ext::physical_screen_width (_trackview.editor().get_window()), tv.current_height ()));
 	canvas_rect->raise(1); // raise above tempo lines
 
