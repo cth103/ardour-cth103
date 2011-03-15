@@ -40,7 +40,6 @@
 #include "audio_region_view.h"
 #include "tape_region_view.h"
 #include "audio_time_axis.h"
-#include "canvas-waveview.h"
 #include "region_selection.h"
 #include "selection.h"
 #include "public_editor.h"
