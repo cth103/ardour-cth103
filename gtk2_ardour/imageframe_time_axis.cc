@@ -40,7 +40,6 @@
 #include "marker_time_axis.h"
 #include "marker_view.h"
 #include "gui_thread.h"
-#include "canvas_impl.h"
 
 #include "i18n.h"
 

@@ -36,7 +36,6 @@
 #include "marker_time_axis_view.h"
 #include "imageframe_view.h"
 #include "marker_time_axis.h"
-#include "canvas_impl.h"
 
 #include "i18n.h"
 

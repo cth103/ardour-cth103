@@ -51,7 +51,6 @@
 #include "utils.h"
 #include "i18n.h"
 #include "rgb_macros.h"
-#include "canvas_impl.h"
 #include "gui_thread.h"
 
 using namespace std;

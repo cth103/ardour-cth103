@@ -30,7 +30,6 @@
 #include "marker.h"
 #include "public_editor.h"
 #include "utils.h"
-#include "canvas_impl.h"
 #include "rgb_macros.h"
 
 #include <gtkmm2ext/utils.h>

@@ -31,7 +31,6 @@
 
 #include "gui_thread.h"
 #include "strip_silence_dialog.h"
-#include "canvas_impl.h"
 #include "region_view.h"
 #include "waveview.h"
 #include "rgb_macros.h"

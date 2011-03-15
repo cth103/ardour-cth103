@@ -94,7 +94,6 @@
 #include "editing.h"
 #include "public_editor.h"
 #include "crossfade_edit.h"
-#include "canvas_impl.h"
 #include "actions.h"
 #include "sfdb_ui.h"
 #include "gui_thread.h"

@@ -34,7 +34,6 @@
 #include "imageframe.h"
 #include "waveview_p.h"
 #include "imageframe_p.h"
-#include "canvas_impl.h"
 #include "canvas-noevent-text.h"
 #include "editing.h"
 #include "rgb_macros.h"

@@ -37,7 +37,6 @@
 #include "time_axis_view_item.h"
 #include "time_axis_view.h"
 #include "utils.h"
-#include "canvas_impl.h"
 #include "rgb_macros.h"
 
 #include "i18n.h"

@@ -53,7 +53,6 @@
 #include "ardour_ui.h"
 #include "audio_time_axis.h"
 #include "automation_line.h"
-#include "canvas_impl.h"
 #include "crossfade_view.h"
 #include "enums.h"
 #include "gui_thread.h"

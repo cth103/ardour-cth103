@@ -42,7 +42,6 @@
 #include "automation_time_axis.h"
 #include "automation_line.h"
 #include "control_point.h"
-#include "canvas_impl.h"
 #include "editor_drag.h"
 #include "midi_time_axis.h"
 #include "editor_regions.h"

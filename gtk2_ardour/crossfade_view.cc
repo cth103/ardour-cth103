@@ -31,7 +31,6 @@
 #include "public_editor.h"
 #include "audio_region_view.h"
 #include "utils.h"
-#include "canvas_impl.h"
 #include "ardour_ui.h"
 
 using namespace ARDOUR;

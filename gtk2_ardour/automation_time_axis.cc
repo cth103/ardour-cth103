@@ -36,7 +36,6 @@
 #include "selection.h"
 #include "rgb_macros.h"
 #include "point_selection.h"
-#include "canvas_impl.h"
 #include "utils.h"
 
 #include "i18n.h"
