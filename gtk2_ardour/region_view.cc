@@ -38,7 +38,6 @@
 #include "region_view.h"
 #include "automation_region_view.h"
 #include "route_time_axis.h"
-#include "simpleline.h"
 #include "waveview.h"
 #include "public_editor.h"
 #include "region_editor.h"

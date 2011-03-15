@@ -33,7 +33,6 @@
 #include "strip_silence_dialog.h"
 #include "canvas_impl.h"
 #include "region_view.h"
-#include "simpleline.h"
 #include "waveview.h"
 #include "rgb_macros.h"
 #include "i18n.h"

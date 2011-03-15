@@ -38,7 +38,6 @@
 #include "streamview.h"
 #include "audio_region_view.h"
 #include "audio_time_axis.h"
-#include "simpleline.h"
 #include "waveview.h"
 #include "public_editor.h"
 #include "audio_region_editor.h"

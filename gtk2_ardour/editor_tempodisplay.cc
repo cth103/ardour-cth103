@@ -41,7 +41,6 @@
 
 #include "editor.h"
 #include "marker.h"
-#include "simpleline.h"
 #include "tempo_dialog.h"
 #include "rgb_macros.h"
 #include "gui_thread.h"

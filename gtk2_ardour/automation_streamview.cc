@@ -39,7 +39,6 @@
 #include "rgb_macros.h"
 #include "gui_thread.h"
 #include "utils.h"
-#include "simpleline.h"
 
 using namespace std;
 using namespace ARDOUR;

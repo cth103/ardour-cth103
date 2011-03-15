@@ -98,7 +98,6 @@
 #include "actions.h"
 #include "sfdb_ui.h"
 #include "gui_thread.h"
-#include "simpleline.h"
 #include "rhythm_ferret.h"
 #include "actions.h"
 #include "tempo_lines.h"

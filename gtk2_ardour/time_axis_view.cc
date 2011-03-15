@@ -43,7 +43,6 @@
 #include "time_axis_view.h"
 #include "region_view.h"
 #include "ghostregion.h"
-#include "simpleline.h"
 #include "selection.h"
 #include "keyboard.h"
 #include "rgb_macros.h"

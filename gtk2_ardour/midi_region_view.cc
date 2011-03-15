@@ -64,7 +64,6 @@
 #include "public_editor.h"
 #include "rgb_macros.h"
 #include "selection.h"
-#include "simpleline.h"
 #include "streamview.h"
 #include "utils.h"
 #include "mouse_cursors.h"
