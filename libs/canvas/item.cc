@@ -7,6 +7,7 @@ using namespace ArdourCanvas;
 Item::Item (Group* parent)
 	: _parent (parent)
 	, _visible (true)
+	, _watch (false)
 {
 	if (_parent) {
 		_parent->add (this);
@@ -17,6 +18,7 @@ Item::Item (Group* parent, Duple position)
 	: _parent (parent)
 	, _position (position)
 	, _visible (true)
+	, _watch (false)
 {
 	if (_parent) {
 		_parent->add (this);

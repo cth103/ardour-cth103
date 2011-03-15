@@ -55,6 +55,10 @@ public:
 		return _visible;
 	}
 
+	void watch () {
+		_watch = true;
+	}
+
 #ifdef CANVAS_COMPATIBILITY
 
 	void set_data (char const *, void *);
@@ -81,6 +85,7 @@ protected:
 	/** position of this item in parent coordinates */
 	Duple _position;
 	bool _visible;
+	bool _watch;
 
 #ifdef CANVAS_COMPATIBILITY
 	std::map<std::string, void *> _data;
