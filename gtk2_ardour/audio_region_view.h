@@ -29,7 +29,6 @@
 #include "automation_line.h"
 #include "enums.h"
 #include "waveview.h"
-#include "canvas.h"
 
 namespace ARDOUR {
 	class AudioRegion;

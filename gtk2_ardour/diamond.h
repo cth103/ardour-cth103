@@ -21,7 +21,6 @@
 #define __ardour_diamond_h__
 
 #include "canvas-note-event.h"
-#include "canvas.h"
 
 namespace Gnome {
 namespace Canvas {

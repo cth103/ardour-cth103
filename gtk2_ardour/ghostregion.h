@@ -22,7 +22,6 @@
 
 #include <vector>
 #include "pbd/signals.h"
-#include "canvas.h"
 
 namespace Gnome {
 	namespace Canvas {

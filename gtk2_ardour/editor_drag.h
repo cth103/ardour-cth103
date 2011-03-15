@@ -27,7 +27,6 @@
 
 #include "ardour/types.h"
 
-#include "canvas.h"
 #include "editor_items.h"
 
 namespace ARDOUR {

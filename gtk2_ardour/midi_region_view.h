@@ -37,7 +37,6 @@
 #include "time_axis_view_item.h"
 #include "automation_line.h"
 #include "enums.h"
-#include "canvas.h"
 #include "canvas-hit.h"
 #include "canvas-note.h"
 #include "canvas-note-event.h"

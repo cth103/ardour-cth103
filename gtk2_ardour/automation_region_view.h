@@ -26,7 +26,6 @@
 #include "automation_time_axis.h"
 #include "automation_line.h"
 #include "enums.h"
-#include "canvas.h"
 
 namespace ARDOUR {
 	class AutomationList;

@@ -23,7 +23,6 @@
 #include <boost/pool/pool.hpp>
 #include <boost/pool/pool_alloc.hpp>
 #include "ardour/tempo.h"
-#include "canvas.h"
 
 typedef boost::fast_pool_allocator<
 		std::pair<const double, ArdourCanvas::SimpleLine*>,

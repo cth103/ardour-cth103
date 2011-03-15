@@ -44,7 +44,6 @@
 #include "axis_view.h"
 #include "enums.h"
 #include "editing.h"
-#include "canvas.h"
 
 namespace ARDOUR {
 	class Session;

@@ -27,7 +27,6 @@
 #include <gdkmm/types.h>
 #include <gtkmm/menushell.h>
 
-#include "canvas.h"
 
 namespace PBD {
         class Controllable;

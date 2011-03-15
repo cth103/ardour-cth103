@@ -41,7 +41,6 @@
 #include "pbd/statefuldestructible.h"
 
 #include "editing.h"
-#include "canvas.h"
 #include "selection.h"
 
 namespace ARDOUR {

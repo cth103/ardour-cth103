@@ -26,7 +26,6 @@
 #include <sys/types.h>
 
 #include <sigc++/signal.h>
-#include "canvas.h"
 
 #include "evoral/TimeConverter.hpp"
 

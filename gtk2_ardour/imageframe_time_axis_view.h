@@ -27,7 +27,6 @@
 
 #include <jack/jack.h>
 
-#include "canvas.h"
 
 
 class PublicEditor ;

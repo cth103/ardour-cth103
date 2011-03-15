@@ -28,7 +28,6 @@
 #include "time_axis_view_item.h"
 #include "automation_line.h"
 #include "enums.h"
-#include "canvas.h"
 
 class TimeAxisView;
 class RegionEditor;

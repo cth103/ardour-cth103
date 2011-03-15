@@ -28,7 +28,6 @@
 #include "ardour/ardour.h"
 #include "pbd/signals.h"
 
-#include "canvas.h"
 
 namespace ARDOUR {
 	class TempoSection;

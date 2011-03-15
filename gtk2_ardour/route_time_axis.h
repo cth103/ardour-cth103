@@ -42,7 +42,6 @@
 #include "route_ui.h"
 #include "enums.h"
 #include "time_axis_view.h"
-#include "canvas.h"
 #include "gain_meter.h"
 
 namespace ARDOUR {

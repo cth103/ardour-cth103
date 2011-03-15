@@ -26,7 +26,6 @@
 #include "route_ui.h"
 #include "enums.h"
 #include "time_axis_view.h"
-#include "canvas.h"
 #include "visual_time_axis.h"
 
 namespace ARDOUR {

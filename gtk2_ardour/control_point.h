@@ -24,7 +24,6 @@
 
 #include "ardour/automation_list.h"
 
-#include "canvas.h"
 #include "selectable.h"
 
 class AutomationLine;

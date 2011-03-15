@@ -30,7 +30,6 @@
 #include "ardour/automatable.h"
 #include "ardour/automation_list.h"
 
-#include "canvas.h"
 #include "time_axis_view.h"
 #include "automation_controller.h"
 

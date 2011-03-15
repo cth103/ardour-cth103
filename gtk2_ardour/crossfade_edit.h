@@ -30,7 +30,6 @@
 #include "ardour/session_handle.h"
 
 #include "ardour_dialog.h"
-#include "canvas.h"
 
 namespace ARDOUR
 {
