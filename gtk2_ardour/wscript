@@ -51,15 +51,6 @@ gtk2_ardour_sources = [
 	'axis_view.cc',
 	'bundle_manager.cc',
 	'cairo_widget.cc',
-	'canvas-flag.cc',
-	'canvas-hit.cc',
-	'canvas-note-event.cc',
-	'canvas-note.cc',
-	'canvas_patch_change.cc',
-	'canvas-simpleline.c',
-	'canvas-simplerect.c',
-	'canvas-sysex.cc',
-	'canvas-waveview.c',
         'clock_group.cc',
 	'configinfo.cc',
 	'control_point.cc',
@@ -246,7 +237,6 @@ def configure(conf):
 	autowaf.check_pkg(conf, 'flac', uselib_store='FLAC', atleast_version='1.2.1')
 	autowaf.check_pkg(conf, 'gthread', uselib_store='GTHREAD', atleast_version='2.10.1')
 	autowaf.check_pkg(conf, 'gtk+-2.0', uselib_store='GTK', atleast_version='2.18')
-	autowaf.check_pkg(conf, 'libgnomecanvasmm-2.6', uselib_store='GNOMECANVASMM', atleast_version='2.16')
 	autowaf.check_pkg(conf, 'ogg', uselib_store='OGG', atleast_version='1.1.2')
 
 	conf.check_tool('misc') # subst tool
@@ -300,10 +290,10 @@ def build(bld):
 		obj.target = 'ardour-3.0'
 	obj.install_path = os.path.join(bld.env['LIBDIR'], 'ardour3')
 	obj.uselib       = 'UUID FLAC GLIBMM GTHREAD GTK OGG ALSA CURL DL'
-	obj.uselib       += ' GTKMM GNOMECANVASMM '
+	obj.uselib       += ' GTKMM '
 	obj.uselib       += ' AUDIOUNITS OSX GTKOSX '
 	obj.uselib_local = '''libpbd libmidipp libtaglib libardour libardour_cp
-	                      libgtkmm2ext libtaglib libgnomecanvas-2'''
+	                      libgtkmm2ext libtaglib libcanvas'''
         if sys.platform == 'darwin':
                 obj.uselib_local + ' libappleutility'
 	obj.cflags       = ['-DPACKAGE="gtk2_ardour"']

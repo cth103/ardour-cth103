@@ -32,7 +32,6 @@ children = [
 	'libs/gtkmm2ext',
 	'libs/clearlooks-newer',
 	'libs/audiographer',
-	'libs/gnomecanvas',
 	'libs/canvas',
 	'gtk2_ardour',
 	'templates',
