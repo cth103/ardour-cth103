@@ -6,7 +6,7 @@ using namespace std;
 using namespace ArdourCanvas;
 
 Canvas::Canvas ()
-	: _root ((Group *) 0)
+	: _root (this)
 {
 
 }
@@ -31,6 +31,29 @@ Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context
 	}
 
 	cout << "Rendered: " << Debug::instance()->render_object_count << "\n";
+}
+
+void
+Canvas::item_changed (Item* item, boost::optional<Rect> pre_change_bounding_box)
+{
+	/* XXX: could be more efficient */
+	if (pre_change_bounding_box) {
+		queue_draw_item_area (pre_change_bounding_box.get ());
+	}
+
+	queue_draw_item_area (item->bounding_box ());
+}
+
+void
+Canvas::queue_draw_item_area (Item* item, Rect area)
+{
+	Item* i = item;
+	while (i) {
+		area = i->item_to_parent (area);
+		i = i->parent ();
+	}
+
+	queue_draw_area (area.x0, area.y0, area.width(), area.height());
 }
 
 ImageCanvas::ImageCanvas ()

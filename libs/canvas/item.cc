@@ -4,9 +4,19 @@
 using namespace std;
 using namespace ArdourCanvas;
 
+Item::Item (Canvas* canvas)
+	: _canvas (canvas)
+	, _parent (0)
+{
+	init ();
+}
+
 Item::Item (Group* parent)
 	: _parent (parent)
 {
+	assert (parent);
+	_canvas = _parent->canvas ();
+	
 	init ();
 }
 
@@ -14,6 +24,9 @@ Item::Item (Group* parent, Duple position)
 	: _parent (parent)
 	, _position (position)
 {
+	assert (parent);
+	_canvas = _parent->canvas ();
+	
 	init ();
 }
 
@@ -95,6 +108,7 @@ Item::parent_to_item (Duple const & d) const
 void
 Item::unparent ()
 {
+	_canvas = 0;
 	_parent = 0;
 }
 
@@ -108,6 +122,7 @@ Item::reparent (Group* new_parent)
 	assert (new_parent);
 
 	_parent = new_parent;
+	_canvas = _parent->canvas ();
 	_parent->add (this);
 }
 
@@ -137,7 +152,7 @@ Item::begin_change ()
 void
 Item::end_change ()
 {
-	cout << "Item " << this << " changes from " << _pre_change_bounding_box.get() << " to " << bounding_box().get() << "\n";
+	_canvas->item_changed (this, _pre_change_bounding_box);
 }
 
 #ifdef CANVAS_COMPATIBILITY

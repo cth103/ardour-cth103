@@ -22,8 +22,11 @@ public:
 	Group* root () {
 		return &_root;
 	}
+
+	void item_changed (Item *, boost::optional<Rect>);
 		
 private:
+	void queue_draw_item_area (Item *, Rect const &);
 	
 	Group _root;
 };

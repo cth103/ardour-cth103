@@ -58,6 +58,10 @@ public:
 		return _visible;
 	}
 
+	Canvas* canvas () const {
+		return _canvas;
+	}
+
 #ifdef CANVAS_COMPATIBILITY
 
 	void set_data (char const *, void *);
@@ -83,7 +87,7 @@ protected:
 
 	void begin_change ();
 	void end_change ();
-	
+
 	Group* _parent;
 	/** position of this item in parent coordinates */
 	Duple _position;
