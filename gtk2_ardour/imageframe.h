@@ -27,9 +27,6 @@
  * Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include <libgnomecanvasmm/item.h>
-#include <libgnomecanvasmm/group.h>
-#include <libgnomecanvasmm/shape.h>
 #include "canvas-imageframe.h"
 
 

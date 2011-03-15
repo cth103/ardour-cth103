@@ -23,7 +23,6 @@
 #include <string>
 #include <glib.h>
 
-#include <libgnomecanvasmm/pixbuf.h>
 #include <sigc++/signal.h>
 
 #include "ardour/ardour.h"

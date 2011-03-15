@@ -21,8 +21,6 @@
 #include "gtk2ardour-config.h"
 #endif
 
-#include <libgnomecanvasmm/init.h>
-#include <libgnomecanvasmm/pixbuf.h>
 #include <jack/types.h>
 #include <gtkmm2ext/utils.h>
 

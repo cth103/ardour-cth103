@@ -18,9 +18,6 @@
 #include "lineset.h"
 #include "rgb_macros.h"
 
-#include <libgnomecanvas/libgnomecanvas.h>
-#include <libgnomecanvasmm/group.h>
-#include <libgnomecanvasmm/canvas.h>
 
 #include <algorithm>
 #include <cmath>

@@ -20,7 +20,6 @@
 #ifndef __ardour_diamond_h__
 #define __ardour_diamond_h__
 
-#include <libgnomecanvasmm/polygon.h>
 #include "canvas-note-event.h"
 #include "canvas.h"
 

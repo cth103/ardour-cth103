@@ -21,7 +21,6 @@
 #ifndef _LIBGNOMECANVASMM_WAVEVIEW_P_H
 #define _LIBGNOMECANVASMM_WAVEVIEW_P_H
 
-#include <libgnomecanvasmm/private/item_p.h>
 #include <glibmm/class.h>
 
 namespace Gnome

@@ -27,7 +27,6 @@
 #include <string>
 #include <climits>
 
-#include <libgnomecanvasmm.h>
 
 #include "pbd/error.h"
 #include "pbd/memento_command.h"

@@ -22,7 +22,6 @@
 
 #include <string>
 
-#include <libgnomecanvasmm/pixbuf.h>
 
 #include "pbd/signals.h"
 

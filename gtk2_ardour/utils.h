@@ -24,7 +24,6 @@
 #include <cmath>
 #include <vector>
 #include "ardour/types.h"
-#include <libgnomecanvasmm/line.h>
 #include <gdkmm/types.h>
 #include <gtkmm/menushell.h>
 

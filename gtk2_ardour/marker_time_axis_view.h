@@ -22,7 +22,6 @@
 
 #include <list>
 #include <gdkmm/color.h>
-#include <libgnomecanvasmm/group.h>
 
 #include "ardour/location.h"
 #include "simplerect.h"

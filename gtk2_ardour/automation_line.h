@@ -25,7 +25,6 @@
 #include <string>
 #include <sys/types.h>
 
-#include <libgnomecanvasmm/line.h>
 #include <sigc++/signal.h>
 #include "canvas.h"
 #include "simplerect.h"

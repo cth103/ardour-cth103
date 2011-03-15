@@ -21,8 +21,6 @@
 
 #include <vector>
 
-#include <libgnomecanvasmm.h>
-#include <libgnomecanvasmm/polygon.h>
 #include <sigc++/signal.h>
 #include "ardour/region.h"
 #include "ardour/beats_frames_converter.h"

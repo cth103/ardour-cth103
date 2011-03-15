@@ -23,9 +23,6 @@
 #include <string>
 #include <list>
 
-#include <libgnomecanvasmm.h>
-#include <libgnomecanvasmm/canvas.h>
-#include <libgnomecanvasmm/item.h>
 
 #include "pbd/error.h"
 #include "pbd/convert.h"

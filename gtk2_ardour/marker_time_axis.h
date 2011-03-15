@@ -21,7 +21,6 @@
 #define __ardour_marker_time_axis_h__
 
 #include <string>
-#include <libgnomecanvas/libgnomecanvas.h>
 
 #include "ardour_dialog.h"
 #include "route_ui.h"

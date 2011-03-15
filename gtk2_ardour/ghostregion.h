@@ -21,7 +21,6 @@
 #define __ardour_gtk_ghost_region_h__
 
 #include <vector>
-#include <libgnomecanvasmm.h>
 #include "pbd/signals.h"
 #include "canvas.h"
 

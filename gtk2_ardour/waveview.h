@@ -27,10 +27,7 @@
  * Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include <libgnomecanvasmm/item.h>
 #include "canvas-waveview.h"
-#include <libgnomecanvas/gnome-canvas-util.h>
-#include <libgnomecanvas/libgnomecanvas.h>
 #include <vector>
 
 

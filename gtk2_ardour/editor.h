@@ -28,10 +28,6 @@
 
 #include <boost/optional.hpp>
 
-#include <libgnomecanvasmm/canvas.h>
-#include <libgnomecanvasmm/group.h>
-#include <libgnomecanvasmm/line.h>
-#include <libgnomecanvasmm/pixbuf.h>
 
 #include <cmath>
 

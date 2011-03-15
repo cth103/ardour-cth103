@@ -22,8 +22,6 @@
 #include <string>
 #include <vector>
 
-#include <libgnomecanvasmm.h>
-#include <libgnomecanvasmm/polygon.h>
 
 #include "pbd/signals.h"
 

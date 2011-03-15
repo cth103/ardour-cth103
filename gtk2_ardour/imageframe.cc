@@ -2,7 +2,6 @@
 
 #include "imageframe.h"
 #include "imageframe_p.h"
-#include <libgnomecanvasmm/private/shape_p.h>
 
 
 /* rect.c

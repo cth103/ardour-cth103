@@ -17,8 +17,6 @@
 
 */
 
-#include <libgnomecanvasmm/canvas.h>
-#include <libgnomecanvasmm/group.h>
 #include "tempo_lines.h"
 #include "ardour_ui.h"
 

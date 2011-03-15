@@ -20,7 +20,6 @@
 #include <cstdlib>
 #include <cmath>
 
-#include <libgnomecanvas/libgnomecanvas.h>
 
 #include "utils.h"
 #include "editor_cursors.h"

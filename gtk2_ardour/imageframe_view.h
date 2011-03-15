@@ -22,7 +22,6 @@
 
 #include <string>
 #include <gdkmm/color.h>
-#include <libgnomecanvas/libgnomecanvas.h>
 #include <sigc++/signal.h>
 #include <list>
 

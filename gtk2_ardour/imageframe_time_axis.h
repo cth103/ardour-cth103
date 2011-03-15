@@ -22,7 +22,6 @@
 
 #include <list>
 
-//#include <libgnomecanvas.h>
 
 #include "ardour_dialog.h"
 #include "enums.h"

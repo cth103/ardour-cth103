@@ -25,7 +25,6 @@
 #include <gtkmm/image.h>
 #include <gtkmm/scrolledwindow.h>
 
-#include <libgnomecanvasmm/line.h>
 
 #include "pbd/memento_command.h"
 #include "ardour/automation_list.h"
