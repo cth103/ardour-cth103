@@ -16,6 +16,10 @@ public:
 	explicit Group (Group *, Duple);
 	~Group ();
 
+	void render (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
+
+	void compute_bounding_box () const;
+
 	void add (Item *);
 	void remove (Item *);
 	std::list<Item*> const & items () const {
@@ -25,9 +29,6 @@ public:
 	void raise_child_to_top (Item *);
 	void raise_child (Item *, int);
 	void lower_child_to_bottom (Item *);
-
-	void render (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
-	boost::optional<Rect> bounding_box () const;
 
 #ifdef CANVAS_COMPATIBILITY
 	Coord& property_x () {

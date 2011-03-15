@@ -12,8 +12,9 @@ class Line : public Item, public Outline
 public:
 	Line (Group *);
 
-	boost::optional<Rect> bounding_box () const;
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const;
+	
+	void compute_bounding_box () const;
 	
 	void set (Point, Point);
 	void set_x0 (Coord);

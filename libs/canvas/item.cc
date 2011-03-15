@@ -6,22 +6,27 @@ using namespace ArdourCanvas;
 
 Item::Item (Group* parent)
 	: _parent (parent)
-	, _visible (true)
 {
-	if (_parent) {
-		_parent->add (this);
-	}
+	init ();
 }
 
 Item::Item (Group* parent, Duple position)
 	: _parent (parent)
 	, _position (position)
-	, _visible (true)
 {
+	init ();
+}
+
+void
+Item::init ()
+{
+	_visible = true;
+	_bounding_box_dirty = true;
+	
 	if (_parent) {
 		_parent->add (this);
 	}
-}
+}	
 
 Item::~Item ()
 {
@@ -110,6 +115,29 @@ void
 Item::grab_focus ()
 {
 	/* XXX */
+}
+
+boost::optional<Rect>
+Item::bounding_box () const
+{
+	if (_bounding_box_dirty) {
+		compute_bounding_box ();
+	}
+
+	assert (!_bounding_box_dirty);
+	return _bounding_box;
+}
+
+void
+Item::begin_change ()
+{
+	_pre_change_bounding_box = bounding_box ();
+}
+
+void
+Item::end_change ()
+{
+	cout << "Item " << this << " changes from " << _pre_change_bounding_box.get() << " to " << bounding_box().get() << "\n";
 }
 
 #ifdef CANVAS_COMPATIBILITY

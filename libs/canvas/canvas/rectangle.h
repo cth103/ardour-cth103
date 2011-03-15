@@ -16,7 +16,8 @@ public:
 	Rectangle (Group *, Rect const &);
 
 	void render (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
-	boost::optional<Rect> bounding_box () const;
+
+	void compute_bounding_box () const;
 
 	Rect const & get () const {
 		return _rect;

@@ -22,6 +22,12 @@ public:
 	Item (Group *, Duple);
 	virtual ~Item ();
 
+	/** @param area Area to draw in this item's coordinates */
+	virtual void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const = 0;
+
+	/** Update _bounding_box and _bounding_box_dirty */
+	virtual void compute_bounding_box () const = 0;
+
 	void unparent ();
 	void reparent (Group *);
 	Group* parent () const {
@@ -36,11 +42,8 @@ public:
 	}
 
 	/** @return Bounding box in this item's coordinates */
-	virtual boost::optional<Rect> bounding_box () const = 0;
-
-	/** @param area Area to draw in this item's coordinates */
-	virtual void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const = 0;
-
+	boost::optional<Rect> bounding_box () const;
+	
 	Duple item_to_parent (Duple const &) const;
 	Rect item_to_parent (Rect const &) const;
 	Duple parent_to_item (Duple const &) const;
@@ -77,14 +80,25 @@ public:
 	
 	
 protected:
+
+	void begin_change ();
+	void end_change ();
+	
 	Group* _parent;
 	/** position of this item in parent coordinates */
 	Duple _position;
 	bool _visible;
+	boost::optional<Rect> _pre_change_bounding_box;
+
+	mutable boost::optional<Rect> _bounding_box;
+	mutable bool _bounding_box_dirty;
 
 #ifdef CANVAS_COMPATIBILITY
 	std::map<std::string, void *> _data;
-#endif	
+#endif
+
+private:
+	void init ();
 };
 
 }

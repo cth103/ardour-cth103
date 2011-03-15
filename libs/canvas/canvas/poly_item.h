@@ -10,7 +10,7 @@ class PolyItem : public Item
 public:
 	PolyItem (Group *);
 
-	boost::optional<Rect> bounding_box () const;
+	void compute_bounding_box () const;
 	
 	void set (Points const &);
 	Points const & get () const;

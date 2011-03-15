@@ -72,6 +72,7 @@ def build(bld):
 			test/hello_world.cc
 			test/gtk_many.cc
 			test/gtk_scene.cc
+			test/gtk_movement.cc
 		'''.split()
 
 		for t in manual_tests:

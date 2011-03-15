@@ -10,26 +10,28 @@ PolyItem::PolyItem (Group* parent)
 
 }
 
-boost::optional<Rect>
-PolyItem::bounding_box () const
+void
+PolyItem::compute_bounding_box () const
 {
-	Rect r;
 	bool have_first = false;
+
+	Rect bbox;
 
 	for (Points::const_iterator i = _points.begin(); i != _points.end(); ++i) {
 		if (have_first) {
-			r.x0 = min (r.x0, i->x);
-			r.y0 = min (r.y0, i->y);
-			r.x1 = max (r.x1, i->x);
-			r.y1 = max (r.y1, i->y);
+			bbox.x0 = min (bbox.x0, i->x);
+			bbox.y0 = min (bbox.y0, i->y);
+			bbox.x1 = max (bbox.x1, i->x);
+			bbox.y1 = max (bbox.y1, i->y);
 		} else {
-			r.x0 = r.x1 = i->x;
-			r.y0 = r.y1 = i->y;
+			bbox.x0 = bbox.x1 = i->x;
+			bbox.y0 = bbox.y1 = i->y;
 			have_first = true;
 		}
 	}
 
-	return boost::optional<Rect> (r);
+	_bounding_box = bbox;
+	_bounding_box_dirty = false;
 }
 
 void

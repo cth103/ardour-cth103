@@ -14,15 +14,18 @@ Line::Line (Group* parent)
 
 }
 
-boost::optional<Rect>
-Line::bounding_box () const
+void
+Line::compute_bounding_box () const
 {
-	Rect r;
-	r.x0 = min (_points[0].x, _points[1].x);
-	r.y0 = min (_points[0].y, _points[1].y);
-	r.x1 = max (_points[0].x, _points[1].x);
-	r.y1 = max (_points[0].y, _points[1].y);
-	return boost::optional<Rect> (r);
+	Rect bbox;
+	
+	bbox.x0 = min (_points[0].x, _points[1].x);
+	bbox.y0 = min (_points[0].y, _points[1].y);
+	bbox.x1 = max (_points[0].x, _points[1].x);
+	bbox.y1 = max (_points[0].y, _points[1].y);
+
+	_bounding_box = bbox;
+	_bounding_box_dirty = false;
 }
 
 void
@@ -40,31 +43,56 @@ Line::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 void
 Line::set (Point a, Point b)
 {
+	begin_change ();
+	
 	_points[0] = a;
 	_points[1] = b;
+
+	_bounding_box_dirty = true;
+	end_change ();
 }
 
 void
 Line::set_x0 (Coord x0)
 {
+	begin_change ();
+	
 	_points[0].x = x0;
+
+	_bounding_box_dirty = true;
+	end_change ();
 }
 
 void
 Line::set_y0 (Coord y0)
 {
+	begin_change ();
+
 	_points[0].y = y0;
+
+	_bounding_box_dirty = true;
+	end_change ();
 }
 
 void
 Line::set_x1 (Coord x1)
 {
+	begin_change ();
+
 	_points[1].x = x1;
+
+	_bounding_box_dirty = true;
+	end_change ();
 }
 
 void
 Line::set_y1 (Coord y1)
 {
+	begin_change ();
+
 	_points[1].y = y1;
+
+	_bounding_box_dirty = true;
+	end_change ();
 }
 
