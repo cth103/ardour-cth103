@@ -47,7 +47,6 @@
 #include "editor_drag.h"
 #include "audio_time_axis.h"
 #include "midi_time_axis.h"
-#include "canvas-note.h"
 #include "selection.h"
 #include "midi_selection.h"
 #include "automation_time_axis.h"
@@ -628,7 +627,7 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 			*/
 			
 			rv->get_canvas_group()->property_y() = iy1 - 1;
-			rv->get_canvas_group()->reparent (*(_editor->_region_motion_group));
+			rv->get_canvas_group()->reparent (_editor->_region_motion_group);
 			
 			rv->fake_set_opaque (true);
 		}
@@ -967,7 +966,7 @@ RegionMoveDrag::finished_no_copy (
 			   No need to do anything for copies as they are fake regions which will be deleted.
 			*/
 
-			rv->get_canvas_group()->reparent (*dest_rtv->view()->canvas_item());
+			rv->get_canvas_group()->reparent (dest_rtv->view()->canvas_item());
 			rv->get_canvas_group()->property_y() = i->initial_y;
 			rv->get_time_axis_view().reveal_dependent_views (*rv);
 
@@ -1166,7 +1165,7 @@ RegionMotionDrag::aborted (bool)
 		TimeAxisView* tv = &(rv->get_time_axis_view ());
 		RouteTimeAxisView* rtv = dynamic_cast<RouteTimeAxisView*> (tv);
 		assert (rtv);
-		rv->get_canvas_group()->reparent (*rtv->view()->canvas_item());
+		rv->get_canvas_group()->reparent (rtv->view()->canvas_item());
 		rv->get_canvas_group()->property_y() = 0;
 		rv->get_time_axis_view().reveal_dependent_views (*rv);
 		rv->fake_set_opaque (false);
@@ -1227,7 +1226,7 @@ RegionInsertDrag::finished (GdkEvent *, bool)
 
 	RouteTimeAxisView* dest_rtv = dynamic_cast<RouteTimeAxisView*> (_time_axis_views[_views.front().time_axis_view]);
 
-	_primary->get_canvas_group()->reparent (*dest_rtv->view()->canvas_item());
+	_primary->get_canvas_group()->reparent (dest_rtv->view()->canvas_item());
 	_primary->get_canvas_group()->property_y() = 0;
 
 	boost::shared_ptr<Playlist> playlist = dest_rtv->playlist();
@@ -2357,8 +2356,8 @@ MarkerDrag::MarkerDrag (Editor* e, ArdourCanvas::Item* i)
 	_marker = reinterpret_cast<Marker*> (_item->get_data ("marker"));
 	assert (_marker);
 
-	_points.push_back (Gnome::Art::Point (0, 0));
-	_points.push_back (Gnome::Art::Point (0, physical_screen_height (_editor->get_window())));
+	_points.push_back (ArdourCanvas::Point (0, 0));
+	_points.push_back (ArdourCanvas::Point (0, physical_screen_height (_editor->get_window())));
 }
 
 MarkerDrag::~MarkerDrag ()
@@ -2918,7 +2917,7 @@ FeatureLineDrag::start_grab (GdkEvent* event, Gdk::Cursor* /*cursor*/)
 	double cx = event->button.x;
 	double cy = event->button.y;
 
-	_item->property_parent().get_value()->w2i(cx, cy);
+	_item->parent()->w2i(cx, cy);
 
 	/* store grab start in parent frame */
 	_region_view_grab_x = cx;
@@ -2948,16 +2947,14 @@ FeatureLineDrag::motion (GdkEvent*, bool)
 		cx = 0;
 	}
 	
-	ArdourCanvas::Points points;
-	
 	double x1 = 0, x2 = 0, y1 = 0, y2 = 0;
 
 	_line->get_bounds(x1, y2, x2, y2);
 	
-	points.push_back(Gnome::Art::Point(cx, 2.0)); // first x-coord needs to be a non-normal value
-	points.push_back(Gnome::Art::Point(cx, y2 - y1));
-
-	_line->property_points() = points;
+	_line->set (
+		ArdourCanvas::Point (cx, 2.0),
+		ArdourCanvas::Point (cx, y2 - y1)
+		);
 	
 	float *pos = new float;
 	*pos = cx;
@@ -3470,8 +3467,11 @@ RangeMarkerBarDrag::RangeMarkerBarDrag (Editor* e, ArdourCanvas::Item* i, Operat
 {
 	DEBUG_TRACE (DEBUG::Drags, "New RangeMarkerBarDrag\n");
 	
-	_drag_rect = new ArdourCanvas::SimpleRect (*_editor->time_line_group, 0.0, 0.0, 0.0, 
-	                                           physical_screen_height (_editor->get_window()));
+	_drag_rect = new ArdourCanvas::Rectangle (
+		_editor->time_line_group,
+		ArdourCanvas::Rect (0.0, 0.0, 0.0, physical_screen_height (_editor->get_window()))
+		);
+	
 	_drag_rect->hide ();
 
 	_drag_rect->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_RangeDragRect.get();
@@ -3515,7 +3515,7 @@ RangeMarkerBarDrag::motion (GdkEvent* event, bool first_move)
 {
 	framepos_t start = 0;
 	framepos_t end = 0;
-	ArdourCanvas::SimpleRect *crect;
+	ArdourCanvas::Rectangle *crect;
 
 	switch (_operation) {
 	case CreateRangeMarker:

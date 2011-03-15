@@ -19,6 +19,7 @@ class Item
 {
 public:
 	Item (Group *);
+	Item (Group *, Duple);
 	virtual ~Item ();
 
 	void unparent ();

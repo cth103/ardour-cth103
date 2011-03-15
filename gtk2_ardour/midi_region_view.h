@@ -31,17 +31,14 @@
 #include "ardour/diskstream.h"
 #include "ardour/types.h"
 
+#include "canvas/unimplemented.h"
+
 #include "editing.h"
 #include "region_view.h"
 #include "midi_time_axis.h"
 #include "time_axis_view_item.h"
 #include "automation_line.h"
 #include "enums.h"
-#include "canvas-hit.h"
-#include "canvas-note.h"
-#include "canvas-note-event.h"
-#include "canvas_patch_change.h"
-#include "canvas-sysex.h"
 
 namespace ARDOUR {
 	class MidiRegion;
@@ -54,6 +51,11 @@ namespace MIDI {
 		struct PatchPrimaryKey;
 	};
 };
+
+namespace ArdourCanvas {
+	class CanvasPatchChange;
+	class CanvasNoteEvent;
+}
 
 class MidiTimeAxisView;
 class GhostRegion;
@@ -232,7 +234,7 @@ class MidiRegionView : public RegionView
 
 	struct NoteResizeData {
 		ArdourCanvas::CanvasNote  *canvas_note;
-		ArdourCanvas::SimpleRect  *resize_rect;
+		ArdourCanvas::Rectangle  *resize_rect;
 	};
 
 	/** Snap a region relative pixel coordinate to pixel units.
@@ -365,8 +367,8 @@ class MidiRegionView : public RegionView
         double                               _drag_start_y;
         double                               _last_x;
         double                               _last_y;
-	ArdourCanvas::SimpleRect*            _drag_rect;
-        ArdourCanvas::SimpleRect*            _step_edit_cursor;
+	ArdourCanvas::Rectangle*             _drag_rect;
+        ArdourCanvas::Rectangle*             _step_edit_cursor;
         Evoral::MusicalTime                  _step_edit_cursor_width;
         Evoral::MusicalTime                  _step_edit_cursor_position;
 	ArdourCanvas::CanvasNoteEvent*	     _channel_selection_scoped_note;

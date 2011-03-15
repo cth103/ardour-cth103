@@ -35,9 +35,10 @@ class GhostRegion;
 class AutomationTimeAxisView;
 class AutomationRegionView;
 
-namespace Gnome { namespace Canvas {
+namespace ArdourCanvas {
 	class NoEventText;
-} }
+	class Polygon;
+}
 
 class RegionView : public TimeAxisViewItem
 {
@@ -167,14 +168,14 @@ class RegionView : public TimeAxisViewItem
 	    different bits of regions according to whether or not they are the one
 	    that will be played at any given time.
 	*/
-	std::list<ArdourCanvas::SimpleRect*> _coverage_frames;
+	std::list<ArdourCanvas::Rectangle*> _coverage_frames;
 
 	/** a list of rectangles used to show silent segments 
 	*/
-	std::list<ArdourCanvas::SimpleRect*> _silent_frames;
+	std::list<ArdourCanvas::Rectangle*> _silent_frames;
 	/** a list of rectangles used to show the current silence threshold
 	*/
-	std::list<ArdourCanvas::SimpleRect*> _silent_threshold_frames;
+	std::list<ArdourCanvas::Rectangle*> _silent_threshold_frames;
         /** a text item to display strip silence statistics
          */
         ArdourCanvas::NoEventText* _silence_text;

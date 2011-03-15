@@ -27,9 +27,28 @@ public:
 	uint32_t& property_outline_color_rgba () {
 		return _outline_color;
 	}
+
+	uint32_t& property_color_rgba () {
+		return _outline_color;
+	}
+	
 	double& property_outline_pixels () {
 		return _outline_width;
 	}
+
+	double& property_width_pixels () {
+		return _outline_width;
+	}
+
+	int& property_outline_what ();
+
+	int& property_first_arrowhead ();
+	int& property_last_arrowhead ();
+	int& property_arrow_shape_a ();
+	int& property_arrow_shape_b ();
+	int& property_arrow_shape_c ();
+
+	bool& property_draw ();
 #endif	
 
 protected:

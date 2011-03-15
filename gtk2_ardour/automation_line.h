@@ -36,6 +36,10 @@
 #include "ardour/automation_list.h"
 #include "ardour/types.h"
 
+#include "canvas/types.h"
+#include "canvas/group.h"
+#include "canvas/line.h"
+
 class AutomationLine;
 class ControlPoint;
 class PointSelection;
@@ -162,7 +166,7 @@ class AutomationLine : public sigc::trackable, public PBD::StatefulDestructible
 
 	ArdourCanvas::Group&        _parent_group;
 	ArdourCanvas::Group*        group;
-	ArdourCanvas::Line*         line; /* line */
+	ArdourCanvas::PolyLine*     line; /* line */
 	ArdourCanvas::Points        line_points; /* coordinates for canvas line */
 	std::vector<ControlPoint*>  control_points; /* visible control points */
 

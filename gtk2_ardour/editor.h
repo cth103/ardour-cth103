@@ -60,9 +60,12 @@
 #include "region_selection.h"
 #include "window_proxy.h"
 
-namespace Gnome { namespace Canvas {
+namespace ArdourCanvas {
 	class NoEventText;
-} }
+	class Rectangle;
+	class Line;
+	class GtkCanvasDrawingArea;
+}
 
 namespace Gtkmm2ext {
 	class TearOff;
@@ -246,14 +249,14 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 		*/
 
 		if (pixel >= 0) {
-			return (framepos_t) rint (pixel * frames_per_unit * GNOME_CANVAS(track_canvas->gobj())->pixels_per_unit);
+			return (framepos_t) rint (pixel * frames_per_unit);
 		} else {
 			return 0;
 		}
 	}
 
 	gulong frame_to_pixel (framepos_t frame) const {
-		return (gulong) rint ((frame / (frames_per_unit * GNOME_CANVAS(track_canvas->gobj())->pixels_per_unit)));
+		return (gulong) rint (frame / frames_per_unit);
 	}
 
 	void flush_canvas ();
@@ -684,7 +687,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	Gdk::Cursor* which_grabber_cursor ();
 	void set_canvas_cursor ();
 
-	ArdourCanvas::Canvas* track_canvas;
+	ArdourCanvas::GtkCanvasDrawingArea* track_canvas;
 
 	ArdourCanvas::NoEventText* verbose_canvas_cursor;
 	bool                 verbose_cursor_visible;
@@ -868,12 +871,12 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	gdouble get_canvas_timebars_vsize () const { return canvas_timebars_vsize; }
 	Gtk::Menu          *editor_ruler_menu;
 
-	ArdourCanvas::SimpleRect* tempo_bar;
-	ArdourCanvas::SimpleRect* meter_bar;
-	ArdourCanvas::SimpleRect* marker_bar;
-	ArdourCanvas::SimpleRect* range_marker_bar;
-	ArdourCanvas::SimpleRect* transport_marker_bar;
-	ArdourCanvas::SimpleRect* cd_marker_bar;
+	ArdourCanvas::Rectangle* tempo_bar;
+	ArdourCanvas::Rectangle* meter_bar;
+	ArdourCanvas::Rectangle* marker_bar;
+	ArdourCanvas::Rectangle* range_marker_bar;
+	ArdourCanvas::Rectangle* transport_marker_bar;
+	ArdourCanvas::Rectangle* cd_marker_bar;
 
 	Gtk::Label  minsec_label;
 	Gtk::Label  bbt_label;
@@ -1624,22 +1627,22 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	/* transport range select process */
 
-	ArdourCanvas::SimpleRect*  cd_marker_bar_drag_rect;
-	ArdourCanvas::SimpleRect*  range_bar_drag_rect;
-	ArdourCanvas::SimpleRect*  transport_bar_drag_rect;
+	ArdourCanvas::Rectangle*  cd_marker_bar_drag_rect;
+	ArdourCanvas::Rectangle*  range_bar_drag_rect;
+	ArdourCanvas::Rectangle*  transport_bar_drag_rect;
 
 #ifdef GTKOSX
-	ArdourCanvas::SimpleRect     *bogus_background_rect;
+	ArdourCanvas::Rectangle     *bogus_background_rect;
 #endif
-	ArdourCanvas::SimpleRect     *transport_bar_range_rect;
-	ArdourCanvas::SimpleRect     *transport_bar_preroll_rect;
-	ArdourCanvas::SimpleRect     *transport_bar_postroll_rect;
-	ArdourCanvas::SimpleRect     *transport_loop_range_rect;
-	ArdourCanvas::SimpleRect     *transport_punch_range_rect;
-	ArdourCanvas::SimpleLine     *transport_punchin_line;
-	ArdourCanvas::SimpleLine     *transport_punchout_line;
-	ArdourCanvas::SimpleRect     *transport_preroll_rect;
-	ArdourCanvas::SimpleRect     *transport_postroll_rect;
+	ArdourCanvas::Rectangle     *transport_bar_range_rect;
+	ArdourCanvas::Rectangle     *transport_bar_preroll_rect;
+	ArdourCanvas::Rectangle     *transport_bar_postroll_rect;
+	ArdourCanvas::Rectangle     *transport_loop_range_rect;
+	ArdourCanvas::Rectangle     *transport_punch_range_rect;
+	ArdourCanvas::Line     *transport_punchin_line;
+	ArdourCanvas::Line     *transport_punchout_line;
+	ArdourCanvas::Rectangle     *transport_preroll_rect;
+	ArdourCanvas::Rectangle     *transport_postroll_rect;
 
 	ARDOUR::Location*  transport_loop_location();
 	ARDOUR::Location*  transport_punch_location();
@@ -1650,11 +1653,11 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void select_all_within (framepos_t, framepos_t, double, double, TrackViewList const &, Selection::Operation, bool);
 
-	ArdourCanvas::SimpleRect   *rubberband_rect;
+	ArdourCanvas::Rectangle   *rubberband_rect;
 
 	/* mouse zoom process */
 
-	ArdourCanvas::SimpleRect   *zoom_rect;
+	ArdourCanvas::Rectangle   *zoom_rect;
 	void reposition_zoom_rect (framepos_t start, framepos_t end);
 
 	EditorRouteGroups* _route_groups;

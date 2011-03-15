@@ -28,6 +28,10 @@
 #include "ardour/profile.h"
 #include "pbd/memento_command.h"
 
+#include "canvas/canvas.h"
+#include "canvas/item.h"
+#include "canvas/rectangle.h"
+
 #include "editor.h"
 #include "marker.h"
 #include "selection.h"
@@ -1393,7 +1397,8 @@ Editor::update_punch_range_view (bool visibility)
 
 	if ((_session->config.get_punch_in() || _session->config.get_punch_out()) && ((tpl = transport_punch_location()) != 0)) {
 		guint track_canvas_width,track_canvas_height;
-		track_canvas->get_size(track_canvas_width,track_canvas_height);
+		/* XXX: CANVAS */
+//		track_canvas->get_size(track_canvas_width,track_canvas_height);
 		if (_session->config.get_punch_in()) {
 			transport_punch_range_rect->property_x1() = frame_to_pixel (tpl->start());
 			transport_punch_range_rect->property_x2() = (_session->config.get_punch_out() ? frame_to_pixel (tpl->end()) : frame_to_pixel (JACK_MAX_FRAMES));

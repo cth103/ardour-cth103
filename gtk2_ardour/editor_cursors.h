@@ -18,15 +18,16 @@
 */
 
 #include "pbd/signals.h"
+#include "canvas/line.h"
+#include "canvas/types.h"
 
 class Editor;
 
 struct EditorCursor {
 	Editor&               editor;
-	ArdourCanvas::Points  points;
 	ArdourCanvas::Line    canvas_item;
-	framepos_t           current_frame;
-	double		  length;
+	framepos_t            current_frame;
+	double		      length;
 
 	EditorCursor (Editor&, bool (Editor::*)(GdkEvent*,ArdourCanvas::Item*));
 	~EditorCursor ();

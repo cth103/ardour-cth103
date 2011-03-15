@@ -18,17 +18,17 @@
 */
 
 #include "control_point.h"
-#include "diamond.h"
 #include "automation_line.h"
 #include "ardour_ui.h"
 #include "public_editor.h"
+
+#include "canvas/rectangle.h"
 
 #include "i18n.h"
 
 using namespace std;
 using namespace ARDOUR;
 using namespace PBD;
-using namespace Gnome; // for Canvas
 
 ControlPoint::ControlPoint (AutomationLine& al)
 	: _line (al)
@@ -41,7 +41,7 @@ ControlPoint::ControlPoint (AutomationLine& al)
 	_shape = Full;
 	_size = 4.0;
 
-	_item = new Canvas::SimpleRect (_line.canvas_group());
+	_item = new ArdourCanvas::Rectangle (&_line.canvas_group());
 	_item->property_draw() = true;
 	_item->property_fill() = false;
 	_item->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_ControlPointFill.get();
@@ -69,7 +69,7 @@ ControlPoint::ControlPoint (const ControlPoint& other, bool /*dummy_arg_to_force
 	_shape = other._shape;
 	_size = other._size;
 
-	_item = new Canvas::SimpleRect (_line.canvas_group());
+	_item = new ArdourCanvas::Rectangle (&_line.canvas_group());
 	_item->property_fill() = false;
 	_item->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_ControlPointOutline.get();
 	_item->property_outline_pixels() = 1;

@@ -19,6 +19,8 @@ public:
 	uint32_t& property_fill_color_rgba () {
 		return _fill_color;
 	}
+
+	bool& property_fill ();
 #endif
 	
 protected:

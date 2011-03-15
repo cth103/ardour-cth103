@@ -29,12 +29,13 @@
 #include "ardour/region_factory.h"
 #include "ardour/midi_region.h"
 
+#include "canvas/canvas.h"
+
 #include "editor.h"
 #include "keyboard.h"
 #include "public_editor.h"
 #include "audio_region_view.h"
 #include "audio_streamview.h"
-#include "canvas-noevent-text.h"
 #include "crossfade_view.h"
 #include "audio_time_axis.h"
 #include "region_gain_line.h"
@@ -1018,7 +1019,8 @@ Editor::track_canvas_drag_motion (Glib::RefPtr<Gdk::DragContext> const & /*c*/, 
 {
 	double wx;
 	double wy;
-	track_canvas->window_to_world (x, y, wx, wy);
+	/* XXX: CANVAS */
+//	track_canvas->window_to_world (x, y, wx, wy);
 
 	GdkEvent event;
 	event.type = GDK_MOTION_NOTIFY;

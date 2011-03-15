@@ -21,13 +21,19 @@
 #define __gtk_ardour_time_axis_view_item_h__
 
 #include <string>
-
-
+#include <gdkmm/color.h>
+#include <pangomm/fontdescription.h>
 #include "pbd/signals.h"
-
 #include "selectable.h"
 
 class TimeAxisView;
+
+namespace ArdourCanvas {
+	class Pixbuf;
+	class Rectangle;
+	class Item;
+	class Group;
+}
 
 using ARDOUR::framepos_t;
 using ARDOUR::framecnt_t;
@@ -223,14 +229,14 @@ class TimeAxisViewItem : public Selectable, public PBD::ScopedConnectionList
         bool rect_visible;
 
 	ArdourCanvas::Group*      group;
-	ArdourCanvas::SimpleRect* vestigial_frame;
-	ArdourCanvas::SimpleRect* frame;
+	ArdourCanvas::Rectangle*  vestigial_frame;
+	ArdourCanvas::Rectangle*  frame;
 	ArdourCanvas::Pixbuf*     name_pixbuf;
-	ArdourCanvas::SimpleRect* name_highlight;
+	ArdourCanvas::Rectangle*  name_highlight;
 
 	/* with these two values, if frame_handle_start == 0 then frame_handle_end will also be 0 */
-	ArdourCanvas::SimpleRect* frame_handle_start; ///< `frame' (fade) handle for the start of the item, or 0
-	ArdourCanvas::SimpleRect* frame_handle_end; ///< `frame' (fade) handle for the end of the item, or 0
+	ArdourCanvas::Rectangle*  frame_handle_start; ///< `frame' (fade) handle for the start of the item, or 0
+	ArdourCanvas::Rectangle*  frame_handle_end; ///< `frame' (fade) handle for the end of the item, or 0
 	
 	double _height;
 	Visibility visibility;

@@ -57,6 +57,12 @@ namespace Gtk {
 	class Menu;
 }
 
+namespace ArdourCanvas {
+	class Canvas;
+	class Group;
+	class Item;
+}
+
 class PublicEditor;
 class RegionSelection;
 class TimeSelection;

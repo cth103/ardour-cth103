@@ -35,9 +35,10 @@
 #include "gtkmm2ext/utils.h"
 #include "gtkmm2ext/tearoff.h"
 
+#include "canvas/canvas.h"
+
 #include "ardour_ui.h"
 #include "actions.h"
-#include "canvas-note.h"
 #include "editor.h"
 #include "time_axis_view.h"
 #include "audio_time_axis.h"
@@ -104,7 +105,8 @@ Editor::mouse_frame (framepos_t& where, bool& in_track_canvas) const
 
 	pointer_window = canvas_window->get_pointer (x, y, mask);
 
-	if (pointer_window == track_canvas->get_bin_window()) {
+	/* XXX: CANVAS: was get_bin_window */
+	if (pointer_window == track_canvas->get_window()) {
 		wx = x;
 		wy = y;
 		in_track_canvas = true;
@@ -154,7 +156,8 @@ Editor::event_frame (GdkEvent const * event, double* pcx, double* pcy) const
 		break;
 	case GDK_ENTER_NOTIFY:
 	case GDK_LEAVE_NOTIFY:
-		track_canvas->w2c(event->crossing.x, event->crossing.y, *pcx, *pcy);
+		/* XXX: CANVAS */
+//		track_canvas->w2c(event->crossing.x, event->crossing.y, *pcx, *pcy);
 		break;
 	case GDK_KEY_PRESS:
 	case GDK_KEY_RELEASE:
@@ -304,7 +307,7 @@ Editor::set_canvas_cursor ()
 
 	/* up-down cursor as a cue that automation can be dragged up and down when in join object/range mode */
 	if (join_object_range_button.get_active() && last_item_entered) {
-		if (last_item_entered->property_parent() && (*last_item_entered->property_parent()).get_data (X_("timeselection"))) {
+		if (last_item_entered->parent() && last_item_entered->parent()->get_data (X_("timeselection"))) {
 			pair<TimeAxisView*, int> tvp = trackview_by_y_position (_last_motion_y + vertical_adjustment.get_value() - canvas_timebars_vsize);
 			if (dynamic_cast<AutomationTimeAxisView*> (tvp.first)) {
 				current_canvas_cursor = _cursors->up_down;
@@ -1130,8 +1133,10 @@ Editor::button_press_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemTyp
 
 		pointer_window = canvas_window->get_pointer (x, y, mask);
 
-		if (pointer_window == track_canvas->get_bin_window()) {
-			track_canvas->window_to_world (x, y, wx, wy);
+		/* XXX: CANVAS: was get_bin_window */
+		if (pointer_window == track_canvas->get_window()) {
+			/* XXX: CANVAS */
+//			track_canvas->window_to_world (x, y, wx, wy);
 		}
 	}
 
@@ -1590,7 +1595,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 		if (mouse_mode == MouseGain) {
 			ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
 			if (line)
-				line->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_EnteredGainLine.get();
+				line->property_color_rgba() = ARDOUR_UI::config()->canvasvar_EnteredGainLine.get();
 			if (is_drawable()) {
 				set_canvas_cursor (_cursors->fader);
 			}
@@ -1602,7 +1607,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 			{
 				ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
 				if (line)
-					line->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_EnteredAutomationLine.get();
+					line->property_color_rgba() = ARDOUR_UI::config()->canvasvar_EnteredAutomationLine.get();
 			}
 			if (is_drawable()) {
 				set_canvas_cursor (_cursors->fader);
@@ -1717,7 +1722,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 
 	case FadeInHandleItem:
 		if (mouse_mode == MouseObject && !internal_editing()) {
-			ArdourCanvas::SimpleRect *rect = dynamic_cast<ArdourCanvas::SimpleRect *> (item);
+			ArdourCanvas::Rectangle *rect = dynamic_cast<ArdourCanvas::Rectangle *> (item);
 			if (rect) {
 				rect->property_fill_color_rgba() = 0xBBBBBBAA;
 			}
@@ -1727,7 +1732,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 
 	case FadeOutHandleItem:
 		if (mouse_mode == MouseObject && !internal_editing()) {
-			ArdourCanvas::SimpleRect *rect = dynamic_cast<ArdourCanvas::SimpleRect *> (item);
+			ArdourCanvas::Rectangle *rect = dynamic_cast<ArdourCanvas::Rectangle *> (item);
 			if (rect) {
 				rect->property_fill_color_rgba() = 0xBBBBBBAA;
 			}
@@ -1737,7 +1742,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 	case FeatureLineItem:
 		{
 			ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
-			line->property_fill_color_rgba() = 0xFF0000FF;
+			line->property_color_rgba() = 0xFF0000FF;
 		}
 		break;
 	case SelectionItem:
@@ -1827,7 +1832,7 @@ Editor::leave_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 		{
 			ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
 			if (line)
-				line->property_fill_color_rgba() = al->get_line_color();
+				line->property_color_rgba() = al->get_line_color();
 		}
 		if (is_drawable()) {
 			set_canvas_cursor (current_canvas_cursor);
@@ -1878,7 +1883,7 @@ Editor::leave_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 	case FadeOutHandleItem:
 		rv = static_cast<RegionView*>(item->get_data ("regionview"));
 		{
-			ArdourCanvas::SimpleRect *rect = dynamic_cast<ArdourCanvas::SimpleRect *> (item);
+			ArdourCanvas::Rectangle *rect = dynamic_cast<ArdourCanvas::Rectangle *> (item);
 			if (rect) {
 				rect->property_fill_color_rgba() = rv->get_fill_color();
 				rect->property_outline_pixels() = 0;
@@ -1897,7 +1902,7 @@ Editor::leave_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 	case FeatureLineItem:
 		{
 			ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
-			line->property_fill_color_rgba() = (guint) ARDOUR_UI::config()->canvasvar_ZeroLine.get();;
+			line->property_color_rgba() = (guint) ARDOUR_UI::config()->canvasvar_ZeroLine.get();;
 		}
 		break;
 
@@ -2750,7 +2755,7 @@ void
 Editor::set_canvas_cursor_for_region_view (double x, RegionView* rv)
 {
 	ArdourCanvas::Group* g = rv->get_canvas_group ();
-	ArdourCanvas::Group* p = g->get_parent_group ();
+	ArdourCanvas::Group* p = g->parent ();
 
 	/* Compute x in region view parent coordinates */
 	double dy = 0;

@@ -37,11 +37,9 @@ namespace PBD {
 	class StatefulDiffCommand;
 }
 
-namespace Gnome {
-	namespace Canvas {
-		class CanvasNoteEvent;
-		class CanvasPatchChange;
-	}
+namespace ArdourCanvas {
+	class CanvasNoteEvent;
+	class CanvasPatchChange;
 }
 
 class Editor;
@@ -444,7 +442,7 @@ class NoteDrag : public Drag
 	int8_t total_dy () const;
 	
 	MidiRegionView* _region;
-	Gnome::Canvas::CanvasNoteEvent* _primary;
+	ArdourCanvas::CanvasNoteEvent* _primary;
 	double _cumulative_dx;
 	double _cumulative_dy;
 	bool _was_selected;
@@ -836,7 +834,7 @@ private:
 	void update_item (ARDOUR::Location *);
 
 	Operation _operation;
-	ArdourCanvas::SimpleRect* _drag_rect;
+	ArdourCanvas::Rectangle* _drag_rect;
 	bool _copy;
 };
 

@@ -27,7 +27,6 @@
 #include <string>
 #include <climits>
 
-
 #include "pbd/error.h"
 #include "pbd/memento_command.h"
 
@@ -38,6 +37,9 @@
 #include "ardour/tempo.h"
 #include <gtkmm2ext/doi.h>
 #include <gtkmm2ext/utils.h>
+
+#include "canvas/canvas.h"
+#include "canvas/item.h"
 
 #include "editor.h"
 #include "marker.h"
@@ -192,7 +194,7 @@ Editor::draw_measures ()
 	}
 
 	if (tempo_lines == 0) {
-		tempo_lines = new TempoLines(*track_canvas, time_line_group, physical_screen_height(get_window()));
+		tempo_lines = new TempoLines (*track_canvas, time_line_group, physical_screen_height(get_window()));
 	}
 
 	tempo_lines->draw(*current_bbt_points, frames_per_unit);

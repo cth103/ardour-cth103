@@ -12,6 +12,15 @@ Item::Item (Group* parent)
 	}
 }
 
+Item::Item (Group* parent, Duple position)
+	: _parent (parent)
+	, _position (position)
+{
+	if (_parent) {
+		_parent->add (this);
+	}
+}
+
 Item::~Item ()
 {
 	if (_parent) {
@@ -35,21 +44,21 @@ void
 Item::raise_to_top ()
 {
 	assert (_parent);
-	_parent->raise_to_top (this);
+	_parent->raise_child_to_top (this);
 }
 
 void
 Item::raise (int levels)
 {
 	assert (_parent);
-	_parent->raise (this, levels);
+	_parent->raise_child (this, levels);
 }
 
 void
 Item::lower_to_bottom ()
 {
 	assert (_parent);
-	_parent->lower_to_bottom (this);
+	_parent->lower_child_to_bottom (this);
 }
 
 void

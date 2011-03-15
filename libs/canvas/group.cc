@@ -20,6 +20,13 @@ Group::Group (Group* parent)
 	
 }
 
+Group::Group (Group* parent, Duple position)
+	: Item (parent, position)
+	, _lut (0)
+{
+	
+}
+
 Group::~Group ()
 {
 	for (list<Item*>::iterator i = _items.begin(); i != _items.end(); ++i) {
@@ -106,7 +113,7 @@ Group::remove (Item* i)
 }
 
 void
-Group::raise_to_top (Item* i)
+Group::raise_child_to_top (Item* i)
 {
 	_items.remove (i);
 	_items.push_back (i);
@@ -114,7 +121,7 @@ Group::raise_to_top (Item* i)
 }
 
 void
-Group::raise (Item* i, int levels)
+Group::raise_child (Item* i, int levels)
 {
 	list<Item*>::iterator j = find (_items.begin(), _items.end(), i);
 	assert (j != _items.end ());
@@ -132,7 +139,7 @@ Group::raise (Item* i, int levels)
 }
 
 void
-Group::lower_to_bottom (Item* i)
+Group::lower_child_to_bottom (Item* i)
 {
 	_items.remove (i);
 	_items.push_front (i);

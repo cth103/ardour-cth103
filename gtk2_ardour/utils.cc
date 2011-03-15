@@ -28,7 +28,6 @@
 #include <cctype>
 #include <fstream>
 #include <sys/stat.h>
-#include <libart_lgpl/art_misc.h>
 #include <gtkmm/rc.h>
 #include <gtkmm/window.h>
 #include <gtkmm/combo.h>
@@ -41,8 +40,8 @@
 #include <gtkmm2ext/utils.h>
 #include "ardour/configuration.h"
 #include "ardour/rc_configuration.h"
-
 #include "ardour/filesystem_paths.h"
+#include "canvas/item.h"
 
 #include "ardour_ui.h"
 #include "debug.h"
@@ -496,10 +495,11 @@ gc_from_style (string widget_style_name, int state, string attr)
 }
 
 
+/* XXX: CANVAS */
 bool
 canvas_item_visible (ArdourCanvas::Item* item)
 {
-	return (item->gobj()->object.flags & GNOME_CANVAS_ITEM_VISIBLE) ? true : false;
+	return item->visible ();
 }
 
 void

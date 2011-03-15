@@ -52,7 +52,6 @@ using namespace std;
 using namespace ARDOUR;
 using namespace PBD;
 using namespace Editing;
-using namespace Gnome; // for Canvas
 
 static const Evoral::IdentityConverter<double, framepos_t> default_converter;
 
@@ -76,11 +75,11 @@ AutomationLine::AutomationLine (const string& name, TimeAxisView& tv, ArdourCanv
 	terminal_points_can_slide = true;
 	_height = 0;
 
-	group = new ArdourCanvas::Group (parent);
+	group = new ArdourCanvas::Group (&parent);
 	group->property_x() = 0.0;
 	group->property_y() = 0.0;
 
-	line = new ArdourCanvas::Line (*group);
+	line = new ArdourCanvas::PolyLine (group);
 	line->property_width_pixels() = (guint)1;
 	line->set_data ("line", this);
 
@@ -183,7 +182,7 @@ void
 AutomationLine::set_line_color (uint32_t color)
 {
 	_line_color = color;
-	line->property_fill_color_rgba() = color;
+	line->property_color_rgba() = color;
 }
 
 void
@@ -475,7 +474,7 @@ AutomationLine::determine_visible_control_points (ALPoints& points)
 		/* reset the line coordinates */
 
 		while (line_points.size() < npoints) {
-			line_points.push_back (Art::Point (0,0));
+			line_points.push_back (ArdourCanvas::Point (0,0));
 		}
 
 		while (line_points.size() > npoints) {

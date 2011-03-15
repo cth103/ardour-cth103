@@ -222,7 +222,7 @@ class MarkerTimeAxisView : public sigc::trackable
 		MarkerTimeAxis& _trackview ;
 
 		ArdourCanvas::Group *canvas_group ;
-		ArdourCanvas::SimpleRect *canvas_rect ; /* frame around the whole thing */
+		ArdourCanvas::Rectangle *canvas_rect; /* frame around the whole thing */
 
 		/** the current samples per unit */
 		double _samples_per_unit;

@@ -21,6 +21,8 @@
 #include "ardour/audio_diskstream.h"
 #include "ardour/rc_configuration.h"
 
+#include "canvas/canvas.h"
+
 #include "ardour_ui.h"
 #include "editor.h"
 #include "editing.h"

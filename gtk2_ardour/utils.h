@@ -26,7 +26,7 @@
 #include "ardour/types.h"
 #include <gdkmm/types.h>
 #include <gtkmm/menushell.h>
-
+#include "canvas/types.h"
 
 namespace PBD {
         class Controllable;
@@ -38,6 +38,10 @@ namespace Gtk {
 	class ComboBoxText;
 	class Paned;
         class Adjustment;
+}
+
+namespace ArdourCanvas {
+	class Item;
 }
 
 extern sigc::signal<void>  DPIReset;

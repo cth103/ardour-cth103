@@ -24,6 +24,8 @@
 
 #include <gtkmm2ext/gtk_ui.h>
 
+#include "canvas/rectangle.h"
+
 #include "ardour/midi_diskstream.h"
 #include "ardour/midi_playlist.h"
 #include "ardour/midi_region.h"
@@ -36,7 +38,6 @@
 #include "ardour_ui.h"
 #include "global_signals.h"
 #include "gui_thread.h"
-#include "lineset.h"
 #include "midi_region_view.h"
 #include "midi_streamview.h"
 #include "midi_time_axis.h"
@@ -65,12 +66,12 @@ MidiStreamView::MidiStreamView (MidiTimeAxisView& tv)
         , _note_lines (0)
 {
 	/* use a group dedicated to MIDI underlays. Audio underlays are not in this group. */
-	midi_underlay_group = new ArdourCanvas::Group (*_canvas_group);
+	midi_underlay_group = new ArdourCanvas::Group (_canvas_group);
 	midi_underlay_group->lower_to_bottom();
 
 	/* put the note lines in the timeaxisview's group, so it
 	   can be put below ghost regions from MIDI underlays*/
-	_note_lines = new ArdourCanvas::LineSet(*_canvas_group, ArdourCanvas::LineSet::Horizontal);
+	_note_lines = new ArdourCanvas::LineSet (_canvas_group, ArdourCanvas::LineSet::Horizontal);
 
 	_note_lines->property_x1() = 0;
 	_note_lines->property_y1() = 0;
@@ -504,7 +505,7 @@ MidiStreamView::setup_rec_box ()
 
 			fill_color = ARDOUR_UI::config()->canvasvar_RecordingRect.get();
 
-			ArdourCanvas::SimpleRect * rec_rect = new Gnome::Canvas::SimpleRect (*_canvas_group);
+			ArdourCanvas::Rectangle * rec_rect = new ArdourCanvas::Rectangle (_canvas_group);
 			rec_rect->property_x1() = xstart;
 			rec_rect->property_y1() = 1.0;
 			rec_rect->property_x2() = xend;

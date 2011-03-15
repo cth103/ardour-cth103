@@ -25,7 +25,7 @@
 #include "ardour/tempo.h"
 
 typedef boost::fast_pool_allocator<
-		std::pair<const double, ArdourCanvas::SimpleLine*>,
+		std::pair<const double, ArdourCanvas::Line*>,
 		boost::default_user_allocator_new_delete,
 		boost::details::pool::null_mutex,
 		8192>
@@ -43,7 +43,7 @@ public:
 	void hide();
 
 private:
-	typedef std::map<double, ArdourCanvas::SimpleLine*, std::less<double>, MapAllocator> Lines;
+	typedef std::map<double, ArdourCanvas::Line*, std::less<double>, MapAllocator> Lines;
 	Lines _lines;
 
 	ArdourCanvas::Canvas& _canvas;

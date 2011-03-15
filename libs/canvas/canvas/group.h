@@ -1,3 +1,6 @@
+#ifndef __CANVAS_GROUP_H__
+#define __CANVAS_GROUP_H__
+
 #include <list>
 #include "canvas/item.h"
 #include "canvas/types.h"
@@ -10,6 +13,7 @@ class Group : public Item
 public:
 	Group ();
 	explicit Group (Group *);
+	explicit Group (Group *, Duple);
 	~Group ();
 
 	void add (Item *);
@@ -18,9 +22,9 @@ public:
 		return _items;
 	}
 
-	void raise_to_top (Item *);
-	void raise (Item *, int);
-	void lower_to_bottom (Item *);
+	void raise_child_to_top (Item *);
+	void raise_child (Item *, int);
+	void lower_child_to_bottom (Item *);
 
 	void render (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
 	boost::optional<Rect> bounding_box () const;
@@ -47,3 +51,5 @@ private:
 };
 
 }
+
+#endif

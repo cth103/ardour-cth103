@@ -35,10 +35,12 @@
 
 #include "evoral/Curve.hpp"
 
+#include "canvas/rectangle.h"
+#include "canvas/unimplemented.h"
+
 #include "streamview.h"
 #include "audio_region_view.h"
 #include "audio_time_axis.h"
-#include "waveview.h"
 #include "public_editor.h"
 #include "audio_region_editor.h"
 #include "region_gain_line.h"
@@ -174,28 +176,28 @@ AudioRegionView::init (Gdk::Color const & basic_color, bool wfd)
 
 	create_waves ();
 
-	fade_in_shape = new ArdourCanvas::Polygon (*group);
+	fade_in_shape = new ArdourCanvas::Polygon (group);
 	fade_in_shape->property_fill_color_rgba() = fade_color;
 	fade_in_shape->set_data ("regionview", this);
 
-	fade_out_shape = new ArdourCanvas::Polygon (*group);
+	fade_out_shape = new ArdourCanvas::Polygon (group);
 	fade_out_shape->property_fill_color_rgba() = fade_color;
 	fade_out_shape->set_data ("regionview", this);
 
 	if (!_recregion) {
-		fade_in_handle = new ArdourCanvas::SimpleRect (*group);
+		fade_in_handle = new ArdourCanvas::Rectangle (group);
 		fade_in_handle->property_fill_color_rgba() = UINT_RGBA_CHANGE_A (fill_color, 0);
 		fade_in_handle->property_outline_pixels() = 0;
 
 		fade_in_handle->set_data ("regionview", this);
 
-		fade_out_handle = new ArdourCanvas::SimpleRect (*group);
+		fade_out_handle = new ArdourCanvas::Rectangle (group);
 		fade_out_handle->property_fill_color_rgba() = UINT_RGBA_CHANGE_A (fill_color, 0);
 		fade_out_handle->property_outline_pixels() = 0;
 
 		fade_out_handle->set_data ("regionview", this);
 		
-		fade_position_line = new ArdourCanvas::SimpleLine (*group);
+		fade_position_line = new ArdourCanvas::Line (group);
 		fade_position_line->property_color_rgba() = 0xBBBBBBAA;
 		fade_position_line->property_y1() = 7;
 		fade_position_line->property_y2() = _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1;
@@ -447,13 +449,12 @@ AudioRegionView::reset_width_dependent_items (double pixel_width)
 	for (i = analysis_features.begin(), l = feature_lines.begin(); i != analysis_features.end() && l != feature_lines.end(); ++i, ++l) {
 	  
 		float x_pos = trackview.editor().frame_to_pixel (*i);
-		
-		ArdourCanvas::Points points;
-		points.push_back(Gnome::Art::Point(x_pos, 2.0)); // first x-coord needs to be a non-normal value
-		points.push_back(Gnome::Art::Point(x_pos, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1));
 
 		(*l).first = *i;
-		(*l).second->property_points() = points;
+		(*l).second->set (
+			ArdourCanvas::Point(x_pos, 2.0),
+			ArdourCanvas::Point(x_pos, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
+			);
 	}
 	
 	reset_fade_shapes ();
@@ -537,12 +538,10 @@ AudioRegionView::set_height (gdouble height)
 
 		float pos_x = trackview.editor().frame_to_pixel((*l).first);
 
-		ArdourCanvas::Points points;
-		
-		points.push_back(Gnome::Art::Point(pos_x, 2.0)); // first x-coord needs to be a non-normal value
-		points.push_back(Gnome::Art::Point(pos_x, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1));
-
-		(*l).second->property_points() = points;
+		(*l).second->set (
+			ArdourCanvas::Point(pos_x, 2.0),
+			ArdourCanvas::Point(pos_x, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
+			);
 	}
 
 	if (fade_position_line) {
@@ -949,7 +948,7 @@ AudioRegionView::create_one_wave (uint32_t which, bool /*direct*/)
 
 	gdouble yoff = which * ht;
 
-	WaveView *wave = new WaveView(*group);
+	WaveView *wave = new WaveView (group);
 
 	wave->property_data_src() = (gpointer) _region.get();
 	wave->property_cache() =  wave_caches[which];
@@ -1214,7 +1213,7 @@ AudioRegionView::add_ghost (TimeAxisView& tv)
 			break;
 		}
 
-		WaveView *wave = new WaveView(*ghost->group);
+		WaveView *wave = new WaveView (ghost->group);
 
 		wave->property_data_src() = _region.get();
 		wave->property_cache() =  wave_caches[n];
@@ -1447,16 +1446,14 @@ AudioRegionView::transients_changed ()
 
 	while (feature_lines.size() < analysis_features.size()) {
 
-		ArdourCanvas::Line* canvas_item = new ArdourCanvas::Line(*group);
+		ArdourCanvas::Line* canvas_item = new ArdourCanvas::Line (group);
 	
-		ArdourCanvas::Points points;
-		
-		points.push_back(Gnome::Art::Point(-1.0, 2.0)); // first x-coord needs to be a non-normal value
-		points.push_back(Gnome::Art::Point(1.0, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1));
+		canvas_item->set (
+			ArdourCanvas::Point(-1.0, 2.0),
+			ArdourCanvas::Point(1.0, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
+			);
 
-		canvas_item->property_points() = points;
 		canvas_item->property_width_pixels() = 1;
-		canvas_item->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_ZeroLine.get();
 		canvas_item->property_first_arrowhead() = TRUE;
 		canvas_item->property_last_arrowhead() = TRUE;
 		canvas_item->property_arrow_shape_a() = 11.0;
@@ -1483,15 +1480,14 @@ AudioRegionView::transients_changed ()
 	
 	for (i = analysis_features.begin(), l = feature_lines.begin(); i != analysis_features.end() && l != feature_lines.end(); ++i, ++l) {
 
-		ArdourCanvas::Points points;
-
 		float *pos = new float;
 		*pos = trackview.editor().frame_to_pixel (*i);
-		
-		points.push_back(Gnome::Art::Point(*pos, 2.0)); // first x-coord needs to be a non-normal value
-		points.push_back(Gnome::Art::Point(*pos, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1));
 
-		(*l).second->property_points() = points;
+		(*l).second->set (
+			ArdourCanvas::Point(*pos, 2.0),
+			ArdourCanvas::Point(*pos, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
+			);
+		
 		(*l).second->set_data ("position", pos);
 		
 		(*l).first = *i;

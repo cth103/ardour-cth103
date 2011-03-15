@@ -26,6 +26,9 @@
 #include "ardour/profile.h"
 #include "ardour/session.h"
 
+#include "canvas/unimplemented.h"
+#include "canvas/canvas.h"
+
 #include "actions.h"
 #include "ardour_ui.h"
 #include "editing.h"

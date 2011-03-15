@@ -41,6 +41,10 @@ namespace ARDOUR {
 	class MidiModel;
 }
 
+namespace ArdourCanvas {
+	class LineSet;
+}
+
 class PublicEditor;
 class Selectable;
 class MidiTimeAxisView;

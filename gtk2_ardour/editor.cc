@@ -90,7 +90,6 @@
 #include "audio_time_axis.h"
 #include "utils.h"
 #include "crossfade_view.h"
-#include "canvas-noevent-text.h"
 #include "editing.h"
 #include "public_editor.h"
 #include "crossfade_edit.h"
@@ -488,9 +487,10 @@ Editor::Editor ()
 
 	_cursors = new MouseCursors;
 
-	ArdourCanvas::Canvas* time_pad = manage(new ArdourCanvas::Canvas());
-	ArdourCanvas::SimpleLine* pad_line_1 = manage(new ArdourCanvas::SimpleLine(*time_pad->root(),
-			0.0, 1.0, 100.0, 1.0));
+	/* XXX: CANVAS: these lines used to have manage () */
+	ArdourCanvas::GtkCanvasDrawingArea* time_pad = new ArdourCanvas::GtkCanvasDrawingArea ();
+	ArdourCanvas::Line* pad_line_1 = new ArdourCanvas::Line (time_pad->root ());
+	pad_line_1->set (ArdourCanvas::Point (0.0, 1.0), ArdourCanvas::Point (100.0, 1.0));
 	
 	pad_line_1->property_color_rgba() = 0xFF0000FF;
 	pad_line_1->show();
@@ -3305,7 +3305,8 @@ Editor::show_verbose_canvas_cursor_with (const string & txt, int32_t xoffset, in
 	double wx, wy;
 
 	track_canvas->get_pointer (x, y);
-	track_canvas->window_to_world (x, y, wx, wy);
+	/* XXX: CANVAS */
+//	track_canvas->window_to_world (x, y, wx, wy);
 
 	wx += xoffset;
 	wy += yoffset;

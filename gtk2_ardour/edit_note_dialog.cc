@@ -21,7 +21,6 @@
 #include <gtkmm/table.h>
 #include "ardour/midi_model.h"
 #include "edit_note_dialog.h"
-#include "canvas-note-event.h"
 #include "midi_region_view.h"
 
 using namespace Gtk;
@@ -32,7 +31,7 @@ using namespace Gtk;
  *    @param n Note to edit.
  */
 
-EditNoteDialog::EditNoteDialog (MidiRegionView* rv, Gnome::Canvas::CanvasNoteEvent* ev)
+EditNoteDialog::EditNoteDialog (MidiRegionView* rv, ArdourCanvas::CanvasNoteEvent* ev)
 	: ArdourDialog (_("Note"))
 	, _region_view (rv)
 	, _event (ev)

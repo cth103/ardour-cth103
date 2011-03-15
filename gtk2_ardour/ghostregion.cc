@@ -18,14 +18,15 @@
 */
 
 #include "evoral/Note.hpp"
+#include "canvas/group.h"
+#include "canvas/rectangle.h"
+#include "canvas/unimplemented.h"
 #include "ardour_ui.h"
 #include "automation_time_axis.h"
-#include "canvas-note.h"
 #include "ghostregion.h"
 #include "midi_streamview.h"
 #include "midi_time_axis.h"
 #include "rgb_macros.h"
-#include "waveview.h"
 
 using namespace std;
 using namespace Editing;
@@ -38,11 +39,11 @@ GhostRegion::GhostRegion (ArdourCanvas::Group* parent, TimeAxisView& tv, TimeAxi
 	: trackview (tv)
 	, source_trackview (source_tv)
 {
-	group = new ArdourCanvas::Group (*parent);
+	group = new ArdourCanvas::Group (parent);
 	group->property_x() = initial_pos;
 	group->property_y() = 0.0;
 
-	base_rect = new ArdourCanvas::SimpleRect (*group);
+	base_rect = new ArdourCanvas::Rectangle (group);
 	base_rect->property_x1() = (double) 0.0;
 	base_rect->property_y1() = (double) 0.0;
 	base_rect->property_y2() = (double) trackview.current_height();
@@ -197,7 +198,7 @@ MidiGhostRegion::Event::Event(ArdourCanvas::CanvasNoteEvent* e)
 MidiGhostRegion::Note::Note(ArdourCanvas::CanvasNote* n, ArdourCanvas::Group* g)
 	: Event(n)
 {
-	rect = new ArdourCanvas::SimpleRect(*g, n->x1(), n->y1(), n->x2(), n->y2());
+	rect = new ArdourCanvas::Rectangle (g, ArdourCanvas::Rect (n->x1(), n->y1(), n->x2(), n->y2()));
 }
 
 MidiGhostRegion::Note::~Note()

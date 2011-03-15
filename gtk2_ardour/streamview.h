@@ -40,8 +40,13 @@ namespace ARDOUR {
 	class Track;
 }
 
+namespace ArdourCanvas {
+	class Rectangle;
+	class Group;
+}
+
 struct RecBoxInfo {
-	ArdourCanvas::SimpleRect*  rectangle;
+	ArdourCanvas::Rectangle*   rectangle;
 	framepos_t                 start;
 	ARDOUR::framecnt_t         length;
 };
@@ -148,7 +153,7 @@ protected:
 	bool                      owns_canvas_group;
 	ArdourCanvas::Group*      _background_group;
 	ArdourCanvas::Group*      _canvas_group;
-	ArdourCanvas::SimpleRect* canvas_rect; /* frame around the whole thing */
+	ArdourCanvas::Rectangle*  canvas_rect; /* frame around the whole thing */
 
 	typedef std::list<RegionView* > RegionViewList;
 	RegionViewList  region_views;

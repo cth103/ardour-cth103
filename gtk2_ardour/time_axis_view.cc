@@ -36,6 +36,8 @@
 #include "ardour/processor.h"
 #include "ardour/location.h"
 
+#include "canvas/rectangle.h"
+
 #include "ardour_ui.h"
 #include "global_signals.h"
 #include "gui_thread.h"
@@ -79,15 +81,15 @@ TimeAxisView::TimeAxisView (ARDOUR::Session* sess, PublicEditor& ed, TimeAxisVie
 		compute_heights ();
 	}
 	
-	_canvas_background = new Group (*ed.get_background_group (), 0.0, 0.0);
-	_canvas_display = new Group (*ed.get_trackview_group (), 0.0, 0.0);
+	_canvas_background = new Group (ed.get_background_group (), ArdourCanvas::Duple (0.0, 0.0));
+	_canvas_display = new Group (ed.get_trackview_group (), ArdourCanvas::Duple (0.0, 0.0));
 	_canvas_display->hide(); // reveal as needed 
 
-	selection_group = new Group (*_canvas_display);
+	selection_group = new Group (_canvas_display);
 	selection_group->set_data (X_("timeselection"), (void *) 1);
 	selection_group->hide();
 
-	_ghost_group = new Group (*_canvas_display);
+	_ghost_group = new Group (_canvas_display);
 	_ghost_group->lower_to_bottom();
 	_ghost_group->show();
 
@@ -189,7 +191,7 @@ TimeAxisView::~TimeAxisView()
 	}
 
 	for (list<SelectionRect*>::iterator i = free_selection_rects.begin(); i != free_selection_rects.end(); ++i) {
-		delete (*i)->rect;
+ delete (*i)->rect;
 		delete (*i)->start_trim;
 		delete (*i)->end_trim;
 
@@ -275,11 +277,12 @@ void
 TimeAxisView::clip_to_viewport ()
 {
 	if (_marked_for_display) {
-		if (_y_position + _effective_height < _editor.get_trackview_group_vertical_offset () || _y_position > _editor.get_trackview_group_vertical_offset () + _canvas_display->get_canvas()->get_height()) {
-			_canvas_background->hide ();
-			_canvas_display->hide ();
-			return;
-		}
+		/* XXX: CANVAS */
+//		if (_y_position + _effective_height < _editor.get_trackview_group_vertical_offset () || _y_position > _editor.get_trackview_group_vertical_offset () + _canvas_display->get_canvas()->get_height()) {
+//			_canvas_background->hide ();
+//			_canvas_display->hide ();
+//			return;
+//		}
 		_canvas_background->show ();
 		_canvas_display->show ();
 	}
@@ -671,7 +674,7 @@ TimeAxisView::set_samples_per_unit (double spu)
 	}
 
 	AnalysisFeatureList::const_iterator i;
-	list<ArdourCanvas::SimpleLine*>::iterator l;
+	list<ArdourCanvas::Line*>::iterator l;
 }
 
 void
@@ -841,7 +844,7 @@ TimeAxisView::get_selection_rect (uint32_t id)
 
 		rect = new SelectionRect;
 
-		rect->rect = new SimpleRect (*selection_group);
+		rect->rect = new ArdourCanvas::Rectangle (selection_group);
 		rect->rect->property_outline_what() = 0x0;
 		rect->rect->property_x1() = 0.0;
 		rect->rect->property_y1() = 0.0;
@@ -849,12 +852,12 @@ TimeAxisView::get_selection_rect (uint32_t id)
 		rect->rect->property_y2() = 0.0;
 		rect->rect->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_SelectionRect.get();
 
-		rect->start_trim = new SimpleRect (*selection_group);
+		rect->start_trim = new ArdourCanvas::Rectangle (selection_group);
 		rect->start_trim->property_outline_what() = 0x0;
 		rect->start_trim->property_x1() = 0.0;
 		rect->start_trim->property_x2() = 0.0;
 		
-		rect->end_trim = new SimpleRect (*selection_group);
+		rect->end_trim = new ArdourCanvas::Rectangle (selection_group);
 		rect->end_trim->property_outline_what() = 0x0;
 		rect->end_trim->property_x1() = 0.0;
 		rect->end_trim->property_x2() = 0.0;

@@ -27,14 +27,13 @@
 #include "ardour/profile.h"
 #include "ardour/rc_configuration.h"
 
+#include "canvas/canvas.h"
+#include "canvas/unimplemented.h"
+#include "canvas/rectangle.h"
+
 #include "ardour_ui.h"
 #include "editor.h"
 #include "global_signals.h"
-#include "waveview.h"
-#include "imageframe.h"
-#include "waveview_p.h"
-#include "imageframe_p.h"
-#include "canvas-noevent-text.h"
 #include "editing.h"
 #include "rgb_macros.h"
 #include "utils.h"
@@ -62,49 +61,10 @@ using namespace Editing;
 
 const double max_canvas_coordinate = (double) JACK_MAX_FRAMES;
 
-extern "C"
-{
-
-GType gnome_canvas_simpleline_get_type(void);
-GType gnome_canvas_simplerect_get_type(void);
-GType gnome_canvas_waveview_get_type(void);
-GType gnome_canvas_imageframe_get_type(void);
-
-}
-
-static void ardour_canvas_type_init()
-{
-	// Map gtypes to gtkmm wrapper-creation functions:
-
-	Glib::wrap_register(gnome_canvas_simpleline_get_type(), &Gnome::Canvas::SimpleLine_Class::wrap_new);
-	Glib::wrap_register(gnome_canvas_simplerect_get_type(), &Gnome::Canvas::SimpleRect_Class::wrap_new);
-	Glib::wrap_register(gnome_canvas_waveview_get_type(), &Gnome::Canvas::WaveView_Class::wrap_new);
-	// Glib::wrap_register(gnome_canvas_imageframe_get_type(), &Gnome::Canvas::ImageFrame_Class::wrap_new);
-
-	// Register the gtkmm gtypes:
-
-	(void) Gnome::Canvas::WaveView::get_type();
-	(void) Gnome::Canvas::SimpleLine::get_type();
-	(void) Gnome::Canvas::SimpleRect::get_type();
-	(void) Gnome::Canvas::ImageFrame::get_type();
-}
-
 void
 Editor::initialize_canvas ()
 {
-	if (getenv ("ARDOUR_NON_AA_CANVAS")) {
-		track_canvas = new ArdourCanvas::Canvas ();
-	} else {
-		track_canvas = new ArdourCanvas::CanvasAA ();
-	}
-
-	ArdourCanvas::init ();
-	ardour_canvas_type_init ();
-
-	/* don't try to center the canvas */
-
-	track_canvas->set_center_scroll_region (false);
-	track_canvas->set_dither (Gdk::RGB_DITHER_NONE);
+	track_canvas = new ArdourCanvas::GtkCanvasDrawingArea ();
 
         gint phys_width = physical_screen_width (Glib::RefPtr<Gdk::Window>());
         gint phys_height = physical_screen_height (Glib::RefPtr<Gdk::Window>());
@@ -113,7 +73,7 @@ Editor::initialize_canvas ()
 
 	Pango::FontDescription* font = get_font_for_style (N_("VerboseCanvasCursor"));
 
-	verbose_canvas_cursor = new ArdourCanvas::NoEventText (*track_canvas->root());
+	verbose_canvas_cursor = new ArdourCanvas::NoEventText (track_canvas->root());
 	verbose_canvas_cursor->property_font_desc() = *font;
 	verbose_canvas_cursor->property_anchor() = ANCHOR_NW;
 
@@ -125,7 +85,7 @@ Editor::initialize_canvas ()
 
 	if (Profile->get_sae()) {
 		Image img (::get_icon (X_("saelogo")));
-		logo_item = new ArdourCanvas::Pixbuf (*track_canvas->root(), 0.0, 0.0, img.get_pixbuf());
+		logo_item = new ArdourCanvas::Pixbuf (track_canvas->root(), 0.0, 0.0, img.get_pixbuf());
 		// logo_item->property_height_in_pixels() = true;
 		// logo_item->property_width_in_pixels() = true;
 		// logo_item->property_height_set() = true;
@@ -134,87 +94,87 @@ Editor::initialize_canvas ()
 	}
 
 	/* a group to hold time (measure) lines */
-	time_line_group = new ArdourCanvas::Group (*track_canvas->root());
+	time_line_group = new ArdourCanvas::Group (track_canvas->root());
 
 #ifdef GTKOSX
 	/*XXX please don't laugh. this actually improves canvas performance on osx */
-	bogus_background_rect =  new ArdourCanvas::SimpleRect (*time_line_group, 0.0, 0.0, max_canvas_coordinate/3, phys_height);
+	bogus_background_rect =  new ArdourCanvas::Rectangle (time_line_group, ArdourCanvas::Rect (0.0, 0.0, max_canvas_coordinate/3, phys_height));
 	bogus_background_rect->property_outline_pixels() = 0;
 #endif
-	transport_loop_range_rect = new ArdourCanvas::SimpleRect (*time_line_group, 0.0, 0.0, 0.0, phys_height);
+	transport_loop_range_rect = new ArdourCanvas::Rectangle (time_line_group, ArdourCanvas::Rect (0.0, 0.0, 0.0, phys_height));
 	transport_loop_range_rect->property_outline_pixels() = 1;
 	transport_loop_range_rect->hide();
 
-	transport_punch_range_rect = new ArdourCanvas::SimpleRect (*time_line_group, 0.0, 0.0, 0.0, phys_height);
+	transport_punch_range_rect = new ArdourCanvas::Rectangle (time_line_group, ArdourCanvas::Rect (0.0, 0.0, 0.0, phys_height));
 	transport_punch_range_rect->property_outline_pixels() = 0;
 	transport_punch_range_rect->hide();
 
-	_background_group = new ArdourCanvas::Group (*track_canvas->root());
-	_master_group = new ArdourCanvas::Group (*track_canvas->root());
+	_background_group = new ArdourCanvas::Group (track_canvas->root());
+	_master_group = new ArdourCanvas::Group (track_canvas->root());
 
-	_trackview_group = new ArdourCanvas::Group (*_master_group);
-	_region_motion_group = new ArdourCanvas::Group (*_trackview_group);
+	_trackview_group = new ArdourCanvas::Group (_master_group);
+	_region_motion_group = new ArdourCanvas::Group (_trackview_group);
 
-	meter_bar_group = new ArdourCanvas::Group (*track_canvas->root ());
-	meter_bar = new ArdourCanvas::SimpleRect (*meter_bar_group, 0.0, 0.0, phys_width, timebar_height - 1);
+	meter_bar_group = new ArdourCanvas::Group (track_canvas->root ());
+	meter_bar = new ArdourCanvas::Rectangle (meter_bar_group, ArdourCanvas::Rect (0.0, 0.0, phys_width, timebar_height - 1));
 	meter_bar->property_outline_pixels() = 1;
 	meter_bar->property_outline_what() = 0x8;
 
-	tempo_bar_group = new ArdourCanvas::Group (*track_canvas->root ());
-	tempo_bar = new ArdourCanvas::SimpleRect (*tempo_bar_group, 0.0, 0.0, phys_width, (timebar_height - 1));
+	tempo_bar_group = new ArdourCanvas::Group (track_canvas->root ());
+	tempo_bar = new ArdourCanvas::Rectangle (tempo_bar_group, ArdourCanvas::Rect (0.0, 0.0, phys_width, timebar_height - 1));
 	tempo_bar->property_outline_pixels() = 1;
 	tempo_bar->property_outline_what() = 0x8;
 
-	range_marker_bar_group = new ArdourCanvas::Group (*track_canvas->root ());
-	range_marker_bar = new ArdourCanvas::SimpleRect (*range_marker_bar_group, 0.0, 0.0, phys_width, (timebar_height - 1));
+	range_marker_bar_group = new ArdourCanvas::Group (track_canvas->root ());
+	range_marker_bar = new ArdourCanvas::Rectangle (range_marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, phys_width, timebar_height - 1));
 	range_marker_bar->property_outline_pixels() = 1;
 	range_marker_bar->property_outline_what() = 0x8;
 
-	transport_marker_bar_group = new ArdourCanvas::Group (*track_canvas->root ());
-	transport_marker_bar = new ArdourCanvas::SimpleRect (*transport_marker_bar_group, 0.0, 0.0,  phys_width, (timebar_height - 1));
+	transport_marker_bar_group = new ArdourCanvas::Group (track_canvas->root ());
+	transport_marker_bar = new ArdourCanvas::Rectangle (transport_marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, phys_width, timebar_height - 1));
 	transport_marker_bar->property_outline_pixels() = 1;
 	transport_marker_bar->property_outline_what() = 0x8;
 
-	marker_bar_group = new ArdourCanvas::Group (*track_canvas->root ());
-	marker_bar = new ArdourCanvas::SimpleRect (*marker_bar_group, 0.0, 0.0, phys_width, (timebar_height - 1));
+	marker_bar_group = new ArdourCanvas::Group (track_canvas->root ());
+	marker_bar = new ArdourCanvas::Rectangle (marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, phys_width, timebar_height - 1));
 	marker_bar->property_outline_pixels() = 1;
 	marker_bar->property_outline_what() = 0x8;
 
-	cd_marker_bar_group = new ArdourCanvas::Group (*track_canvas->root ());
-	cd_marker_bar = new ArdourCanvas::SimpleRect (*cd_marker_bar_group, 0.0, 0.0, phys_width, (timebar_height - 1));
+	cd_marker_bar_group = new ArdourCanvas::Group (track_canvas->root ());
+	cd_marker_bar = new ArdourCanvas::Rectangle (cd_marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, phys_width, timebar_height - 1));
 	cd_marker_bar->property_outline_pixels() = 1;
  	cd_marker_bar->property_outline_what() = 0x8;
 
-	timebar_group =  new ArdourCanvas::Group (*track_canvas->root(), 0.0, 0.0);
-	cursor_group = new ArdourCanvas::Group (*track_canvas->root(), 0.0, 0.0);
+	timebar_group =  new ArdourCanvas::Group (track_canvas->root());
+	cursor_group = new ArdourCanvas::Group (track_canvas->root());
 
-	meter_group = new ArdourCanvas::Group (*timebar_group, 0.0, timebar_height * 5.0);
-	tempo_group = new ArdourCanvas::Group (*timebar_group, 0.0, timebar_height * 4.0);
-	range_marker_group = new ArdourCanvas::Group (*timebar_group, 0.0, timebar_height * 3.0);
-	transport_marker_group = new ArdourCanvas::Group (*timebar_group, 0.0, timebar_height * 2.0);
-	marker_group = new ArdourCanvas::Group (*timebar_group, 0.0, timebar_height);
-	cd_marker_group = new ArdourCanvas::Group (*timebar_group, 0.0, 0.0);
+	meter_group = new ArdourCanvas::Group (timebar_group, ArdourCanvas::Duple (0.0, timebar_height * 5.0));
+	tempo_group = new ArdourCanvas::Group (timebar_group, ArdourCanvas::Duple (0.0, timebar_height * 4.0));
+	range_marker_group = new ArdourCanvas::Group (timebar_group, ArdourCanvas::Duple (0.0, timebar_height * 3.0));
+	transport_marker_group = new ArdourCanvas::Group (timebar_group, ArdourCanvas::Duple (0.0, timebar_height * 2.0));
+	marker_group = new ArdourCanvas::Group (timebar_group, ArdourCanvas::Duple (0.0, timebar_height));
+	cd_marker_group = new ArdourCanvas::Group (timebar_group, ArdourCanvas::Duple (0.0, 0.0));
 
-	cd_marker_bar_drag_rect = new ArdourCanvas::SimpleRect (*cd_marker_group, 0.0, 0.0, 100, timebar_height);
+	cd_marker_bar_drag_rect = new ArdourCanvas::Rectangle (cd_marker_group, ArdourCanvas::Rect (0.0, 0.0, 100, timebar_height));
 	cd_marker_bar_drag_rect->property_outline_pixels() = 0;
 	cd_marker_bar_drag_rect->hide ();
 
-	range_bar_drag_rect = new ArdourCanvas::SimpleRect (*range_marker_group, 0.0, 0.0, 100, timebar_height);
+	range_bar_drag_rect = new ArdourCanvas::Rectangle (range_marker_group, ArdourCanvas::Rect (0.0, 0.0, 100, timebar_height));
 	range_bar_drag_rect->property_outline_pixels() = 0;
 	range_bar_drag_rect->hide ();
 
-	transport_bar_drag_rect = new ArdourCanvas::SimpleRect (*transport_marker_group, 0.0, 0.0, 100, timebar_height);
+	transport_bar_drag_rect = new ArdourCanvas::Rectangle (transport_marker_group, ArdourCanvas::Rect (0.0, 0.0, 100, timebar_height));
 	transport_bar_drag_rect->property_outline_pixels() = 0;
 	transport_bar_drag_rect->hide ();
 
-	transport_punchin_line = new ArdourCanvas::SimpleLine (*_master_group);
+	transport_punchin_line = new ArdourCanvas::Line (_master_group);
 	transport_punchin_line->property_x1() = 0.0;
 	transport_punchin_line->property_y1() = 0.0;
 	transport_punchin_line->property_x2() = 0.0;
 	transport_punchin_line->property_y2() = phys_height;
 	transport_punchin_line->hide ();
 
-	transport_punchout_line  = new ArdourCanvas::SimpleLine (*_master_group);
+	transport_punchout_line  = new ArdourCanvas::Line (_master_group);
 	transport_punchout_line->property_x1() = 0.0;
 	transport_punchout_line->property_y1() = 0.0;
 	transport_punchout_line->property_x2() = 0.0;
@@ -222,14 +182,14 @@ Editor::initialize_canvas ()
 	transport_punchout_line->hide();
 
 	// used to show zoom mode active zooming
-	zoom_rect = new ArdourCanvas::SimpleRect (*_master_group, 0.0, 0.0, 0.0, 0.0);
+	zoom_rect = new ArdourCanvas::Rectangle (_master_group, ArdourCanvas::Rect (0.0, 0.0, 0.0, 0.0));
 	zoom_rect->property_outline_pixels() = 1;
 	zoom_rect->hide();
 
 	zoom_rect->signal_event().connect (sigc::bind (sigc::mem_fun (*this, &Editor::canvas_zoom_rect_event), (ArdourCanvas::Item*) 0));
 
 	// used as rubberband rect
-	rubberband_rect = new ArdourCanvas::SimpleRect (*_trackview_group, 0.0, 0.0, 0.0, 0.0);
+	rubberband_rect = new ArdourCanvas::Rectangle (_trackview_group, ArdourCanvas::Rect (0.0, 0.0, 0.0, 0.0));
 
 	rubberband_rect->property_outline_pixels() = 1;
 	rubberband_rect->hide();
@@ -444,7 +404,8 @@ Editor::drop_paths (const RefPtr<Gdk::DragContext>& context,
 		/* D-n-D coordinates are window-relative, so convert to "world" coordinates
 		 */
 
-		track_canvas->window_to_world (x, y, wx, wy);
+		/* XXX: CANVAS */
+//		track_canvas->window_to_world (x, y, wx, wy);
 
 		ev.type = GDK_BUTTON_RELEASE;
 		ev.button.x = wx;
@@ -766,8 +727,8 @@ Editor::scroll_canvas_vertically ()
 void
 Editor::color_handler()
 {
-	playhead_cursor->canvas_item.property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_PlayHead.get();
-	verbose_canvas_cursor->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_VerboseCanvasCursor.get();
+	playhead_cursor->canvas_item.property_color_rgba() = ARDOUR_UI::config()->canvasvar_PlayHead.get();
+	verbose_canvas_cursor->property_color_rgba() = ARDOUR_UI::config()->canvasvar_VerboseCanvasCursor.get();
 
 	meter_bar->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_MeterBar.get();
 	meter_bar->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_MarkerBarSeparator.get();
@@ -847,10 +808,11 @@ Editor::update_canvas_now ()
 	   If one is scheduled, GC should probably remove it.
 	*/
 
-	GnomeCanvas* c = track_canvas->gobj ();
-	if (c->need_update || c->need_redraw) {
-		track_canvas->update_now ();
-	}
+	/* XXX: CANVAS */
+//	GnomeCanvas* c = track_canvas->gobj ();
+//	if (c->need_update || c->need_redraw) {
+//		track_canvas->update_now ();
+//	}
 }
 
 double

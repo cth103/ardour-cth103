@@ -101,7 +101,7 @@ RouteTimeAxisView::setup_slider_pix ()
 	}
 }
 
-RouteTimeAxisView::RouteTimeAxisView (PublicEditor& ed, Session* sess, boost::shared_ptr<Route> rt, Canvas& canvas)
+RouteTimeAxisView::RouteTimeAxisView (PublicEditor& ed, Session* sess, boost::shared_ptr<Route> rt, ArdourCanvas::Canvas& canvas)
 	: AxisView(sess)
 	, RouteUI(rt, sess)
 	, TimeAxisView(sess,ed,(TimeAxisView*) 0, canvas)
@@ -788,7 +788,7 @@ RouteTimeAxisView::show_timestretch (framepos_t start, framepos_t end)
 #endif
 
 	if (timestretch_rect == 0) {
-		timestretch_rect = new SimpleRect (*canvas_display ());
+		timestretch_rect = new ArdourCanvas::Rectangle (canvas_display ());
 		timestretch_rect->property_x1() =  0.0;
 		timestretch_rect->property_y1() =  0.0;
 		timestretch_rect->property_x2() =  0.0;

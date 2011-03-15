@@ -23,6 +23,7 @@ canvas_sources = [
 	'debug.cc',
 	'item.cc',
 	'group.cc',
+	'line.cc',
 	'lookup_table.cc',
 	'outline.cc',
 	'rectangle.cc',
@@ -58,7 +59,6 @@ def build(bld):
 			'-DPACKAGE="libcanvas"',
 			'-DLOCALEDIR="' + os.path.join(
 				os.path.normpath(bld.env['DATADIRNAME']), 'locale') + '"']
-	obj.cxxflags    += ['-DCANVAS_COMPATIBILITY']
 
 	if bld.env['BUILD_TESTS'] and bld.env['HAVE_CPPUNIT']:
 		
@@ -77,7 +77,6 @@ def build(bld):
 			manual_testobj.name         = 'libcanvas-manual-tests'
 			manual_testobj.target       = t[:-3]
 			manual_testobj.install_path = ''
-			manual_testobj.cxxflags     = ['-DCANVAS_COMPATIBILITY']
 
 		unit_testobj              = bld.new_task_gen('cxx', 'program')
 		unit_testobj.source       = '''
@@ -96,7 +95,6 @@ def build(bld):
 		unit_testobj.cxxflags     += ['-DDATA_DIR="' + os.path.normpath(bld.env['DATADIR']) + '"']
 		unit_testobj.cxxflags     += ['-DCONFIG_DIR="' + os.path.normpath(bld.env['CONFIGDIR']) + '"']
 		unit_testobj.cxxflags     += ['-DMODULE_DIR="' + os.path.normpath(bld.env['LIBDIR']) + '"']
-		unit_testobj.cxxflags     += ['-DCANVAS_COMPATIBILITY']
 
 def shutdown():
 	autowaf.shutdown()

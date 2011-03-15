@@ -101,7 +101,7 @@ AutomationTimeAxisView::AutomationTimeAxisView (
 	ignore_state_request = false;
 	first_call_to_set_height = true;
 
-	_base_rect = new SimpleRect(*_canvas_display);
+	_base_rect = new ArdourCanvas::Rectangle (_canvas_display);
 	_base_rect->property_x1() = 0.0;
 	_base_rect->property_y1() = 0.0;
 	/** gnomecanvas sometimes converts this value to int or adds 2 to it, so it must be

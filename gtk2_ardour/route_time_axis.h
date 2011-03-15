@@ -54,6 +54,10 @@ namespace ARDOUR {
 	class Playlist;
 }
 
+namespace ArdourCanvas {
+	class Rectangle;
+}
+
 class PublicEditor;
 class RegionView;
 class StreamView;
@@ -267,7 +271,7 @@ protected:
 
 	void use_playlist (Gtk::RadioMenuItem *item, boost::weak_ptr<ARDOUR::Playlist> wpl);
 
-	ArdourCanvas::SimpleRect* timestretch_rect;
+	ArdourCanvas::Rectangle* timestretch_rect;
 
 	void set_track_mode (ARDOUR::TrackMode, bool apply_to_selection = false);
 

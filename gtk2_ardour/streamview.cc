@@ -29,6 +29,8 @@
 #include "ardour/track.h"
 #include "ardour/session.h"
 
+#include "canvas/rectangle.h"
+
 #include "streamview.h"
 #include "global_signals.h"
 #include "region_view.h"
@@ -50,8 +52,8 @@ StreamView::StreamView (RouteTimeAxisView& tv, ArdourCanvas::Group* background_g
 	: _trackview (tv)
 	, owns_background_group (background_group == 0)
 	, owns_canvas_group (canvas_group == 0)
-	, _background_group (background_group ? background_group : new ArdourCanvas::Group (*_trackview.canvas_background()))
-	, _canvas_group (canvas_group ? canvas_group : new ArdourCanvas::Group(*_trackview.canvas_display()))
+	, _background_group (background_group ? background_group : new ArdourCanvas::Group (_trackview.canvas_background()))
+	, _canvas_group (canvas_group ? canvas_group : new ArdourCanvas::Group (_trackview.canvas_display()))
 	, _samples_per_unit (_trackview.editor().get_current_zoom ())
 	, rec_updating(false)
 	, rec_active(false)
@@ -64,7 +66,7 @@ StreamView::StreamView (RouteTimeAxisView& tv, ArdourCanvas::Group* background_g
 {
 	/* set_position() will position the group */
 
-	canvas_rect = new ArdourCanvas::SimpleRect (*_background_group);
+	canvas_rect = new ArdourCanvas::Rectangle (_background_group);
 	canvas_rect->property_x1() = 0.0;
 	canvas_rect->property_y1() = 0.0;
 	canvas_rect->property_x2() = Gtkmm2ext::physical_screen_width (_trackview.editor().get_window());

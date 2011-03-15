@@ -22,7 +22,8 @@
 #include "ardour/region.h"
 #include <gtkmm2ext/doi.h>
 
-#include "canvas-curve.h"
+#include "canvas/rectangle.h"
+
 #include "crossfade_view.h"
 #include "global_signals.h"
 #include "gui_thread.h"
@@ -36,8 +37,6 @@
 using namespace ARDOUR;
 using namespace PBD;
 using namespace Editing;
-using namespace Gnome;
-using namespace Canvas;
 
 PBD::Signal1<void,CrossfadeView*> CrossfadeView::CatchDeletion;
 
@@ -60,12 +59,12 @@ CrossfadeView::CrossfadeView (ArdourCanvas::Group *parent,
 	_valid = true;
 	_visible = true;
 
-	fade_in = new Line (*group);
-	fade_in->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeLine.get();
+	fade_in = new ArdourCanvas::PolyLine (group);
+	fade_in->property_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeLine.get();
 	fade_in->property_width_pixels() = 1;
 
-	fade_out = new Line (*group);
-	fade_out->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeLine.get();
+	fade_out = new ArdourCanvas::PolyLine (group);
+	fade_out->property_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeLine.get();
 	fade_out->property_width_pixels() = 1;
 
 	/* no frame around the xfade or overlap rects */
@@ -187,7 +186,7 @@ CrossfadeView::redraw_curves ()
 		fade_out->show();
 	}
 
-	Points* points = get_canvas_points ("xfade edit redraw", npoints);
+	ArdourCanvas::Points* points = get_canvas_points ("xfade edit redraw", npoints);
 	float* vec = new float[npoints];
 
 	crossfade->fade_in().curve().get_vector (min_frames - crossfade->position(), max_frames - crossfade->position(), vec, npoints);
@@ -199,7 +198,7 @@ CrossfadeView::redraw_curves ()
 	}
 
 	for (int i = 0, pci = 0; i < npoints; ++i) {
-		Art::Point &p = (*points)[pci++];
+		ArdourCanvas::Point &p = (*points)[pci++];
 		p.set_x (xoff + i + 1);
 		p.set_y (_height - ((_height - 2) * vec[i]));
 	}
@@ -209,7 +208,7 @@ CrossfadeView::redraw_curves ()
 	crossfade->fade_out().curve().get_vector (min_frames - crossfade->position(), max_frames - crossfade->position(), vec, npoints);
 
 	for (int i = 0, pci = 0; i < npoints; ++i) {
-		Art::Point &p = (*points)[pci++];
+		ArdourCanvas::Point &p = (*points)[pci++];
 		p.set_x (xoff + i + 1);
 		p.set_y (_height - ((_height - 2) * vec[i]));
 	}

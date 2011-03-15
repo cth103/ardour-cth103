@@ -29,6 +29,8 @@
 
 #include <gtk/gtkaction.h>
 
+#include "canvas/group.h"
+
 #include "ardour/session.h"
 #include "ardour/tempo.h"
 #include "ardour/profile.h"

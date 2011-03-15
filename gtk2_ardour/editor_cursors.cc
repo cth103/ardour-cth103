@@ -20,7 +20,6 @@
 #include <cstdlib>
 #include <cmath>
 
-
 #include "utils.h"
 #include "editor_cursors.h"
 #include "editor.h"
@@ -31,13 +30,14 @@ using namespace Gtk;
 
 EditorCursor::EditorCursor (Editor& ed, bool (Editor::*callbck)(GdkEvent*,ArdourCanvas::Item*))
 	: editor (ed),
-	  canvas_item (*editor.cursor_group),
+	  canvas_item (editor.cursor_group),
 	  length(1.0)
 {
-	points.push_back(Gnome::Art::Point(-1.0, 0.0)); // first x-coord needs to be a non-normal value
-	points.push_back(Gnome::Art::Point(1.0, 1.0));
+	canvas_item.set (
+		ArdourCanvas::Point (-1.0, 0.0),
+		ArdourCanvas::Point (1.0, 1.0)
+		);
 
-	canvas_item.property_points() = points;
 	canvas_item.property_width_pixels() = 1;
 	canvas_item.property_first_arrowhead() = TRUE;
 	canvas_item.property_last_arrowhead() = TRUE;
@@ -51,7 +51,6 @@ EditorCursor::EditorCursor (Editor& ed, bool (Editor::*callbck)(GdkEvent*,Ardour
 }
 
 EditorCursor::~EditorCursor ()
-
 {
 }
 
@@ -60,15 +59,13 @@ EditorCursor::set_position (framepos_t frame)
 {
 	PositionChanged (frame);
 
-	double new_pos =  editor.frame_to_unit (frame);
+	double new_pos = editor.frame_to_unit (frame);
 
-	if (new_pos != points.front().get_x()) {
-
-		points.front().set_x (new_pos);
-		points.back().set_x (new_pos);
-
-		canvas_item.property_points() = points;
+	if (new_pos != canvas_item.x0 ()) {
+		canvas_item.set_x0 (new_pos);
+		canvas_item.set_x1 (new_pos);
 	}
+	
 	current_frame = frame;
 }
 
@@ -76,14 +73,12 @@ void
 EditorCursor::set_length (double units)
 {
 	length = units;
-	points.back().set_y (points.front().get_y() + length);
-	canvas_item.property_points() = points;
+	canvas_item.set_y1 (canvas_item.y1 () + length);
 }
 
 void
 EditorCursor::set_y_axis (double position)
 {
-	points.front().set_y (position);
-	points.back().set_y (position + length);
-	canvas_item.property_points() = points;
+	canvas_item.set_y0 (position);
+	canvas_item.set_y1 (position + length);
 }

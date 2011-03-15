@@ -46,9 +46,6 @@
 
 #include "automation_region_view.h"
 #include "automation_time_axis.h"
-#include "canvas-hit.h"
-#include "canvas-note.h"
-#include "canvas_patch_change.h"
 #include "debug.h"
 #include "editor.h"
 #include "ghostregion.h"
@@ -68,6 +65,7 @@
 #include "utils.h"
 #include "mouse_cursors.h"
 #include "patch_change_dialog.h"
+#include "ardour_ui.h"
 
 #include "i18n.h"
 
@@ -87,7 +85,7 @@ MidiRegionView::MidiRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView &
 	, _model_name(string())
 	, _custom_device_mode(string())
 	, _active_notes(0)
-	, _note_group(new ArdourCanvas::Group(*group))
+	, _note_group (new ArdourCanvas::Group (group))
 	, _note_diff_command (0)
 	, _ghost_note(0)
         , _drag_rect (0)
@@ -121,7 +119,7 @@ MidiRegionView::MidiRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView &
 	, _model_name(string())
 	, _custom_device_mode(string())
 	, _active_notes(0)
-	, _note_group(new ArdourCanvas::Group(*parent))
+	, _note_group (new ArdourCanvas::Group (parent))
 	, _note_diff_command (0)
 	, _ghost_note(0)
         , _drag_rect (0)
@@ -153,7 +151,7 @@ MidiRegionView::MidiRegionView (const MidiRegionView& other)
 	, _model_name(string())
 	, _custom_device_mode(string())
 	, _active_notes(0)
-	, _note_group(new ArdourCanvas::Group(*get_canvas_group()))
+	, _note_group (new ArdourCanvas::Group (get_canvas_group()))
 	, _note_diff_command (0)
 	, _ghost_note(0)
         , _drag_rect (0)
@@ -187,7 +185,7 @@ MidiRegionView::MidiRegionView (const MidiRegionView& other, boost::shared_ptr<M
 	, _model_name(string())
 	, _custom_device_mode(string())
 	, _active_notes(0)
-	, _note_group(new ArdourCanvas::Group(*get_canvas_group()))
+	, _note_group (new ArdourCanvas::Group (get_canvas_group()))
 	, _note_diff_command (0)
 	, _ghost_note(0)
         , _drag_rect (0)
@@ -253,7 +251,8 @@ MidiRegionView::init (Gdk::Color const & basic_color, bool wfd)
 	}
 
 	group->raise_to_top();
-	group->signal_event().connect (sigc::mem_fun (this, &MidiRegionView::canvas_event), false);
+	/* XXX: CANVAS */
+//	group->signal_event().connect (sigc::mem_fun (this, &MidiRegionView::canvas_event), false);
 
 	midi_view()->signal_channel_mode_changed().connect(
 			sigc::mem_fun(this, &MidiRegionView::midi_channel_mode_changed));
@@ -564,7 +563,7 @@ MidiRegionView::motion (GdkEventMotion* ev)
                         _drag_start_x = event_x;
                         _drag_start_y = event_y;
 
-                        _drag_rect = new ArdourCanvas::SimpleRect(*group);
+                        _drag_rect = new ArdourCanvas::Rectangle (group);
                         _drag_rect->property_x1() = event_x;
                         _drag_rect->property_y1() = event_y;
                         _drag_rect->property_x2() = event_x;
@@ -592,7 +591,7 @@ MidiRegionView::motion (GdkEventMotion* ev)
                         _drag_start_x = event_x;
                         _drag_start_y = event_y;
 
-                        _drag_rect = new ArdourCanvas::SimpleRect(*group);
+                        _drag_rect = new ArdourCanvas::Rectangle (group);
                         _drag_rect->property_x1() = trackview.editor().frame_to_pixel(event_frame);
 
                         _drag_rect->property_y1() = midi_stream_view()->note_to_y(
@@ -1154,7 +1153,7 @@ MidiRegionView::display_sysexes()
 		double height = midi_stream_view()->contents_height();
 
 		boost::shared_ptr<CanvasSysEx> sysex = boost::shared_ptr<CanvasSysEx>(
-				new CanvasSysEx(*this, *_note_group, text, height, x, 1.0));
+				new CanvasSysEx (*this, _note_group, text, height, x, 1.0));
 
 		// Show unless patch change is beyond the region bounds
 		if (time - _region->start() >= _region->length() || time < _region->start()) {
@@ -2293,9 +2292,9 @@ MidiRegionView::begin_resizing (bool /*at_front*/)
 			NoteResizeData *resize_data = new NoteResizeData();
 			resize_data->canvas_note = note;
 
-			// create a new SimpleRect from the note which will be the resize preview
-			SimpleRect *resize_rect = new SimpleRect(
-					*_note_group, note->x1(), note->y1(), note->x2(), note->y2());
+			// create a new Rectangle from the note which will be the resize preview
+			Rectangle *resize_rect = new Rectangle(
+				_note_group, ArdourCanvas::Rect (note->x1(), note->y1(), note->x2(), note->y2()));
 
 			// calculate the colors: get the color settings
 			uint32_t fill_color = UINT_RGBA_CHANGE_A(
@@ -2335,7 +2334,7 @@ MidiRegionView::update_resizing (ArdourCanvas::CanvasNoteEvent* primary, bool at
         bool cursor_set = false;
 
 	for (std::vector<NoteResizeData *>::iterator i = _resize_data.begin(); i != _resize_data.end(); ++i) {
-		SimpleRect* resize_rect = (*i)->resize_rect;
+		Rectangle* resize_rect = (*i)->resize_rect;
 		CanvasNote* canvas_note = (*i)->canvas_note;
 		double current_x;
 
@@ -2405,7 +2404,7 @@ MidiRegionView::commit_resizing (ArdourCanvas::CanvasNoteEvent* primary, bool at
 
 	for (std::vector<NoteResizeData *>::iterator i = _resize_data.begin(); i != _resize_data.end(); ++i) {
 		CanvasNote*  canvas_note = (*i)->canvas_note;
-		SimpleRect*  resize_rect = (*i)->resize_rect;
+		Rectangle*  resize_rect = (*i)->resize_rect;
 		double current_x;
 
 		if (at_front) {
@@ -3272,7 +3271,7 @@ MidiRegionView::show_step_edit_cursor (Evoral::MusicalTime pos)
         if (_step_edit_cursor == 0) {
                 ArdourCanvas::Group* const group = (ArdourCanvas::Group*)get_canvas_group();
 
-                _step_edit_cursor = new ArdourCanvas::SimpleRect (*group);
+                _step_edit_cursor = new ArdourCanvas::Rectangle (group);
                 _step_edit_cursor->property_y1() = 0;
                 _step_edit_cursor->property_y2() = midi_stream_view()->contents_height();
                 _step_edit_cursor->property_fill_color_rgba() = RGBA_TO_UINT (45,0,0,90);
@@ -3373,15 +3372,15 @@ MidiRegionView::trim_front_starting ()
 	/* Reparent the note group to the region view's parent, so that it doesn't change
 	   when the region view is trimmed.
 	*/
-	_temporary_note_group = new ArdourCanvas::Group (*group->property_parent ());
+	_temporary_note_group = new ArdourCanvas::Group (group->parent ());
 	_temporary_note_group->move (group->property_x(), group->property_y());
-	_note_group->reparent (*_temporary_note_group);
+	_note_group->reparent (_temporary_note_group);
 }
 
 void
 MidiRegionView::trim_front_ending ()
 {
-	_note_group->reparent (*group);
+	_note_group->reparent (group);
 	delete _temporary_note_group;
 	_temporary_note_group = 0;
 

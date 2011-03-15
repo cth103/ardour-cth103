@@ -21,14 +21,27 @@ namespace ArdourCanvas {
 
 class Polygon : public Item {
 public:
-	Polygon (Group &);
+	Polygon (Group *);
+
+	boost::optional<Rect> bounding_box () const;
+	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const;
+
+	void set (Points const &);
+	
 	Points& property_points ();
+	uint32_t& property_fill_color_rgba ();
+	double& property_width_pixels ();
+	uint32_t& property_outline_color_rgba ();
 };
 
 class WaveView : public Item {
 public:
-	WaveView (Group &);
+	WaveView (Group *);
 
+	boost::optional<Rect> bounding_box () const;
+	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const;
+	
+	
 	static GnomeCanvasWaveViewCache* create_cache ();
 	
 	void*& property_data_src ();
@@ -51,14 +64,19 @@ public:
 	double& property_amplitude_above_axis ();
 	uint32_t& property_clip_color ();
 	uint32_t& property_zero_color ();
+	uint32_t& property_fill_color ();
 };
 
 class Pixbuf : public Item {
 public:
-	Pixbuf (Group &);
+	Pixbuf (Group *);
 	Pixbuf (Glib::RefPtr<Gdk::Pixbuf>);
-	Pixbuf (Group &, double, double, Glib::RefPtr<Gdk::Pixbuf>);
+	Pixbuf (Group *, double, double, Glib::RefPtr<Gdk::Pixbuf>);
 
+	boost::optional<Rect> bounding_box () const;
+	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const;
+	
+	
 	double& property_x ();
 	double& property_y ();
 	Glib::RefPtr<Gdk::Pixbuf>& property_pixbuf ();
@@ -78,12 +96,22 @@ public:
 		ARDOUR::MidiModel::PatchChangePtr patch
 		);
 
+	boost::optional<Rect> bounding_box () const;
+	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const;
+	
+	
 	ARDOUR::MidiModel::PatchChangePtr patch () const;
 	void set_height (double);
 };
 
 class CanvasNoteEvent : public Item {
 public:
+	boost::optional<Rect> bounding_box () const;
+	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const;
+
+	int& property_outline_what ();
+	uint32_t& property_outline_color_rgba ();
+	
 	CanvasNoteEvent (MidiRegionView&, Item*, const boost::shared_ptr<Evoral::Note<ARDOUR::MidiModel::TimeType> >);
 	const boost::shared_ptr<Evoral::Note<ARDOUR::MidiModel::TimeType> > note ();
 	void set_selected (bool);
@@ -127,7 +155,11 @@ public:
 
 class NoEventText : public Item {
 public:
-	NoEventText (Group &);
+	boost::optional<Rect> bounding_box () const;
+	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const;
+	
+	uint32_t& property_color_rgba ();
+	NoEventText (Group *);
 	std::string& property_text ();
 	double& property_x ();
 	double& property_y ();
@@ -138,7 +170,11 @@ public:
 
 class CanvasSysEx : public Item {
 public:
-	CanvasSysEx (MidiRegionView &, Group &, std::string, double, double, double);
+	boost::optional<Rect> bounding_box () const;
+	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const;
+	
+	
+	CanvasSysEx (MidiRegionView &, Group *, std::string, double, double, double);
 
 };
 
@@ -152,12 +188,16 @@ public:
 
 class LineSet : public Item {
 public:
+	boost::optional<Rect> bounding_box () const;
+	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const;
+	
+	
 	enum Orientation {
 		Vertical,
 		Horizontal
 	};
 
-	LineSet (Group &, Orientation);
+	LineSet (Group *, Orientation);
 
 	double& property_x1 ();
 	double& property_x2 ();

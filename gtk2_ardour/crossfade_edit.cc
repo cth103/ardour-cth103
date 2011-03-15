@@ -39,13 +39,16 @@
 
 #include <gtkmm2ext/gtk_ui.h>
 
+#include "canvas/rectangle.h"
+#include "canvas/unimplemented.h"
+#include "canvas/line.h"
+
 #include "ardour_ui.h"
 #include "crossfade_edit.h"
 #include "rgb_macros.h"
 #include "keyboard.h"
 #include "utils.h"
 #include "gui_thread.h"
-#include "waveview.h"
 #include "actions.h"
 
 using namespace std;
@@ -124,11 +127,11 @@ CrossfadeEditor::CrossfadeEditor (Session* s, boost::shared_ptr<Crossfade> xf, d
 	point_grabbed = false;
 	toplevel = 0;
 
-	canvas = new ArdourCanvas::CanvasAA ();
+	canvas = new ArdourCanvas::GtkCanvasDrawingArea ();
 	canvas->signal_size_allocate().connect (sigc::mem_fun(*this, &CrossfadeEditor::canvas_allocation));
 	canvas->set_size_request (425, 200);
 
-	toplevel = new ArdourCanvas::SimpleRect (*(canvas->root()));
+	toplevel = new ArdourCanvas::Rectangle (canvas->root());
 	toplevel->property_x1() =  0.0;
 	toplevel->property_y1() =  0.0;
 	toplevel->property_x2() =  10.0;
@@ -138,18 +141,18 @@ CrossfadeEditor::CrossfadeEditor (Session* s, boost::shared_ptr<Crossfade> xf, d
 	toplevel->property_outline_pixels() =  0;
 	toplevel->signal_event().connect (sigc::mem_fun (*this, &CrossfadeEditor::canvas_event));
 
-	fade[Out].line = new ArdourCanvas::Line (*(canvas->root()));
+	fade[Out].line = new ArdourCanvas::PolyLine (canvas->root());
 	fade[Out].line->property_width_pixels() = 1;
-	fade[Out].line->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeEditorLine.get();
+	fade[Out].line->property_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeEditorLine.get();
 
-	fade[Out].shading = new ArdourCanvas::Polygon (*(canvas->root()));
+	fade[Out].shading = new ArdourCanvas::Polygon (canvas->root());
 	fade[Out].shading->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeEditorLineShading.get();
 
-	fade[In].line = new ArdourCanvas::Line (*(canvas->root()));
+	fade[In].line = new ArdourCanvas::PolyLine (canvas->root());
 	fade[In].line->property_width_pixels() = 1;
-	fade[In].line->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeEditorLine.get();
+	fade[In].line->property_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeEditorLine.get();
 
-	fade[In].shading = new ArdourCanvas::Polygon (*(canvas->root()));
+	fade[In].shading = new ArdourCanvas::Polygon (canvas->root());
 	fade[In].shading->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeEditorLineShading.get();
 
 	fade[In].shading->signal_event().connect (sigc::mem_fun (*this, &CrossfadeEditor::canvas_event));
@@ -462,7 +465,7 @@ CrossfadeEditor::make_point ()
 {
 	Point* p = new Point;
 
-	p->box = new ArdourCanvas::SimpleRect (*(canvas->root()));
+	p->box = new ArdourCanvas::Rectangle (canvas->root());
 	p->box->property_fill() = true;
 	p->box->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeEditorPointFill.get();
 	p->box->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeEditorPointOutline.get();
@@ -537,9 +540,10 @@ CrossfadeEditor::canvas_allocation (Gtk::Allocation& /*alloc*/)
 		toplevel->property_y2() = (double) canvas->get_allocation().get_height() + canvas_border;
 	}
 
-	canvas->set_scroll_region (0.0, 0.0,
-				   canvas->get_allocation().get_width(),
-				   canvas->get_allocation().get_height());
+	/* XXX: CANVAS */
+//	canvas->set_scroll_region (0.0, 0.0,
+//				   canvas->get_allocation().get_width(),
+//				   canvas->get_allocation().get_height());
 
 	Point* end = make_point ();
 	PointSorter cmp;
@@ -678,11 +682,11 @@ CrossfadeEditor::redraw ()
 	ArdourCanvas::Points spts;
 
 	while (pts.size() < npoints) {
-		pts.push_back (Gnome::Art::Point (0,0));
+		pts.push_back (ArdourCanvas::Point (0,0));
 	}
 
 	while (spts.size() < npoints + 3) {
-		spts.push_back (Gnome::Art::Point (0,0));
+		spts.push_back (ArdourCanvas::Point (0,0));
 	}
 
 	/* the shade coordinates *MUST* be in anti-clockwise order.
@@ -1073,8 +1077,8 @@ CrossfadeEditor::curve_select_clicked (WhichFade wf)
 			(*i)->property_fill_color() = ARDOUR_UI::config()->canvasvar_CrossfadeEditorWave.get();
 		}
 
-		fade[In].line->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_SelectedCrossfadeEditorLine.get();
-		fade[Out].line->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeEditorLine.get();
+		fade[In].line->property_color_rgba() = ARDOUR_UI::config()->canvasvar_SelectedCrossfadeEditorLine.get();
+		fade[Out].line->property_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeEditorLine.get();
 		fade[Out].shading->hide();
 		fade[In].shading->show();
 
@@ -1098,8 +1102,8 @@ CrossfadeEditor::curve_select_clicked (WhichFade wf)
 			(*i)->property_fill_color() = ARDOUR_UI::config()->canvasvar_SelectedCrossfadeEditorWave.get();
 		}
 
-		fade[Out].line->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_SelectedCrossfadeEditorLine.get();
-		fade[In].line->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeEditorLine.get();
+		fade[Out].line->property_color_rgba() = ARDOUR_UI::config()->canvasvar_SelectedCrossfadeEditorLine.get();
+		fade[In].line->property_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeEditorLine.get();
 		fade[In].shading->hide();
 		fade[Out].shading->show();
 
@@ -1157,11 +1161,11 @@ CrossfadeEditor::make_waves (boost::shared_ptr<AudioRegion> region, WhichFade wh
 		gdouble yoff = n * ht;
 
 		if (region->audio_source(n)->peaks_ready (boost::bind (&CrossfadeEditor::peaks_ready, this, boost::weak_ptr<AudioRegion>(region), which), &_peaks_ready_connection, gui_context())) {
-			WaveView* waveview = new WaveView (*(canvas->root()));
+			ArdourCanvas::WaveView* waveview = new ArdourCanvas::WaveView (canvas->root());
 
 			waveview->property_data_src() = region.get();
 			waveview->property_cache_updater() =  true;
-			waveview->property_cache() = WaveView::create_cache();
+			waveview->property_cache() = ArdourCanvas::WaveView::create_cache();
 			waveview->property_channel() = n;
 			waveview->property_length_function() = (void*) region_length_from_c;
 			waveview->property_sourcefile_length_function() = (void*) sourcefile_length_from_c;

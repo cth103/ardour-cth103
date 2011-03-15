@@ -103,7 +103,6 @@ public:
 		y = y_;
 	}
 	
-private:	
 	Coord x;
 	Coord y;
 };

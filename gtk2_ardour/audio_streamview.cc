@@ -36,6 +36,8 @@
 #include "ardour/rc_configuration.h"
 #include "ardour/session.h"
 
+#include "canvas/rectangle.h"
+
 #include "audio_streamview.h"
 #include "audio_region_view.h"
 #include "tape_region_view.h"
@@ -523,7 +525,7 @@ AudioStreamView::setup_rec_box ()
 				break;
 			}
 
-			ArdourCanvas::SimpleRect * rec_rect = new Gnome::Canvas::SimpleRect (*_canvas_group);
+			ArdourCanvas::Rectangle * rec_rect = new ArdourCanvas::Rectangle (_canvas_group);
 			rec_rect->property_x1() = xstart;
 			rec_rect->property_y1() = 1.0;
 			rec_rect->property_x2() = xend;
@@ -681,7 +683,7 @@ AudioStreamView::update_rec_regions (framepos_t start, framecnt_t cnt)
 					check_record_layers (region, (region->position() - region->start() + start + cnt));
 					
 					/* also update rect */
-					ArdourCanvas::SimpleRect * rect = rec_rects[n].rectangle;
+					ArdourCanvas::Rectangle * rect = rec_rects[n].rectangle;
 					gdouble xend = _trackview.editor().frame_to_pixel (region->position() + region->length());
 					rect->property_x2() = xend;
 				}

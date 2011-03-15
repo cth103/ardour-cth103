@@ -32,7 +32,6 @@
 #include "gui_thread.h"
 #include "strip_silence_dialog.h"
 #include "region_view.h"
-#include "waveview.h"
 #include "rgb_macros.h"
 #include "i18n.h"
 #include "logmeter.h"

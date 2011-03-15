@@ -60,7 +60,6 @@
 #include "ardour_ui.h"
 #include "automation_line.h"
 #include "automation_time_axis.h"
-#include "canvas-note-event.h"
 #include "crossfade_view.h"
 #include "editor.h"
 #include "enums.h"
@@ -98,7 +97,7 @@ static const uint32_t MIDI_CONTROLS_BOX_MIN_HEIGHT = 162;
 static const uint32_t KEYBOARD_MIN_HEIGHT = 140;
 
 MidiTimeAxisView::MidiTimeAxisView (PublicEditor& ed, Session* sess,
-		boost::shared_ptr<Route> rt, Canvas& canvas)
+				    boost::shared_ptr<Route> rt, ArdourCanvas::Canvas& canvas)
 	: AxisView(sess) // virtually inherited
 	, RouteTimeAxisView(ed, sess, rt, canvas)
 	, _ignore_signals(false)
@@ -210,7 +209,7 @@ MidiTimeAxisView::MidiTimeAxisView (PublicEditor& ed, Session* sess,
 	if ((prop = xml_node->property ("color-mode")) != 0) {
 		_color_mode = ColorMode (string_2_enum(prop->value(), _color_mode));
 		if (_color_mode == ChannelColors) {
-			_channel_selector.set_channel_colors(CanvasNoteEvent::midi_channel_colors);
+			_channel_selector.set_channel_colors (ArdourCanvas::CanvasNoteEvent::midi_channel_colors);
 		}
 	}
 
@@ -786,7 +785,7 @@ MidiTimeAxisView::set_color_mode(ColorMode mode)
 {
 	if (_color_mode != mode) {
 		if (mode == ChannelColors) {
-			_channel_selector.set_channel_colors(CanvasNoteEvent::midi_channel_colors);
+			_channel_selector.set_channel_colors (ArdourCanvas::CanvasNoteEvent::midi_channel_colors);
 		} else {
 			_channel_selector.set_default_channel_color();
 		}

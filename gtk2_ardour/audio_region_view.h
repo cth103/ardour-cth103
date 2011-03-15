@@ -23,17 +23,23 @@
 
 #include <sigc++/signal.h>
 #include "ardour/audioregion.h"
-
+#include "canvas/unimplemented.h"
 #include "region_view.h"
 #include "time_axis_view_item.h"
 #include "automation_line.h"
 #include "enums.h"
-#include "waveview.h"
 
 namespace ARDOUR {
 	class AudioRegion;
 	class PeakData;
 };
+
+namespace ArdourCanvas {
+	class WaveView;
+	class Line;
+	class Rectangle;
+	class Polygon;
+}
 
 class AudioTimeAxisView;
 class AudioRegionGainLine;
@@ -136,12 +142,12 @@ class AudioRegionView : public RegionView
 	std::list<std::pair<framepos_t, ArdourCanvas::Line*> > feature_lines;
 	
 	ArdourCanvas::Polygon*           sync_mark; ///< polgyon for sync position
-	ArdourCanvas::SimpleLine*        zero_line;
+	ArdourCanvas::Line*              zero_line;
 	ArdourCanvas::Polygon*           fade_in_shape;
 	ArdourCanvas::Polygon*           fade_out_shape;
-	ArdourCanvas::SimpleRect*        fade_in_handle; ///< fade in handle, or 0
-	ArdourCanvas::SimpleRect*        fade_out_handle; ///< fade out handle, or 0
-	ArdourCanvas::SimpleLine*        fade_position_line;
+	ArdourCanvas::Rectangle*         fade_in_handle; ///< fade in handle, or 0
+	ArdourCanvas::Rectangle*         fade_out_handle; ///< fade out handle, or 0
+	ArdourCanvas::Line*              fade_position_line;
 	
 	AudioRegionGainLine * gain_line;
 	

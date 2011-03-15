@@ -26,6 +26,10 @@
 #include "gtkmm2ext/utils.h"
 #include "gtkmm2ext/gui_thread.h"
 
+#include "canvas/group.h"
+#include "canvas/rectangle.h"
+#include "canvas/unimplemented.h"
+
 #include "ardour_ui.h"
 /*
  * ardour_ui.h was moved up in the include list
@@ -101,7 +105,7 @@ TimeAxisViewItem::TimeAxisViewItem(
 	, _recregion (recording)
 	, _automation (automation)
 {
-	group = new ArdourCanvas::Group (parent);
+	group = new ArdourCanvas::Group (&parent);
 
 	init (it_name, spu, base_color, start, duration, vis, true, true);
 }
@@ -122,9 +126,9 @@ TimeAxisViewItem::TimeAxisViewItem (const TimeAxisViewItem& other)
 
 	/* share the other's parent, but still create a new group */
 
-	Gnome::Canvas::Group* parent = other.group->property_parent();
+	ArdourCanvas::Group* parent = other.group->parent();
 
-	group = new ArdourCanvas::Group (*parent);
+	group = new ArdourCanvas::Group (parent);
 
 	_selected = other._selected;
 
@@ -160,14 +164,14 @@ TimeAxisViewItem::init (
 		warning << "Time Axis Item Duration == 0" << endl;
 	}
 
-	vestigial_frame = new ArdourCanvas::SimpleRect (*group, 0.0, 1.0, 2.0, trackview.current_height());
+	vestigial_frame = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, 1.0, 2.0, trackview.current_height()));
 	vestigial_frame->hide ();
 	vestigial_frame->property_outline_what() = 0xF;
 	vestigial_frame->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_VestigialFrame.get();
 	vestigial_frame->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_VestigialFrame.get();
 
 	if (visibility & ShowFrame) {
-		frame = new ArdourCanvas::SimpleRect (*group, 0.0, 1.0, trackview.editor().frame_to_pixel(duration), trackview.current_height());
+		frame = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, 1.0, trackview.editor().frame_to_pixel(duration), trackview.current_height()));
 		
 		frame->property_outline_pixels() = 1;
 		frame->property_outline_what() = 0xF;
@@ -187,9 +191,9 @@ TimeAxisViewItem::init (
 	if (visibility & ShowNameHighlight) {
 		
 		if (visibility & FullWidthNameHighlight) {
-			name_highlight = new ArdourCanvas::SimpleRect (*group, 0.0, trackview.editor().frame_to_pixel(item_duration), trackview.current_height() - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE, trackview.current_height());
+			name_highlight = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, trackview.editor().frame_to_pixel(item_duration), trackview.current_height() - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE, trackview.current_height()));
 		} else {
-			name_highlight = new ArdourCanvas::SimpleRect (*group, 1.0, trackview.editor().frame_to_pixel(item_duration) - 1, trackview.current_height() - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE, trackview.current_height());
+			name_highlight = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (1.0, trackview.editor().frame_to_pixel(item_duration) - 1, trackview.current_height() - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE, trackview.current_height()));
 		}
 		
 		name_highlight->set_data ("timeaxisviewitem", this);
@@ -202,7 +206,7 @@ TimeAxisViewItem::init (
 	}
 
 	if (visibility & ShowNameText) {
-		name_pixbuf = new ArdourCanvas::Pixbuf(*group);
+		name_pixbuf = new ArdourCanvas::Pixbuf (group);
 		name_pixbuf->property_x() = NAME_X_OFFSET;
 		name_pixbuf->property_y() = trackview.current_height() + 1 - NAME_Y_OFFSET;
 
@@ -212,9 +216,9 @@ TimeAxisViewItem::init (
 
 	/* create our grab handles used for trimming/duration etc */
 	if (!_recregion && !_automation) {
-		frame_handle_start = new ArdourCanvas::SimpleRect (*group, 0.0, TimeAxisViewItem::GRAB_HANDLE_LENGTH, 5.0, trackview.current_height());
+		frame_handle_start = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, TimeAxisViewItem::GRAB_HANDLE_LENGTH, 5.0, trackview.current_height()));
 		frame_handle_start->property_outline_what() = 0x0;
-		frame_handle_end = new ArdourCanvas::SimpleRect (*group, 0.0, TimeAxisViewItem::GRAB_HANDLE_LENGTH, 5.0, trackview.current_height());
+		frame_handle_end = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, TimeAxisViewItem::GRAB_HANDLE_LENGTH, 5.0, trackview.current_height()));
 		frame_handle_end->property_outline_what() = 0x0;
 	} else {
 		frame_handle_start = frame_handle_end = 0;

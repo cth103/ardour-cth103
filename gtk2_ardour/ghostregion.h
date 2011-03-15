@@ -23,13 +23,12 @@
 #include <vector>
 #include "pbd/signals.h"
 
-namespace Gnome {
-	namespace Canvas {
-		class CanvasNoteEvent;
-		class CanvasNote;
-		class CanvasHit;
-		class Diamond;
-	}
+namespace ArdourCanvas {
+	class CanvasNoteEvent;
+	class CanvasNote;
+	class CanvasHit;
+	class Diamond;
+	class WaveView;
 }
 
 class MidiStreamView;
@@ -55,7 +54,7 @@ public:
 	/** TimeAxisView that we are a ghost for */
 	TimeAxisView& source_trackview;
 	ArdourCanvas::Group* group;
-	ArdourCanvas::SimpleRect* base_rect;
+	ArdourCanvas::Rectangle* base_rect;
 
 	static PBD::Signal1<void,GhostRegion*> CatchDeletion;
 };
@@ -86,7 +85,7 @@ public:
 		Note(ArdourCanvas::CanvasNote*, ArdourCanvas::Group*);
 		~Note();
 
-		ArdourCanvas::SimpleRect* rect;
+		ArdourCanvas::Rectangle* rect;
 	};
 
 	MidiGhostRegion(TimeAxisView& tv, TimeAxisView& source_tv, double initial_unit_pos);

@@ -17,6 +17,8 @@
 
 */
 
+#include "canvas/line.h"
+#include "canvas/canvas.h"
 #include "tempo_lines.h"
 #include "ardour_ui.h"
 
@@ -72,7 +74,7 @@ void
 TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit)
 {
 	ARDOUR::TempoMap::BBTPointList::iterator i;
-	ArdourCanvas::SimpleLine *line = NULL;
+	ArdourCanvas::Line *line = 0;
 	gdouble xpos;
 	double who_cares;
 	double x1, x2, y1, beat_density;
@@ -83,7 +85,8 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 
 	const size_t needed = points.size();
 
-	_canvas.get_scroll_region (x1, y1, x2, who_cares);
+	/* XXX: CANVAS */
+//	_canvas.get_scroll_region (x1, y1, x2, who_cares);
 
 	/* get the first bar spacing */
 
@@ -92,7 +95,8 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 	bars = (*i).bar - (*points.begin()).bar;
 	beats = points.size() - bars;
 
-	beat_density = (beats * 10.0f) / _canvas.get_width ();
+	/* XXX: CANVAS */
+//	beat_density = (beats * 10.0f) / _canvas.get_width ();
 
 	if (beat_density > 4.0f) {
 		/* if the lines are too close together, they become useless */
@@ -216,7 +220,7 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 			} else if (_lines.size() < needed || _lines.size() < MAX_CACHED_LINES) {
 				//cout << "*** CREATING LINE" << endl;
 				assert(_lines.find(xpos) == _lines.end());
-				line = new ArdourCanvas::SimpleLine (*_group);
+				line = new ArdourCanvas::Line (_group);
 				line->property_x1() = xpos;
 				line->property_x2() = xpos;
 				line->property_y1() = 0.0;
