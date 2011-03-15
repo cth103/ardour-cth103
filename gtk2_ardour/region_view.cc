@@ -32,6 +32,7 @@
 #include "ardour/session.h"
 
 #include "canvas/unimplemented.h"
+#include "canvas/polygon.h"
 
 #include "ardour_ui.h"
 #include "global_signals.h"

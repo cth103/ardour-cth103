@@ -22,12 +22,17 @@ canvas_sources = [
 	'canvas.cc',
 	'debug.cc',
 	'item.cc',
+	'fill.cc',
 	'group.cc',
 	'line.cc',
 	'lookup_table.cc',
 	'outline.cc',
+	'poly_item.cc',
+	'poly_line.cc',
+	'polygon.cc',
 	'rectangle.cc',
 	'types.cc',
+	'unimplemented.cc',
 	'utils.cc'
 ]
 
@@ -51,6 +56,7 @@ def build(bld):
 	obj.export_incdirs = ['.']
 	obj.includes     = ['.']
 	obj.uselib       = 'SIGCPP CAIROMM GTKMM'
+	obj.uselib_local = 'libevoral libardour'
 	obj.name         = 'libcanvas'
 	obj.target       = 'canvas'
 	obj.vnum         = CANVAS_LIB_VERSION
@@ -73,7 +79,7 @@ def build(bld):
 			manual_testobj.source = t
 			manual_testobj.includes = obj.includes + ['test', '../pbd']
 			manual_testobj.uselib       = 'CPPUNIT SIGCPP CAIROMM GTKMM'
-			manual_testobj.uselib_local = 'libcanvas'
+			manual_testobj.uselib_local = 'libcanvas libevoral libardour'
 			manual_testobj.name         = 'libcanvas-manual-tests'
 			manual_testobj.target       = t[:-3]
 			manual_testobj.install_path = ''
@@ -87,7 +93,7 @@ def build(bld):
 		'''.split()
 		unit_testobj.includes     = obj.includes + ['test', '../pbd']
 		unit_testobj.uselib       = 'CPPUNIT SIGCPP CAIROMM GTKMM'
-		unit_testobj.uselib_local = 'libcanvas'
+		unit_testobj.uselib_local = 'libcanvas libevoral libardour'
 		unit_testobj.name         = 'libcanvas-unit-tests'
 		unit_testobj.target       = 'run-tests'
 		unit_testobj.install_path = ''

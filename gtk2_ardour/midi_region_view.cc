@@ -1533,7 +1533,7 @@ MidiRegionView::add_note(const boost::shared_ptr<NoteType> note, bool visible)
 
 	if (midi_view()->note_mode() == Sustained) {
 
-		CanvasNote* ev_rect = new CanvasNote(*this, *_note_group, note);
+		CanvasNote* ev_rect = new CanvasNote (*this, _note_group, note);
 
 		update_note (ev_rect);
 
@@ -1632,7 +1632,7 @@ MidiRegionView::add_canvas_patch_change (MidiModel::PatchChangePtr patch, const 
 	double const height = midi_stream_view()->contents_height();
 
 	boost::shared_ptr<CanvasPatchChange> patch_change = boost::shared_ptr<CanvasPatchChange>(
-		new CanvasPatchChange(*this, *_note_group,
+		new CanvasPatchChange (*this, _note_group,
 					displaytext,
 					height,
 					x, 1.0,
@@ -3171,7 +3171,7 @@ MidiRegionView::create_ghost_note (double x, double y)
 	_ghost_note = 0;
 
 	boost::shared_ptr<NoteType> g (new NoteType);
-	_ghost_note = new NoEventCanvasNote (*this, *_note_group, g);
+	_ghost_note = new NoEventCanvasNote (*this, _note_group, g);
 	_ghost_note->property_outline_color_rgba() = 0x000000aa;
 	update_ghost_note (x, y);
 	_ghost_note->show ();

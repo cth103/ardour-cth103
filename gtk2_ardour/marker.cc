@@ -23,6 +23,7 @@
 #include "canvas/rectangle.h"
 #include "canvas/group.h"
 #include "canvas/line.h"
+#include "canvas/polygon.h"
 
 #include "ardour_ui.h"
 /*

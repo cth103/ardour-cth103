@@ -104,6 +104,12 @@ Item::reparent (Group* new_parent)
 	_parent->add (this);
 }
 
+void
+Item::grab_focus ()
+{
+	/* XXX */
+}
+
 #ifdef CANVAS_COMPATIBILITY
 void
 Item::set_data (char const * key, void* data)

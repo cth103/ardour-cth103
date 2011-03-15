@@ -42,6 +42,7 @@
 #include "canvas/rectangle.h"
 #include "canvas/unimplemented.h"
 #include "canvas/line.h"
+#include "canvas/polygon.h"
 
 #include "ardour_ui.h"
 #include "crossfade_edit.h"

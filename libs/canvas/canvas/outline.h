@@ -40,20 +40,40 @@ public:
 		return _outline_width;
 	}
 
-	int& property_outline_what ();
-
-	int& property_first_arrowhead ();
-	int& property_last_arrowhead ();
-	int& property_arrow_shape_a ();
-	int& property_arrow_shape_b ();
-	int& property_arrow_shape_c ();
-
-	bool& property_draw ();
+	int& property_outline_what () {
+		return _foo_int;
+	}
+	int& property_first_arrowhead () {
+		return _foo_int;
+	}
+	int& property_last_arrowhead () {
+		return _foo_int;
+	}
+	int& property_arrow_shape_a () {
+		return _foo_int;
+	}
+	int& property_arrow_shape_b () {
+		return _foo_int;
+	}
+	int& property_arrow_shape_c () {
+		return _foo_int;
+	}
+	bool& property_draw () {
+		return _foo_bool;
+	}
 #endif	
 
 protected:
+
+	void setup_context (Cairo::RefPtr<Cairo::Context>) const;
+	
 	uint32_t _outline_color;
 	Distance _outline_width;
+
+#ifdef CANVAS_COMPATIBILITY
+	int _foo_int;
+	bool _foo_bool;
+#endif
 };
 
 }

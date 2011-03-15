@@ -28,7 +28,7 @@ Line::bounding_box () const
 void
 Line::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
-	set_source_rgba (context, _outline_color);
+	setup_context (context);
 
 	context->move_to (_points[0].x, _points[0].y);
 	context->line_to (_points[1].x, _points[1].y);
