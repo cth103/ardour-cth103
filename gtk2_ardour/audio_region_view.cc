@@ -484,13 +484,13 @@ AudioRegionView::setup_fade_handle_positions()
 	double const handle_height = 5;
 
 	if (fade_in_handle) {
-		fade_in_handle->property_y1() = handle_pos;
-		fade_in_handle->property_y2() = handle_pos + handle_height;
+		fade_in_handle->set_y0 (handle_pos);
+		fade_in_handle->set_y1 (handle_pos + handle_height);
 	}
 
 	if (fade_out_handle) {
-		fade_out_handle->property_y1() = handle_pos;
-		fade_out_handle->property_y2() = handle_pos + handle_height;
+		fade_out_handle->set_y0 (handle_pos);
+		fade_out_handle->set_y1 (handle_pos + handle_height);
 	}
 }
 
@@ -617,8 +617,8 @@ AudioRegionView::reset_fade_in_shape_width (framecnt_t width)
 	double const handle_center = pwidth;
 
 	/* Put the fade in handle so that its left side is at the end-of-fade line */
-	fade_in_handle->property_x1() = handle_center;
-	fade_in_handle->property_x2() = handle_center + 6;
+	fade_in_handle->set_x0 (handle_center);
+	fade_in_handle->set_x1 (handle_center + 6);
 
 	if (pwidth < 5) {
 		fade_in_shape->hide();
@@ -706,8 +706,8 @@ AudioRegionView::reset_fade_out_shape_width (framecnt_t width)
 	/* Put the fade out handle so that its right side is at the end-of-fade line;
 	 * it's `one out' for precise pixel accuracy.
 	 */
-	fade_out_handle->property_x1() = handle_center - 5;
-	fade_out_handle->property_x2() = handle_center + 1;
+	fade_out_handle->set_x0 (handle_center - 5);
+	fade_out_handle->set_x1 (handle_center + 1);
 
 	/* don't show shape if its too small */
 

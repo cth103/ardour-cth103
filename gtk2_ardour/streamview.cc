@@ -68,10 +68,7 @@ StreamView::StreamView (RouteTimeAxisView& tv, ArdourCanvas::Group* background_g
 
 	canvas_rect = new ArdourCanvas::Rectangle (_background_group);
 	canvas_rect->watch ();
-	canvas_rect->property_x1() = 0.0;
-	canvas_rect->property_y1() = 0.0;
-	canvas_rect->property_x2() = Gtkmm2ext::physical_screen_width (_trackview.editor().get_window());
-	canvas_rect->property_y2() = (double) tv.current_height();
+	canvas_rect->set (ArdourCanvas::Rect (0, 0, Gtkmm2ext::physical_screen_width (_trackview.editor().get_window()), tv.current_height ()));
 	canvas_rect->raise(1); // raise above tempo lines
 
 	canvas_rect->property_outline_what() = (guint32) (0x2|0x8);  // outline RHS and bottom
@@ -131,12 +128,12 @@ StreamView::set_height (double h)
 		return -1;
 	}
 
-	if (canvas_rect->property_y2() == h) {
+	if (canvas_rect->y1() == h) {
 		return 0;
 	}
 
 	height = h;
-	canvas_rect->property_y2() = height;
+	canvas_rect->set_y1 (height);
 	update_contents_height ();
 
 	return 0;
@@ -163,8 +160,8 @@ StreamView::set_samples_per_unit (gdouble spp)
 		gdouble xstart = _trackview.editor().frame_to_pixel (recbox.start);
 		gdouble xend = _trackview.editor().frame_to_pixel (recbox.start + recbox.length);
 
-		recbox.rectangle->property_x1() = xstart;
-		recbox.rectangle->property_x2() = xend;
+		recbox.rectangle->set_x0 (xstart);
+		recbox.rectangle->set_x1 (xend);
 	}
 
 	update_coverage_frames ();
@@ -438,8 +435,8 @@ StreamView::update_rec_box ()
 			break;
 		}
 
-		rect.rectangle->property_x1() = xstart;
-		rect.rectangle->property_x2() = xend;
+		rect.rectangle->set_x0 (xstart);
+		rect.rectangle->set_x1 (xend);
 	}
 }
 
@@ -584,12 +581,12 @@ StreamView::update_contents_height ()
 	for (vector<RecBoxInfo>::iterator i = rec_rects.begin(); i != rec_rects.end(); ++i) {
 		switch (_layer_display) {
 		case Overlaid:
-			i->rectangle->property_y2() = height;
+			i->rectangle->set_y1 (height);
 			break;
 		case Stacked:
 			/* In stacked displays, the recregion is always at the top */
-			i->rectangle->property_y1() = 0;
-			i->rectangle->property_y2() = h;
+			i->rectangle->set_y0 (0);
+			i->rectangle->set_y1 (h);
 			break;
 		}
 	}

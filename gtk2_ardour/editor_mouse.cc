@@ -2436,10 +2436,7 @@ Editor::reposition_zoom_rect (framepos_t start, framepos_t end)
 	double x2 = frame_to_pixel (end);
 	double y2 = full_canvas_height - 1.0;
 
-	zoom_rect->property_x1() = x1;
-	zoom_rect->property_y1() = 1.0;
-	zoom_rect->property_x2() = x2;
-	zoom_rect->property_y2() = y2;
+	zoom_rect->set (ArdourCanvas::Rect (x1, 1, x2, y2));
 }
 
 

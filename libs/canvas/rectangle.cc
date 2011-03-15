@@ -46,3 +46,28 @@ Rectangle::set (Rect const & r)
 {
 	_rect = r;
 }
+
+void
+Rectangle::set_x0 (Coord x0)
+{
+	_rect.x0 = x0;
+}
+
+void
+Rectangle::set_y0 (Coord y0)
+{
+	_rect.y0 = y0;
+}
+
+void
+Rectangle::set_x1 (Coord x1)
+{
+	_rect.x1 = x1;
+}
+
+void
+Rectangle::set_y1 (Coord y1)
+{
+	_rect.y1 = y1;
+}
+

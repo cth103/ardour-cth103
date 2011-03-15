@@ -1374,8 +1374,8 @@ Editor::update_loop_range_view (bool visibility)
 		double x1 = frame_to_pixel (tll->start());
 		double x2 = frame_to_pixel (tll->end());
 
-		transport_loop_range_rect->property_x1() = x1;
-		transport_loop_range_rect->property_x2() = x2;
+		transport_loop_range_rect->set_x0 (x1);
+		transport_loop_range_rect->set_x1 (x2);
 
 		if (visibility) {
 			transport_loop_range_rect->show();
@@ -1400,11 +1400,11 @@ Editor::update_punch_range_view (bool visibility)
 		/* XXX: CANVAS */
 //		track_canvas->get_size(track_canvas_width,track_canvas_height);
 		if (_session->config.get_punch_in()) {
-			transport_punch_range_rect->property_x1() = frame_to_pixel (tpl->start());
-			transport_punch_range_rect->property_x2() = (_session->config.get_punch_out() ? frame_to_pixel (tpl->end()) : frame_to_pixel (JACK_MAX_FRAMES));
+			transport_punch_range_rect->set_x0 (frame_to_pixel (tpl->start()));
+			transport_punch_range_rect->set_x1 (_session->config.get_punch_out() ? frame_to_pixel (tpl->end()) : frame_to_pixel (JACK_MAX_FRAMES));
 		} else {
-			transport_punch_range_rect->property_x1() = 0;
-			transport_punch_range_rect->property_x2() = (_session->config.get_punch_out() ? frame_to_pixel (tpl->end()) : track_canvas_width);
+			transport_punch_range_rect->set_x0 (0);
+			transport_punch_range_rect->set_x1 (_session->config.get_punch_out() ? frame_to_pixel (tpl->end()) : track_canvas_width);
 		}
 
 		if (visibility) {

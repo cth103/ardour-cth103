@@ -477,12 +477,12 @@ MidiRegionView::button_release (GdkEventButton* ev)
 		
 		if (Keyboard::is_insert_note_event(ev) || trackview.editor().current_mouse_mode() == MouseRange){
 		
-			if (_drag_rect->property_x2() > _drag_rect->property_x1() + 2) {
+			if (_drag_rect->x1() > _drag_rect->x0() + 2) {
 
-				const double x  = _drag_rect->property_x1();
-				const double length = trackview.editor().pixel_to_frame (_drag_rect->property_x2() - _drag_rect->property_x1());
+				const double x = _drag_rect->x0 ();
+				const double length = trackview.editor().pixel_to_frame (_drag_rect->x1 () - _drag_rect->x0 ());
 
-				create_note_at (x, _drag_rect->property_y1(), frames_to_beats(length), true);
+				create_note_at (x, _drag_rect->y0 (), frames_to_beats(length), true);
 			}
                 }
 
@@ -564,10 +564,7 @@ MidiRegionView::motion (GdkEventMotion* ev)
                         _drag_start_y = event_y;
 
                         _drag_rect = new ArdourCanvas::Rectangle (group);
-                        _drag_rect->property_x1() = event_x;
-                        _drag_rect->property_y1() = event_y;
-                        _drag_rect->property_x2() = event_x;
-                        _drag_rect->property_y2() = event_y;
+			_drag_rect->set (ArdourCanvas::Rect (event_x, event_y, event_x, event_y));
                         _drag_rect->property_outline_what() = 0xFF;
                         _drag_rect->property_outline_color_rgba()
                                 = ARDOUR_UI::config()->canvasvar_MidiSelectRectOutline.get();
@@ -592,13 +589,10 @@ MidiRegionView::motion (GdkEventMotion* ev)
                         _drag_start_y = event_y;
 
                         _drag_rect = new ArdourCanvas::Rectangle (group);
-                        _drag_rect->property_x1() = trackview.editor().frame_to_pixel(event_frame);
-
-                        _drag_rect->property_y1() = midi_stream_view()->note_to_y(
-                                midi_stream_view()->y_to_note(event_y));
-                        _drag_rect->property_x2() = trackview.editor().frame_to_pixel(event_frame);
-                        _drag_rect->property_y2() = _drag_rect->property_y1()
-                                + floor(midi_stream_view()->note_height());
+                        _drag_rect->set_x0 (trackview.editor().frame_to_pixel(event_frame));
+                        _drag_rect->set_y0 (midi_stream_view()->note_to_y (midi_stream_view()->y_to_note(event_y)));
+                        _drag_rect->set_x1 (trackview.editor().frame_to_pixel(event_frame));
+                        _drag_rect->set_y1 (_drag_rect->y0 () + floor(midi_stream_view()->note_height()));
                         _drag_rect->property_outline_what() = 0xFF;
                         _drag_rect->property_outline_color_rgba() = 0xFFFFFF99;
                         _drag_rect->property_fill_color_rgba()    = 0xFFFFFF66;
@@ -637,20 +631,18 @@ MidiRegionView::motion (GdkEventMotion* ev)
                 if (_drag_rect) {
 		  
                         if (event_x > _drag_start_x){
-                                _drag_rect->property_x2() = event_x;
-			}
-                        else {
-                                _drag_rect->property_x1() = event_x;
+                                _drag_rect->set_x1 (event_x);
+			} else {
+                                _drag_rect->set_x0 (event_x);
 			}
                 }
 
                 if (_drag_rect && _mouse_state == SelectRectDragging) {
                         
-		  if (event_y > _drag_start_y){
-                                _drag_rect->property_y2() = event_y;
-			}
-                        else {
-                                _drag_rect->property_y1() = event_y;
+			if (event_y > _drag_start_y) {
+				_drag_rect->set_y1 (event_y);
+			} else {
+                                _drag_rect->set_y0 (event_y);
 			}
 
 			update_drag_selection(_drag_start_x, event_x, _drag_start_y, event_y);
@@ -1240,7 +1232,7 @@ MidiRegionView::set_height (double height)
         }
 
         if (_step_edit_cursor) {
-                _step_edit_cursor->property_y2() = midi_stream_view()->contents_height();
+                _step_edit_cursor->set_y1 (midi_stream_view()->contents_height());
         }
 }
 
@@ -2353,11 +2345,11 @@ MidiRegionView::update_resizing (ArdourCanvas::CanvasNoteEvent* primary, bool at
 		}
 
 		if (at_front) {
-			resize_rect->property_x1() = snap_to_pixel(current_x);
-			resize_rect->property_x2() = canvas_note->x2();
+			resize_rect->set_x0 (snap_to_pixel(current_x));
+			resize_rect->set_x1 (canvas_note->x2());
 		} else {
-			resize_rect->property_x2() = snap_to_pixel(current_x);
-			resize_rect->property_x1() = canvas_note->x1();
+			resize_rect->set_x1 (snap_to_pixel(current_x));
+			resize_rect->set_x0 (canvas_note->x1());
 		}
 
                 if (!cursor_set) {
@@ -3272,8 +3264,8 @@ MidiRegionView::show_step_edit_cursor (Evoral::MusicalTime pos)
                 ArdourCanvas::Group* const group = (ArdourCanvas::Group*)get_canvas_group();
 
                 _step_edit_cursor = new ArdourCanvas::Rectangle (group);
-                _step_edit_cursor->property_y1() = 0;
-                _step_edit_cursor->property_y2() = midi_stream_view()->contents_height();
+                _step_edit_cursor->set_y0 (0);
+                _step_edit_cursor->set_y1 (midi_stream_view()->contents_height());
                 _step_edit_cursor->property_fill_color_rgba() = RGBA_TO_UINT (45,0,0,90);
                 _step_edit_cursor->property_outline_color_rgba() = RGBA_TO_UINT (85,0,0,90);
         }
@@ -3289,7 +3281,7 @@ MidiRegionView::move_step_edit_cursor (Evoral::MusicalTime pos)
 
         if (_step_edit_cursor) {
                 double pixel = trackview.editor().frame_to_pixel (beats_to_frames (pos));
-                _step_edit_cursor->property_x1() = pixel;
+                _step_edit_cursor->set_x0 (pixel);
                 set_step_edit_cursor_width (_step_edit_cursor_width);
         }
 }
@@ -3308,7 +3300,7 @@ MidiRegionView::set_step_edit_cursor_width (Evoral::MusicalTime beats)
         _step_edit_cursor_width = beats;
 
         if (_step_edit_cursor) {
-                _step_edit_cursor->property_x2() = _step_edit_cursor->property_x1() + trackview.editor().frame_to_pixel (beats_to_frames (beats));
+                _step_edit_cursor->set_x1 (_step_edit_cursor->x0 () + trackview.editor().frame_to_pixel (beats_to_frames (beats)));
         }
 }
 

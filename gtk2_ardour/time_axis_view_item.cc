@@ -536,13 +536,13 @@ TimeAxisViewItem::set_height (double height)
 		}
 
 		if (height > NAME_HIGHLIGHT_SIZE) {
-			name_highlight->property_y1() = (double) height - 1 - NAME_HIGHLIGHT_SIZE;
-			name_highlight->property_y2() = (double) height - 1;
+			name_highlight->set_y0 ((double) height - 1 - NAME_HIGHLIGHT_SIZE);
+			name_highlight->set_y1 ((double) height - 1);
 		}
 		else {
 			/* it gets hidden now anyway */
-			name_highlight->property_y1() = (double) 1.0;
-			name_highlight->property_y2() = (double) height;
+			name_highlight->set_y0 (1);
+			name_highlight->set_y1 (height);
 		}
 	}
 
@@ -551,14 +551,14 @@ TimeAxisViewItem::set_height (double height)
 	}
 
 	if (frame) {
-		frame->property_y2() = height - 1;
+		frame->set_y1 (height - 1);
 		if (frame_handle_start) {
-			frame_handle_start->property_y2() = height - 1;
-			frame_handle_end->property_y2() = height - 1;
+			frame_handle_start->set_y1 (height - 1);
+			frame_handle_end->set_y1 (height - 1);
 		}
 	}
 
-	vestigial_frame->property_y2() = height - 1;
+	vestigial_frame->set_y1 (height - 1);
 
 	update_name_pixbuf_visibility ();
 	set_colors ();
@@ -850,12 +850,12 @@ TimeAxisViewItem::reset_width_dependent_items (double pixel_width)
 				high_enough_for_name = true;
 			}
                         
-			name_highlight->property_x2() = pixel_width;
+			name_highlight->set_x1 (pixel_width);
 		}
 
 		if (frame) {
 			frame->show();
-			frame->property_x2() = pixel_width;
+			frame->set_x1 (pixel_width);
 		}
 
 		if (frame_handle_start) {
@@ -864,9 +864,9 @@ TimeAxisViewItem::reset_width_dependent_items (double pixel_width)
 				frame_handle_end->hide();
 			}
 			frame_handle_start->show();
-			frame_handle_end->property_x1() = pixel_width - (TimeAxisViewItem::GRAB_HANDLE_LENGTH);
+			frame_handle_end->set_x0 (pixel_width - (TimeAxisViewItem::GRAB_HANDLE_LENGTH));
 			frame_handle_end->show();
-			frame_handle_end->property_x2() = pixel_width;
+			frame_handle_end->set_x1 (pixel_width);
 		}
 	}
 

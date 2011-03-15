@@ -44,9 +44,9 @@ GhostRegion::GhostRegion (ArdourCanvas::Group* parent, TimeAxisView& tv, TimeAxi
 	group->property_y() = 0.0;
 
 	base_rect = new ArdourCanvas::Rectangle (group);
-	base_rect->property_x1() = (double) 0.0;
-	base_rect->property_y1() = (double) 0.0;
-	base_rect->property_y2() = (double) trackview.current_height();
+	base_rect->set_x0 (0);
+	base_rect->set_y0 (0);
+	base_rect->set_y1 (trackview.current_height());
 	base_rect->property_outline_what() = (guint32) 0;
 
 	if (!is_automation_ghost()) {
@@ -70,13 +70,13 @@ GhostRegion::~GhostRegion ()
 void
 GhostRegion::set_duration (double units)
 {
-	base_rect->property_x2() = units;
+	base_rect->set_x1 (units);
 }
 
 void
 GhostRegion::set_height ()
 {
-	base_rect->property_y2() = (double) trackview.current_height();
+	base_rect->set_y1 (trackview.current_height());
 }
 
 void
@@ -267,8 +267,8 @@ MidiGhostRegion::update_range ()
 			} else {
 				note->rect->show();
 				double const y = trackview.current_height() - (note_num + 1 - mv->lowest_note()) * h + 1;
-				note->rect->property_y1() = y;
-				note->rect->property_y2() = y + h;
+				note->rect->set_y0 (y);
+				note->rect->set_y1 (y + h);
 			}
 		}
 	}
@@ -292,8 +292,8 @@ MidiGhostRegion::add_note(ArdourCanvas::CanvasNote* n)
 			note->rect->hide();
 		} else {
 			const double y = mv->note_to_y(note_num);
-			note->rect->property_y1() = y;
-			note->rect->property_y2() = y + mv->note_height();
+			note->rect->set_y0 (y);
+			note->rect->set_y1 (y + mv->note_height());
 		}
 	}
 }
@@ -323,8 +323,8 @@ MidiGhostRegion::update_note (ArdourCanvas::CanvasNote* parent)
 	if (note) {
 		double const x1 = parent->property_x1 ();
 		double const x2 = parent->property_x2 ();
-		note->rect->property_x1 () = x1;
-		note->rect->property_x2 () = x2;
+		note->rect->set_x0 (x1);
+		note->rect->set_x1 (x2);
 	}
 }
 

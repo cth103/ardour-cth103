@@ -394,15 +394,15 @@ Marker::setup_name_display ()
 	name_pixbuf->property_pixbuf() = pixbuf_from_string (_name, name_font, name_width, name_height, Gdk::Color ("#000000"));
 
 	if (label_on_left ()) {
-		_name_background->property_x1() = name_pixbuf->property_x() - 2;
-		_name_background->property_x2() = name_pixbuf->property_x() + name_width + _shift;
+		_name_background->set_x0 (name_pixbuf->property_x() - 2);
+		_name_background->set_x1 (name_pixbuf->property_x() + name_width + _shift);
 	} else {
-		_name_background->property_x1() = name_pixbuf->property_x() - _label_offset + 2;
-		_name_background->property_x2() = name_pixbuf->property_x() + name_width;
+		_name_background->set_x0 (name_pixbuf->property_x() - _label_offset + 2);
+		_name_background->set_x1 (name_pixbuf->property_x() + name_width);
 	}
 	
-	_name_background->property_y1() = 0;
-	_name_background->property_y2() = 13;
+	_name_background->set_y0 (0);
+	_name_background->set_y1 (13);
 }
 
 void

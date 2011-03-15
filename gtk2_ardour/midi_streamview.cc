@@ -506,10 +506,7 @@ MidiStreamView::setup_rec_box ()
 			fill_color = ARDOUR_UI::config()->canvasvar_RecordingRect.get();
 
 			ArdourCanvas::Rectangle * rec_rect = new ArdourCanvas::Rectangle (_canvas_group);
-			rec_rect->property_x1() = xstart;
-			rec_rect->property_y1() = 1.0;
-			rec_rect->property_x2() = xend;
-			rec_rect->property_y2() = (double) _trackview.current_height() - 1;
+			rec_rect->set (ArdourCanvas::Rect (xstart, 1, xend, _trackview.current_height() - 1));
 			rec_rect->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_RecordingRect.get();
 			rec_rect->property_fill_color_rgba() = fill_color;
 			rec_rect->lower_to_bottom();

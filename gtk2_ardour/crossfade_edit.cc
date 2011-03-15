@@ -133,11 +133,8 @@ CrossfadeEditor::CrossfadeEditor (Session* s, boost::shared_ptr<Crossfade> xf, d
 	canvas->set_size_request (425, 200);
 
 	toplevel = new ArdourCanvas::Rectangle (canvas->root());
-	toplevel->property_x1() =  0.0;
-	toplevel->property_y1() =  0.0;
-	toplevel->property_x2() =  10.0;
-	toplevel->property_y2() =  10.0;
-	toplevel->property_fill() =  true;
+	toplevel->set (ArdourCanvas::Rect (0, 0, 10, 10));
+	toplevel->property_fill() = true;
 	toplevel->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeEditorBase.get();
 	toplevel->property_outline_pixels() =  0;
 	toplevel->signal_event().connect (sigc::mem_fun (*this, &CrossfadeEditor::canvas_event));
@@ -521,11 +518,7 @@ CrossfadeEditor::Point::move_to (double nx, double ny, double xfract, double yfr
 	double x1 = nx - half_size;
 	double x2 = nx + half_size;
 
-	box->property_x1() = x1;
-	box->property_x2() = x2;
-
-	box->property_y1() = ny - half_size;
-	box->property_y2() = ny + half_size;
+	box->set (ArdourCanvas::Rect (x1, ny - half_size, x2, ny + half_size));
 
 	x = xfract;
 	y = yfract;
@@ -535,10 +528,14 @@ void
 CrossfadeEditor::canvas_allocation (Gtk::Allocation& /*alloc*/)
 {
 	if (toplevel) {
-		toplevel->property_x1() = 0.0;
-		toplevel->property_y1() = 0.0;
-		toplevel->property_x2() = (double) canvas->get_allocation().get_width() + canvas_border;
-		toplevel->property_y2() = (double) canvas->get_allocation().get_height() + canvas_border;
+		toplevel->set (
+			ArdourCanvas::Rect (
+				0,
+				0,
+				canvas->get_allocation().get_width() + canvas_border,
+				canvas->get_allocation().get_height() + canvas_border
+				)
+			);
 	}
 
 	/* XXX: CANVAS */

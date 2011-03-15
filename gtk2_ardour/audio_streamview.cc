@@ -526,10 +526,10 @@ AudioStreamView::setup_rec_box ()
 			}
 
 			ArdourCanvas::Rectangle * rec_rect = new ArdourCanvas::Rectangle (_canvas_group);
-			rec_rect->property_x1() = xstart;
-			rec_rect->property_y1() = 1.0;
-			rec_rect->property_x2() = xend;
-			rec_rect->property_y2() = child_height ();
+			rec_rect->set_x0 (xstart);
+			rec_rect->set_y0 (1);
+			rec_rect->set_x1 (xend);
+			rec_rect->set_y1 (child_height ());
 			rec_rect->property_outline_what() = 0x0;
 			rec_rect->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_TimeAxisFrame.get();
 			rec_rect->property_fill_color_rgba() = fill_color;
@@ -685,7 +685,7 @@ AudioStreamView::update_rec_regions (framepos_t start, framecnt_t cnt)
 					/* also update rect */
 					ArdourCanvas::Rectangle * rect = rec_rects[n].rectangle;
 					gdouble xend = _trackview.editor().frame_to_pixel (region->position() + region->length());
-					rect->property_x2() = xend;
+					rect->set_x1 (xend);
 				}
 
 			} else {

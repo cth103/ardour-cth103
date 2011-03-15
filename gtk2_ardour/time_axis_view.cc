@@ -733,23 +733,13 @@ TimeAxisView::show_selection (TimeSelection& ts)
 		x2 = _editor.frame_to_unit (start + cnt - 1);
 		y2 = current_height();
 
-		rect->rect->property_x1() = x1;
-		rect->rect->property_y1() = 1.0;
-		rect->rect->property_x2() = x2;
-		rect->rect->property_y2() = y2;
+		rect->rect->set (ArdourCanvas::Rect (x1, 1, x2, y2));
 
 		// trim boxes are at the top for selections
 
 		if (x2 > x1) {
-			rect->start_trim->property_x1() = x1;
-			rect->start_trim->property_y1() = 1.0;
-			rect->start_trim->property_x2() = x1 + trim_handle_size;
-			rect->start_trim->property_y2() = y2;
-
-			rect->end_trim->property_x1() = x2 - trim_handle_size;
-			rect->end_trim->property_y1() = 1.0;
-			rect->end_trim->property_x2() = x2;
-			rect->end_trim->property_y2() = y2;
+			rect->start_trim->set (ArdourCanvas::Rect (x1, 1, x1 + trim_handle_size, y2));
+			rect->end_trim->set (ArdourCanvas::Rect (x2 - trim_handle_size, 1, x2, y2));
 
 			rect->start_trim->show();
 			rect->end_trim->show();
@@ -846,21 +836,17 @@ TimeAxisView::get_selection_rect (uint32_t id)
 
 		rect->rect = new ArdourCanvas::Rectangle (selection_group);
 		rect->rect->property_outline_what() = 0x0;
-		rect->rect->property_x1() = 0.0;
-		rect->rect->property_y1() = 0.0;
-		rect->rect->property_x2() = 0.0;
-		rect->rect->property_y2() = 0.0;
 		rect->rect->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_SelectionRect.get();
 
 		rect->start_trim = new ArdourCanvas::Rectangle (selection_group);
 		rect->start_trim->property_outline_what() = 0x0;
-		rect->start_trim->property_x1() = 0.0;
-		rect->start_trim->property_x2() = 0.0;
+		rect->start_trim->set_x0 (0);
+		rect->start_trim->set_x1 (0);
 		
 		rect->end_trim = new ArdourCanvas::Rectangle (selection_group);
 		rect->end_trim->property_outline_what() = 0x0;
-		rect->end_trim->property_x1() = 0.0;
-		rect->end_trim->property_x2() = 0.0;
+		rect->end_trim->set_x0 (0);
+		rect->end_trim->set_x1 (0);
 
 		free_selection_rects.push_front (rect);
 

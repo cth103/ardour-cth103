@@ -18,26 +18,32 @@ public:
 	void render (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
 	boost::optional<Rect> bounding_box () const;
 
-	void set (Rect const &);
+	Rect const & get () const {
+		return _rect;
+	}
 
-#ifdef CANVAS_COMPATIBILITY
-	Coord& property_x1 () {
+	Coord x0 () const {
 		return _rect.x0;
 	}
 
-	Coord& property_x2 () {
-		return _rect.x1;
-	}
-
-	Coord& property_y1 () {
+	Coord y0 () const {
 		return _rect.y0;
 	}
 
-	Coord& property_y2 () {
+	Coord x1 () const {
+		return _rect.x1;
+	}
+
+	Coord y1 () const {
 		return _rect.y1;
 	}
-#endif	
-	
+
+	void set (Rect const &);
+	void set_x0 (Coord);
+	void set_y0 (Coord);
+	void set_x1 (Coord);
+	void set_y1 (Coord);
+
 private:
 	Rect _rect;
 };

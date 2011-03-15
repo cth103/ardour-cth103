@@ -102,12 +102,7 @@ AutomationTimeAxisView::AutomationTimeAxisView (
 	first_call_to_set_height = true;
 
 	_base_rect = new ArdourCanvas::Rectangle (_canvas_display);
-	_base_rect->property_x1() = 0.0;
-	_base_rect->property_y1() = 0.0;
-	/** gnomecanvas sometimes converts this value to int or adds 2 to it, so it must be
-	    set correctly to avoid overflow.
-	*/
-	_base_rect->property_x2() = INT_MAX - 2;
+	_base_rect->set_x1 (INT_MAX);
 	_base_rect->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_AutomationTrackOutline.get();
 
 	/* outline ends and bottom */
@@ -426,7 +421,7 @@ AutomationTimeAxisView::set_height (uint32_t h)
 	XMLNode* xml_node = state_parent->get_automation_child_xml_node (_parameter);
 
 	TimeAxisView::set_height (h);
-	_base_rect->property_y2() = h;
+	_base_rect->set_y1 (h);
 
 	if (_line) {
 		_line->set_height(h);

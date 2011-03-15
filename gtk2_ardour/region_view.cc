@@ -239,10 +239,10 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double thres
 
 		/* coordinates for the rect are relative to the regionview origin */
                 
-		cr->property_x1() = trackview.editor().frame_to_pixel (i->first - _region->start());
-		cr->property_x2() = trackview.editor().frame_to_pixel (i->second - _region->start());
-		cr->property_y1() = 1;
-		cr->property_y2() = _height - 2;
+		cr->set_x0 (trackview.editor().frame_to_pixel (i->first - _region->start()));
+		cr->set_x1 (trackview.editor().frame_to_pixel (i->second - _region->start()));
+		cr->set_y0 (1);
+		cr->set_y1 (_height - 2);
 		cr->property_outline_pixels() = 0;
 		cr->property_fill_color_rgba () = color;
 
@@ -730,11 +730,11 @@ RegionView::set_height (double h)
 	}
 
 	for (list<ArdourCanvas::Rectangle*>::iterator i = _coverage_frames.begin(); i != _coverage_frames.end(); ++i) {
-		(*i)->property_y2() = h + 1;
+		(*i)->set_y1 (h + 1);
 	}
 
 	for (list<ArdourCanvas::Rectangle*>::iterator i = _silent_frames.begin(); i != _silent_frames.end(); ++i) {
-		(*i)->property_y2() = h + 1;
+		(*i)->set_y1 (h + 1);
 	}
 
 }
@@ -780,16 +780,16 @@ RegionView::update_coverage_frames (LayerDisplay d)
 
 		/* finish off any old rect, if required */
 		if (cr && me != new_me) {
-			cr->property_x2() = trackview.editor().frame_to_pixel (t - position);
+			cr->set_x1 (trackview.editor().frame_to_pixel (t - position));
 		}
 
 		/* start off any new rect, if required */
 		if (cr == 0 || me != new_me) {
 			cr = new ArdourCanvas::Rectangle (group);
 			_coverage_frames.push_back (cr);
-			cr->property_x1() = trackview.editor().frame_to_pixel (t - position);
-			cr->property_y1() = 1;
-			cr->property_y2() = _height + 1;
+			cr->set_x0 (trackview.editor().frame_to_pixel (t - position));
+			cr->set_y0 (1);
+			cr->set_y1 (_height + 1);
 			cr->property_outline_pixels() = 0;
 			/* areas that will be played get a lower alpha */
 			uint32_t alpha = base_alpha;
@@ -805,7 +805,7 @@ RegionView::update_coverage_frames (LayerDisplay d)
 
 	if (cr) {
 		/* finish off the last rectangle */
-		cr->property_x2() = trackview.editor().frame_to_pixel (end - position);
+		cr->set_x1 (trackview.editor().frame_to_pixel (end - position));
 	}
 
 	if (frame_handle_start) {

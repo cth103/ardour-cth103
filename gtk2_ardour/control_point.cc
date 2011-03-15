@@ -175,10 +175,7 @@ ControlPoint::move_to (double x, double y, ShapeType shape)
 		break;
 	}
 
-	_item->property_x1() = x1;
-	_item->property_x2() = x2;
-	_item->property_y1() = y - half_size;
-	_item->property_y2() = y + half_size;
+	_item->set (ArdourCanvas::Rect (x1, y - half_size, x2, y + half_size));
 
 	_x = x;
 	_y = y;

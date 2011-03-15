@@ -3029,10 +3029,7 @@ RubberbandSelectDrag::motion (GdkEvent* event, bool)
 		double x1 = _editor->frame_to_pixel (start);
 		double x2 = _editor->frame_to_pixel (end);
 
-		_editor->rubberband_rect->property_x1() = x1;
-		_editor->rubberband_rect->property_y1() = y1;
-		_editor->rubberband_rect->property_x2() = x2;
-		_editor->rubberband_rect->property_y2() = y2;
+		_editor->rubberband_rect->set (ArdourCanvas::Rect (x1, y1, x2, y2));
 
 		_editor->rubberband_rect->show();
 		_editor->rubberband_rect->raise_to_top();
@@ -3573,8 +3570,8 @@ RangeMarkerBarDrag::motion (GdkEvent* event, bool first_move)
 
 		double x1 = _editor->frame_to_pixel (start);
 		double x2 = _editor->frame_to_pixel (end);
-		crect->property_x1() = x1;
-		crect->property_x2() = x2;
+		crect->set_x0 (x1);
+		crect->set_x1 (x2);
 
 		update_item (_editor->temp_location);
 	}
@@ -3675,8 +3672,8 @@ RangeMarkerBarDrag::update_item (Location* location)
 	double const x1 = _editor->frame_to_pixel (location->start());
 	double const x2 = _editor->frame_to_pixel (location->end());
 
-	_drag_rect->property_x1() = x1;
-	_drag_rect->property_x2() = x2;
+	_drag_rect->set_x0 (x1);
+	_drag_rect->set_x1 (x2);
 }
 
 MouseZoomDrag::MouseZoomDrag (Editor* e, ArdourCanvas::Item* i)

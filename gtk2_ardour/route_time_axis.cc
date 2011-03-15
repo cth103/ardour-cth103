@@ -789,10 +789,6 @@ RouteTimeAxisView::show_timestretch (framepos_t start, framepos_t end)
 
 	if (timestretch_rect == 0) {
 		timestretch_rect = new ArdourCanvas::Rectangle (canvas_display ());
-		timestretch_rect->property_x1() =  0.0;
-		timestretch_rect->property_y1() =  0.0;
-		timestretch_rect->property_x2() =  0.0;
-		timestretch_rect->property_y2() =  0.0;
 		timestretch_rect->property_fill_color_rgba() =  ARDOUR_UI::config()->canvasvar_TimeStretchFill.get();
 		timestretch_rect->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_TimeStretchOutline.get();
 	}
@@ -804,10 +800,7 @@ RouteTimeAxisView::show_timestretch (framepos_t start, framepos_t end)
 	x2 = (end - 1) / _editor.get_current_zoom();
 	y2 = current_height() - 2;
 
-	timestretch_rect->property_x1() = x1;
-	timestretch_rect->property_y1() = 1.0;
-	timestretch_rect->property_x2() = x2;
-	timestretch_rect->property_y2() = y2;
+	timestretch_rect->set (ArdourCanvas::Rect (x1, 1, x2, y2));
 }
 
 void
