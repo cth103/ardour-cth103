@@ -32,7 +32,7 @@ LookupTable::build ()
 	}
 
 	_cell_size.x = bbox.get().width() / _dimension;
-	_cell_size.y = bbox.get().width() / _dimension;
+	_cell_size.y = bbox.get().height() / _dimension;
 	_offset.x = bbox.get().x0;
 	_offset.y = bbox.get().y0;
 
