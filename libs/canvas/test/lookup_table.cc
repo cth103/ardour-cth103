@@ -10,7 +10,7 @@ using namespace ArdourCanvas;
 CPPUNIT_TEST_SUITE_REGISTRATION (LookupTableTest);
 
 void
-LookupTableTest::build ()
+LookupTableTest::build_1 ()
 {
 	Group group;
 	Rectangle a (&group, Rect (0, 0, 32, 32));
@@ -26,6 +26,15 @@ LookupTableTest::build ()
 	CPPUNIT_ASSERT (table._cells[0][1].front() == &b);
 	CPPUNIT_ASSERT (table._cells[1][0].front() == &c);
 	CPPUNIT_ASSERT (table._cells[1][1].front() == &d);
+}
+
+void
+LookupTableTest::build_2 ()
+{
+	Group group;
+	Rectangle a (&group, Rect (0, 0, 713, 1024));
+	Rectangle b (&group, Rect (0, 0, 0, 1024));
+	LookupTable table (group, 64);
 }
 
 void
