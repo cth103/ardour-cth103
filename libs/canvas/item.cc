@@ -242,8 +242,12 @@ Item::get_bounds (double& x0, double& y0, double& x1, double& y1) const
 void
 Item::move (double dx, double dy)
 {
-	_position.x += dx;
-	_position.y += dy;
+	Duple p = _position;
+
+	p.x += dx;
+	p.y += dy;
+
+	set_position (p);
 }
 
 void
