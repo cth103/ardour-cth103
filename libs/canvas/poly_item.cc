@@ -13,12 +13,12 @@ PolyItem::PolyItem (Group* parent)
 void
 PolyItem::compute_bounding_box () const
 {
-	bool have_first = false;
+	bool have_one = false;
 
 	Rect bbox;
 
 	for (Points::const_iterator i = _points.begin(); i != _points.end(); ++i) {
-		if (have_first) {
+		if (have_one) {
 			bbox.x0 = min (bbox.x0, i->x);
 			bbox.y0 = min (bbox.y0, i->y);
 			bbox.x1 = max (bbox.x1, i->x);
@@ -26,11 +26,16 @@ PolyItem::compute_bounding_box () const
 		} else {
 			bbox.x0 = bbox.x1 = i->x;
 			bbox.y0 = bbox.y1 = i->y;
-			have_first = true;
+			have_one = true;
 		}
 	}
 
-	_bounding_box = bbox;
+	if (!have_one) {
+		_bounding_box = boost::optional<Rect> ();
+	} else {
+		_bounding_box = bbox;
+	}
+	
 	_bounding_box_dirty = false;
 }
 

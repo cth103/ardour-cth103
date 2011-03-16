@@ -71,12 +71,8 @@ Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 void
 Group::compute_bounding_box () const
 {
-	if (_items.empty ()) {
-		_bounding_box = boost::optional<Rect> ();
-	}
-
 	Rect bbox;
-	bool have_initial = false;
+	bool have_one = false;
 	
 	for (list<Item*>::const_iterator i = _items.begin(); i != _items.end(); ++i) {
 		boost::optional<Rect> item_bbox = (*i)->bounding_box ();
@@ -84,20 +80,21 @@ Group::compute_bounding_box () const
 			continue;
 		}
 
-//		cout << "BBOX: Item " << item_bbox.get() << "\n";
-		
 		Rect group_bbox = item_bbox.get().translate ((*i)->position ());
-		if (have_initial) {
+		if (have_one) {
 			bbox = bbox.extend (group_bbox);
 		} else {
 			bbox = group_bbox;
-			have_initial = true;
+			have_one = true;
 		}
-
-//		cout << "BBOX: -> " << bbox << "\n";
 	}
 
-	_bounding_box = bbox;
+	if (!have_one) {
+		_bounding_box = boost::optional<Rect> ();
+	} else {
+		_bounding_box = bbox;
+	}
+	
 	_bounding_box_dirty = false;
 }
 

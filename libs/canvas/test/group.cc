@@ -45,6 +45,22 @@ GroupTest::bounding_box ()
 }
 
 void
+GroupTest::null_bounding_box ()
+{
+	/* Check that a group containing only items with
+	   no bounding box itself has no bounding box.
+	*/
+
+	ImageCanvas canvas;
+	Group group (&canvas);
+
+	Group empty (&group);
+
+	boost::optional<Rect> bbox = empty.bounding_box ();
+	CPPUNIT_ASSERT (!bbox.is_initialized ());
+}
+
+void
 GroupTest::layers ()
 {
 	ImageCanvas canvas;
