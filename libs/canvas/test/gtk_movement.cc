@@ -60,6 +60,7 @@ int main (int argc, char* argv[])
 	rectangle[1]->set_outline_color (0x00ff00ff);
 	rectangle[1]->set_fill (true);
 	rectangle[1]->set_fill_color (0x00ffffff);
+	rectangle[1]->set_outline_what ((Rectangle::What) (Rectangle::LEFT | Rectangle::RIGHT));
 
 	Gtk::VBox overall_box;
 

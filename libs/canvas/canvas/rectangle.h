@@ -14,7 +14,7 @@ class Rectangle : virtual public Item, public Outline, public Fill
 public:
 	Rectangle (Group *);
 	Rectangle (Group *, Rect const &);
-
+	
 	void render (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
 	char const * name () const {
 		return "rectangle";
@@ -48,8 +48,21 @@ public:
 	void set_x1 (Coord);
 	void set_y1 (Coord);
 
+	enum What {
+		LEFT = 0x1,
+		RIGHT = 0x2,
+		TOP = 0x4,
+		BOTTOM = 0x8
+	};
+
+	void set_outline_what (What);
+
 private:
+	void fix_rect ();
+
+	/** Our rectangle, maintained so that x0 < x1 and y0 < y1 */
 	Rect _rect;
+	What _outline_what;
 };
 
 }
