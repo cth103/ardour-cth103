@@ -100,7 +100,7 @@ GtkCanvas::GtkCanvas ()
 
 GtkCanvasDrawingArea::GtkCanvasDrawingArea ()
 {
-	
+	set_size_request (2048, 2048);
 }
 
 bool

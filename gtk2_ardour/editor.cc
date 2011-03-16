@@ -236,9 +236,6 @@ pane_size_watcher (Paned* pane)
 Editor::Editor ()
 	: _join_object_range_state (JOIN_OBJECT_RANGE_NONE)
 
-	, _track_canvas_hadj (0, 0, 10e3)
-	, _track_canvas_vadj (0, 0, 10e3)
-
 	  /* time display buttons */
 	, minsec_label (_("Mins:Secs"))
 	, bbt_label (_("Bars:Beats"))
@@ -515,9 +512,12 @@ Editor::Editor ()
 	   for the canvas areas.
 	*/
 
-//	track_canvas_event_box.add (*track_canvas);
-	_track_canvas_viewport = new Viewport (_track_canvas_hadj, _track_canvas_vadj);
-	_track_canvas_viewport->add (*track_canvas);
+	track_canvas_event_box.add (*track_canvas);
+	_track_canvas_scroller = new ScrolledWindow;
+	_track_canvas_scroller->set_policy (Gtk::POLICY_ALWAYS, Gtk::POLICY_ALWAYS);
+	_track_canvas_scroller->add (track_canvas_event_box);
+	_track_canvas_hadj = _track_canvas_scroller->get_hadjustment ();
+	_track_canvas_vadj = _track_canvas_scroller->get_vadjustment ();
 
 	time_canvas_event_box.add (time_canvas_vbox);
 	time_canvas_event_box.set_events (Gdk::BUTTON_PRESS_MASK|Gdk::BUTTON_RELEASE_MASK|Gdk::POINTER_MOTION_MASK);
@@ -537,7 +537,7 @@ Editor::Editor ()
 	/* track controls */
 	edit_packer.attach (controls_layout,         0, 2, 2, 3,    FILL,        FILL|EXPAND, 0, 0);
 	/* main canvas */
-	edit_packer.attach (*_track_canvas_viewport, 2, 3, 1, 3,    FILL|EXPAND, FILL|EXPAND, 0, 0);
+	edit_packer.attach (*_track_canvas_scroller, 2, 3, 1, 3,    FILL|EXPAND, FILL|EXPAND, 0, 0);
 
 	bottom_hbox.set_border_width (2);
 	bottom_hbox.set_spacing (3);
@@ -5207,7 +5207,7 @@ Editor::scroll_press (Direction dir)
 		break;
 
 	case RIGHT:
-		scroll_forward (0.1);
+		scroll_forward (1);
 		break;
 
 	case UP:
