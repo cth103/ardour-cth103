@@ -171,4 +171,8 @@ Group::child_changed ()
 {
 	invalidate_lut ();
 	_bounding_box_dirty = true;
+
+	if (_parent) {
+		_parent->child_changed ();
+	}
 }

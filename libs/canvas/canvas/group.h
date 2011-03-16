@@ -17,6 +17,9 @@ public:
 	~Group ();
 
 	void render (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
+	char const * name () const {
+		return "group";
+	}
 
 	void compute_bounding_box () const;
 

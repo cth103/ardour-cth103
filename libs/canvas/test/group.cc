@@ -110,3 +110,46 @@ GroupTest::children_changing ()
 	CPPUNIT_ASSERT (bbox.get().x1 == 48.5);
 	CPPUNIT_ASSERT (bbox.get().y1 == 48.5);
 }
+
+void
+GroupTest::grandchildren_changing ()
+{
+	ImageCanvas canvas;
+	
+	Group A (&canvas);
+
+	Group B (&A);
+
+	Rectangle a (&B, Rect (0, 0, 32, 32));
+	a.set_outline_width (0);
+
+	boost::optional<Rect> bbox = A.bounding_box ();
+	CPPUNIT_ASSERT (bbox.is_initialized ());
+	CPPUNIT_ASSERT (bbox.get().x0 == 0);
+	CPPUNIT_ASSERT (bbox.get().y0 == 0);
+	CPPUNIT_ASSERT (bbox.get().x1 == 32);
+	CPPUNIT_ASSERT (bbox.get().y1 == 32);
+
+	bbox = B.bounding_box ();
+	CPPUNIT_ASSERT (bbox.is_initialized ());
+	CPPUNIT_ASSERT (bbox.get().x0 == 0);
+	CPPUNIT_ASSERT (bbox.get().y0 == 0);
+	CPPUNIT_ASSERT (bbox.get().x1 == 32);
+	CPPUNIT_ASSERT (bbox.get().y1 == 32);
+
+	a.set (Rect (0, 0, 48, 48));
+
+	bbox = A.bounding_box ();	
+	CPPUNIT_ASSERT (bbox.is_initialized ());
+	CPPUNIT_ASSERT (bbox.get().x0 == 0);
+	CPPUNIT_ASSERT (bbox.get().y0 == 0);
+	CPPUNIT_ASSERT (bbox.get().x1 == 48);
+	CPPUNIT_ASSERT (bbox.get().y1 == 48);
+
+	bbox = B.bounding_box ();
+	CPPUNIT_ASSERT (bbox.is_initialized ());
+	CPPUNIT_ASSERT (bbox.get().x0 == 0);
+	CPPUNIT_ASSERT (bbox.get().y0 == 0);
+	CPPUNIT_ASSERT (bbox.get().x1 == 48);
+	CPPUNIT_ASSERT (bbox.get().y1 == 48);
+}

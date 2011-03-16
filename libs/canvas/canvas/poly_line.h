@@ -12,6 +12,9 @@ public:
 	PolyLine (Group *);
 
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const;
+	char const * name () const {
+		return "polyline";
+	}
 };
 	
 }

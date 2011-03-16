@@ -82,6 +82,10 @@ public:
 		return _canvas;
 	}
 
+	virtual char const * name () const {
+		return "unknown";
+	}
+
 #ifdef CANVAS_COMPATIBILITY
 
 	void set_data (char const *, void *);

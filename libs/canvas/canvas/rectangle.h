@@ -16,6 +16,9 @@ public:
 	Rectangle (Group *, Rect const &);
 
 	void render (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
+	char const * name () const {
+		return "rectangle";
+	}
 
 	void compute_bounding_box () const;
 
