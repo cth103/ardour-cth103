@@ -7,7 +7,7 @@
 
 namespace ArdourCanvas {
 
-class Line : public Item, public Outline
+class Line : virtual public Item, public Outline
 {
 public:
 	Line (Group *);

@@ -3,7 +3,9 @@
 using namespace ArdourCanvas;
 
 PolyLine::PolyLine (Group* parent)
-	: PolyItem (parent)
+	: Item (parent)
+	, PolyItem (parent)
+	, Outline (parent)
 {
 
 }

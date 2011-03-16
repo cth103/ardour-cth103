@@ -3,7 +3,10 @@
 using namespace ArdourCanvas;
 
 Polygon::Polygon (Group* parent)
-	: PolyItem (parent)
+	: Item (parent)
+	, PolyItem (parent)
+	, Outline (parent)
+	, Fill (parent)
 {
 
 }

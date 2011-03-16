@@ -84,6 +84,8 @@ Group::compute_bounding_box () const
 			continue;
 		}
 
+//		cout << "BBOX: Item " << item_bbox.get() << "\n";
+		
 		Rect group_bbox = item_bbox.get().translate ((*i)->position ());
 		if (have_initial) {
 			bbox = bbox.extend (group_bbox);
@@ -91,6 +93,8 @@ Group::compute_bounding_box () const
 			bbox = group_bbox;
 			have_initial = true;
 		}
+
+//		cout << "BBOX: -> " << bbox << "\n";
 	}
 
 	_bounding_box = bbox;

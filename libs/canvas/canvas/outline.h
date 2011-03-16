@@ -3,25 +3,27 @@
 
 #include <stdint.h>
 #include "canvas/types.h"
+#include "canvas/item.h"
 
 namespace ArdourCanvas {
 
-class Outline
+class Outline : virtual public Item
 {
 public:
-	Outline ();
+	Outline (Group *);
+	virtual ~Outline () {}
 	
 	uint32_t outline_color () const {
 		return _outline_color;
 	}
 
-	void set_outline_color (uint32_t);
+	virtual void set_outline_color (uint32_t);
 
 	Distance outline_width () const {
 		return _outline_width;
 	}
 	
-	void set_outline_width (Distance);
+	virtual void set_outline_width (Distance);
 
 #ifdef CANVAS_COMPATIBILITY
 	uint32_t& property_outline_color_rgba () {

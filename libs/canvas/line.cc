@@ -10,6 +10,7 @@ using namespace ArdourCanvas;
 
 Line::Line (Group* parent)
 	: Item (parent)
+	, Outline (parent)
 {
 
 }

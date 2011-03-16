@@ -2,13 +2,14 @@
 #define __CANVAS_FILL_H__
 
 #include <stdint.h>
+#include "canvas/item.h"
 
 namespace ArdourCanvas {
 
-class Fill
+class Fill : virtual public Item
 {
 public:
-	Fill ();
+	Fill (Group *);
 	
 	uint32_t fill_color () const;
 	void set_fill_color (uint32_t);

@@ -9,7 +9,7 @@
 namespace ArdourCanvas
 {
 
-class Rectangle : public Item, public Outline, public Fill
+class Rectangle : virtual public Item, public Outline, public Fill
 {
 public:
 	Rectangle (Group *);

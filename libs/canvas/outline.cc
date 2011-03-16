@@ -4,8 +4,9 @@
 
 using namespace ArdourCanvas;
 
-Outline::Outline ()
-	: _outline_color (0x000000ff)
+Outline::Outline (Group* parent)
+	: Item (parent)
+	, _outline_color (0x000000ff)
 	, _outline_width (1)
 {
 
@@ -14,13 +15,22 @@ Outline::Outline ()
 void
 Outline::set_outline_color (uint32_t color)
 {
+	begin_change ();
+	
 	_outline_color = color;
+
+	end_change ();
 }
 
 void
 Outline::set_outline_width (Distance width)
 {
+	begin_change ();
+	
 	_outline_width = width;
+
+	_bounding_box_dirty = true;
+	end_change ();
 }
 
 void

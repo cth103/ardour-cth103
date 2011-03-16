@@ -9,12 +9,16 @@ using namespace ArdourCanvas;
 
 Rectangle::Rectangle (Group* parent)
 	: Item (parent)
+	, Outline (parent)
+	, Fill (parent)
 {
 
 }
 
 Rectangle::Rectangle (Group* parent, Rect const & rect)
 	: Item (parent)
+	, Outline (parent)
+	, Fill (parent)
 	, _rect (rect)
 {
 	

@@ -5,7 +5,7 @@
 
 namespace ArdourCanvas {
 
-class PolyItem : public Item
+class PolyItem : virtual public Item
 {
 public:
 	PolyItem (Group *);
