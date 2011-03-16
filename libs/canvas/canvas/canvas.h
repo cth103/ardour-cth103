@@ -1,5 +1,6 @@
 #include <gdkmm/window.h>
 #include <gtkmm/drawingarea.h>
+#include <gtkmm/viewport.h>
 #include <cairomm/surface.h>
 #include <cairomm/context.h>
 #include "canvas/group.h"
@@ -67,6 +68,23 @@ public:
 	
 protected:
 	bool on_expose_event (GdkEventExpose *);
+};
+
+class GtkCanvasViewport : public Gtk::Viewport
+{
+public:
+	GtkCanvasViewport (Gtk::Adjustment &, Gtk::Adjustment &);
+
+	GtkCanvasDrawingArea* canvas () {
+		return &_canvas;
+	}
+
+protected:
+	
+	void on_size_request (Gtk::Requisition *);
+
+private:
+	GtkCanvasDrawingArea _canvas;
 };
 
 }

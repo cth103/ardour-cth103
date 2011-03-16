@@ -64,7 +64,11 @@ const double max_canvas_coordinate = (double) JACK_MAX_FRAMES;
 void
 Editor::initialize_canvas ()
 {
-	track_canvas = new ArdourCanvas::GtkCanvasDrawingArea ();
+	/* XXX */
+	_track_canvas_hadj = new Adjustment (0, 0, 1e16);
+	_track_canvas_vadj = new Adjustment (0, 0, 1e16);
+	_track_canvas_viewport = new ArdourCanvas::GtkCanvasViewport (*_track_canvas_hadj, *_track_canvas_vadj);
+	track_canvas = _track_canvas_viewport->canvas ();
 
         gint phys_width = physical_screen_width (Glib::RefPtr<Gdk::Window>());
         gint phys_height = physical_screen_height (Glib::RefPtr<Gdk::Window>());
@@ -676,7 +680,6 @@ Editor::set_horizontal_position (double p)
 {
 	double x_delta = - (_track_canvas_hadj->get_value() + p);
 
-	_master_group->move (x_delta, 0);
 	_track_canvas_hadj->set_value (p);
 	timebar_group->move (x_delta, 0);
 	time_line_group->move (x_delta, 0);

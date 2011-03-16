@@ -117,3 +117,19 @@ GtkCanvasDrawingArea::request_redraw (Rect const & area)
 {
 	queue_draw_area (floor (area.x0), floor (area.y0), ceil (area.x1) - floor (area.x0), ceil (area.y1) - floor (area.y0));
 }
+
+GtkCanvasViewport::GtkCanvasViewport (Gtk::Adjustment& hadj, Gtk::Adjustment& vadj)
+	: Viewport (hadj, vadj)
+{
+	/* XXX */
+	_canvas.set_size_request (32768, 32768);
+	add (_canvas);
+}
+
+void
+GtkCanvasViewport::on_size_request (Gtk::Requisition* req)
+{
+	req->width = 128;
+	req->height = 128;
+}
+

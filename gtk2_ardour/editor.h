@@ -65,6 +65,7 @@ namespace ArdourCanvas {
 	class Rectangle;
 	class Line;
 	class GtkCanvasDrawingArea;
+	class GtkCanvasViewport;
 }
 
 namespace Gtkmm2ext {
@@ -688,7 +689,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void set_canvas_cursor ();
 
 	ArdourCanvas::GtkCanvasDrawingArea* track_canvas;
-	Gtk::ScrolledWindow* _track_canvas_scroller;
+	ArdourCanvas::GtkCanvasViewport* _track_canvas_viewport;
 	Gtk::Adjustment* _track_canvas_hadj;
 	Gtk::Adjustment* _track_canvas_vadj;
 
