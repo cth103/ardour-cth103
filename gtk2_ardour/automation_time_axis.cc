@@ -106,7 +106,7 @@ AutomationTimeAxisView::AutomationTimeAxisView (
 	_base_rect->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_AutomationTrackOutline.get();
 
 	/* outline ends and bottom */
-	_base_rect->property_outline_what() = (guint32) (0x1|0x2|0x8);
+	_base_rect->set_outline_what (0x1 | 0x2 | 0x8);
 	_base_rect->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_AutomationTrackFill.get();
 
 	_base_rect->set_data ("trackview", this);

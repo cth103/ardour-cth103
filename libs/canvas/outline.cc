@@ -7,7 +7,7 @@ using namespace ArdourCanvas;
 Outline::Outline (Group* parent)
 	: Item (parent)
 	, _outline_color (0x000000ff)
-	, _outline_width (1)
+	, _outline_width (0.5)
 {
 
 }

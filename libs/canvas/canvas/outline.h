@@ -42,9 +42,6 @@ public:
 		return _outline_width;
 	}
 
-	int& property_outline_what () {
-		return _foo_int;
-	}
 	int& property_first_arrowhead () {
 		return _foo_int;
 	}

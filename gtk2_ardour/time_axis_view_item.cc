@@ -166,7 +166,7 @@ TimeAxisViewItem::init (
 
 	vestigial_frame = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, 1.0, 2.0, trackview.current_height()));
 	vestigial_frame->hide ();
-	vestigial_frame->property_outline_what() = 0xF;
+	vestigial_frame->set_outline_what (0xf);
 	vestigial_frame->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_VestigialFrame.get();
 	vestigial_frame->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_VestigialFrame.get();
 
@@ -174,7 +174,7 @@ TimeAxisViewItem::init (
 		frame = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, 1.0, trackview.editor().frame_to_pixel(duration), trackview.current_height()));
 		
 		frame->property_outline_pixels() = 1;
-		frame->property_outline_what() = 0xF;
+		frame->set_outline_what (0xf);
 		
 		if (_recregion) {
 			frame->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_RecordingRect.get();
@@ -182,7 +182,7 @@ TimeAxisViewItem::init (
 			frame->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_TimeAxisFrame.get();
 		}
 		
-		frame->property_outline_what() = 0x1|0x2|0x4|0x8;
+		frame->set_outline_what (0xf);
 
 	} else {
 		frame = 0;
@@ -197,7 +197,7 @@ TimeAxisViewItem::init (
 		}
 		
 		name_highlight->set_data ("timeaxisviewitem", this);
-                name_highlight->property_outline_what() = 0x4;
+                name_highlight->set_outline_what (0x4);
                 /* we should really use a canvas color property here */
 		name_highlight->property_outline_color_rgba() = RGBA_TO_UINT (0,0,0,255);
 
@@ -217,9 +217,9 @@ TimeAxisViewItem::init (
 	/* create our grab handles used for trimming/duration etc */
 	if (!_recregion && !_automation) {
 		frame_handle_start = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, TimeAxisViewItem::GRAB_HANDLE_LENGTH, 5.0, trackview.current_height()));
-		frame_handle_start->property_outline_what() = 0x0;
+		frame_handle_start->set_outline_what (0);
 		frame_handle_end = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, TimeAxisViewItem::GRAB_HANDLE_LENGTH, 5.0, trackview.current_height()));
-		frame_handle_end->property_outline_what() = 0x0;
+		frame_handle_end->set_outline_what (0);
 	} else {
 		frame_handle_start = frame_handle_end = 0;
 	}
@@ -244,7 +244,7 @@ TimeAxisViewItem::hide_rect ()
         set_frame_color ();
 
         if (name_highlight) {
-                name_highlight->property_outline_what() = 0x0;
+                name_highlight->set_outline_what (0);
                 name_highlight->property_fill_color_rgba() = UINT_RGBA_CHANGE_A(fill_color,64);
         }
 }
@@ -256,7 +256,7 @@ TimeAxisViewItem::show_rect ()
         set_frame_color ();
 
         if (name_highlight) {
-                name_highlight->property_outline_what() = 0x4;
+                name_highlight->set_outline_what (0x4);
                 name_highlight->property_fill_color_rgba() = fill_color;
         }
 }

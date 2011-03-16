@@ -56,6 +56,7 @@ public:
 	};
 
 	void set_outline_what (What);
+	void set_outline_what (int);
 
 private:
 	void fix_rect ();

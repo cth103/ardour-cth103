@@ -530,7 +530,7 @@ AudioStreamView::setup_rec_box ()
 			rec_rect->set_y0 (1);
 			rec_rect->set_x1 (xend);
 			rec_rect->set_y1 (child_height ());
-			rec_rect->property_outline_what() = 0x0;
+			rec_rect->set_outline_what (0);
 			rec_rect->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_TimeAxisFrame.get();
 			rec_rect->property_fill_color_rgba() = fill_color;
 			rec_rect->lower_to_bottom();

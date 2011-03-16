@@ -565,7 +565,7 @@ MidiRegionView::motion (GdkEventMotion* ev)
 
                         _drag_rect = new ArdourCanvas::Rectangle (group);
 			_drag_rect->set (ArdourCanvas::Rect (event_x, event_y, event_x, event_y));
-                        _drag_rect->property_outline_what() = 0xFF;
+                        _drag_rect->set_outline_what (0xf);
                         _drag_rect->property_outline_color_rgba()
                                 = ARDOUR_UI::config()->canvasvar_MidiSelectRectOutline.get();
                         _drag_rect->property_fill_color_rgba()
@@ -593,7 +593,7 @@ MidiRegionView::motion (GdkEventMotion* ev)
                         _drag_rect->set_y0 (midi_stream_view()->note_to_y (midi_stream_view()->y_to_note(event_y)));
                         _drag_rect->set_x1 (trackview.editor().frame_to_pixel(event_frame));
                         _drag_rect->set_y1 (_drag_rect->y0 () + floor(midi_stream_view()->note_height()));
-                        _drag_rect->property_outline_what() = 0xFF;
+                        _drag_rect->set_outline_what (0xf);
                         _drag_rect->property_outline_color_rgba() = 0xFFFFFF99;
                         _drag_rect->property_fill_color_rgba()    = 0xFFFFFF66;
 
@@ -1355,7 +1355,7 @@ MidiRegionView::resolve_note(uint8_t note, double end_time)
 		const framepos_t end_time_frames = beats_to_frames(end_time);
 
 		_active_notes[note]->property_x2() = trackview.editor().frame_to_pixel(end_time_frames);
-		_active_notes[note]->property_outline_what() = (guint32) 0xF; // all edges
+		_active_notes[note]->set_outline_what (0xf);
 		_active_notes[note] = 0;
 	}
 }

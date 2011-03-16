@@ -69,7 +69,7 @@ CrossfadeView::CrossfadeView (ArdourCanvas::Group *parent,
 
 	/* no frame around the xfade or overlap rects */
 
-	frame->property_outline_what() = 0;
+	frame->set_outline_what (0);
 
 	/* never show the vestigial frame */
 	vestigial_frame->hide();

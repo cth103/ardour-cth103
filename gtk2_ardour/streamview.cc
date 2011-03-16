@@ -70,7 +70,7 @@ StreamView::StreamView (RouteTimeAxisView& tv, ArdourCanvas::Group* background_g
 	canvas_rect->set (ArdourCanvas::Rect (0, 0, Gtkmm2ext::physical_screen_width (_trackview.editor().get_window()), tv.current_height ()));
 	canvas_rect->raise(1); // raise above tempo lines
 
-	canvas_rect->property_outline_what() = (guint32) (0x2|0x8);  // outline RHS and bottom
+	canvas_rect->set_outline_what (0x2 | 0x8);
 
 	canvas_rect->signal_event().connect (sigc::bind (
 			sigc::mem_fun (_trackview.editor(), &PublicEditor::canvas_stream_view_event),

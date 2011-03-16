@@ -157,6 +157,8 @@ public:
 	void compute_bounding_box () const { _bounding_box_dirty = false; }
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
 
+	void set_outline_what (int) {}
+	
 	int& property_outline_what () {
 		return _foo_int;
 	}

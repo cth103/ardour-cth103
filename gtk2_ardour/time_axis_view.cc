@@ -835,16 +835,16 @@ TimeAxisView::get_selection_rect (uint32_t id)
 		rect = new SelectionRect;
 
 		rect->rect = new ArdourCanvas::Rectangle (selection_group);
-		rect->rect->property_outline_what() = 0x0;
+		rect->rect->set_outline_what (0);
 		rect->rect->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_SelectionRect.get();
 
 		rect->start_trim = new ArdourCanvas::Rectangle (selection_group);
-		rect->start_trim->property_outline_what() = 0x0;
+		rect->start_trim->set_outline_what (0);
 		rect->start_trim->set_x0 (0);
 		rect->start_trim->set_x1 (0);
 		
 		rect->end_trim = new ArdourCanvas::Rectangle (selection_group);
-		rect->end_trim->property_outline_what() = 0x0;
+		rect->end_trim->set_outline_what (0);
 		rect->end_trim->set_x0 (0);
 		rect->end_trim->set_x1 (0);
 

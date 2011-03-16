@@ -149,6 +149,12 @@ Rectangle::set_outline_what (What what)
 }
 
 void
+Rectangle::set_outline_what (int what)
+{
+	set_outline_what ((What) what);
+}
+
+void
 Rectangle::fix_rect ()
 {
 	Rect r;
