@@ -1,11 +1,12 @@
 #include "canvas/fill.h"
+#include "canvas/utils.h"
 
 using namespace ArdourCanvas;
 
 Fill::Fill (Group* parent)
 	: Item (parent)
 	, _fill_color (0x000000ff)
-	, _fill (true)
+	, _fill (false)
 {
 
 }
@@ -28,4 +29,10 @@ Fill::set_fill (bool fill)
 	_fill = fill;
 
 	end_change ();
+}
+
+void
+Fill::setup_fill_context (Cairo::RefPtr<Cairo::Context> context) const
+{
+	set_source_rgba (context, _fill_color);
 }

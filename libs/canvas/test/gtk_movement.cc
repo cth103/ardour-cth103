@@ -58,6 +58,8 @@ int main (int argc, char* argv[])
 	rectangle[1]->set_position (Duple (256, 256));
 	rectangle[1]->set_outline_width (4);
 	rectangle[1]->set_outline_color (0x00ff00ff);
+	rectangle[1]->set_fill (true);
+	rectangle[1]->set_fill_color (0x00ffffff);
 
 	Gtk::VBox overall_box;
 

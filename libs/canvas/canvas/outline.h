@@ -67,7 +67,7 @@ public:
 
 protected:
 
-	void setup_context (Cairo::RefPtr<Cairo::Context>) const;
+	void setup_outline_context (Cairo::RefPtr<Cairo::Context>) const;
 	
 	uint32_t _outline_color;
 	Distance _outline_width;

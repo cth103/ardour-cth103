@@ -33,6 +33,8 @@ public:
 #endif
 	
 protected:
+	void setup_fill_context (Cairo::RefPtr<Cairo::Context>) const;
+	
 	uint32_t _fill_color;
 	bool _fill;
 };

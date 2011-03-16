@@ -27,9 +27,14 @@ Rectangle::Rectangle (Group* parent, Rect const & rect)
 void
 Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
-	setup_context (context);
-	
 	context->rectangle (_rect.x0, _rect.y0, _rect.width(), _rect.height());
+
+	if (_fill) {
+		setup_fill_context (context);
+		context->fill_preserve ();
+	}
+	
+	setup_outline_context (context);
 	context->stroke ();
 
 	Debug::instance()->render_object_count++;
