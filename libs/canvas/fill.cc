@@ -6,7 +6,7 @@ using namespace ArdourCanvas;
 Fill::Fill (Group* parent)
 	: Item (parent)
 	, _fill_color (0x000000ff)
-	, _fill (false)
+	, _fill (true)
 {
 
 }
