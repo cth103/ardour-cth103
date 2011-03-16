@@ -147,6 +147,8 @@ Editor::initialize_canvas ()
 
 	timebar_group =  new ArdourCanvas::Group (track_canvas->root());
 	cursor_group = new ArdourCanvas::Group (track_canvas->root());
+	cout << ">>>>>> CURSOR GROUP in track canvas root is " << cursor_group << "\n";
+	cursor_group->set_watch ();
 
 	meter_group = new ArdourCanvas::Group (timebar_group, ArdourCanvas::Duple (0.0, timebar_height * 5.0));
 	tempo_group = new ArdourCanvas::Group (timebar_group, ArdourCanvas::Duple (0.0, timebar_height * 4.0));
@@ -257,6 +259,8 @@ Editor::track_canvas_size_allocated ()
 
 	_canvas_width = canvas_allocation.get_width();
 	_canvas_height = canvas_allocation.get_height();
+
+	cout << "*** TRACK CANVAS SIZE " << _canvas_width << " x " << _canvas_height << "\n";
 
 	if (_session) {
 		TrackViewList::iterator i;

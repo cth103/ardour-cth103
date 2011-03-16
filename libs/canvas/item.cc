@@ -36,6 +36,7 @@ Item::init ()
 {
 	_visible = true;
 	_bounding_box_dirty = true;
+	_watch = false;
 	
 	if (_parent) {
 		_parent->add (this);
@@ -115,6 +116,12 @@ Item::item_to_parent (Duple const & d) const
 
 Duple
 Item::parent_to_item (Duple const & d) const
+{
+	return d.translate (- _position);
+}
+
+Rect
+Item::parent_to_item (Rect const & d) const
 {
 	return d.translate (- _position);
 }

@@ -62,6 +62,7 @@ public:
 	Duple item_to_parent (Duple const &) const;
 	Rect item_to_parent (Rect const &) const;
 	Duple parent_to_item (Duple const &) const;
+	Rect parent_to_item (Rect const &) const;
 
 	void raise_to_top ();
 	void raise (int);
@@ -84,6 +85,14 @@ public:
 
 	virtual char const * name () const {
 		return "unknown";
+	}
+
+	void set_watch () {
+		_watch = true;
+	}
+
+	bool watch () const {
+		return _watch;
 	}
 
 #ifdef CANVAS_COMPATIBILITY
@@ -126,6 +135,8 @@ protected:
 	mutable boost::optional<Rect> _bounding_box;
 	/** true if _bounding_box might be out of date, false if its definitely not */
 	mutable bool _bounding_box_dirty;
+
+	bool _watch;
 
 #ifdef CANVAS_COMPATIBILITY
 	std::map<std::string, void *> _data;

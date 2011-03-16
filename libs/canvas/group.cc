@@ -44,26 +44,46 @@ Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
 	ensure_lut ();
 	list<Item*> items = _lut->get (area);
+//	list<Item*> items = _items;
+
+	bounding_box ();
 	
+	if (watch()) {
+		cout << "RENDER WATCHED GROUP: " << area << " of our " << _bounding_box.get() << "\n";
+	}
+
 	for (list<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
 		if (!(*i)->visible ()) {
+			if ((*i)->watch()) {
+				cout << "************** discarding watch render as not visible\n";
+			}
 			continue;
 		}
 		
 		boost::optional<Rect> item_bbox = (*i)->bounding_box ();
 		if (!item_bbox) {
+			if ((*i)->watch()) {
+				cout << "************** discarding watch render as no bbox\n";
+			}
 			continue;
 		}
 		
 		Rect const group_bbox = (*i)->item_to_parent (*item_bbox);
+		if ((*i)->watch()) {
+			cout << "Watch is at " << group_bbox << " cf " << area << "\n";
+		}
 		boost::optional<Rect> r = group_bbox.intersection (area);
 		if (r) {
 			context->save ();
 			context->translate ((*i)->position().x, (*i)->position().y);
-			Rect sub_area = *r;
-			sub_area.translate ((*i)->position ());
-			(*i)->render (sub_area, context);
+			Rect sub_area = (*i)->parent_to_item (r.get ());
+//			sub_area.translate ((*i)->position ());
+			(*i)->render ((*i)->parent_to_item (r.get ()), context);
 			context->restore ();
+		} else {
+			if ((*i)->watch()) {
+				cout << "************** discarding watch render as no intersection\n";
+			}
 		}
 	}
 }
@@ -73,6 +93,10 @@ Group::compute_bounding_box () const
 {
 	Rect bbox;
 	bool have_one = false;
+
+	if (watch ()) {
+		cout << "Computing bbox for watched group [cursor_group]\n";
+	}
 	
 	for (list<Item*>::const_iterator i = _items.begin(); i != _items.end(); ++i) {
 		boost::optional<Rect> item_bbox = (*i)->bounding_box ();
@@ -80,7 +104,10 @@ Group::compute_bounding_box () const
 			continue;
 		}
 
-		Rect group_bbox = item_bbox.get().translate ((*i)->position ());
+		Rect group_bbox = (*i)->item_to_parent (item_bbox.get ());
+		if (watch () && (*i)->watch()) {
+			cout << "Item in group " << group_bbox << "\n";
+		}
 		if (have_one) {
 			bbox = bbox.extend (group_bbox);
 		} else {
@@ -93,6 +120,10 @@ Group::compute_bounding_box () const
 		_bounding_box = boost::optional<Rect> ();
 	} else {
 		_bounding_box = bbox;
+	}
+
+	if (watch ()) {
+		cout << "Result " << _bounding_box.get() << "\n";
 	}
 	
 	_bounding_box_dirty = false;
