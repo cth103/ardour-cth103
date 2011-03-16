@@ -106,15 +106,15 @@ Group::add (Item* i)
 {
 	_items.push_back (i);
 	invalidate_lut ();
+	_bounding_box_dirty = true;
 }
 
 void
 Group::remove (Item* i)
 {
 	_items.remove (i);
-	if (_lut) {
-		_lut->remove (i);
-	}
+	invalidate_lut ();
+	_bounding_box_dirty = true;
 }
 
 void

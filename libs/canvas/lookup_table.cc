@@ -56,8 +56,8 @@ LookupTable::build ()
 		int x0, y0, x1, y1;
 		area_to_indices (offset_bbox, x0, y0, x1, y1);
 
-		cout << "Item " << (*i)->name() << " " << offset_bbox << "\n";
-		cout << "Indices " << x0 << " " << y0 << " " << x1 << " " << y1 << "\n";
+//		cout << "Item " << (*i)->name() << " " << offset_bbox << "\n";
+//		cout << "Indices " << x0 << " " << y0 << " " << x1 << " " << y1 << "\n";
 
 		assert (x0 <= _dimension);
 		assert (y0 <= _dimension);

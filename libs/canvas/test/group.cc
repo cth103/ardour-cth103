@@ -31,6 +31,17 @@ GroupTest::bounding_box ()
 	CPPUNIT_ASSERT (bbox.get().y0 == 0);
 	CPPUNIT_ASSERT (bbox.get().x1 == 64);
 	CPPUNIT_ASSERT (bbox.get().y1 == 64);
+
+	/* check that adding an item resets the bbox */
+	
+	Rectangle e (&group, Rect (64, 64, 128, 128));
+	bbox = group.bounding_box ();
+
+	CPPUNIT_ASSERT (bbox.is_initialized ());
+	CPPUNIT_ASSERT (bbox.get().x0 == 0);
+	CPPUNIT_ASSERT (bbox.get().y0 == 0);
+	CPPUNIT_ASSERT (bbox.get().x1 == 128.5);
+	CPPUNIT_ASSERT (bbox.get().y1 == 128.5);
 }
 
 void
