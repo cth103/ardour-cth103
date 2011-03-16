@@ -15,6 +15,17 @@ class Canvas;
 class Group;
 class Rect;	
 
+/** The parent class for anything that goes on the canvas.
+ *
+ *  Items have a position, which is expressed in the coordinates of the parent.
+ *  They also have a bounding box, which describes the area in which they have
+ *  drawable content, which is expressed in their own coordinates (whose origin
+ *  is at the item position).
+ *
+ *  Any item that is being displayed on a canvas has a pointer to that canvas,
+ *  and all except the `root group' have a pointer to their parent group.
+ */
+	
 class Item
 {
 public:
@@ -23,7 +34,9 @@ public:
 	Item (Group *, Duple);
 	virtual ~Item ();
 
-	/** @param area Area to draw in this item's coordinates */
+	/** Render this item to a Cairo context.
+	 *  @param area Area to draw in this item's coordinates.
+	 */
 	virtual void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const = 0;
 
 	/** Update _bounding_box and _bounding_box_dirty */
@@ -31,18 +44,19 @@ public:
 
 	void unparent ();
 	void reparent (Group *);
+
+	/** @return Parent group, or 0 if this is the root group */
 	Group* parent () const {
 		return _parent;
 	}
 
-	/** Set the position of this item in the parent's coordinates */
 	void set_position (Duple);
 
+	/** @return Position of this item in the parent's coordinates */
 	Duple position () const {
 		return _position;
 	}
 
-	/** @return Bounding box in this item's coordinates */
 	boost::optional<Rect> bounding_box () const;
 	
 	Duple item_to_parent (Duple const &) const;
@@ -55,10 +69,15 @@ public:
 
 	void hide ();
 	void show ();
+
+	/** @return true if this item is visible (ie it will be rendered),
+	 *  otherwise false
+	 */
 	bool visible () const {
 		return _visible;
 	}
 
+	/** @return Our canvas, or 0 if we are not attached to one */
 	Canvas* canvas () const {
 		return _canvas;
 	}
@@ -90,13 +109,18 @@ protected:
 	void end_change ();
 
 	Canvas* _canvas;
+	/** parent group; may be 0 if we are the root group or if we have been unparent()ed */
 	Group* _parent;
 	/** position of this item in parent coordinates */
 	Duple _position;
+	/** true if this item is visible (ie to be drawn), otherwise false */
 	bool _visible;
+	/** our bounding box before any change that is currently in progress */
 	boost::optional<Rect> _pre_change_bounding_box;
 
+	/** our bounding box; may be out of date if _bounding_box_dirty is true */
 	mutable boost::optional<Rect> _bounding_box;
+	/** true if _bounding_box might be out of date, false if its definitely not */
 	mutable bool _bounding_box_dirty;
 
 #ifdef CANVAS_COMPATIBILITY

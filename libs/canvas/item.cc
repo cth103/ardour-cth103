@@ -55,6 +55,7 @@ Item::item_to_parent (Rect const & r) const
 	return r.translate (_position);
 }
 
+/** Set the position of this item in the parent's coordinates */
 void
 Item::set_position (Duple p)
 {
@@ -141,6 +142,7 @@ Item::grab_focus ()
 	/* XXX */
 }
 
+/** @return Bounding box in this item's coordinates */
 boost::optional<Rect>
 Item::bounding_box () const
 {

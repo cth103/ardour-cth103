@@ -23,7 +23,7 @@ class WaveView : public Item {
 public:
 	WaveView (Group* p) : Item (p) {}
 
-	void compute_bounding_box () const {}
+	void compute_bounding_box () const { _bounding_box_dirty = false; }
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
 	
 	static GnomeCanvasWaveViewCache* create_cache () {
@@ -109,7 +109,7 @@ public:
 	Pixbuf (Glib::RefPtr<Gdk::Pixbuf>) : Item ((Group *) 0) {}
 	Pixbuf (Group* p, double, double, Glib::RefPtr<Gdk::Pixbuf>) : Item (p) {}
 
-	void compute_bounding_box () const {}
+	void compute_bounding_box () const { _bounding_box_dirty = false; }
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
 	
 	double& property_x () {
@@ -142,7 +142,7 @@ public:
 		) : Item (parent)
 	{}
 
-	void compute_bounding_box () const {}
+	void compute_bounding_box () const { _bounding_box_dirty = false; }
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
 	
 	ARDOUR::MidiModel::PatchChangePtr patch () const {
@@ -154,7 +154,7 @@ public:
 
 class CanvasNoteEvent : public Item {
 public:
-	void compute_bounding_box () const {}
+	void compute_bounding_box () const { _bounding_box_dirty = false; }
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
 
 	int& property_outline_what () {
@@ -253,7 +253,7 @@ class NoEventText : public Item {
 public:
 	NoEventText (Group* p) : Item (p) {}
 	
-	void compute_bounding_box () const {}
+	void compute_bounding_box () const { _bounding_box_dirty = false; }
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
 	
 	uint32_t& property_color_rgba () {
@@ -288,7 +288,7 @@ private:
 
 class CanvasSysEx : public Item {
 public:
-	void compute_bounding_box () const {}
+	void compute_bounding_box () const { _bounding_box_dirty = false; }
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
 	
 	CanvasSysEx (MidiRegionView &, Group *, std::string, double, double, double) : Item ((Group *) 0) {}
@@ -308,7 +308,7 @@ public:
 
 class LineSet : public Item {
 public:
-	void compute_bounding_box () const {}
+	void compute_bounding_box () const { _bounding_box_dirty = false; }
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
 	
 	enum Orientation {
