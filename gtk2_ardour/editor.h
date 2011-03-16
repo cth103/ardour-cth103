@@ -688,6 +688,9 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void set_canvas_cursor ();
 
 	ArdourCanvas::GtkCanvasDrawingArea* track_canvas;
+	Gtk::Viewport* _track_canvas_viewport;
+	Gtk::Adjustment _track_canvas_hadj;
+	Gtk::Adjustment _track_canvas_vadj;
 
 	ArdourCanvas::NoEventText* verbose_canvas_cursor;
 	bool                 verbose_cursor_visible;

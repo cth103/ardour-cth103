@@ -208,13 +208,13 @@ Editor::initialize_canvas ()
 	}
 	/* need to handle 4 specific types of events as catch-alls */
 
-	track_canvas->signal_scroll_event().connect (sigc::mem_fun (*this, &Editor::track_canvas_scroll_event));
-	track_canvas->signal_motion_notify_event().connect (sigc::mem_fun (*this, &Editor::track_canvas_motion_notify_event));
-	track_canvas->signal_button_press_event().connect (sigc::mem_fun (*this, &Editor::track_canvas_button_press_event));
-	track_canvas->signal_button_release_event().connect (sigc::mem_fun (*this, &Editor::track_canvas_button_release_event));
-	track_canvas->signal_drag_motion().connect (sigc::mem_fun (*this, &Editor::track_canvas_drag_motion));
-	track_canvas->signal_key_press_event().connect (sigc::mem_fun (*this, &Editor::track_canvas_key_press));
-	track_canvas->signal_key_release_event().connect (sigc::mem_fun (*this, &Editor::track_canvas_key_release));
+//	track_canvas->signal_scroll_event().connect (sigc::mem_fun (*this, &Editor::track_canvas_scroll_event));
+//	track_canvas->signal_motion_notify_event().connect (sigc::mem_fun (*this, &Editor::track_canvas_motion_notify_event));
+//	track_canvas->signal_button_press_event().connect (sigc::mem_fun (*this, &Editor::track_canvas_button_press_event));
+//	track_canvas->signal_button_release_event().connect (sigc::mem_fun (*this, &Editor::track_canvas_button_release_event));
+//	track_canvas->signal_drag_motion().connect (sigc::mem_fun (*this, &Editor::track_canvas_drag_motion));
+//	track_canvas->signal_key_press_event().connect (sigc::mem_fun (*this, &Editor::track_canvas_key_press));
+//	track_canvas->signal_key_release_event().connect (sigc::mem_fun (*this, &Editor::track_canvas_key_release));
 
 	track_canvas->set_name ("EditorMainCanvas");
 	track_canvas->add_events (Gdk::POINTER_MOTION_HINT_MASK | Gdk::SCROLL_MASK | Gdk::KEY_PRESS_MASK | Gdk::KEY_RELEASE_MASK);
@@ -236,7 +236,7 @@ Editor::initialize_canvas ()
 	track_canvas->drag_dest_set (target_table);
 	track_canvas->signal_drag_data_received().connect (sigc::mem_fun(*this, &Editor::track_canvas_drag_data_received));
 
-	track_canvas->signal_size_allocate().connect (sigc::mem_fun(*this, &Editor::track_canvas_allocate));
+//	track_canvas->signal_size_allocate().connect (sigc::mem_fun(*this, &Editor::track_canvas_allocate));
 
 	ColorsChanged.connect (sigc::mem_fun (*this, &Editor::color_handler));
 	color_handler();
@@ -257,6 +257,8 @@ Editor::track_canvas_size_allocated ()
 
 	_canvas_width = canvas_allocation.get_width();
 	_canvas_height = canvas_allocation.get_height();
+
+	cout << "Canvas allocation: " << _canvas_width << " x " << _canvas_height << "\n";
 
 	if (_session) {
 		TrackViewList::iterator i;
@@ -673,18 +675,22 @@ void
 Editor::set_horizontal_position (double p)
 {
 	/* horizontal scrolling only */
-	double x1, y1, x2, y2, x_delta;
-	_master_group->get_bounds (x1, y1, x2, y2);
+//	double x1, y1, x2, y2, x_delta;
+//	_master_group->get_bounds (x1, y1, x2, y2);
 
-	x_delta = - (x1 + p);
+//	x_delta = - (x1 + p);
 
-	_master_group->move (x_delta, 0);
-	timebar_group->move (x_delta, 0);
-	time_line_group->move (x_delta, 0);
-	cursor_group->move (x_delta, 0);
+	cout << "---> HP " << p << "\n";
+
+//	_master_group->move (x_delta, 0);
+	_track_canvas_hadj.set_value (p);
+//	timebar_group->move (x_delta, 0);
+//	time_line_group->move (x_delta, 0);
+//	cursor_group->move (x_delta, 0);
 
 	leftmost_frame = (framepos_t) floor (p * frames_per_unit);
 
+#if 0	
 	update_fixed_rulers ();
 	redisplay_tempo (true);
 
@@ -702,6 +708,7 @@ Editor::set_horizontal_position (double p)
 		}
 	}
 #endif
+#endif	
 
 }
 

@@ -30,6 +30,7 @@ Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context
 		_root.render (*draw, context);
 	}
 
+	cout << "Root bounding box: " << root_bbox.get() << "\n";
 	cout << "Rendered: " << area << " (" << Debug::instance()->render_object_count << ")\n";
 }
 
@@ -105,6 +106,7 @@ GtkCanvasDrawingArea::GtkCanvasDrawingArea ()
 bool
 GtkCanvasDrawingArea::on_expose_event (GdkEventExpose* ev)
 {
+	cout << "GtkCanvasDrawingArea: exposed x=" << ev->area.x << " width=" << ev->area.width << "\n";
 	Cairo::RefPtr<Cairo::Context> c = get_window()->create_cairo_context ();
 	render (Rect (ev->area.x, ev->area.y, ev->area.x + ev->area.width, ev->area.y + ev->area.height), c);
 	return true;
