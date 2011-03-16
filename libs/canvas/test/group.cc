@@ -93,4 +93,12 @@ GroupTest::children_changing ()
 	CPPUNIT_ASSERT (bbox.get().y0 == 0);
 	CPPUNIT_ASSERT (bbox.get().x1 == 32);
 	CPPUNIT_ASSERT (bbox.get().y1 == 32);
+
+	a.set (Rect (0, 0, 48, 48));
+	bbox = group.bounding_box ();
+	CPPUNIT_ASSERT (bbox.is_initialized ());
+	CPPUNIT_ASSERT (bbox.get().x0 == 0);
+	CPPUNIT_ASSERT (bbox.get().y0 == 0);
+	CPPUNIT_ASSERT (bbox.get().x1 == 48);
+	CPPUNIT_ASSERT (bbox.get().y1 == 48);
 }

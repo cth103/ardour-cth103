@@ -161,4 +161,10 @@ Group::invalidate_lut () const
 	delete _lut;
 	_lut = 0;
 }
-		
+
+void
+Group::child_changed ()
+{
+	invalidate_lut ();
+	_bounding_box_dirty = true;
+}

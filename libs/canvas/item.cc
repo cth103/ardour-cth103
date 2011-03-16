@@ -68,6 +68,10 @@ Item::set_position (Duple p)
 	_position = p;
 
 	_canvas->item_moved (this, pre_change_parent_bounding_box);
+
+	if (_parent) {
+		_parent->child_changed ();
+	}
 }
 
 void
@@ -165,6 +169,10 @@ void
 Item::end_change ()
 {
 	_canvas->item_changed (this, _pre_change_bounding_box);
+	
+	if (_parent) {
+		_parent->child_changed ();
+	}
 }
 
 #ifdef CANVAS_COMPATIBILITY

@@ -29,6 +29,7 @@ public:
 	void raise_child_to_top (Item *);
 	void raise_child (Item *, int);
 	void lower_child_to_bottom (Item *);
+	void child_changed ();
 
 #ifdef CANVAS_COMPATIBILITY
 	Coord& property_x () {
