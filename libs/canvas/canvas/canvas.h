@@ -26,6 +26,7 @@ public:
 	}
 
 	void item_changed (Item *, boost::optional<Rect>);
+	void item_moved (Item *, boost::optional<Rect>);
 		
 private:
 	void queue_draw_item_area (Item *, Rect);

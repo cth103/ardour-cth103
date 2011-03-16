@@ -48,6 +48,20 @@ Canvas::item_changed (Item* item, boost::optional<Rect> pre_change_bounding_box)
 }
 
 void
+Canvas::item_moved (Item* item, boost::optional<Rect> pre_change_parent_bounding_box)
+{
+	/* XXX: could be more efficient */
+	if (pre_change_parent_bounding_box) {
+		queue_draw_item_area (item->parent(), pre_change_parent_bounding_box.get ());
+	}
+
+	boost::optional<Rect> post_change_bounding_box = item->bounding_box ();
+	if (post_change_bounding_box) {
+		queue_draw_item_area (item, post_change_bounding_box.get ());
+	}
+}
+
+void
 Canvas::queue_draw_item_area (Item* item, Rect area)
 {
 	Item* i = item;

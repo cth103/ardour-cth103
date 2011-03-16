@@ -58,7 +58,15 @@ Item::item_to_parent (Rect const & r) const
 void
 Item::set_position (Duple p)
 {
+	boost::optional<Rect> bbox = bounding_box ();
+	boost::optional<Rect> pre_change_parent_bounding_box;
+	if (bbox) {
+		pre_change_parent_bounding_box = item_to_parent (bbox.get());
+	}
+	
 	_position = p;
+
+	_canvas->item_moved (this, pre_change_parent_bounding_box);
 }
 
 void
@@ -144,6 +152,7 @@ Item::bounding_box () const
 	return _bounding_box;
 }
 
+/* XXX may be called even if bbox is not changing ... bit grotty */
 void
 Item::begin_change ()
 {

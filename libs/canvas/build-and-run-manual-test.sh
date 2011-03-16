@@ -7,6 +7,9 @@ if [ ! -f './canvas.cc' ]; then
 fi
 
 waft -j8 --targets libcanvas-manual-tests
+if [ "$?" != 0 ]; then
+  exit
+fi
 
 srcdir=`pwd`
 cd ../../build/default
