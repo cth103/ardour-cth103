@@ -27,7 +27,6 @@ Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context
 
 	boost::optional<Rect> draw = root_bbox.get().intersection (area);
 	if (draw) {
-		cout << "------> CANVAS RENDER " << *draw << "<---------------\n";
 		_root.render (*draw, context);
 	}
 

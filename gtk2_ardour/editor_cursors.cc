@@ -24,9 +24,6 @@
 #include "editor_cursors.h"
 #include "editor.h"
 
-#include "canvas/group.h"
-
-using namespace std;
 using namespace ARDOUR;
 using namespace PBD;
 using namespace Gtk;
@@ -40,9 +37,6 @@ EditorCursor::EditorCursor (Editor& ed, bool (Editor::*callbck)(GdkEvent*,Ardour
 		ArdourCanvas::Point (-1.0, 0.0),
 		ArdourCanvas::Point (1.0, 1.0)
 		);
-	canvas_item.set_watch ();
-
-	cout << ">>>>>>>>>>> Cursor canvas item is " << &canvas_item << " parent " << canvas_item.parent() << "\n";
 
 	canvas_item.property_width_pixels() = 1;
 	canvas_item.property_first_arrowhead() = TRUE;
@@ -67,20 +61,6 @@ EditorCursor::set_position (framepos_t frame)
 
 	double new_pos = editor.frame_to_unit (frame);
 
-	cout << "EC set position " << new_pos << "\n";
-
-	ArdourCanvas::Item* i = &canvas_item;
-	boost::optional<ArdourCanvas::Rect> bbox = i->bounding_box ();
-	if (bbox) {
-		ArdourCanvas::Rect r = bbox.get();
-		while (i) {
-			r = i->item_to_parent (r);
-			i = i->parent ();
-		}
-
-		cout << "Canvas bbox " << r << "\n";
-	}
-
 	if (new_pos != canvas_item.x0 ()) {
 		canvas_item.set_x0 (new_pos);
 		canvas_item.set_x1 (new_pos);
@@ -92,7 +72,6 @@ EditorCursor::set_position (framepos_t frame)
 void
 EditorCursor::set_length (double units)
 {
-	cout << "EC set length " << units << "\n";
 	length = units;
 	canvas_item.set_y1 (canvas_item.y1 () + length);
 }

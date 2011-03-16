@@ -34,10 +34,6 @@ Line::compute_bounding_box () const
 void
 Line::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
-	if (_watch) {
-		cout << "WATCH RENDER " << _points[0].x << " " << _points[0].y << " " << _points[1].x << " " << _points[1].y << "\n";
-	}
-	
 	setup_context (context);
 
 	context->move_to (_points[0].x, _points[0].y);
