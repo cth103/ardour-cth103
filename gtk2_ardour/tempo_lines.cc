@@ -26,7 +26,7 @@ using namespace std;
 
 #define MAX_CACHED_LINES 128
 
-TempoLines::TempoLines(ArdourCanvas::Canvas& canvas, ArdourCanvas::Group* group, double screen_height)
+TempoLines::TempoLines (ArdourCanvas::GtkCanvasDrawingArea& canvas, ArdourCanvas::Group* group, double screen_height)
 	: _canvas(canvas)
 	, _group(group)
 	, _clean_left(DBL_MAX)
@@ -95,8 +95,7 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 	bars = (*i).bar - (*points.begin()).bar;
 	beats = points.size() - bars;
 
-	/* XXX: CANVAS */
-//	beat_density = (beats * 10.0f) / _canvas.get_width ();
+	beat_density = (beats * 10.0f) / _canvas.get_width ();
 
 	if (beat_density > 4.0f) {
 		/* if the lines are too close together, they become useless */
