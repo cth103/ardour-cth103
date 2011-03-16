@@ -11,7 +11,6 @@ namespace ArdourCanvas {
 class Group : public Item
 {
 public:
-	explicit Group (Canvas *);
 	explicit Group (Group *);
 	explicit Group (Group *, Duple);
 	~Group ();
@@ -21,7 +20,7 @@ public:
 		return "group";
 	}
 
-	void compute_bounding_box () const;
+	virtual void compute_bounding_box () const;
 
 	void add (Item *);
 	void remove (Item *);
@@ -43,6 +42,10 @@ public:
 		return _position.y;
 	}
 #endif	
+
+protected:
+	
+	explicit Group (Canvas *);
 	
 private:
 	Group (Group const &);

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cairomm/context.h>
+#include "pbd/stacktrace.h"
 #include "canvas/group.h"
 #include "canvas/types.h"
 

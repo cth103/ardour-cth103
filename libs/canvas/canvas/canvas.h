@@ -3,7 +3,7 @@
 #include <gtkmm/viewport.h>
 #include <cairomm/surface.h>
 #include <cairomm/context.h>
-#include "canvas/group.h"
+#include "canvas/root_group.h"
 
 namespace ArdourCanvas
 {
@@ -19,6 +19,7 @@ public:
 	virtual ~Canvas () {}
 
 	virtual void request_redraw (Rect const &) = 0;
+	virtual void request_size (Duple) = 0;
 	
 	void render (Rect const &, Cairo::RefPtr<Cairo::Context> const &) const;
 
@@ -32,7 +33,7 @@ public:
 private:
 	void queue_draw_item_area (Item *, Rect);
 	
-	Group _root;
+	RootGroup _root;
 };
 
 
@@ -42,6 +43,10 @@ public:
 	ImageCanvas ();
 
 	void request_redraw (Rect const &) {
+		/* XXX */
+	}
+
+	void request_size (Duple) {
 		/* XXX */
 	}
 	
@@ -65,6 +70,7 @@ public:
 	GtkCanvasDrawingArea ();
 
 	void request_redraw (Rect const &);
+	void request_size (Duple);
 	
 protected:
 	bool on_expose_event (GdkEventExpose *);

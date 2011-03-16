@@ -14,7 +14,7 @@ void
 LookupTableTest::build_1 ()
 {
 	ImageCanvas canvas;
-	Group group (&canvas);
+	RootGroup group (&canvas);
 	Rectangle a (&group, Rect (0, 0, 32, 32));
 	a.set_outline_width (0);
 	Rectangle b (&group, Rect (0, 33, 32, 64));
@@ -38,7 +38,7 @@ void
 LookupTableTest::build_2 ()
 {
 	ImageCanvas canvas;
-	Group group (&canvas);
+	RootGroup group (&canvas);
 	Rectangle a (&group, Rect (0, 0, 713, 1024));
 	a.set_outline_width (0);
 	Rectangle b (&group, Rect (0, 0, 0, 1024));
@@ -50,7 +50,7 @@ void
 LookupTableTest::build_negative ()
 {
 	ImageCanvas canvas;
-	Group group (&canvas);
+	RootGroup group (&canvas);
 	Rectangle a (&group, Rect (-32, -32, 32, 32));
 	LookupTable table (group, 1);
 }
@@ -59,7 +59,7 @@ void
 LookupTableTest::get_small ()
 {
 	ImageCanvas canvas;
-	Group group (&canvas);
+	RootGroup group (&canvas);
 	Rectangle a (&group, Rect (0, 0, 32, 32));
 	a.set_outline_width (0);
 	Rectangle b (&group, Rect (0, 33, 32, 64));
@@ -81,7 +81,7 @@ void
 LookupTableTest::get_big ()
 {
 	ImageCanvas canvas;
-	Group group (&canvas);
+	RootGroup group (&canvas);
 
 	double const s = 8;
 	int const N = 1024;

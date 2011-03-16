@@ -15,7 +15,7 @@ void
 GroupTest::bounding_box ()
 {
 	ImageCanvas canvas;
-	Group group (&canvas);
+	RootGroup group (&canvas);
 	Rectangle a (&group, Rect (0, 0, 32, 32));
 	a.set_outline_width (0);
 	Rectangle b (&group, Rect (0, 33, 32, 64));
@@ -52,7 +52,7 @@ GroupTest::null_bounding_box ()
 	*/
 
 	ImageCanvas canvas;
-	Group group (&canvas);
+	RootGroup group (&canvas);
 
 	Group empty (&group);
 
@@ -64,7 +64,7 @@ void
 GroupTest::layers ()
 {
 	ImageCanvas canvas;
-	Group group (&canvas);
+	RootGroup group (&canvas);
 	Rectangle a (&group, Rect (0, 0, 32, 32));
 	Rectangle b (&group, Rect (0, 0, 32, 32));
 	Rectangle c (&group, Rect (0, 0, 32, 32));
@@ -90,6 +90,7 @@ GroupTest::layers ()
 
 	a.raise (2);
 
+
 	i = group.items().begin();
 	CPPUNIT_ASSERT (*i++ == &b);
 	CPPUNIT_ASSERT (*i++ == &c);
@@ -109,7 +110,7 @@ void
 GroupTest::children_changing ()
 {
 	ImageCanvas canvas;
-	Group group (&canvas);
+	RootGroup group (&canvas);
 
 	Rectangle a (&group, Rect (0, 0, 32, 32));
 	a.set_outline_width (0);
@@ -143,7 +144,7 @@ GroupTest::grandchildren_changing ()
 {
 	ImageCanvas canvas;
 	
-	Group A (&canvas);
+	RootGroup A (&canvas);
 
 	Group B (&A);
 

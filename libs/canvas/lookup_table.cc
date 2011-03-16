@@ -57,7 +57,7 @@ LookupTable::build ()
 		assert (y0 <= _dimension);
 		assert (x1 <= _dimension);
 		assert (y1 <= _dimension);
-		
+
 		for (int x = x0; x < x1; ++x) {
 			for (int y = y0; y < y1; ++y) {
 				_cells[x][y].push_back (*i);

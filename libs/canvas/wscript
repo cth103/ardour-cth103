@@ -31,6 +31,7 @@ canvas_sources = [
 	'poly_line.cc',
 	'polygon.cc',
 	'rectangle.cc',
+	'root_group.cc',
 	'types.cc',
 	'unimplemented.cc',
 	'utils.cc'
