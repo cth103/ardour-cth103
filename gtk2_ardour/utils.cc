@@ -494,14 +494,6 @@ gc_from_style (string widget_style_name, int state, string attr)
         return ret;
 }
 
-
-/* XXX: CANVAS */
-bool
-canvas_item_visible (ArdourCanvas::Item* item)
-{
-	return item->visible ();
-}
-
 void
 set_color (Gdk::Color& c, int rgb)
 {

@@ -71,8 +71,6 @@ Glib::RefPtr<Gdk::GC> gc_from_style (std::string widget_style_name, int state, s
 
 void decorate (Gtk::Window& w, Gdk::WMDecoration d);
 
-bool canvas_item_visible (ArdourCanvas::Item* item);
-
 void set_color (Gdk::Color&, int);
 
 bool relay_key_press (GdkEventKey* ev, Gtk::Window* win);

@@ -646,7 +646,7 @@ AudioStreamView::update_rec_regions (framepos_t start, framecnt_t cnt)
 
 		assert (n < rec_rects.size());
 		
-		if (!canvas_item_visible (rec_rects[n].rectangle)) {
+		if (!rec_rects[n].rectangle->visible ()) {
 			/* rect already hidden, this region is done */
 			iter = tmp;
 			continue;

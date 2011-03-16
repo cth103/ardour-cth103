@@ -485,7 +485,7 @@ AutomationTimeAxisView::set_height (uint32_t h)
 	}
 
 	if (changed) {
-		if (canvas_item_visible (_canvas_display)) {
+		if (_canvas_display->visible ()) {
 			/* only emit the signal if the height really changed and we were visible */
 			_route->gui_changed ("visible_tracks", (void *) 0); /* EMIT_SIGNAL */
 		}

@@ -264,7 +264,7 @@ TimeAxisView::show_at (double y, int& nth, VBox *parent)
 	/* now show children */
 
 	for (Children::iterator i = children.begin(); i != children.end(); ++i) {
-		if (canvas_item_visible ((*i)->_canvas_display)) {
+		if ((*i)->_canvas_display->visible ()) {
 			++nth;
 			_effective_height += (*i)->show_at (y + _effective_height, nth, parent);
 		} 
@@ -449,7 +449,7 @@ TimeAxisView::set_height (uint32_t h)
 		(*i)->set_height ();
 	}
 
-	if (canvas_item_visible (selection_group)) {
+	if (selection_group->visible ()) {
 		/* resize the selection rect */
 		show_selection (_editor.get_selection().time);
 	}
@@ -705,7 +705,7 @@ TimeAxisView::show_selection (TimeSelection& ts)
 		(*i)->show_selection (ts);
 	}
 
-	if (canvas_item_visible (selection_group)) {
+	if (selection_group->visible ()) {
 		while (!used_selection_rects.empty()) {
 			free_selection_rects.push_front (used_selection_rects.front());
 			used_selection_rects.pop_front();
@@ -766,7 +766,7 @@ TimeAxisView::reshow_selection (TimeSelection& ts)
 void
 TimeAxisView::hide_selection ()
 {
-	if (canvas_item_visible (selection_group)) {
+	if (selection_group->visible ()) {
 		while (!used_selection_rects.empty()) {
 			free_selection_rects.push_front (used_selection_rects.front());
 			used_selection_rects.pop_front();
