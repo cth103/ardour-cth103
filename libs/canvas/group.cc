@@ -56,15 +56,21 @@ Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 		if (!item_bbox) {
 			continue;
 		}
+
+		/* convert the render area to our child's coordinates */
+		Rect const item_area = (*i)->parent_to_item (area);
+
+		/* intersect the child's render area with the child's bounding box */
+		boost::optional<Rect> r = item_bbox.get().intersection (item_area);
 		
-		Rect const group_bbox = (*i)->item_to_parent (*item_bbox);
-		boost::optional<Rect> r = group_bbox.intersection (area);
 		if (r) {
+			/* render the intersection */
 			context->save ();
 			context->translate ((*i)->position().x, (*i)->position().y);
-			(*i)->render ((*i)->parent_to_item (r.get ()), context);
+			(*i)->render (r.get(), context);
 			context->restore ();
 		}
+			
 	}
 }
 
