@@ -36,8 +36,8 @@ LookupTable::build ()
 	_offset.x = bbox.get().x0;
 	_offset.y = bbox.get().y0;
 
-//	cout << "items=" << items.size() << ", dimension=" << _dimension << ", bbox=" << bbox.get() << "\n";
-//	cout << "cell_size=" << _cell_size << "\n";
+	cout << "items=" << items.size() << ", dimension=" << _dimension << ", bbox=" << bbox.get() << "\n";
+	cout << "cell_size=" << _cell_size << "\n";
 
 	for (list<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
 
@@ -56,7 +56,7 @@ LookupTable::build ()
 		int x0, y0, x1, y1;
 		area_to_indices (offset_bbox, x0, y0, x1, y1);
 
-//		cout << "Indices " << x0 << " " << y0 << " " << x1 << " " << y1 << "\n";
+		cout << "Indices " << x0 << " " << y0 << " " << x1 << " " << y1 << "\n";
 
 		assert (x0 <= _dimension);
 		assert (y0 <= _dimension);
@@ -89,9 +89,12 @@ LookupTable::area_to_indices (Rect const & area, int& x0, int& y0, int& x1, int&
 list<Item*>
 LookupTable::get (Rect const & area)
 {
+	/* apply our offset */
+	Rect const offset_area = area.translate (-_offset);
+	
 	list<Item*> items;
 	int x0, y0, x1, y1;
-	area_to_indices (area, x0, y0, x1, y1);
+	area_to_indices (offset_area, x0, y0, x1, y1);
 
 	x0 = min (_dimension, x0);
 	y0 = min (_dimension, y0);
