@@ -16,9 +16,13 @@ LookupTableTest::build_1 ()
 	ImageCanvas canvas;
 	Group group (&canvas);
 	Rectangle a (&group, Rect (0, 0, 32, 32));
+	a.set_outline_width (0);
 	Rectangle b (&group, Rect (0, 33, 32, 64));
+	b.set_outline_width (0);
 	Rectangle c (&group, Rect (33, 0, 64, 32));
+	c.set_outline_width (0);
 	Rectangle d (&group, Rect (33, 33, 64, 64));
+	d.set_outline_width (0);
 	LookupTable table (group, 1);
 	
 	CPPUNIT_ASSERT (table._items_per_cell == 1);
@@ -36,7 +40,9 @@ LookupTableTest::build_2 ()
 	ImageCanvas canvas;
 	Group group (&canvas);
 	Rectangle a (&group, Rect (0, 0, 713, 1024));
+	a.set_outline_width (0);
 	Rectangle b (&group, Rect (0, 0, 0, 1024));
+	b.set_outline_width (0);
 	LookupTable table (group, 64);
 }
 
@@ -55,9 +61,13 @@ LookupTableTest::get_small ()
 	ImageCanvas canvas;
 	Group group (&canvas);
 	Rectangle a (&group, Rect (0, 0, 32, 32));
+	a.set_outline_width (0);
 	Rectangle b (&group, Rect (0, 33, 32, 64));
+	b.set_outline_width (0);
 	Rectangle c (&group, Rect (33, 0, 64, 32));
+	c.set_outline_width (0);
 	Rectangle d (&group, Rect (33, 33, 64, 64));
+	d.set_outline_width (0);
 	LookupTable table (group, 1);
 	
 	list<Item*> items = table.get (Rect (16, 16, 48, 48));
@@ -79,6 +89,7 @@ LookupTableTest::get_big ()
 	for (int x = 0; x < N; ++x) {
 		for (int y = 0; y < N; ++y) {
 			Rectangle* r = new Rectangle (&group);
+			r->set_outline_width (0);
 			r->set (Rect (x * s, y * s, (x + 1) * s, (y + 1) * s));
 		}
 	}
