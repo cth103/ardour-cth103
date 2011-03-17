@@ -1243,7 +1243,7 @@ Editor::cursor_align (bool playhead_to_edit)
 void
 Editor::scroll_backward (float pages)
 {
-	framepos_t const one_page = (framepos_t) rint (_canvas_width * frames_per_unit);
+	framepos_t const one_page = (framepos_t) rint (_visible_canvas_width * frames_per_unit);
 	framepos_t const cnt = (framepos_t) floor (pages * one_page);
 
 	framepos_t frame;
@@ -1259,7 +1259,7 @@ Editor::scroll_backward (float pages)
 void
 Editor::scroll_forward (float pages)
 {
-	framepos_t const one_page = (framepos_t) rint (_canvas_width * frames_per_unit);
+	framepos_t const one_page = (framepos_t) rint (_visible_canvas_width * frames_per_unit);
 	framepos_t const cnt = (framepos_t) floor (pages * one_page);
 
 	framepos_t frame;
@@ -1276,8 +1276,8 @@ void
 Editor::scroll_tracks_down ()
 {
 	double vert_value = vertical_adjustment.get_value() + vertical_adjustment.get_page_size();
-	if (vert_value > vertical_adjustment.get_upper() - _canvas_height) {
-		vert_value = vertical_adjustment.get_upper() - _canvas_height;
+	if (vert_value > vertical_adjustment.get_upper() - _visible_canvas_height) {
+		vert_value = vertical_adjustment.get_upper() - _visible_canvas_height;
 	}
 	
 	vertical_adjustment.set_value (vert_value);
@@ -1294,8 +1294,8 @@ Editor::scroll_tracks_down_line ()
 {
 	double vert_value = vertical_adjustment.get_value() + 60;
 
-	if (vert_value > vertical_adjustment.get_upper() - _canvas_height) {
-		vert_value = vertical_adjustment.get_upper() - _canvas_height;
+	if (vert_value > vertical_adjustment.get_upper() - _visible_canvas_height) {
+		vert_value = vertical_adjustment.get_upper() - _visible_canvas_height;
 	}
 	
 	vertical_adjustment.set_value (vert_value);
@@ -1367,7 +1367,7 @@ Editor::temporal_zoom (gdouble fpu)
 
 	nfpu = fpu;
 
-	new_page_size = (framepos_t) floor (_canvas_width * nfpu);
+	new_page_size = (framepos_t) floor (_visible_canvas_width * nfpu);
 	half_page_size = new_page_size / 2;
 
 	switch (zoom_focus) {
@@ -1505,7 +1505,7 @@ Editor::temporal_zoom_region (bool both_axes)
 	}
 
 	framepos_t range = end - start;
-	double new_fpu = (double)range / (double)_canvas_width;
+	double new_fpu = (double)range / (double) _visible_canvas_width;
 	framepos_t extra_samples = (framepos_t) floor (one_centimeter_in_pixels * new_fpu);
 
 	if (start > extra_samples) {
@@ -1531,7 +1531,7 @@ Editor::temporal_zoom_region (bool both_axes)
 	temporal_zoom_by_frame (start, end, "zoom to region");
 
 	if (both_axes) {
-		uint32_t per_track_height = (uint32_t) floor ((_canvas_height - canvas_timebars_vsize - 10.0) / tracks.size());
+		uint32_t per_track_height = (uint32_t) floor ((_visible_canvas_height - canvas_timebars_vsize - 10.0) / tracks.size());
 
 		/* set visible track heights appropriately */
 
@@ -1606,11 +1606,11 @@ Editor::temporal_zoom_by_frame (framepos_t start, framepos_t end, const string &
 
 	framepos_t range = end - start;
 
-	double new_fpu = (double)range / (double)_canvas_width;
+	double const new_fpu = (double) range / (double) _visible_canvas_width;
 
-	framepos_t new_page = (framepos_t) floor (_canvas_width * new_fpu);
-	framepos_t middle = (framepos_t) floor( (double)start + ((double)range / 2.0f ));
-	framepos_t new_leftmost = (framepos_t) floor( (double)middle - ((double)new_page/2.0f));
+	framepos_t new_page = (framepos_t) floor (_visible_canvas_width * new_fpu);
+	framepos_t middle = (framepos_t) floor ((double) start + ((double) range / 2.0f));
+	framepos_t new_leftmost = (framepos_t) floor ((double) middle - ((double) new_page / 2.0f));
 
 	if (new_leftmost > middle) {
 		new_leftmost = 0;
@@ -4079,14 +4079,14 @@ Editor::reset_point_selection ()
 void
 Editor::center_playhead ()
 {
-	float page = _canvas_width * frames_per_unit;
+	float const page = _visible_canvas_width * frames_per_unit;
 	center_screen_internal (playhead_cursor->current_frame, page);
 }
 
 void
 Editor::center_edit_point ()
 {
-	float page = _canvas_width * frames_per_unit;
+	float const page = _visible_canvas_width * frames_per_unit;
 	center_screen_internal (get_preferred_edit_position(), page);
 }
 
@@ -6245,7 +6245,7 @@ Editor::fit_tracks (TrackViewList & tracks)
 		++visible_tracks;
 	}
 
-	uint32_t h = (uint32_t) floor ((_canvas_height - child_heights - canvas_timebars_vsize) / visible_tracks);
+	uint32_t h = (uint32_t) floor ((_visible_canvas_height - child_heights - canvas_timebars_vsize) / visible_tracks);
 	double first_y_pos = DBL_MAX;
 
 	if (h < TimeAxisView::preset_height (HeightSmall)) {
@@ -6306,7 +6306,7 @@ Editor::fit_tracks (TrackViewList & tracks)
 	   request signal handler will cause the vertical adjustment setting to fail
 	*/
 
-	controls_layout.property_height () = full_canvas_height - canvas_timebars_vsize;
+	controls_layout.property_height () = _full_canvas_height - canvas_timebars_vsize;
 	vertical_adjustment.set_value (first_y_pos);
 
 	redo_visual_stack.push_back (current_visual_state());

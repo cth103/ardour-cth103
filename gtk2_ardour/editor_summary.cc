@@ -288,7 +288,7 @@ EditorSummary::centre_on_click (GdkEventButton* ev)
 	}
 
 	double ey = summary_y_to_editor (ev->y);
-	ey -= (_editor->canvas_height() - _editor->get_canvas_timebars_vsize ()) / 2;
+	ey -= (_editor->visible_canvas_height() - _editor->get_canvas_timebars_vsize ()) / 2;
 	if (ey < 0) {
 		ey = 0;
 	}
@@ -363,7 +363,7 @@ EditorSummary::get_editor (pair<double, double>* x, pair<double, double>* y) con
 	x->second = x->first + _editor->current_page_frames() * _x_scale;
 
 	y->first = editor_y_to_summary (_editor->vertical_adjustment.get_value ());
-	y->second = editor_y_to_summary (_editor->vertical_adjustment.get_value () + _editor->canvas_height() - _editor->get_canvas_timebars_vsize());
+	y->second = editor_y_to_summary (_editor->vertical_adjustment.get_value () + _editor->visible_canvas_height() - _editor->get_canvas_timebars_vsize());
 }
 
 /** Get an expression of the position of a point with respect to the view rectangle */
@@ -652,10 +652,10 @@ void
 EditorSummary::set_editor_y (double const y)
 {
 	double y1 = summary_y_to_editor (y);
-	double const eh = _editor->canvas_height() - _editor->get_canvas_timebars_vsize ();
+	double const eh = _editor->visible_canvas_height() - _editor->get_canvas_timebars_vsize ();
 	double y2 = y1 + eh;
 	
-	double const full_editor_height = _editor->full_canvas_height - _editor->get_canvas_timebars_vsize();
+	double const full_editor_height = _editor->_full_canvas_height - _editor->get_canvas_timebars_vsize();
 
 	if (y2 > full_editor_height) {
 		y1 -= y2 - full_editor_height;
@@ -717,7 +717,7 @@ EditorSummary::set_editor_y (pair<double, double> const & y)
 	/* Height that we will use for scaling; use the whole editor height unless there are not
 	   enough tracks to fill it.
 	*/
-	double const ch = min (total_height, _editor->canvas_height() - _editor->get_canvas_timebars_vsize());
+	double const ch = min (total_height, _editor->visible_canvas_height() - _editor->get_canvas_timebars_vsize());
 	
 	/* hence required scale factor of the complete tracks to fit the required y range;
 	   the amount of space they should take up divided by the amount they currently take up.

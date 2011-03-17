@@ -161,7 +161,7 @@ Editor::add_new_location (Location *location)
 		select_new_marker = false;
 	}
 
-	lam->canvas_height_set (_canvas_height);
+	lam->canvas_height_set (_visible_canvas_height);
 	lam->set_show_lines (_show_marker_lines);
 
 	/* Add these markers to the appropriate sorted marker lists, which will render
@@ -1396,9 +1396,10 @@ Editor::update_punch_range_view (bool visibility)
 	Location* tpl;
 
 	if ((_session->config.get_punch_in() || _session->config.get_punch_out()) && ((tpl = transport_punch_location()) != 0)) {
-		guint track_canvas_width,track_canvas_height;
+		guint track_canvas_width;
+		guint track_canvas_height;
 		/* XXX: CANVAS */
-//		track_canvas->get_size(track_canvas_width,track_canvas_height);
+//		_track_canvas->get_size (track_canvas_width, track_canvas_height);
 		if (_session->config.get_punch_in()) {
 			transport_punch_range_rect->set_x0 (frame_to_pixel (tpl->start()));
 			transport_punch_range_rect->set_x1 (_session->config.get_punch_out() ? frame_to_pixel (tpl->end()) : frame_to_pixel (JACK_MAX_FRAMES));

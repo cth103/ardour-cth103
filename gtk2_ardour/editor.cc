@@ -315,8 +315,8 @@ Editor::Editor ()
 
 	snap_threshold = 5.0;
 	bbt_beat_subdivision = 4;
-	_canvas_width = 0;
-	_canvas_height = 0;
+	_visible_canvas_width = 0;
+	_visible_canvas_height = 0;
 	last_autoscroll_x = 0;
 	last_autoscroll_y = 0;
 	autoscroll_active = false;
@@ -470,7 +470,7 @@ Editor::Editor ()
 
 	edit_controls_vbox.set_spacing (0);
 	vertical_adjustment.signal_value_changed().connect (sigc::mem_fun(*this, &Editor::tie_vertical_scrolling), true);
-	track_canvas->signal_map_event().connect (sigc::mem_fun (*this, &Editor::track_canvas_map_handler));
+	_track_canvas->signal_map_event().connect (sigc::mem_fun (*this, &Editor::track_canvas_map_handler));
 
 	HBox* h = manage (new HBox);
 	_group_tabs = new EditorGroupTabs (this);
@@ -753,7 +753,7 @@ Editor::~Editor()
         delete button_bindings;
 	delete _routes;
 	delete _route_groups;
-	delete track_canvas;
+	delete _track_canvas_viewport;
 	delete _drags;
 }
 
@@ -894,14 +894,14 @@ Editor::zoom_adjustment_changed ()
 		return;
 	}
 
-	double fpu = zoom_range_clock.current_duration() / _canvas_width;
+	double fpu = zoom_range_clock.current_duration() / _visible_canvas_width;
 
 	if (fpu < 1.0) {
 		fpu = 1.0;
-		zoom_range_clock.set ((framepos_t) floor (fpu * _canvas_width));
-	} else if (fpu > _session->current_end_frame() / _canvas_width) {
-		fpu = _session->current_end_frame() / _canvas_width;
-		zoom_range_clock.set ((framepos_t) floor (fpu * _canvas_width));
+		zoom_range_clock.set ((framepos_t) floor (fpu * _visible_canvas_width));
+	} else if (fpu > _session->current_end_frame() / _visible_canvas_width) {
+		fpu = _session->current_end_frame() / _visible_canvas_width;
+		zoom_range_clock.set ((framepos_t) floor (fpu * _visible_canvas_width));
 	}
 
 	temporal_zoom (fpu);
@@ -1022,7 +1022,7 @@ Editor::map_position_change (framepos_t frame)
 void
 Editor::center_screen (framepos_t frame)
 {
-	double page = _canvas_width * frames_per_unit;
+	double page = _visible_canvas_width * frames_per_unit;
 
 	/* if we're off the page, then scroll.
 	 */
@@ -3280,7 +3280,7 @@ Editor::clamp_verbose_cursor_x (double x)
 	if (x < 0) {
 		x = 0;
 	} else {
-		x = min (_canvas_width - 200.0, x);
+		x = min (_visible_canvas_width - 200.0, x);
 	}
 	return x;
 }
@@ -3291,7 +3291,7 @@ Editor::clamp_verbose_cursor_y (double y)
 	if (y < canvas_timebars_vsize) {
 		y = canvas_timebars_vsize;
 	} else {
-		y = min (_canvas_height - 50, y);
+		y = min (_visible_canvas_height - 50, y);
 	}
 	return y;
 }
@@ -3304,7 +3304,7 @@ Editor::show_verbose_canvas_cursor_with (const string & txt, int32_t xoffset, in
 	int x, y;
 	double wx, wy;
 
-	track_canvas->get_pointer (x, y);
+	_track_canvas->get_pointer (x, y);
 	/* XXX: CANVAS */
 //	track_canvas->window_to_world (x, y, wx, wy);
 
@@ -4310,7 +4310,7 @@ Editor::post_zoom ()
 {
 	// convert fpu to frame count
 
-	framepos_t frames = (framepos_t) floor (frames_per_unit * _canvas_width);
+	framepos_t frames = (framepos_t) floor (frames_per_unit * _visible_canvas_width);
 
 	if (frames_per_unit != zoom_range_clock.current_duration()) {
 		zoom_range_clock.set (frames);
@@ -4933,9 +4933,9 @@ Editor::handle_new_route (RouteList& routes)
 		DataType dt = route->input()->default_type();
 
 		if (dt == ARDOUR::DataType::AUDIO) {
-			rtv = new AudioTimeAxisView (*this, _session, route, *track_canvas);
+			rtv = new AudioTimeAxisView (*this, _session, route, *_track_canvas);
 		} else if (dt == ARDOUR::DataType::MIDI) {
-			rtv = new MidiTimeAxisView (*this, _session, route, *track_canvas);
+			rtv = new MidiTimeAxisView (*this, _session, route, *_track_canvas);
 		} else {
 			throw unknown_type();
 		}

@@ -96,7 +96,7 @@ Editor::mouse_frame (framepos_t& where, bool& in_track_canvas) const
 	int x, y;
 	double wx, wy;
 	Gdk::ModifierType mask;
-	Glib::RefPtr<Gdk::Window> canvas_window = const_cast<Editor*>(this)->track_canvas->get_window();
+	Glib::RefPtr<Gdk::Window> canvas_window = const_cast<Editor*>(this)->_track_canvas->get_window();
 	Glib::RefPtr<const Gdk::Window> pointer_window;
 
 	if (!canvas_window) {
@@ -106,7 +106,7 @@ Editor::mouse_frame (framepos_t& where, bool& in_track_canvas) const
 	pointer_window = canvas_window->get_pointer (x, y, mask);
 
 	/* XXX: CANVAS: was get_bin_window */
-	if (pointer_window == track_canvas->get_window()) {
+	if (pointer_window == _track_canvas->get_window()) {
 		wx = x;
 		wy = y;
 		in_track_canvas = true;
@@ -1123,7 +1123,7 @@ Editor::button_press_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemTyp
 		return false;
 	}
 
-	Glib::RefPtr<Gdk::Window> canvas_window = const_cast<Editor*>(this)->track_canvas->get_window();
+	Glib::RefPtr<Gdk::Window> canvas_window = const_cast<Editor*>(this)->_track_canvas->get_window();
 
 	if (canvas_window) {
 		Glib::RefPtr<const Gdk::Window> pointer_window;
@@ -1134,7 +1134,7 @@ Editor::button_press_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemTyp
 		pointer_window = canvas_window->get_pointer (x, y, mask);
 
 		/* XXX: CANVAS: was get_bin_window */
-		if (pointer_window == track_canvas->get_window()) {
+		if (pointer_window == _track_canvas->get_window()) {
 			/* XXX: CANVAS */
 //			track_canvas->window_to_world (x, y, wx, wy);
 		}
@@ -1142,7 +1142,7 @@ Editor::button_press_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemTyp
 
         pre_press_cursor = current_canvas_cursor;
 
-	track_canvas->grab_focus();
+	_track_canvas->grab_focus();
 
 	if (_session && _session->actively_recording()) {
 		return true;
@@ -2019,7 +2019,7 @@ Editor::motion_handler (ArdourCanvas::Item* /*item*/, GdkEvent* event, bool from
 		   event might do, its a good tradeoff.
 		*/
 
-		track_canvas->get_pointer (x, y);
+		_track_canvas->get_pointer (x, y);
 	}
 
 	if (current_stepping_trackview) {
@@ -2434,7 +2434,7 @@ Editor::reposition_zoom_rect (framepos_t start, framepos_t end)
 {
 	double x1 = frame_to_pixel (start);
 	double x2 = frame_to_pixel (end);
-	double y2 = full_canvas_height - 1.0;
+	double y2 = _full_canvas_height - 1.0;
 
 	zoom_rect->set (ArdourCanvas::Rect (x1, 1, x2, y2));
 }

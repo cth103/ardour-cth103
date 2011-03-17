@@ -1263,7 +1263,7 @@ Editor::parameter_changed (std::string p)
 void
 Editor::reset_focus ()
 {
-	track_canvas->grab_focus();
+	_track_canvas->grab_focus();
 }
 
 void

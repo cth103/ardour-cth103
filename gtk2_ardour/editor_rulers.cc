@@ -743,11 +743,11 @@ Editor::update_ruler_visibility ()
 	canvas_timebars_vsize = (timebar_height * visible_timebars) - 1;
 	gdouble vertical_pos_delta = canvas_timebars_vsize - old_canvas_timebars_vsize;
 	vertical_adjustment.set_upper(vertical_adjustment.get_upper() + vertical_pos_delta);
-	full_canvas_height += vertical_pos_delta;
+	_full_canvas_height += vertical_pos_delta;
 
-	if (vertical_adjustment.get_value() != 0 && (vertical_adjustment.get_value() + _canvas_height >= full_canvas_height)) {
-		/*if we're at the bottom of the canvas, don't move the _trackview_group*/
-		vertical_adjustment.set_value (full_canvas_height - _canvas_height + 1);
+	if (vertical_adjustment.get_value() != 0 && (vertical_adjustment.get_value() + _visible_canvas_height >= _full_canvas_height)) {
+		/* if we're at the bottom of the canvas, don't move the _trackview_group */
+		vertical_adjustment.set_value (_full_canvas_height - _visible_canvas_height + 1);
 	} else {
 		_trackview_group->property_y () = - get_trackview_group_vertical_offset ();
 		_background_group->property_y () = - get_trackview_group_vertical_offset ();
@@ -756,7 +756,7 @@ Editor::update_ruler_visibility ()
 		last_trackview_group_vertical_offset = get_trackview_group_vertical_offset ();
 	}
 
-	gdouble bottom_track_pos = vertical_adjustment.get_value() + _canvas_height - canvas_timebars_vsize;
+	gdouble bottom_track_pos = vertical_adjustment.get_value() + _visible_canvas_height - canvas_timebars_vsize;
 	std::pair<TimeAxisView*, int> const p = trackview_by_y_position (bottom_track_pos);
 	if (p.first) {
 		p.first->clip_to_viewport ();

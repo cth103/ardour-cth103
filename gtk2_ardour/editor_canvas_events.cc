@@ -144,7 +144,7 @@ Editor::track_canvas_scroll (GdkEventScroll* ev)
 bool
 Editor::track_canvas_scroll_event (GdkEventScroll *event)
 {
-	track_canvas->grab_focus();
+	_track_canvas->grab_focus();
 	return track_canvas_scroll (event);
 }
 
@@ -152,7 +152,7 @@ bool
 Editor::track_canvas_button_press_event (GdkEventButton */*event*/)
 {
 	selection->clear ();
-	track_canvas->grab_focus();
+	_track_canvas->grab_focus();
 	return false;
 }
 
@@ -170,7 +170,7 @@ Editor::track_canvas_motion_notify_event (GdkEventMotion */*event*/)
 {
 	int x, y;
 	/* keep those motion events coming */
-	track_canvas->get_pointer (x, y);
+	_track_canvas->get_pointer (x, y);
 	return false;
 }
 

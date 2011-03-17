@@ -156,11 +156,11 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	framepos_t leftmost_position() const { return leftmost_frame; }
 
 	framecnt_t current_page_frames() const {
-		return (framecnt_t) floor (_canvas_width * frames_per_unit);
+		return (framecnt_t) floor (_visible_canvas_width * frames_per_unit);
 	}
 
-	double canvas_height () const {
-		return _canvas_height;
+	double visible_canvas_height () const {
+		return _visible_canvas_height;
 	}
 
 	void cycle_snap_mode ();
@@ -688,7 +688,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	Gdk::Cursor* which_grabber_cursor ();
 	void set_canvas_cursor ();
 
-	ArdourCanvas::GtkCanvasDrawingArea* track_canvas;
+	ArdourCanvas::GtkCanvasDrawingArea* _track_canvas;
 	ArdourCanvas::GtkCanvasViewport* _track_canvas_viewport;
 	Gtk::Adjustment* _track_canvas_hadj;
 	Gtk::Adjustment* _track_canvas_vadj;
@@ -956,9 +956,9 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	sigc::connection _scroll_connection;
 	int _scroll_callbacks;
 
-	double _canvas_width;
-	double _canvas_height; ///< height of the visible area of the track canvas
-	double full_canvas_height; ///< full height of the canvas
+	double _visible_canvas_width;
+	double _visible_canvas_height; ///< height of the visible area of the track canvas
+	double _full_canvas_height;    ///< full height of the canvas
 
 	bool track_canvas_map_handler (GdkEventAny*);
 
@@ -1405,9 +1405,9 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	bool track_canvas_button_release_event (GdkEventButton* event);
 	bool track_canvas_motion_notify_event (GdkEventMotion* event);
 
-	Gtk::Allocation canvas_allocation;
-	void track_canvas_allocate (Gtk::Allocation alloc);
-	bool track_canvas_size_allocated ();
+	Gtk::Allocation _canvas_viewport_allocation;
+	void track_canvas_viewport_allocate (Gtk::Allocation alloc);
+	bool track_canvas_viewport_size_allocated ();
 	bool track_canvas_drag_motion (Glib::RefPtr<Gdk::DragContext> const &, int, int, guint);
 	bool track_canvas_key_press (GdkEventKey *);
 	bool track_canvas_key_release (GdkEventKey *);
