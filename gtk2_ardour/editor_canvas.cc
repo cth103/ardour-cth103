@@ -678,12 +678,7 @@ Editor::tie_vertical_scrolling ()
 void
 Editor::set_horizontal_position (double p)
 {
-	double x_delta = - (_track_canvas_hadj->get_value() + p);
-
 	_track_canvas_hadj->set_value (p);
-	timebar_group->move (x_delta, 0);
-	time_line_group->move (x_delta, 0);
-	cursor_group->move (x_delta, 0);
 
 	leftmost_frame = (framepos_t) floor (p * frames_per_unit);
 
