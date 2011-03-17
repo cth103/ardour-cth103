@@ -6,6 +6,7 @@
 namespace PBD {
 	namespace DEBUG {
 		extern uint64_t CanvasItems;
+		extern uint64_t CanvasItemsDirtied;
 	}
 }
 

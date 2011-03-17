@@ -3,6 +3,7 @@
 #include "pbd/stacktrace.h"
 #include "canvas/group.h"
 #include "canvas/types.h"
+#include "canvas/debug.h"
 
 using namespace std;
 using namespace ArdourCanvas;
@@ -111,6 +112,8 @@ Group::add (Item* i)
 	_items.push_back (i);
 	invalidate_lut ();
 	_bounding_box_dirty = true;
+	
+	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: group add\n");
 }
 
 void
@@ -119,6 +122,8 @@ Group::remove (Item* i)
 	_items.remove (i);
 	invalidate_lut ();
 	_bounding_box_dirty = true;
+	
+	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: group remove\n");
 }
 
 void

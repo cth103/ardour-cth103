@@ -51,6 +51,8 @@ Line::set (Point a, Point b)
 
 	_bounding_box_dirty = true;
 	end_change ();
+
+	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: line change\n");
 }
 
 void
@@ -62,6 +64,8 @@ Line::set_x0 (Coord x0)
 
 	_bounding_box_dirty = true;
 	end_change ();
+
+	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: line change\n");
 }
 
 void
@@ -73,6 +77,8 @@ Line::set_y0 (Coord y0)
 
 	_bounding_box_dirty = true;
 	end_change ();
+
+	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: line change\n");
 }
 
 void
@@ -84,6 +90,8 @@ Line::set_x1 (Coord x1)
 
 	_bounding_box_dirty = true;
 	end_change ();
+
+	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: line change\n");
 }
 
 void
@@ -95,5 +103,7 @@ Line::set_y1 (Coord y1)
 
 	_bounding_box_dirty = true;
 	end_change ();
+
+	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: line change\n");
 }
 

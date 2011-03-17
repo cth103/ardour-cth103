@@ -75,6 +75,8 @@
 #include "ardour/session_playlists.h"
 #include "ardour/audioengine.h"
 
+#include "canvas/debug.h"
+
 #include "control_protocol/control_protocol.h"
 
 #include "editor.h"
@@ -4791,6 +4793,8 @@ Editor::first_idle ()
 	delete dialog;
 
 	_have_idled = true;
+
+	PBD::set_debug_bits (PBD::DEBUG::CanvasItemsDirtied);
 }
 
 gboolean

@@ -1,6 +1,7 @@
 #include <cairomm/context.h>
 #include "canvas/outline.h"
 #include "canvas/utils.h"
+#include "canvas/debug.h"
 
 using namespace ArdourCanvas;
 
@@ -31,6 +32,8 @@ Outline::set_outline_width (Distance width)
 
 	_bounding_box_dirty = true;
 	end_change ();
+
+	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: outline width change\n");	
 }
 
 void
