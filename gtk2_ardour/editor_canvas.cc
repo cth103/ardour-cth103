@@ -282,7 +282,6 @@ Editor::track_canvas_viewport_size_allocated ()
 		}
 
 		vertical_adjustment.set_page_size (_visible_canvas_height);
-		last_trackview_group_vertical_offset = get_trackview_group_vertical_offset ();
 		if ((vertical_adjustment.get_value() + _visible_canvas_height) >= vertical_adjustment.get_upper()) {
 			/*
 			   We're increasing the size of the canvas while the bottom is visible.
@@ -706,16 +705,12 @@ Editor::scroll_canvas_vertically ()
 {
 	/* vertical scrolling only */
 
-	double y_delta;
-
-	y_delta = last_trackview_group_vertical_offset - get_trackview_group_vertical_offset ();
-	_trackview_group->move (0, y_delta);
-	_background_group->move (0, y_delta);
+	_track_canvas_vadj->set_value (get_trackview_group_vertical_offset ());
 
 	for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {
 		(*i)->clip_to_viewport ();
 	}
-	last_trackview_group_vertical_offset = get_trackview_group_vertical_offset ();
+
 	/* required to keep the controls_layout in lock step with the canvas group */
 	update_canvas_now ();
 }

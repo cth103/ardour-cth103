@@ -753,7 +753,6 @@ Editor::update_ruler_visibility ()
 		_background_group->property_y () = - get_trackview_group_vertical_offset ();
 		_trackview_group->move (0, 0);
 		_background_group->move (0, 0);
-		last_trackview_group_vertical_offset = get_trackview_group_vertical_offset ();
 	}
 
 	gdouble bottom_track_pos = vertical_adjustment.get_value() + _visible_canvas_height - canvas_timebars_vsize;

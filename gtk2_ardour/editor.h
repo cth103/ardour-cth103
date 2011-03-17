@@ -981,7 +981,6 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	ArdourCanvas::Group* get_background_group () const { return _background_group; }
 	ArdourCanvas::Group* get_trackview_group () const { return _trackview_group; }
-	double last_trackview_group_vertical_offset;
 	void tie_vertical_scrolling ();
 	void set_horizontal_position (double);
 	double horizontal_position () const;
