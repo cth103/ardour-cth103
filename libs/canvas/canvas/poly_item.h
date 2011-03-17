@@ -24,7 +24,6 @@ public:
 protected:
 	void render_path (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
 
-private:	
 	Points _points;
 };
 	

@@ -16,5 +16,10 @@ Polygon::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
 	setup_outline_context (context);
 	render_path (area, context);
+
+	if (!_points.empty ()) {
+		context->move_to (_points.front().x, _points.front().y);
+	}
+	
 	context->fill ();
 }
