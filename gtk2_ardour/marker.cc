@@ -245,7 +245,7 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 	/* adjust to properly locate the tip */
 
 	mark = new ArdourCanvas::Polygon (group);
-	mark->property_points() = *points;
+	mark->set (*points);
 	set_color_rgba (rgba);
 	mark->property_width_pixels() = 1;
 

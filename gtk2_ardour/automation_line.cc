@@ -237,7 +237,7 @@ AutomationLine::modify_point_y (ControlPoint& cp, double y)
 	reset_line_coords (cp);
 
 	if (line_points.size() > 1) {
-		line->property_points() = line_points;
+		line->set (line_points);
 	}
 
 	alist->freeze ();
@@ -486,7 +486,7 @@ AutomationLine::determine_visible_control_points (ALPoints& points)
 			line_points[view_index].set_y (control_points[view_index]->get_y());
 		}
 
-		line->property_points() = line_points;
+		line->set (line_points);
 
 		if (_visible && alist->interpolation() != AutomationList::Discrete) {
 			line->show();
@@ -768,7 +768,7 @@ AutomationLine::drag_motion (double x, float fraction, bool ignore_x, bool with_
 	}
 
 	if (line_points.size() > 1) {
-		line->property_points() = line_points;
+		line->set (line_points);
 	}
 
 	_drag_had_movement = true;

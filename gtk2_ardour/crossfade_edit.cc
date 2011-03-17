@@ -740,8 +740,8 @@ CrossfadeEditor::redraw ()
 		spts[last_spt - i].set_y (pts[i].get_y());
 	}
 
-	fade[current].line->property_points() = pts;
-	fade[current].shading->property_points() = spts;
+	fade[current].line->set (pts);
+	fade[current].shading->set (pts);
 
 	for (vector<ArdourCanvas::WaveView*>::iterator i = fade[current].waves.begin(); i != fade[current].waves.end(); ++i) {
 		(*i)->property_gain_src() = static_cast<Evoral::Curve*>(&fade[current].gain_curve.curve());

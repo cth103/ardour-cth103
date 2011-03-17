@@ -15,12 +15,6 @@ public:
 	void set (Points const &);
 	Points const & get () const;
 
-#ifdef CANVAS_COMPATIBILITY
-	Points& property_points () {
-		return _points;
-	}
-#endif	
-
 protected:
 	void render_path (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
 

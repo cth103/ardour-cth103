@@ -203,7 +203,7 @@ CrossfadeView::redraw_curves ()
 		p.set_y (_height - ((_height - 2) * vec[i]));
 	}
 
-	fade_in->property_points() = *points;
+	fade_in->set (*points);
 
 	crossfade->fade_out().curve().get_vector (min_frames - crossfade->position(), max_frames - crossfade->position(), vec, npoints);
 
@@ -213,7 +213,7 @@ CrossfadeView::redraw_curves ()
 		p.set_y (_height - ((_height - 2) * vec[i]));
 	}
 	
-	fade_out->property_points() = *points;
+	fade_out->set (*points);
 
 	delete [] vec;
 
