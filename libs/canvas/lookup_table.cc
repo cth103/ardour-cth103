@@ -36,6 +36,8 @@ LookupTable::build ()
 	_offset.x = bbox.get().x0;
 	_offset.y = bbox.get().y0;
 
+//	cout << "BUILD bbox=" << bbox.get() << ", cellsize=" << _cell_size << ", offset=" << _offset << ", dimension=" << _dimension << "\n";
+
 	for (list<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
 
 		/* item bbox in its own coordinates */
@@ -53,10 +55,34 @@ LookupTable::build ()
 		int x0, y0, x1, y1;
 		area_to_indices (offset_bbox, x0, y0, x1, y1);
 
-		assert (x0 <= _dimension);
-		assert (y0 <= _dimension);
-		assert (x1 <= _dimension);
-		assert (y1 <= _dimension);
+//		cout << "ITEM " << offset_bbox << " to x0=" << x0 << ", y0=" << y0 << ", x1=" << x1 << ", y1=" << y1 << "\n";
+
+		/* XXX */
+		assert (x0 >= 0);
+		assert (y0 >= 0);
+		assert (x1 >= 0);
+		assert (y1 >= 0);
+		//assert (x0 <= _dimension);
+		//assert (y0 <= _dimension);
+		//assert (x1 <= _dimension);
+		//assert (y1 <= _dimension);
+
+		if (x0 > _dimension) {
+			cout << "WARNING: item outside bbox by " << (item_bbox_in_group.x0 - bbox.get().x0) << "\n";
+			x0 = _dimension;
+		}
+		if (x1 > _dimension) {
+			cout << "WARNING: item outside bbox by " << (item_bbox_in_group.x1 - bbox.get().x1) << "\n";
+			x1 = _dimension;
+		}
+		if (y0 > _dimension) {
+			cout << "WARNING: item outside bbox by " << (item_bbox_in_group.y0 - bbox.get().y0) << "\n";
+			y0 = _dimension;
+		}
+		if (y1 > _dimension) {
+			cout << "WARNING: item outside bbox by " << (item_bbox_in_group.y1 - bbox.get().y1) << "\n";
+			y1 = _dimension;
+		}
 
 		for (int x = x0; x < x1; ++x) {
 			for (int y = y0; y < y1; ++y) {
