@@ -15,8 +15,6 @@ Canvas::Canvas ()
 void
 Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
 {
-	Debug::instance()->render_object_count = 0;
-		
 	context->rectangle (area.x0, area.y0, area.width(), area.height());
 	context->clip ();
 
@@ -31,7 +29,6 @@ Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context
 	}
 
 	cout << "Root bounding box: " << root_bbox.get() << "\n";
-	cout << "Rendered: " << area << " (" << Debug::instance()->render_object_count << ")\n";
 }
 
 void

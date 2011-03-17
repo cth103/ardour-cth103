@@ -102,7 +102,8 @@ AutomationTimeAxisView::AutomationTimeAxisView (
 	first_call_to_set_height = true;
 
 	_base_rect = new ArdourCanvas::Rectangle (_canvas_display);
-	_base_rect->set_x1 (INT_MAX);
+	/* XXX: CANVAS */
+//	_base_rect->set_x1 (INT_MAX);
 	_base_rect->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_AutomationTrackOutline.get();
 
 	/* outline ends and bottom */

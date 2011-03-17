@@ -1,8 +1,12 @@
+#include "pbd/compose.h"
+#include "pbd/stacktrace.h"
 #include "canvas/group.h"
 #include "canvas/item.h"
 #include "canvas/canvas.h"
+#include "canvas/debug.h"
 
 using namespace std;
+using namespace PBD;
 using namespace ArdourCanvas;
 
 Item::Item (Canvas* canvas)
@@ -41,6 +45,8 @@ Item::init ()
 	if (_parent) {
 		_parent->add (this);
 	}
+
+	DEBUG_TRACE (DEBUG::CanvasItems, string_compose ("new canvas item %1\n", this));
 }	
 
 Item::~Item ()

@@ -1,16 +1,12 @@
-namespace ArdourCanvas {
+#ifndef __CANVAS_DEBUG_H__
+#define __CANVAS_DEBUG_H__
 
-class Debug
-{
-public:
-	static Debug* instance ();
+#include "pbd/debug.h"
 
-	int render_object_count;
-
-private:
-	Debug ();
-
-	static Debug* _instance;
-};
-
+namespace PBD {
+	namespace DEBUG {
+		extern uint64_t CanvasItems;
+	}
 }
+
+#endif

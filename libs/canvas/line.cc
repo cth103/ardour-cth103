@@ -39,8 +39,6 @@ Line::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 	context->move_to (_points[0].x, _points[0].y);
 	context->line_to (_points[1].x, _points[1].y);
 	context->stroke ();
-
-	Debug::instance()->render_object_count++;
 }
 
 void

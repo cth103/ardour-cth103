@@ -62,8 +62,6 @@ Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) con
 	
 	setup_outline_context (context);
 	context->stroke ();
-
-	Debug::instance()->render_object_count++;
 }
 
 void
