@@ -10,6 +10,7 @@ bool
 foo (GdkEvent* ev)
 {
 	cout << "click.\n";
+	return true;
 }
 
 int main (int argc, char* argv[])

@@ -110,12 +110,6 @@ public:
 	void ungrab (int);
 	void grab_focus ();
 	void get_bounds (double &, double &, double &, double &) const;
-
-	sigc::signal<bool, GdkEvent*>& signal_event () {
-		return _signal_event;
-	}
-
-	sigc::signal<bool, GdkEvent*> _signal_event;
 #endif	
 	
 	
