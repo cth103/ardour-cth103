@@ -86,7 +86,7 @@ def build(bld):
 			manual_testobj.uselib       = 'CPPUNIT SIGCPP CAIROMM GTKMM'
 			manual_testobj.uselib_local = 'libcanvas libevoral libardour'
 			manual_testobj.name         = 'libcanvas-manual-test-%s' % name
-			manual_testobj.target       = name
+			manual_testobj.target       = target
 			manual_testobj.install_path = ''
 
 		unit_testobj              = bld.new_task_gen('cxx', 'program')
