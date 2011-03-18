@@ -32,7 +32,7 @@ Rect::intersection (Rect const & o) const
 }
 
 Rect
-Rect::translate (Duple const & t) const
+Rect::translate (Duple t) const
 {
 	Rect r;
 	r.x0 = x0 + t.x;
@@ -54,20 +54,32 @@ Rect::extend (Rect const & o) const
 }
 
 Rect
-Rect::expand (Distance d) const
+Rect::expand (Distance amount) const
 {
 	Rect r;
-	r.x0 = x0 - d;
-	r.y0 = y0 - d;
-	r.x1 = x1 + d;
-	r.y1 = y1 + d;
+	r.x0 = x0 - amount;
+	r.y0 = y0 - amount;
+	r.x1 = x1 + amount;
+	r.y1 = y1 + amount;
 	return r;
+}
+
+bool
+Rect::contains (Duple point) const
+{
+	return point.x >= x0 && point.x <= x1 && point.y >= y0 && point.y <= y1;
 }
 
 Duple
 ArdourCanvas::operator- (Duple const & o)
 {
 	return Duple (-o.x, -o.y);
+}
+
+Duple
+ArdourCanvas::operator- (Duple const & a, Duple const & b)
+{
+	return Duple (a.x - b.x, a.y - b.y);
 }
 
 ostream &

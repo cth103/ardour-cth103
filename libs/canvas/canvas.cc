@@ -1,4 +1,5 @@
 #include <cassert>
+#include <gtkmm/adjustment.h>
 #include "canvas/canvas.h"
 #include "canvas/debug.h"
 
@@ -71,6 +72,23 @@ Canvas::queue_draw_item_area (Item* item, Rect area)
 	request_redraw (area);
 }
 
+bool
+GtkCanvas::button_press_handler (GdkEventButton* ev)
+{
+	cout << "BP: " << ev->x << " " << ev->y << "\n";
+
+	list<Item*> items;
+	_root.add_items_at_point (Duple (ev->x, ev->y), items);
+
+	if (!items.empty ()) {
+		cout << "Top item " << items.back()->name() << "\n";
+	} else {
+		cout << "No item.\n";
+	}
+	
+	return true;
+}
+
 ImageCanvas::ImageCanvas ()
 	: _surface (Cairo::ImageSurface::create (Cairo::FORMAT_ARGB32, 1024, 1024))
 {
@@ -97,7 +115,7 @@ GtkCanvas::GtkCanvas ()
 
 GtkCanvasDrawingArea::GtkCanvasDrawingArea ()
 {
-	set_size_request (2048, 2048);
+	add_events (Gdk::BUTTON_PRESS_MASK);
 }
 
 bool
@@ -107,6 +125,12 @@ GtkCanvasDrawingArea::on_expose_event (GdkEventExpose* ev)
 	Cairo::RefPtr<Cairo::Context> c = get_window()->create_cairo_context ();
 	render (Rect (ev->area.x, ev->area.y, ev->area.x + ev->area.width, ev->area.y + ev->area.height), c);
 	return true;
+}
+
+bool
+GtkCanvasDrawingArea::on_button_press_event (GdkEventButton* ev)
+{
+	return button_press_handler (ev);
 }
 
 void
@@ -133,4 +157,3 @@ GtkCanvasViewport::on_size_request (Gtk::Requisition* req)
 	req->width = 128;
 	req->height = 128;
 }
-

@@ -1,8 +1,9 @@
 #include <gdkmm/window.h>
-#include <gtkmm/drawingarea.h>
+#include <gtkmm/eventbox.h>
 #include <gtkmm/viewport.h>
 #include <cairomm/surface.h>
 #include <cairomm/context.h>
+#include "pbd/signals.h"
 #include "canvas/root_group.h"
 
 namespace ArdourCanvas
@@ -29,11 +30,12 @@ public:
 
 	void item_changed (Item *, boost::optional<Rect>);
 	void item_moved (Item *, boost::optional<Rect>);
-		
+
+protected:
+	RootGroup _root;
+	
 private:
 	void queue_draw_item_area (Item *, Rect);
-	
-	RootGroup _root;
 };
 
 
@@ -62,18 +64,24 @@ class GtkCanvas : public Canvas
 {
 public:
 	GtkCanvas ();
+
+protected:
+	bool button_press_handler (GdkEventButton *);
 };
 
-class GtkCanvasDrawingArea : public Gtk::DrawingArea, public GtkCanvas
+class GtkCanvasDrawingArea : public Gtk::EventBox, public GtkCanvas
 {
 public:
 	GtkCanvasDrawingArea ();
 
 	void request_redraw (Rect const &);
 	void request_size (Duple);
+
+	PBD::Signal1<bool, GdkEventButton *> ButtonPress;
 	
 protected:
 	bool on_expose_event (GdkEventExpose *);
+	bool on_button_press_event (GdkEventButton *);
 };
 
 class GtkCanvasViewport : public Gtk::Viewport
@@ -86,7 +94,6 @@ public:
 	}
 
 protected:
-	
 	void on_size_request (Gtk::Requisition *);
 
 private:

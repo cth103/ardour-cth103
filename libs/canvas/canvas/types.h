@@ -32,7 +32,8 @@ struct Duple
 };
 
 
-extern Duple operator- (Duple const & o);
+extern Duple operator- (Duple const &);
+extern Duple operator- (Duple const &, Duple const &);
 extern std::ostream & operator<< (std::ostream &, Duple const &);
 
 struct Rect
@@ -58,8 +59,9 @@ struct Rect
 
 	boost::optional<Rect> intersection (Rect const &) const;
 	Rect extend (Rect const &) const;
-	Rect translate (Duple const &) const;
+	Rect translate (Duple) const;
 	Rect expand (Distance) const;
+	bool contains (Duple) const;
 
 	Distance width () const {
 		return x1 - x0;

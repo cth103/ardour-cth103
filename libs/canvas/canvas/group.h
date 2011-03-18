@@ -33,6 +33,8 @@ public:
 	void lower_child_to_bottom (Item *);
 	void child_changed ();
 
+	void add_items_at_point (Duple, std::list<Item*> &) const;
+
 #ifdef CANVAS_COMPATIBILITY
 	Coord& property_x () {
 		return _position.x;

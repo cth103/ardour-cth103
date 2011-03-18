@@ -17,13 +17,14 @@ class LookupTable
 public:
 	LookupTable (Group const &, int);
 	std::list<Item*> get (Rect const &);
-	void remove (Item *);
-	void build ();
+	std::list<Item*> items_at_point (Duple) const;
 
 private:
 
-	void area_to_indices (Rect const &, int&, int&, int&, int&) const;
-	
+	void build ();
+	void area_to_indices (Rect const &, int &, int &, int &, int &) const;
+	void point_to_indices (Duple, int &, int &) const;
+
 	friend class ::LookupTableTest;
 
 	Group const & _group;

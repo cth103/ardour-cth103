@@ -105,6 +105,40 @@ LookupTable::area_to_indices (Rect const & area, int& x0, int& y0, int& x1, int&
 	x1 = ceil (area.x1 / _cell_size.x);
 	y1 = ceil (area.y1 / _cell_size.y);
 }
+
+void
+LookupTable::point_to_indices (Duple point, int& x, int& y) const
+{
+	if (_cell_size.x == 0 || _cell_size.y == 0) {
+		x = y = 0;
+		return;
+	}
+
+	x = floor (point.x / _cell_size.x);
+	y = floor (point.y / _cell_size.y);
+}
+
+list<Item*>
+LookupTable::items_at_point (Duple point) const
+{
+	int x;
+	int y;
+	point_to_indices (point, x, y);
+
+	Cell const & cell = _cells[x][y];
+	list<Item*> items;
+	for (Cell::const_iterator i = cell.begin(); i != cell.end(); ++i) {
+		boost::optional<Rect> const item_bbox = (*i)->bounding_box ();
+		if (item_bbox) {
+			Rect parent_bbox = (*i)->item_to_parent (item_bbox.get ());
+			if (parent_bbox.contains (point)) {
+				items.push_back (*i);
+			}
+		}
+	}
+
+	return items;
+}
 	
 /** @param area Area in our owning group's coordinates */
 list<Item*>
@@ -136,12 +170,3 @@ LookupTable::get (Rect const & area)
 	return items;
 }
 
-void
-LookupTable::remove (Item* i)
-{
-	for (int x = 0; x < _dimension; ++x) {
-		for (int y = 0; y < _dimension; ++y) {
-			_cells[x][y].remove (i);
-		}
-	}
-}
