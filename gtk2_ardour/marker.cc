@@ -272,7 +272,7 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 	_name_background->set_data ("marker", this);
 
 	if (handle_events) {
-		group->signal_event().connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_marker_event), mark, this));
+		group->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_marker_event), mark, this));
 	}
 
 }
@@ -317,7 +317,7 @@ Marker::setup_line ()
 			_line = new ArdourCanvas::Line (group);
 			_line->property_color_rgba() = ARDOUR_UI::config()->canvasvar_EditPoint.get();
 
-			_line->signal_event().connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_marker_event), mark, this));
+			_line->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_marker_event), mark, this));
 		}
 		
                 /* work out where to start the line from so that it extends from the top of the canvas */
@@ -493,7 +493,7 @@ TempoMarker::TempoMarker (PublicEditor& editor, ArdourCanvas::Group& parent, gui
 	  _tempo (temp)
 {
 	set_position (_tempo.frame());
-	group->signal_event().connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_tempo_marker_event), mark, this));
+	group->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_tempo_marker_event), mark, this));
 }
 
 TempoMarker::~TempoMarker ()
@@ -508,7 +508,7 @@ MeterMarker::MeterMarker (PublicEditor& editor, ArdourCanvas::Group& parent, gui
 	  _meter (m)
 {
 	set_position (_meter.frame());
-	group->signal_event().connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_meter_marker_event), mark, this));
+	group->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_meter_marker_event), mark, this));
 }
 
 MeterMarker::~MeterMarker ()

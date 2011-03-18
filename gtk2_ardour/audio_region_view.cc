@@ -240,15 +240,15 @@ AudioRegionView::init (Gdk::Color const & basic_color, bool wfd)
 
 	reset_width_dependent_items (_pixel_width);
 
-	fade_in_shape->signal_event().connect (sigc::bind (sigc::mem_fun (PublicEditor::instance(), &PublicEditor::canvas_fade_in_event), fade_in_shape, this));
+	fade_in_shape->Event.connect (sigc::bind (sigc::mem_fun (PublicEditor::instance(), &PublicEditor::canvas_fade_in_event), fade_in_shape, this));
 	if (fade_in_handle) {
-		fade_in_handle->signal_event().connect (sigc::bind (sigc::mem_fun (PublicEditor::instance(), &PublicEditor::canvas_fade_in_handle_event), fade_in_handle, this));
+		fade_in_handle->Event.connect (sigc::bind (sigc::mem_fun (PublicEditor::instance(), &PublicEditor::canvas_fade_in_handle_event), fade_in_handle, this));
 	}
 
-	fade_out_shape->signal_event().connect (sigc::bind (sigc::mem_fun (PublicEditor::instance(), &PublicEditor::canvas_fade_out_event), fade_out_shape, this));
+	fade_out_shape->Event.connect (sigc::bind (sigc::mem_fun (PublicEditor::instance(), &PublicEditor::canvas_fade_out_event), fade_out_shape, this));
 
 	if (fade_out_handle) {
-		fade_out_handle->signal_event().connect (sigc::bind (sigc::mem_fun (PublicEditor::instance(), &PublicEditor::canvas_fade_out_handle_event), fade_out_handle, this));
+		fade_out_handle->Event.connect (sigc::bind (sigc::mem_fun (PublicEditor::instance(), &PublicEditor::canvas_fade_out_handle_event), fade_out_handle, this));
 	}
 
 	set_colors ();
@@ -1465,7 +1465,7 @@ AudioRegionView::transients_changed ()
 		canvas_item->show ();
 		
 		canvas_item->set_data ("regionview", this);
-		canvas_item->signal_event().connect (sigc::bind (sigc::mem_fun (PublicEditor::instance(), &PublicEditor::canvas_feature_line_event), canvas_item, this));
+		canvas_item->Event.connect (sigc::bind (sigc::mem_fun (PublicEditor::instance(), &PublicEditor::canvas_feature_line_event), canvas_item, this));
 		
 		feature_lines.push_back (make_pair(0, canvas_item));		
 	}

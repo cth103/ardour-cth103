@@ -96,7 +96,8 @@ public:
 		return _watch;
 	}
 
-	PBD::Signal1<bool, GdkEvent*> Event;
+	/* XXX: maybe this should be a PBD::Signal */
+	sigc::signal<bool, GdkEvent*> Event;
 
 #ifdef CANVAS_COMPATIBILITY
 

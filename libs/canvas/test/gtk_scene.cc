@@ -38,9 +38,7 @@ int main (int argc, char* argv[])
 	b.set_outline_width (4);
 	b.set_outline_what (0x2 | 0x8);
 	b.set_outline_color (0x0000ffff);
-
-	PBD::ScopedConnection connection;
-	b.Event.connect_same_thread (connection, sigc::ptr_fun (foo));
+	b.Event.connect (sigc::ptr_fun (foo));
 
 	Rectangle c (canvas->root(), Rect (2048, 2048, 2096, 2096));
 

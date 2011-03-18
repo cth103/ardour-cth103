@@ -137,7 +137,7 @@ CrossfadeEditor::CrossfadeEditor (Session* s, boost::shared_ptr<Crossfade> xf, d
 	toplevel->property_fill() = true;
 	toplevel->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeEditorBase.get();
 	toplevel->property_outline_pixels() =  0;
-	toplevel->signal_event().connect (sigc::mem_fun (*this, &CrossfadeEditor::canvas_event));
+	toplevel->Event.connect (sigc::mem_fun (*this, &CrossfadeEditor::canvas_event));
 
 	fade[Out].line = new ArdourCanvas::PolyLine (canvas->root());
 	fade[Out].line->property_width_pixels() = 1;
@@ -153,10 +153,10 @@ CrossfadeEditor::CrossfadeEditor (Session* s, boost::shared_ptr<Crossfade> xf, d
 	fade[In].shading = new ArdourCanvas::Polygon (canvas->root());
 	fade[In].shading->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeEditorLineShading.get();
 
-	fade[In].shading->signal_event().connect (sigc::mem_fun (*this, &CrossfadeEditor::canvas_event));
-	fade[In].line->signal_event().connect (sigc::mem_fun (*this, &CrossfadeEditor::curve_event));
-	fade[Out].shading->signal_event().connect (sigc::mem_fun (*this, &CrossfadeEditor::canvas_event));
-	fade[Out].line->signal_event().connect (sigc::mem_fun (*this, &CrossfadeEditor::curve_event));
+	fade[In].shading->Event.connect (sigc::mem_fun (*this, &CrossfadeEditor::canvas_event));
+	fade[In].line->Event.connect (sigc::mem_fun (*this, &CrossfadeEditor::curve_event));
+	fade[Out].shading->Event.connect (sigc::mem_fun (*this, &CrossfadeEditor::canvas_event));
+	fade[Out].line->Event.connect (sigc::mem_fun (*this, &CrossfadeEditor::curve_event));
 
 	select_in_button.set_name (X_("CrossfadeEditCurveButton"));
 	select_out_button.set_name (X_("CrossfadeEditCurveButton"));
@@ -471,7 +471,7 @@ CrossfadeEditor::make_point ()
 
 	p->curve = fade[current].line;
 
-	p->box->signal_event().connect (sigc::bind (sigc::mem_fun (*this, &CrossfadeEditor::point_event), p));
+	p->box->Event.connect (sigc::bind (sigc::mem_fun (*this, &CrossfadeEditor::point_event), p));
 
 	return p;
 }

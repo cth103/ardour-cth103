@@ -83,7 +83,7 @@ AutomationLine::AutomationLine (const string& name, TimeAxisView& tv, ArdourCanv
 	line->property_width_pixels() = (guint)1;
 	line->set_data ("line", this);
 
-	line->signal_event().connect (sigc::mem_fun (*this, &AutomationLine::event_handler));
+	line->Event.connect (sigc::mem_fun (*this, &AutomationLine::event_handler));
 
 	connect_to_list ();
 

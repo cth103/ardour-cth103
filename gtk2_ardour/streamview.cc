@@ -72,7 +72,7 @@ StreamView::StreamView (RouteTimeAxisView& tv, ArdourCanvas::Group* background_g
 
 	canvas_rect->set_outline_what (0x2 | 0x8);
 
-	canvas_rect->signal_event().connect (sigc::bind (
+	canvas_rect->Event.connect (sigc::bind (
 			sigc::mem_fun (_trackview.editor(), &PublicEditor::canvas_stream_view_event),
 			canvas_rect, &_trackview));
 

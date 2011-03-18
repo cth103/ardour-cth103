@@ -112,7 +112,7 @@ AutomationTimeAxisView::AutomationTimeAxisView (
 
 	_base_rect->set_data ("trackview", this);
 
-	_base_rect->signal_event().connect (sigc::bind (
+	_base_rect->Event.connect (sigc::bind (
 			sigc::mem_fun (_editor, &PublicEditor::canvas_automation_track_event),
 			_base_rect, this));
 

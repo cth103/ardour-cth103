@@ -78,7 +78,7 @@ MidiStreamView::MidiStreamView (MidiTimeAxisView& tv)
 	_note_lines->property_x2() = DBL_MAX;
 	_note_lines->property_y2() = 0;
 
-	_note_lines->signal_event().connect(sigc::bind(
+	_note_lines->Event.connect (sigc::bind (
 			sigc::mem_fun(_trackview.editor(), &PublicEditor::canvas_stream_view_event),
 			_note_lines, &_trackview));
 
