@@ -9,6 +9,7 @@ class GroupTest : public CppUnit::TestFixture
 	CPPUNIT_TEST (layers);
 	CPPUNIT_TEST (children_changing);
 	CPPUNIT_TEST (grandchildren_changing);
+	CPPUNIT_TEST (add_items_at_point);
 	CPPUNIT_TEST_SUITE_END ();
 
 public:
@@ -17,4 +18,5 @@ public:
 	void layers ();
 	void children_changing ();
 	void grandchildren_changing ();
+	void add_items_at_point ();
 };

@@ -189,7 +189,13 @@ Group::child_changed ()
 void
 Group::add_items_at_point (Duple const point, list<Item*>& items) const
 {
+	boost::optional<Rect> const bbox = bounding_box ();
+	if (!bbox || !bbox.get().contains (point)) {
+		return;
+	}
+	
 	ensure_lut ();
+	
 	list<Item*> our_items = _lut->items_at_point (point);
 	for (list<Item*>::iterator i = our_items.begin(); i != our_items.end(); ++i) {
 		Group* g = dynamic_cast<Group*> (*i);

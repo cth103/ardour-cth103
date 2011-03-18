@@ -49,13 +49,8 @@ LookupTable::build ()
 		/* and in the group's coordinates */
 		Rect const item_bbox_in_group = (*i)->item_to_parent (item_bbox.get ());
 
-		/* apply our offset */
-		Rect const offset_bbox = item_bbox_in_group.translate (-_offset);
-		
 		int x0, y0, x1, y1;
-		area_to_indices (offset_bbox, x0, y0, x1, y1);
-
-//		cout << "ITEM " << offset_bbox << " to x0=" << x0 << ", y0=" << y0 << ", x1=" << x1 << ", y1=" << y1 << "\n";
+		area_to_indices (item_bbox_in_group, x0, y0, x1, y1);
 
 		/* XXX */
 		assert (x0 >= 0);
@@ -100,10 +95,12 @@ LookupTable::area_to_indices (Rect const & area, int& x0, int& y0, int& x1, int&
 		return;
 	}
 
-	x0 = floor (area.x0 / _cell_size.x);
-	y0 = floor (area.y0 / _cell_size.y);
-	x1 = ceil (area.x1 / _cell_size.x);
-	y1 = ceil (area.y1 / _cell_size.y);
+	Rect const offset_area = area.translate (-_offset);
+
+	x0 = floor (offset_area.x0 / _cell_size.x);
+	y0 = floor (offset_area.y0 / _cell_size.y);
+	x1 = ceil  (offset_area.x1 / _cell_size.x);
+	y1 = ceil  (offset_area.y1 / _cell_size.y);
 }
 
 void
@@ -114,8 +111,10 @@ LookupTable::point_to_indices (Duple point, int& x, int& y) const
 		return;
 	}
 
-	x = floor (point.x / _cell_size.x);
-	y = floor (point.y / _cell_size.y);
+	Duple const offset_point = point - _offset;
+
+	x = floor (offset_point.x / _cell_size.x);
+	y = floor (offset_point.y / _cell_size.y);
 }
 
 list<Item*>
