@@ -4793,8 +4793,6 @@ Editor::first_idle ()
 	delete dialog;
 
 	_have_idled = true;
-
-	PBD::set_debug_bits (PBD::DEBUG::CanvasItemsDirtied);
 }
 
 gboolean
