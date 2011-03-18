@@ -110,10 +110,9 @@ Editor::mouse_frame (framepos_t& where, bool& in_track_canvas) const
 		wx = x;
 		wy = y;
 		in_track_canvas = true;
-
 	} else {
 		in_track_canvas = false;
-			return false;
+		return false;
 	}
 
 	GdkEvent event;
@@ -1121,23 +1120,6 @@ Editor::button_press_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemTyp
 {
 	if (event->type != GDK_BUTTON_PRESS) {
 		return false;
-	}
-
-	Glib::RefPtr<Gdk::Window> canvas_window = const_cast<Editor*>(this)->_track_canvas->get_window();
-
-	if (canvas_window) {
-		Glib::RefPtr<const Gdk::Window> pointer_window;
-		int x, y;
-		double wx, wy;
-		Gdk::ModifierType mask;
-
-		pointer_window = canvas_window->get_pointer (x, y, mask);
-
-		/* XXX: CANVAS: was get_bin_window */
-		if (pointer_window == _track_canvas->get_window()) {
-			/* XXX: CANVAS */
-//			track_canvas->window_to_world (x, y, wx, wy);
-		}
 	}
 
         pre_press_cursor = current_canvas_cursor;
