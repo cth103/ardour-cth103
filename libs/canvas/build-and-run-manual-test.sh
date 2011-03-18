@@ -6,7 +6,7 @@ if [ ! -f './canvas.cc' ]; then
     exit 1;
 fi
 
-if [ "$1"] == "--debug" ]; then
+if [ "$1" == "--debug" ]; then
     debug=1
     name=$2
 else

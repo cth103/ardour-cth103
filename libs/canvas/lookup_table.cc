@@ -143,12 +143,9 @@ LookupTable::items_at_point (Duple point) const
 list<Item*>
 LookupTable::get (Rect const & area)
 {
-	/* apply our offset */
-	Rect const offset_area = area.translate (-_offset);
-	
 	list<Item*> items;
 	int x0, y0, x1, y1;
-	area_to_indices (offset_area, x0, y0, x1, y1);
+	area_to_indices (area, x0, y0, x1, y1);
 
 	x0 = min (_dimension, x0);
 	y0 = min (_dimension, y0);

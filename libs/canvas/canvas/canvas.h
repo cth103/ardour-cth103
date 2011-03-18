@@ -67,6 +67,7 @@ public:
 
 protected:
 	bool button_press_handler (GdkEventButton *);
+	bool deliver_event (Duple, GdkEvent *);
 };
 
 class GtkCanvasDrawingArea : public Gtk::EventBox, public GtkCanvas

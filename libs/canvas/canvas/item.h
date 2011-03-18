@@ -6,6 +6,7 @@
 #ifdef CANVAS_COMPATIBILITY
 #include <gdkmm/cursor.h>
 #endif
+#include "pbd/signals.h"
 #include "canvas/types.h"
 
 namespace ArdourCanvas
@@ -94,6 +95,8 @@ public:
 	bool watch () const {
 		return _watch;
 	}
+
+	PBD::Signal1<bool, GdkEvent*> Event;
 
 #ifdef CANVAS_COMPATIBILITY
 

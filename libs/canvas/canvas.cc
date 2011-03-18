@@ -75,18 +75,19 @@ Canvas::queue_draw_item_area (Item* item, Rect area)
 bool
 GtkCanvas::button_press_handler (GdkEventButton* ev)
 {
-	cout << "BP: " << ev->x << " " << ev->y << "\n";
+	return deliver_event (Duple (ev->x, ev->y), reinterpret_cast<GdkEvent*> (ev));
+}
 
+bool
+GtkCanvas::deliver_event (Duple point, GdkEvent* event)
+{
 	list<Item*> items;
-	_root.add_items_at_point (Duple (ev->x, ev->y), items);
-
-	if (!items.empty ()) {
-		cout << "Top item " << items.back()->name() << "\n";
-	} else {
-		cout << "No item.\n";
+	_root.add_items_at_point (point, items);
+	if (items.empty()) {
+		return false;
 	}
 	
-	return true;
+	return items.back()->Event (event);
 }
 
 ImageCanvas::ImageCanvas ()
