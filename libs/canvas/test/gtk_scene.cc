@@ -21,6 +21,7 @@ int main (int argc, char* argv[])
 	Rectangle b (canvas.root(), Rect (64, 64, 128, 128));
 	b.set_position (Duple (256, 256));
 	b.set_outline_width (4);
+	b.set_outline_what (0x2 | 0x8);
 	b.set_outline_color (0x00ff00ff);
 
 	Gtk::ScrolledWindow scroller;

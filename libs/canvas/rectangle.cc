@@ -30,37 +30,32 @@ Rectangle::Rectangle (Group* parent, Rect const & rect)
 void
 Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
-	context->move_to (_rect.x0, _rect.y0);
+	if (_fill) {
+		setup_fill_context (context);
+		context->rectangle (_rect.x0, _rect.y0, _rect.width(), _rect.height());
+		context->fill ();
+	}
 
 	if (_outline_what & LEFT) {
+		context->move_to (_rect.x0, _rect.x0);
 		context->line_to (_rect.x0, _rect.y1);
-	} else {
-		context->move_to (_rect.x0, _rect.y1);
 	}
 
 	if (_outline_what & BOTTOM) {
+		context->move_to (_rect.x0, _rect.y1);
 		context->line_to (_rect.x1, _rect.y1);
-	} else {
-		context->move_to (_rect.x1, _rect.y1);
 	}
 
 	if (_outline_what & RIGHT) {
-		context->line_to (_rect.x1, _rect.y0);
-	} else {
 		context->move_to (_rect.x1, _rect.y0);
+		context->line_to (_rect.x1, _rect.y1);
 	}
 
 	if (_outline_what & TOP) {
-		context->line_to (_rect.x0, _rect.y0);
-	} else {
 		context->move_to (_rect.x0, _rect.y0);
+		context->line_to (_rect.x0, _rect.y1);
 	}
 		
-	if (_fill) {
-		setup_fill_context (context);
-		context->fill_preserve ();
-	}
-	
 	setup_outline_context (context);
 	context->stroke ();
 }
