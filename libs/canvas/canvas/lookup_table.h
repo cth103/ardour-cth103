@@ -1,7 +1,7 @@
 #ifndef __CANVAS_LOOKUP_TABLE_H__
 #define __CANVAS_LOOKUP_TABLE_H__
 
-#include <list>
+#include <vector>
 #include <boost/multi_array.hpp>
 #include "canvas/types.h"
 
@@ -16,8 +16,8 @@ class LookupTable
 {
 public:
 	LookupTable (Group const &, int);
-	std::list<Item*> get (Rect const &);
-	std::list<Item*> items_at_point (Duple) const;
+	std::vector<Item*> get (Rect const &);
+	std::vector<Item*> items_at_point (Duple) const;
 
 	static int default_items_per_cell;
 
@@ -30,7 +30,7 @@ private:
 	friend class ::LookupTableTest;
 
 	Group const & _group;
-	typedef std::list<Item*> Cell;
+	typedef std::vector<Item*> Cell;
 	int _items_per_cell;
 	int _dimension;
 	Duple _cell_size;

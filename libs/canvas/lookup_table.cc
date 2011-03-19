@@ -117,7 +117,7 @@ LookupTable::point_to_indices (Duple point, int& x, int& y) const
 	y = floor (offset_point.y / _cell_size.y);
 }
 
-list<Item*>
+vector<Item*>
 LookupTable::items_at_point (Duple point) const
 {
 	int x;
@@ -140,7 +140,7 @@ LookupTable::items_at_point (Duple point) const
 	assert (y >= 0);
 
 	Cell const & cell = _cells[x][y];
-	list<Item*> items;
+	vector<Item*> items;
 	for (Cell::const_iterator i = cell.begin(); i != cell.end(); ++i) {
 		boost::optional<Rect> const item_bbox = (*i)->bounding_box ();
 		if (item_bbox) {
@@ -155,7 +155,7 @@ LookupTable::items_at_point (Duple point) const
 }
 	
 /** @param area Area in our owning group's coordinates */
-list<Item*>
+vector<Item*>
 LookupTable::get (Rect const & area)
 {
 	list<Item*> items;
@@ -179,6 +179,9 @@ LookupTable::get (Rect const & area)
 	items.sort ();
 	items.unique ();
 
-	return items;
+	vector<Item*> vitems;
+	copy (items.begin (), items.end (), back_inserter (vitems));
+	
+	return vitems;
 }
 

@@ -2,6 +2,7 @@
 #define __CANVAS_GROUP_H__
 
 #include <list>
+#include <vector>
 #include "canvas/item.h"
 #include "canvas/types.h"
 #include "canvas/lookup_table.h"
@@ -30,7 +31,7 @@ public:
 	void lower_child_to_bottom (Item *);
 	void child_changed ();
 
-	void add_items_at_point (Duple, std::list<Item const *> &) const;
+	void add_items_at_point (Duple, std::vector<Item const *> &) const;
 
 	static int default_items_per_cell;
 

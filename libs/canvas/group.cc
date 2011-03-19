@@ -47,11 +47,11 @@ void
 Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
 	ensure_lut ();
-	list<Item*> items = _lut->get (area);
+	vector<Item*> items = _lut->get (area);
 
 	bounding_box ();
 	
-	for (list<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
+	for (vector<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
 		if (!(*i)->visible ()) {
 			continue;
 		}
@@ -189,7 +189,7 @@ Group::child_changed ()
 }
 
 void
-Group::add_items_at_point (Duple const point, list<Item const *>& items) const
+Group::add_items_at_point (Duple const point, vector<Item const *>& items) const
 {
 	boost::optional<Rect> const bbox = bounding_box ();
 	if (!bbox || !bbox.get().contains (point)) {
@@ -200,8 +200,8 @@ Group::add_items_at_point (Duple const point, list<Item const *>& items) const
 	
 	ensure_lut ();
 	
-	list<Item*> our_items = _lut->items_at_point (point);
-	for (list<Item*>::iterator i = our_items.begin(); i != our_items.end(); ++i) {
+	vector<Item*> our_items = _lut->items_at_point (point);
+	for (vector<Item*>::iterator i = our_items.begin(); i != our_items.end(); ++i) {
 		(*i)->add_items_at_point (point - (*i)->position(), items);
 	}
 }
