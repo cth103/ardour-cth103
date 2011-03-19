@@ -70,7 +70,7 @@ LookupTableTest::get_small ()
 	d.set_outline_width (0);
 	LookupTable table (group, 1);
 	
-	list<Item*> items = table.get (Rect (16, 16, 48, 48));
+	vector<Item*> items = table.get (Rect (16, 16, 48, 48));
 	CPPUNIT_ASSERT (items.size() == 4);
 	
 	items = table.get (Rect (32, 32, 33, 33));
@@ -95,6 +95,6 @@ LookupTableTest::get_big ()
 	}
 
 	LookupTable table (group, 16);
-	list<Item*> items = table.get (Rect (0, 0, 15, 15));
+	vector<Item*> items = table.get (Rect (0, 0, 15, 15));
 	CPPUNIT_ASSERT (items.size() == 16);
 }
