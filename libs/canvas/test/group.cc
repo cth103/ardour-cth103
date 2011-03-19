@@ -224,8 +224,9 @@ GroupTest::add_items_at_point ()
 
 	list<Item*> items;
 	root.add_items_at_point (Duple (128 + 64 + 4 + 4, 64 + 32 + 2 + 2), items);
-	CPPUNIT_ASSERT (items.size() == 4);
+	CPPUNIT_ASSERT (items.size() == 5);
 	list<Item*>::iterator i = items.begin ();
+	CPPUNIT_ASSERT (*i++ == &root);
 	CPPUNIT_ASSERT (*i++ == &gA);
 	CPPUNIT_ASSERT (*i++ == &gB);
 	CPPUNIT_ASSERT (*i++ == &rA);
@@ -233,8 +234,9 @@ GroupTest::add_items_at_point ()
 
 	items.clear ();
 	root.add_items_at_point (Duple (128 + 64 + 12 + 4, 64 + 32 + 6 + 2), items);
-	CPPUNIT_ASSERT (items.size() == 3);
+	CPPUNIT_ASSERT (items.size() == 4);
 	i = items.begin ();
+	CPPUNIT_ASSERT (*i++ == &root);
 	CPPUNIT_ASSERT (*i++ == &gA);
 	CPPUNIT_ASSERT (*i++ == &gB);
 	CPPUNIT_ASSERT (*i++ == &rC);
@@ -279,6 +281,10 @@ GroupTest::torture_add_items_at_point ()
 
 		/* work it out ourselves */
 		list<Item*> items_B;
+		if (group.bounding_box() && group.bounding_box().get().contains (test)) {
+			items_B.push_back (&group);
+		}
+		
 		for (list<Item*>::iterator j = rectangles.begin(); j != rectangles.end(); ++j) {
 			boost::optional<Rect> bbox = (*j)->bounding_box ();
 			assert (bbox);
