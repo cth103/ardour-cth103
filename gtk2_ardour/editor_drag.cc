@@ -626,7 +626,7 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 			  parent groups have different coordinates.
 			*/
 			
-			rv->get_canvas_group()->property_y() = iy1 - 1;
+			rv->get_canvas_group()->set_y_position (iy1 - 1);
 			rv->get_canvas_group()->reparent (_editor->_region_motion_group);
 			
 			rv->fake_set_opaque (true);
@@ -967,7 +967,7 @@ RegionMoveDrag::finished_no_copy (
 			*/
 
 			rv->get_canvas_group()->reparent (dest_rtv->view()->canvas_item());
-			rv->get_canvas_group()->property_y() = i->initial_y;
+			rv->get_canvas_group()->set_y_position (i->initial_y);
 			rv->get_time_axis_view().reveal_dependent_views (*rv);
 
 			/* just change the model */
@@ -1166,7 +1166,7 @@ RegionMotionDrag::aborted (bool)
 		RouteTimeAxisView* rtv = dynamic_cast<RouteTimeAxisView*> (tv);
 		assert (rtv);
 		rv->get_canvas_group()->reparent (rtv->view()->canvas_item());
-		rv->get_canvas_group()->property_y() = 0;
+		rv->get_canvas_group()->set_y_position (0);
 		rv->get_time_axis_view().reveal_dependent_views (*rv);
 		rv->fake_set_opaque (false);
 		rv->move (-_total_x_delta, 0);
@@ -1227,7 +1227,7 @@ RegionInsertDrag::finished (GdkEvent *, bool)
 	RouteTimeAxisView* dest_rtv = dynamic_cast<RouteTimeAxisView*> (_time_axis_views[_views.front().time_axis_view]);
 
 	_primary->get_canvas_group()->reparent (dest_rtv->view()->canvas_item());
-	_primary->get_canvas_group()->property_y() = 0;
+	_primary->get_canvas_group()->set_y_position (0);
 
 	boost::shared_ptr<Playlist> playlist = dest_rtv->playlist();
 
@@ -4110,7 +4110,7 @@ DraggingView::DraggingView (RegionView* v, RegionDrag* parent)
 {
 	time_axis_view = parent->find_time_axis_view (&v->get_time_axis_view ());
 	layer = v->region()->layer ();
-	initial_y = v->get_canvas_group()->property_y ();
+	initial_y = v->get_canvas_group()->position().y;
 	initial_playlist = v->region()->playlist ();
 	initial_position = v->region()->position ();
 	initial_end = v->region()->position () + v->region()->length ();

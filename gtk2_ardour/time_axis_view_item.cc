@@ -300,7 +300,7 @@ TimeAxisViewItem::set_position(framepos_t pos, void* src, double* delta)
 	double old_unit_pos;
 	double new_unit_pos = pos / samples_per_unit;
 
-	old_unit_pos = group->property_x();
+	old_unit_pos = group->position().x;
 
 	if (new_unit_pos != old_unit_pos) {
 		group->set_x_position (new_unit_pos);

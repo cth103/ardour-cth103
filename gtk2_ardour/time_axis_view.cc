@@ -239,8 +239,8 @@ TimeAxisView::show_at (double y, int& nth, VBox *parent)
 	_order = nth;
 
 	if (_y_position != y) {
-		_canvas_display->property_y () = y;
-		_canvas_background->property_y () = y;
+		_canvas_display->set_y_position (y);
+		_canvas_background->set_y_position (y);
 		_y_position = y;
 
 	}

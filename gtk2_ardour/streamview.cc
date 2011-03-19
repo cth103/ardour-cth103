@@ -119,8 +119,7 @@ StreamView::attach ()
 int
 StreamView::set_position (gdouble x, gdouble y)
 {
-	_canvas_group->property_x() = x;
-	_canvas_group->property_y() = y;
+	_canvas_group->set_position (ArdourCanvas::Duple (x, y));
 	return 0;
 }
 

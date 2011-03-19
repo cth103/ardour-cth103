@@ -76,8 +76,6 @@ AutomationLine::AutomationLine (const string& name, TimeAxisView& tv, ArdourCanv
 	_height = 0;
 
 	group = new ArdourCanvas::Group (&parent);
-	group->property_x() = 0.0;
-	group->property_y() = 0.0;
 
 	line = new ArdourCanvas::PolyLine (group);
 	line->property_width_pixels() = (guint)1;

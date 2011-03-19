@@ -609,11 +609,11 @@ Editor::update_ruler_visibility ()
 	mark_label.hide();
 #endif
 	if (ruler_meter_action->get_active()) {
-		old_unit_pos = meter_group->property_y();
+		old_unit_pos = meter_group->position().y;
 		if (tbpos != old_unit_pos) {
 			meter_group->move (ArdourCanvas::Duple (0.0, tbpos - old_unit_pos));
 		}
-		old_unit_pos = meter_bar_group->property_y();
+		old_unit_pos = meter_bar_group->position().y;
 		if (tbgpos != old_unit_pos) {
 			meter_bar_group->move (ArdourCanvas::Duple (0.0, tbgpos - old_unit_pos));
 		}
@@ -630,11 +630,11 @@ Editor::update_ruler_visibility ()
 	}
 
 	if (ruler_tempo_action->get_active()) {
-		old_unit_pos = tempo_group->property_y();
+		old_unit_pos = tempo_group->position().y;
 		if (tbpos != old_unit_pos) {
 			tempo_group->move (ArdourCanvas::Duple (0.0, tbpos - old_unit_pos));
 		}
-		old_unit_pos = tempo_bar_group->property_y();
+		old_unit_pos = tempo_bar_group->position().y;
 		if (tbgpos != old_unit_pos) {
 			tempo_bar_group->move (ArdourCanvas::Duple (0.0, tbgpos - old_unit_pos));
 		}
@@ -651,11 +651,11 @@ Editor::update_ruler_visibility ()
 	}
 
 	if (!Profile->get_sae() && ruler_range_action->get_active()) {
-		old_unit_pos = range_marker_group->property_y();
+		old_unit_pos = range_marker_group->position().y;
 		if (tbpos != old_unit_pos) {
 			range_marker_group->move (ArdourCanvas::Duple (0.0, tbpos - old_unit_pos));
 		}
-		old_unit_pos = range_marker_bar_group->property_y();
+		old_unit_pos = range_marker_bar_group->position().y;
 		if (tbgpos != old_unit_pos) {
 			range_marker_bar_group->move (ArdourCanvas::Duple (0.0, tbgpos - old_unit_pos));
 		}
@@ -673,11 +673,11 @@ Editor::update_ruler_visibility ()
 	}
 
 	if (ruler_loop_punch_action->get_active()) {
-		old_unit_pos = transport_marker_group->property_y();
+		old_unit_pos = transport_marker_group->position().y;
 		if (tbpos != old_unit_pos) {
 			transport_marker_group->move (ArdourCanvas::Duple (0.0, tbpos - old_unit_pos));
 		}
-		old_unit_pos = transport_marker_bar_group->property_y();
+		old_unit_pos = transport_marker_bar_group->position().y;
 		if (tbgpos != old_unit_pos) {
 			transport_marker_bar_group->move (ArdourCanvas::Duple (0.0, tbgpos - old_unit_pos));
 		}
@@ -694,11 +694,11 @@ Editor::update_ruler_visibility ()
 	}
 
 	if (ruler_cd_marker_action->get_active()) {
-		old_unit_pos = cd_marker_group->property_y();
+		old_unit_pos = cd_marker_group->position().y;
 		if (tbpos != old_unit_pos) {
 			cd_marker_group->move (ArdourCanvas::Duple (0.0, tbpos - old_unit_pos));
 		}
-		old_unit_pos = cd_marker_bar_group->property_y();
+		old_unit_pos = cd_marker_bar_group->position().y;
 		if (tbgpos != old_unit_pos) {
 			cd_marker_bar_group->move (ArdourCanvas::Duple (0.0, tbgpos - old_unit_pos));
 		}
@@ -719,11 +719,11 @@ Editor::update_ruler_visibility ()
 	}
 
 	if (ruler_marker_action->get_active()) {
-		old_unit_pos = marker_group->property_y();
+		old_unit_pos = marker_group->position().y;
 		if (tbpos != old_unit_pos) {
 			marker_group->move (ArdourCanvas::Duple (0.0, tbpos - old_unit_pos));
 		}
-		old_unit_pos = marker_bar_group->property_y();
+		old_unit_pos = marker_bar_group->position().y;
 		if (tbgpos != old_unit_pos) {
 			marker_bar_group->move (ArdourCanvas::Duple (0.0, tbgpos - old_unit_pos));
 		}
@@ -749,8 +749,8 @@ Editor::update_ruler_visibility ()
 		/* if we're at the bottom of the canvas, don't move the _trackview_group */
 		vertical_adjustment.set_value (_full_canvas_height - _visible_canvas_height + 1);
 	} else {
-		_trackview_group->property_y () = - get_trackview_group_vertical_offset ();
-		_background_group->property_y () = - get_trackview_group_vertical_offset ();
+		_trackview_group->set_y_position (- get_trackview_group_vertical_offset ());
+		_background_group->set_y_position (- get_trackview_group_vertical_offset ());
 	}
 
 	gdouble bottom_track_pos = vertical_adjustment.get_value() + _visible_canvas_height - canvas_timebars_vsize;

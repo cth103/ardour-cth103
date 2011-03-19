@@ -34,16 +34,6 @@ public:
 
 	static int default_items_per_cell;
 
-#ifdef CANVAS_COMPATIBILITY
-	Coord& property_x () {
-		return _position.x;
-	}
-
-	Coord& property_y () {
-		return _position.y;
-	}
-#endif	
-
 protected:
 	
 	explicit Group (Canvas *);
