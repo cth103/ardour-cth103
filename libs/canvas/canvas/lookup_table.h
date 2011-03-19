@@ -16,6 +16,7 @@ class LookupTable
 {
 public:
 	LookupTable (Group const &, int);
+	~LookupTable ();
 	std::vector<Item*> get (Rect const &);
 	std::vector<Item*> items_at_point (Duple) const;
 
@@ -23,7 +24,6 @@ public:
 
 private:
 
-	void build ();
 	void area_to_indices (Rect const &, int &, int &, int &, int &) const;
 	void point_to_indices (Duple, int &, int &) const;
 
@@ -35,7 +35,7 @@ private:
 	int _dimension;
 	Duple _cell_size;
 	Duple _offset;
-	boost::multi_array<Cell, 2> _cells;
+	Cell** _cells;
 	bool _added;
 };
 

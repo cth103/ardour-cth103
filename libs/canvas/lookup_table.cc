@@ -9,12 +9,6 @@ LookupTable::LookupTable (Group const & group, int items_per_cell)
 	, _items_per_cell (items_per_cell)
 	, _added (false)
 {
-	build ();
-}
-
-void
-LookupTable::build ()
-{
 	list<Item*> const & items = _group.items ();
 
 	/* number of cells */
@@ -22,8 +16,10 @@ LookupTable::build ()
 	/* hence number down each side of the table's square */
 	_dimension = max (1, int (rint (sqrt (cells))));
 
-	boost::multi_array<Cell, 2>::extent_gen extents;
-	_cells.resize (extents[_dimension][_dimension]);
+	_cells = new Cell*[_dimension];
+	for (int i = 0; i < _dimension; ++i) {
+		_cells[i] = new Cell[_dimension];
+	}
 
 	/* our group's bounding box in its coordinates */
 	boost::optional<Rect> bbox = _group.bounding_box ();
@@ -101,6 +97,15 @@ LookupTable::area_to_indices (Rect const & area, int& x0, int& y0, int& x1, int&
 	y0 = floor (offset_area.y0 / _cell_size.y);
 	x1 = ceil  (offset_area.x1 / _cell_size.x);
 	y1 = ceil  (offset_area.y1 / _cell_size.y);
+}
+
+LookupTable::~LookupTable ()
+{
+	for (int i = 0; i < _dimension; ++i) {
+		delete[] _cells[i];
+	}
+
+	delete[] _cells;
 }
 
 void
