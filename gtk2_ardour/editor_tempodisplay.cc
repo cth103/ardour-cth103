@@ -197,7 +197,8 @@ Editor::draw_measures ()
 		tempo_lines = new TempoLines (*_track_canvas, time_line_group, physical_screen_height (get_window()));
 	}
 
-	tempo_lines->draw(*current_bbt_points, frames_per_unit);
+	/* XXX: CANVAS */
+//	tempo_lines->draw(*current_bbt_points, frames_per_unit);
 }
 
 void

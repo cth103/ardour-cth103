@@ -33,6 +33,7 @@
 
 #include "canvas/unimplemented.h"
 #include "canvas/polygon.h"
+#include "canvas/debug.h"
 
 #include "ardour_ui.h"
 #include "global_signals.h"
@@ -235,6 +236,7 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double thres
 	for (AudioIntervalResult::const_iterator i = silences.begin(); i != silences.end(); ++i) {
 
 		ArdourCanvas::Rectangle* cr = new ArdourCanvas::Rectangle (group);
+		CANVAS_DEBUG_NAME (cr, "RV silent frame");
 		_silent_frames.push_back (cr);
 
 		/* coordinates for the rect are relative to the regionview origin */
@@ -268,6 +270,7 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double thres
 	}
 
         _silence_text = new ArdourCanvas::NoEventText (group);
+	CANVAS_DEBUG_NAME (group, "TAV silence text");
         _silence_text->property_font_desc() = *(get_font_for_style (N_("SilenceText")));
         _silence_text->property_color_rgba() = ARDOUR_UI::config()->canvasvar_SilenceText.get();
         _silence_text->property_anchor() = ANCHOR_NW;
@@ -614,9 +617,11 @@ RegionView::region_sync_changed ()
 		/* points set below */
 
 		sync_mark = new ArdourCanvas::Polygon (group);
+		CANVAS_DEBUG_NAME (sync_mark, "RV sync mark");
 		sync_mark->property_fill_color_rgba() = RGBA_TO_UINT(0,255,0,255);     // fill_color;			// FIXME make a themeable colour
 
 		sync_line = new ArdourCanvas::Line (group);
+		CANVAS_DEBUG_NAME (sync_mark, "RV sync line");
 		sync_line->property_color_rgba() = RGBA_TO_UINT(0,255,0,255);     // fill_color;			// FIXME make a themeable colour	
 		sync_line->property_width_pixels() = 1;
 	}
@@ -786,6 +791,7 @@ RegionView::update_coverage_frames (LayerDisplay d)
 		/* start off any new rect, if required */
 		if (cr == 0 || me != new_me) {
 			cr = new ArdourCanvas::Rectangle (group);
+			CANVAS_DEBUG_NAME (cr, "RV coverage frame");
 			_coverage_frames.push_back (cr);
 			cr->set_x0 (trackview.editor().frame_to_pixel (t - position));
 			cr->set_y0 (1);

@@ -19,6 +19,7 @@
 
 #include "canvas/line.h"
 #include "canvas/canvas.h"
+#include "canvas/debug.h"
 #include "tempo_lines.h"
 #include "ardour_ui.h"
 

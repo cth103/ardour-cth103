@@ -1,5 +1,6 @@
 #include <cassert>
 #include <gtkmm/adjustment.h>
+#include "pbd/compose.h"
 #include "canvas/canvas.h"
 #include "canvas/debug.h"
 
@@ -75,6 +76,7 @@ Canvas::queue_draw_item_area (Item* item, Rect area)
 bool
 GtkCanvas::button_press_handler (GdkEventButton* ev)
 {
+	DEBUG_TRACE (PBD::DEBUG::CanvasEvents, string_compose ("canvas button press %1 %1\n", ev->x, ev->y));
 	return deliver_event (Duple (ev->x, ev->y), reinterpret_cast<GdkEvent*> (ev));
 }
 
@@ -87,7 +89,32 @@ GtkCanvas::deliver_event (Duple point, GdkEvent* event)
 		return false;
 	}
 	
-	return items.back()->Event (event);
+	if (PBD::debug_bits & PBD::DEBUG::CanvasEvents) {
+		for (list<Item*>::reverse_iterator i = items.rbegin(); i != items.rend(); ++i) {
+			DEBUG_TRACE (PBD::DEBUG::CanvasEvents, string_compose ("%1\n", (*i)->name.empty() ? "[unknown]" : (*i)->name));
+		}
+	}
+
+	DEBUG_TRACE (PBD::DEBUG::CanvasEvents, "canvas deliver event to top of:\n");
+	list<Item*>::reverse_iterator i = items.rbegin ();
+	while (i != items.rend()) {
+		if ((*i)->Event (event)) {
+			DEBUG_TRACE (PBD::DEBUG::CanvasEvents, string_compose ("canvas event handled by %1\n", (*i)->name.empty() ? "[unknown]" : (*i)->name));
+			return true;
+		}
+		DEBUG_TRACE (PBD::DEBUG::CanvasEvents, string_compose ("canvas event ignored by %1\n", (*i)->name.empty() ? "[unknown]" : (*i)->name));
+		++i;
+	}
+
+	
+	if (PBD::debug_bits & PBD::DEBUG::CanvasEvents) {
+		while (i != items.rend()) {
+			DEBUG_TRACE (PBD::DEBUG::CanvasEvents, string_compose ("canvas event not seen by %1\n", (*i)->name.empty() ? "[unknown]" : (*i)->name));
+			--i;
+		}
+	}
+	
+	return false;
 }
 
 ImageCanvas::ImageCanvas ()

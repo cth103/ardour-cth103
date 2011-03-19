@@ -84,10 +84,6 @@ public:
 		return _canvas;
 	}
 
-	virtual char const * name () const {
-		return "unknown";
-	}
-
 	void set_watch () {
 		_watch = true;
 	}
@@ -99,6 +95,10 @@ public:
 	/* XXX: maybe this should be a PBD::Signal */
 	sigc::signal<bool, GdkEvent*> Event;
 
+#ifdef CANVAS_DEBUG
+	std::string name;
+#endif
+	
 #ifdef CANVAS_COMPATIBILITY
 
 	void set_data (char const *, void *);
