@@ -4135,7 +4135,7 @@ PatchChangeDrag::motion (GdkEvent* ev, bool)
 	
 	framecnt_t const dxf = f - grab_frame();
 	double const dxu = _editor->frame_to_unit (dxf);
-	_patch_change->move (dxu - _cumulative_dx, 0);
+	_patch_change->move (ArdourCanvas::Duple (dxu - _cumulative_dx, 0));
 	_cumulative_dx = dxu;
 }
 
@@ -4161,7 +4161,7 @@ PatchChangeDrag::finished (GdkEvent* ev, bool movement_occurred)
 void
 PatchChangeDrag::aborted (bool)
 {
-	_patch_change->move (-_cumulative_dx, 0);
+	_patch_change->move (ArdourCanvas::Duple (-_cumulative_dx, 0));
 }
 
 void

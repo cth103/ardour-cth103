@@ -3367,7 +3367,7 @@ MidiRegionView::trim_front_starting ()
 	   when the region view is trimmed.
 	*/
 	_temporary_note_group = new ArdourCanvas::Group (group->parent ());
-	_temporary_note_group->move (group->property_x(), group->property_y());
+	_temporary_note_group->move (group->position ());
 	_note_group->reparent (_temporary_note_group);
 }
 

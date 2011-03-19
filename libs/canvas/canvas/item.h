@@ -58,6 +58,7 @@ public:
 	void set_position (Duple);
 	void set_x_position (Coord);
 	void set_y_position (Coord);
+	void move (Duple);
 
 	/** @return Position of this item in the parent's coordinates */
 	Duple position () const {
@@ -111,7 +112,6 @@ public:
 	void* get_data (char const *);
 	void w2i (double &, double &);
 	void i2w (double &, double &);
-	void move (double, double);
 	void grab (int, Gdk::Cursor, uint32_t &);
 	void grab (int, uint32_t);
 	void ungrab (int);

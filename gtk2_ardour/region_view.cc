@@ -472,7 +472,7 @@ RegionView::set_position (framepos_t pos, void* /*src*/, double* ignored)
 
 	if (delta) {
 		for (vector<GhostRegion*>::iterator i = ghosts.begin(); i != ghosts.end(); ++i) {
-			(*i)->group->move (delta, 0.0);
+			(*i)->group->move (ArdourCanvas::Duple (delta, 0.0));
 		}
 	}
 
@@ -676,12 +676,12 @@ RegionView::move (double x_delta, double y_delta)
 		return;
 	}
 
-	get_canvas_group()->move (x_delta, y_delta);
+	get_canvas_group()->move (ArdourCanvas::Duple (x_delta, y_delta));
 
 	/* note: ghosts never leave their tracks so y_delta for them is always zero */
 
 	for (vector<GhostRegion*>::iterator i = ghosts.begin(); i != ghosts.end(); ++i) {
-		(*i)->group->move (x_delta, 0.0);
+		(*i)->group->move (ArdourCanvas::Duple (x_delta, 0.0));
 	}
 }
 

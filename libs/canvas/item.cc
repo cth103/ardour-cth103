@@ -200,6 +200,12 @@ Item::end_change ()
 	}
 }
 
+void
+Item::move (Duple movement)
+{
+	set_position (position() + movement);
+}
+
 #ifdef CANVAS_COMPATIBILITY
 void
 Item::set_data (char const * key, void* data)
@@ -241,17 +247,6 @@ Item::w2i (double& x, double& y)
 
 	x = d.x;
 	y = d.y;
-}
-
-void
-Item::move (double dx, double dy)
-{
-	Duple p = _position;
-
-	p.x += dx;
-	p.y += dy;
-
-	set_position (p);
 }
 
 void

@@ -303,7 +303,7 @@ TimeAxisViewItem::set_position(framepos_t pos, void* src, double* delta)
 	old_unit_pos = group->property_x();
 
 	if (new_unit_pos != old_unit_pos) {
-		group->move (new_unit_pos - old_unit_pos, 0.0);
+		group->set_x_position (new_unit_pos);
 	}
 
 	if (delta) {
@@ -943,10 +943,7 @@ TimeAxisViewItem::idle_remove_this_item(TimeAxisViewItem* item, void* src)
 void
 TimeAxisViewItem::set_y (double y)
 {
-	double const old = group->property_y ();
-	if (y != old) {
-		group->move (0, y - old);
-	}
+	group->set_y_position (y);
 }
 
 void

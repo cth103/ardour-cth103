@@ -408,11 +408,9 @@ Marker::setup_name_display ()
 void
 Marker::set_position (framepos_t frame)
 {
-	double new_unit_position = editor.frame_to_unit (frame);
-	new_unit_position -= _shift;
-	group->move (new_unit_position - unit_position, 0.0);
+	unit_position = editor.frame_to_unit (frame) - _shift;
+	group->set_x_position (unit_position);
 	frame_position = frame;
-	unit_position = new_unit_position;
 }
 
 void

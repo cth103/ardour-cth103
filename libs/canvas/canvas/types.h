@@ -33,6 +33,7 @@ struct Duple
 
 
 extern Duple operator- (Duple const &);
+extern Duple operator+ (Duple const &, Duple const &);
 extern Duple operator- (Duple const &, Duple const &);
 extern std::ostream & operator<< (std::ostream &, Duple const &);
 
