@@ -3,15 +3,10 @@
 #include "canvas/canvas.h"
 #include "canvas/root_group.h"
 #include "canvas/rectangle.h"
+#include "benchmark.h"
 
 using namespace std;
 using namespace ArdourCanvas;
-
-static double
-double_random ()
-{
-	return ((double) rand() / RAND_MAX);
-}
 
 static void
 test (int items_per_cell)
@@ -29,13 +24,7 @@ test (int items_per_cell)
 	list<Item*> rectangles;
 
 	for (int i = 0; i < n_rectangles; ++i) {
-		Rectangle* r = new Rectangle (&group);
-		double const x = double_random () * rough_size / 2;
-		double const y = double_random () * rough_size / 2;
-		double const w = double_random () * rough_size / 2;
-		double const h = double_random () * rough_size / 2;
-		r->set (Rect (x, y, x + w, y + h));
-		rectangles.push_back (r);
+		rectangles.push_back (new Rectangle (&group, rect_random (rough_size)));
 	}
 
 	for (int i = 0; i < n_tests; ++i) {
@@ -49,7 +38,8 @@ test (int items_per_cell)
 
 int main ()
 {
-	int tests[] = { 1, 2, 4, 8, 16, 32, 64, 128, 256 };
+//	int tests[] = { 1, 2, 4, 8, 16, 32, 64, 128, 256 };
+	int tests[] = { 1 };
 
 	for (unsigned int i = 0; i < sizeof (tests) / sizeof (int); ++i) {
 		timeval start;
