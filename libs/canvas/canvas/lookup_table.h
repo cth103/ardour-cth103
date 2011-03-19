@@ -19,6 +19,8 @@ public:
 	std::list<Item*> get (Rect const &);
 	std::list<Item*> items_at_point (Duple) const;
 
+	static int default_items_per_cell;
+
 private:
 
 	void build ();

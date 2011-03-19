@@ -8,6 +8,8 @@
 using namespace std;
 using namespace ArdourCanvas;
 
+int Group::default_items_per_cell = 64;
+
 Group::Group (Canvas* canvas)
 	: Item (canvas)
 	, _lut (0)
@@ -164,7 +166,7 @@ void
 Group::ensure_lut () const
 {
 	if (!_lut) {
-		_lut = new LookupTable (*this, 64);
+		_lut = new LookupTable (*this, default_items_per_cell);
 	}
 }
 

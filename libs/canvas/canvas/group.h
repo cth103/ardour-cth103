@@ -32,6 +32,8 @@ public:
 
 	void add_items_at_point (Duple, std::list<Item*> &) const;
 
+	static int default_items_per_cell;
+
 #ifdef CANVAS_COMPATIBILITY
 	Coord& property_x () {
 		return _position.x;

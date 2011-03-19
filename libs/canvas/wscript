@@ -108,6 +108,22 @@ def build(bld):
 		unit_testobj.cxxflags     += ['-DCONFIG_DIR="' + os.path.normpath(bld.env['CONFIGDIR']) + '"']
 		unit_testobj.cxxflags     += ['-DMODULE_DIR="' + os.path.normpath(bld.env['LIBDIR']) + '"']
 
+		benchmarks              = '''
+			benchmark/items_at_point.cc
+		'''.split()
+
+		for t in benchmarks:
+			target = t[:-3]
+			name = t[t.find('/')+1:-3]
+			manual_testobj = bld.new_task_gen('cxx', 'program')
+			manual_testobj.source = t
+			manual_testobj.includes = obj.includes + ['test', '../pbd']
+			manual_testobj.uselib       = 'CPPUNIT SIGCPP CAIROMM GTKMM'
+			manual_testobj.uselib_local = 'libcanvas libevoral libardour'
+			manual_testobj.name         = 'libcanvas-benchmark-%s' % name
+			manual_testobj.target       = target
+			manual_testobj.install_path = ''
+
 def shutdown():
 	autowaf.shutdown()
 
