@@ -49,8 +49,7 @@ test (int items_per_cell)
 
 int main ()
 {
-//	int tests[] = { 1, 2, 4, 8, 16, 32, 64, 128, 256 };
-	int tests[] = { 64 };
+	int tests[] = { 1, 2, 4, 8, 16, 32, 64, 128, 256 };
 
 	for (unsigned int i = 0; i < sizeof (tests) / sizeof (int); ++i) {
 		timeval start;
