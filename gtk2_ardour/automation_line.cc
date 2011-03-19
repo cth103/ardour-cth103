@@ -78,7 +78,7 @@ AutomationLine::AutomationLine (const string& name, TimeAxisView& tv, ArdourCanv
 	group = new ArdourCanvas::Group (&parent);
 
 	line = new ArdourCanvas::PolyLine (group);
-	line->property_width_pixels() = (guint)1;
+	line->set_outline_width (1);
 	line->set_data ("line", this);
 
 	line->Event.connect (sigc::mem_fun (*this, &AutomationLine::event_handler));
@@ -180,7 +180,7 @@ void
 AutomationLine::set_line_color (uint32_t color)
 {
 	_line_color = color;
-	line->property_color_rgba() = color;
+	line->set_outline_color (color);
 }
 
 void

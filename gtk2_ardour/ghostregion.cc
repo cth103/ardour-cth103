@@ -82,8 +82,8 @@ void
 GhostRegion::set_colors ()
 {
 	if (is_automation_ghost()) {
-		base_rect->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_GhostTrackBase.get();
-		base_rect->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_GhostTrackBase.get();
+		base_rect->set_outline_color (ARDOUR_UI::config()->canvasvar_GhostTrackBase.get());
+		base_rect->set_fill_color (ARDOUR_UI::config()->canvasvar_GhostTrackBase.get());
 	}
 }
 
@@ -239,8 +239,8 @@ MidiGhostRegion::set_colors()
 
 	for (EventList::iterator it = events.begin(); it != events.end(); ++it) {
 		if ((note = dynamic_cast<MidiGhostRegion::Note*>(*it)) != 0) {
-			note->rect->property_fill_color_rgba() = fill;
-			note->rect->property_outline_color_rgba() =  ARDOUR_UI::config()->canvasvar_GhostTrackMidiOutline.get();
+			note->rect->set_fill_color (fill);
+			note->rect->set_outline_color (ARDOUR_UI::config()->canvasvar_GhostTrackMidiOutline.get());
 		}
 	}
 }
@@ -279,8 +279,8 @@ MidiGhostRegion::add_note(ArdourCanvas::CanvasNote* n)
 	Note* note = new Note(n, group);
 	events.push_back(note);
 
-	note->rect->property_fill_color_rgba() = source_track_color(200);
-	note->rect->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_GhostTrackMidiOutline.get();
+	note->rect->set_fill_color (source_track_color(200));
+	note->rect->set_outline_color (ARDOUR_UI::config()->canvasvar_GhostTrackMidiOutline.get());
 
 	MidiStreamView* mv = midi_view();
 

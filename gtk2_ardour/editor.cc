@@ -494,7 +494,7 @@ Editor::Editor ()
 	ArdourCanvas::Line* pad_line_1 = new ArdourCanvas::Line (time_pad->root ());
 	pad_line_1->set (ArdourCanvas::Point (0.0, 1.0), ArdourCanvas::Point (100.0, 1.0));
 	
-	pad_line_1->property_color_rgba() = 0xFF0000FF;
+	pad_line_1->set_outline_color (0xFF0000FF);
 	pad_line_1->show();
 	
 	time_pad->show();

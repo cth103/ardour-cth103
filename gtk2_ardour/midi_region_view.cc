@@ -568,10 +568,8 @@ MidiRegionView::motion (GdkEventMotion* ev)
                         _drag_rect = new ArdourCanvas::Rectangle (group);
 			_drag_rect->set (ArdourCanvas::Rect (event_x, event_y, event_x, event_y));
                         _drag_rect->set_outline_what (0xf);
-                        _drag_rect->property_outline_color_rgba()
-                                = ARDOUR_UI::config()->canvasvar_MidiSelectRectOutline.get();
-                        _drag_rect->property_fill_color_rgba()
-                                = ARDOUR_UI::config()->canvasvar_MidiSelectRectFill.get();
+                        _drag_rect->set_outline_color (ARDOUR_UI::config()->canvasvar_MidiSelectRectOutline.get());
+                        _drag_rect->set_fill_color (ARDOUR_UI::config()->canvasvar_MidiSelectRectFill.get());
 
                         _mouse_state = SelectRectDragging;
                         return true;
@@ -596,8 +594,8 @@ MidiRegionView::motion (GdkEventMotion* ev)
                         _drag_rect->set_x1 (trackview.editor().frame_to_pixel(event_frame));
                         _drag_rect->set_y1 (_drag_rect->y0 () + floor(midi_stream_view()->note_height()));
                         _drag_rect->set_outline_what (0xf);
-                        _drag_rect->property_outline_color_rgba() = 0xFFFFFF99;
-                        _drag_rect->property_fill_color_rgba()    = 0xFFFFFF66;
+                        _drag_rect->set_outline_color (0xFFFFFF99);
+                        _drag_rect->set_fill_color (0xFFFFFF66);
 
                         _mouse_state = AddDragging;
 
@@ -2304,8 +2302,9 @@ MidiRegionView::begin_resizing (bool /*at_front*/)
 					fill_color,
 					0.85);
 
-			resize_rect->property_outline_color_rgba() = CanvasNoteEvent::calculate_outline(
-					ARDOUR_UI::config()->canvasvar_MidiNoteSelected.get());
+			resize_rect->set_outline_color (
+				CanvasNoteEvent::calculate_outline (ARDOUR_UI::config()->canvasvar_MidiNoteSelected.get())
+					);
 
 			resize_data->resize_rect = resize_rect;
 			_resize_data.push_back(resize_data);
@@ -3268,8 +3267,8 @@ MidiRegionView::show_step_edit_cursor (Evoral::MusicalTime pos)
                 _step_edit_cursor = new ArdourCanvas::Rectangle (group);
                 _step_edit_cursor->set_y0 (0);
                 _step_edit_cursor->set_y1 (midi_stream_view()->contents_height());
-                _step_edit_cursor->property_fill_color_rgba() = RGBA_TO_UINT (45,0,0,90);
-                _step_edit_cursor->property_outline_color_rgba() = RGBA_TO_UINT (85,0,0,90);
+                _step_edit_cursor->set_fill_color (RGBA_TO_UINT (45,0,0,90));
+                _step_edit_cursor->set_outline_color (RGBA_TO_UINT (85,0,0,90));
         }
 
         move_step_edit_cursor (pos);

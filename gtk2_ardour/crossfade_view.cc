@@ -60,12 +60,12 @@ CrossfadeView::CrossfadeView (ArdourCanvas::Group *parent,
 	_visible = true;
 
 	fade_in = new ArdourCanvas::PolyLine (group);
-	fade_in->property_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeLine.get();
-	fade_in->property_width_pixels() = 1;
+	fade_in->set_outline_color (ARDOUR_UI::config()->canvasvar_CrossfadeLine.get());
+	fade_in->set_outline_width (1);
 
 	fade_out = new ArdourCanvas::PolyLine (group);
-	fade_out->property_color_rgba() = ARDOUR_UI::config()->canvasvar_CrossfadeLine.get();
-	fade_out->property_width_pixels() = 1;
+	fade_out->set_outline_color (ARDOUR_UI::config()->canvasvar_CrossfadeLine.get());
+	fade_out->set_outline_width (1);
 
 	/* no frame around the xfade or overlap rects */
 

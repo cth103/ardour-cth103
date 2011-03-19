@@ -233,6 +233,8 @@ public:
 	
 	void compute_bounding_box () const { _bounding_box_dirty = false; }
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
+
+	void set_color (uint32_t) {}
 	
 	uint32_t& property_color_rgba () {
 		return _foo_uint;

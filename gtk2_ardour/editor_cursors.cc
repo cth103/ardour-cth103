@@ -38,7 +38,7 @@ EditorCursor::EditorCursor (Editor& ed, bool (Editor::*callbck)(GdkEvent*,Ardour
 		ArdourCanvas::Point (1.0, 1.0)
 		);
 
-	canvas_item.property_width_pixels() = 1;
+	canvas_item.set_outline_width (1);
 	canvas_item.property_first_arrowhead() = TRUE;
 	canvas_item.property_last_arrowhead() = TRUE;
 	canvas_item.property_arrow_shape_a() = 11.0;

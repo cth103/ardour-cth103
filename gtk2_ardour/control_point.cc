@@ -44,9 +44,9 @@ ControlPoint::ControlPoint (AutomationLine& al)
 	_item = new ArdourCanvas::Rectangle (&_line.canvas_group());
 	_item->property_draw() = true;
 	_item->property_fill() = false;
-	_item->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_ControlPointFill.get();
-	_item->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_ControlPointOutline.get();
-	_item->property_outline_pixels() = 1;
+	_item->set_fill_color (ARDOUR_UI::config()->canvasvar_ControlPointFill.get());
+	_item->set_outline_color (ARDOUR_UI::config()->canvasvar_ControlPointOutline.get());
+	_item->set_outline_width (1);
 	_item->set_data ("control_point", this);
 	_item->Event.connect (sigc::mem_fun (this, &ControlPoint::event_handler));
 
@@ -71,8 +71,8 @@ ControlPoint::ControlPoint (const ControlPoint& other, bool /*dummy_arg_to_force
 
 	_item = new ArdourCanvas::Rectangle (&_line.canvas_group());
 	_item->property_fill() = false;
-	_item->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_ControlPointOutline.get();
-	_item->property_outline_pixels() = 1;
+	_item->set_outline_color (ARDOUR_UI::config()->canvasvar_ControlPointOutline.get());
+	_item->set_outline_width (1);
 
 	/* NOTE: no event handling in copied ControlPoints */
 
@@ -142,8 +142,8 @@ ControlPoint::set_color ()
 		color = ARDOUR_UI::config()->canvasvar_ControlPointOutline.get();
 	}
 
-	_item->property_outline_color_rgba() = color;
-	_item->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_ControlPointFill.get();
+	_item->set_outline_color (color);
+	_item->set_fill_color (ARDOUR_UI::config()->canvasvar_ControlPointFill.get());
 }
 
 void

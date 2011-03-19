@@ -189,18 +189,18 @@ AudioRegionView::init (Gdk::Color const & basic_color, bool wfd)
 	if (!_recregion) {
 		fade_in_handle = new ArdourCanvas::Rectangle (group);
 		fade_in_handle->property_fill_color_rgba() = UINT_RGBA_CHANGE_A (fill_color, 0);
-		fade_in_handle->property_outline_pixels() = 0;
+		fade_in_handle->set_outline (false);
 
 		fade_in_handle->set_data ("regionview", this);
 
 		fade_out_handle = new ArdourCanvas::Rectangle (group);
 		fade_out_handle->property_fill_color_rgba() = UINT_RGBA_CHANGE_A (fill_color, 0);
-		fade_out_handle->property_outline_pixels() = 0;
+		fade_out_handle->set_outline (false);
 
 		fade_out_handle->set_data ("regionview", this);
 		
 		fade_position_line = new ArdourCanvas::Line (group);
-		fade_position_line->property_color_rgba() = 0xBBBBBBAA;
+		fade_position_line->set_outline_color (0xBBBBBBAA);
 		fade_position_line->property_y1() = 7;
 		fade_position_line->property_y2() = _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1;
 
@@ -334,10 +334,10 @@ AudioRegionView::fade_in_active_changed ()
 {
 	if (audio_region()->fade_in_active()) {
 		fade_in_shape->property_fill_color_rgba() = RGBA_TO_UINT(45,45,45,90);				// FIXME make a themeable colour
-		fade_in_shape->property_width_pixels() = 1;
+		fade_in_shape->set_outline_width (1);
 	} else {
 		fade_in_shape->property_fill_color_rgba() = RGBA_TO_UINT(45,45,45,20);				// FIXME make a themeable colour
-		fade_in_shape->property_width_pixels() = 1;
+		fade_in_shape->set_outline_width (1);
 	}
 }
 
@@ -346,10 +346,10 @@ AudioRegionView::fade_out_active_changed ()
 {
 	if (audio_region()->fade_out_active()) {
 		fade_out_shape->property_fill_color_rgba() = RGBA_TO_UINT(45,45,45,90);				// FIXME make a themeable colour
-		fade_out_shape->property_width_pixels() = 1;
+		fade_out_shape->set_outline_width (1);
 	} else {
 		fade_out_shape->property_fill_color_rgba() = RGBA_TO_UINT(45,45,45,20);				// FIXME make a themeable colour
-		fade_out_shape->property_width_pixels() = 1;
+		fade_out_shape->set_outline_width (1);
 	}
 }
 
@@ -1455,7 +1455,7 @@ AudioRegionView::transients_changed ()
 			ArdourCanvas::Point(1.0, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
 			);
 
-		canvas_item->property_width_pixels() = 1;
+		canvas_item->set_outline_width (1);
 		canvas_item->property_first_arrowhead() = TRUE;
 		canvas_item->property_last_arrowhead() = TRUE;
 		canvas_item->property_arrow_shape_a() = 11.0;

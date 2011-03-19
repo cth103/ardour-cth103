@@ -167,7 +167,7 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 				if (li != _lines.end())
 					++li;
 
-				line->property_color_rgba() = color;
+				line->set_outline_color (color);
 				inserted_last_time = false; // don't search next time
 
 			// Use existing line, moving if necessary
@@ -182,7 +182,7 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 					_lines.erase(steal);
 					line->property_x1() = xpos;
 					line->property_x2() = xpos;
-					line->property_color_rgba() = color;
+					line->set_outline_color (color);
 					_lines.insert(make_pair(xpos, line));
 					inserted_last_time = true; // search next time
 					invalidated = true;
@@ -197,7 +197,7 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 					if (existing != _lines.end()) {
 						//cout << "*** EXISTING LINE" << endl;
 						li = existing;
-						li->second->property_color_rgba() = color;
+						li->second->set_outline_color (color);
 						inserted_last_time = false; // don't search next time
 					} else {
 						//cout << "*** MOVING LINE" << endl;
@@ -208,7 +208,7 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 						_clean_left  = needed_left;
 						_clean_right = needed_right;
 						_lines.erase(li);
-						line->property_color_rgba() = color;
+						line->set_outline_color (color);
 						line->property_x1() = xpos;
 						line->property_x2() = xpos;
 						_lines.insert(make_pair(xpos, line));
@@ -225,7 +225,7 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 				line->property_x2() = xpos;
 				line->property_y1() = 0.0;
 				line->property_y2() = _height;
-				line->property_color_rgba() = color;
+				line->set_outline_color (color);
 				_lines.insert(make_pair(xpos, line));
 				inserted_last_time = true;
 
@@ -236,7 +236,7 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 				Lines::iterator steal = _lines.begin();
 				line = steal->second;
 				_lines.erase(steal);
-				line->property_color_rgba() = color;
+				line->set_outline_color (color);
 				line->property_x1() = xpos;
 				line->property_x2() = xpos;
 				_lines.insert(make_pair(xpos, line));

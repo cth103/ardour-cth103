@@ -13,7 +13,9 @@ PolyLine::PolyLine (Group* parent)
 void
 PolyLine::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
-	setup_outline_context (context);
-	render_path (area, context);
-	context->stroke ();
+	if (_outline) {
+		setup_outline_context (context);
+		render_path (area, context);
+		context->stroke ();
+	}
 }

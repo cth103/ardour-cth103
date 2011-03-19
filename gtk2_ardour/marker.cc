@@ -241,14 +241,14 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 	group = new ArdourCanvas::Group (&parent, ArdourCanvas::Duple (unit_position, 1.0));
 
 	_name_background = new ArdourCanvas::Rectangle (group);
-	_name_background->property_outline_pixels() = 1;
+	_name_background->set_outline_width (1);
 
 	/* adjust to properly locate the tip */
 
 	mark = new ArdourCanvas::Polygon (group);
 	mark->set (*points);
 	set_color_rgba (rgba);
-	mark->property_width_pixels() = 1;
+	mark->set_outline_width (1);
 
 	/* setup name pixbuf sizes */
 	name_font = get_font_for_style (N_("MarkerText"));
@@ -315,7 +315,7 @@ Marker::setup_line ()
 		if (_line == 0) {
 
 			_line = new ArdourCanvas::Line (group);
-			_line->property_color_rgba() = ARDOUR_UI::config()->canvasvar_EditPoint.get();
+			_line->set_outline_color (ARDOUR_UI::config()->canvasvar_EditPoint.get());
 
 			_line->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_marker_event), mark, this));
 		}
@@ -331,7 +331,7 @@ Marker::setup_line ()
 		_line->property_y1() = -yo; // zero in world coordinates, negative in item/parent coordinate space
 		_line->property_y2() = -yo + _canvas_height;
 
-		_line->property_color_rgba() = _selected ? ARDOUR_UI::config()->canvasvar_EditPoint.get() : _color;
+		_line->set_outline_color (_selected ? ARDOUR_UI::config()->canvasvar_EditPoint.get() : _color);
 		_line->raise_to_top ();
 		_line->show ();
 
@@ -441,16 +441,16 @@ void
 Marker::set_color_rgba (uint32_t c)
 {
 	_color = c;
-	mark->property_fill_color_rgba() = _color;
-	mark->property_outline_color_rgba() = _color;
+	mark->set_fill_color (_color);
+	mark->set_outline_color (_color);
 
 	if (_line && !_selected) {
-		_line->property_color_rgba() = _color;
+		_line->set_outline_color (_color);
 	}
 
-	_name_background->property_fill() = true;
-	_name_background->property_fill_color_rgba() = UINT_RGBA_CHANGE_A (_color, 0x70);
-	_name_background->property_outline_color_rgba() = _color;
+	_name_background->set_fill (true);
+	_name_background->set_fill_color (UINT_RGBA_CHANGE_A (_color, 0x70));
+	_name_background->set_outline_color (_color);
 }
 
 /** Set the number of pixels that are available for a label to the left of the centre of this marker */

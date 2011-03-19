@@ -3470,8 +3470,8 @@ RangeMarkerBarDrag::RangeMarkerBarDrag (Editor* e, ArdourCanvas::Item* i, Operat
 	
 	_drag_rect->hide ();
 
-	_drag_rect->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_RangeDragRect.get();
-	_drag_rect->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_RangeDragRect.get();
+	_drag_rect->set_fill_color (ARDOUR_UI::config()->canvasvar_RangeDragRect.get());
+	_drag_rect->set_outline_color (ARDOUR_UI::config()->canvasvar_RangeDragRect.get());
 }
 
 void

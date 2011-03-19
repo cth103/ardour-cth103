@@ -53,7 +53,7 @@ AutomationStreamView::AutomationStreamView (AutomationTimeAxisView& tv)
 	, _pending_automation_state (Off)
 {
 	//canvas_rect->property_fill_color_rgba() = stream_base_color;
-	canvas_rect->property_outline_color_rgba() = RGBA_BLACK;
+	canvas_rect->set_outline_color (RGBA_BLACK);
 }
 
 AutomationStreamView::~AutomationStreamView ()

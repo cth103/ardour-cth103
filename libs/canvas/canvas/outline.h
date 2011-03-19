@@ -25,23 +25,13 @@ public:
 	
 	virtual void set_outline_width (Distance);
 
+	bool outline () const {
+		return _outline;
+	}
+
+	void set_outline (bool);
+
 #ifdef CANVAS_COMPATIBILITY
-	uint32_t& property_outline_color_rgba () {
-		return _outline_color;
-	}
-
-	uint32_t& property_color_rgba () {
-		return _outline_color;
-	}
-	
-	double& property_outline_pixels () {
-		return _outline_width;
-	}
-
-	double& property_width_pixels () {
-		return _outline_width;
-	}
-
 	int& property_first_arrowhead () {
 		return _foo_int;
 	}
@@ -68,6 +58,7 @@ protected:
 	
 	uint32_t _outline_color;
 	Distance _outline_width;
+	bool _outline;
 
 #ifdef CANVAS_COMPATIBILITY
 	int _foo_int;

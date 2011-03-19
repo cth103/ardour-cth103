@@ -14,12 +14,19 @@ Polygon::Polygon (Group* parent)
 void
 Polygon::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
-	setup_outline_context (context);
-	render_path (area, context);
+	if (_outline) {
+		setup_outline_context (context);
+		render_path (area, context);
+		
+		if (!_points.empty ()) {
+			context->move_to (_points.front().x, _points.front().y);
+		}
 
-	if (!_points.empty ()) {
-		context->move_to (_points.front().x, _points.front().y);
+		context->stroke_preserve ();
 	}
-	
-	context->fill ();
+
+	if (_fill) {
+		setup_fill_context (context);
+		context->fill ();
+	}
 }

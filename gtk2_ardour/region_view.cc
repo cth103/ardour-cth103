@@ -246,7 +246,7 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double thres
 		cr->set_x1 (trackview.editor().frame_to_pixel (i->second - _region->start()));
 		cr->set_y0 (1);
 		cr->set_y1 (_height - 2);
-		cr->property_outline_pixels() = 0;
+		cr->set_outline (false);
 		cr->property_fill_color_rgba () = color;
 
 		shortest = min (shortest, i->second - i->first);
@@ -512,8 +512,9 @@ RegionView::set_colors ()
 	TimeAxisViewItem::set_colors ();
 
 	if (sync_mark) {
-		sync_mark->property_fill_color_rgba() = RGBA_TO_UINT(0,255,0,255);     // fill_color;			// FIXME make a themeable colour
-		sync_line->property_color_rgba() = RGBA_TO_UINT(0,255,0,255);     // fill_color;			// FIXME make a themeable colour
+		/* XXX: make these colours themable */
+		sync_mark->set_fill_color (RGBA_TO_UINT (0, 255, 0, 255));
+		sync_line->set_outline_color (RGBA_TO_UINT (0, 255, 0, 255));
 	}
 }
 
@@ -623,8 +624,9 @@ RegionView::region_sync_changed ()
 
 		sync_line = new ArdourCanvas::Line (group);
 		CANVAS_DEBUG_NAME (sync_mark, "RV sync line");
-		sync_line->property_color_rgba() = RGBA_TO_UINT(0,255,0,255);     // fill_color;			// FIXME make a themeable colour	
-		sync_line->property_width_pixels() = 1;
+		/* XXX: make themable */
+		sync_line->set_outline_color (RGBA_TO_UINT (0, 255, 0, 255));
+		sync_line->set_outline_width (1);
 	}
 
 	/* this has to handle both a genuine change of position, a change of samples_per_unit,
@@ -797,7 +799,7 @@ RegionView::update_coverage_frames (LayerDisplay d)
 			cr->set_x0 (trackview.editor().frame_to_pixel (t - position));
 			cr->set_y0 (1);
 			cr->set_y1 (_height + 1);
-			cr->property_outline_pixels() = 0;
+			cr->set_outline (false);
 			/* areas that will be played get a lower alpha */
 			uint32_t alpha = base_alpha;
 			if (new_me) {

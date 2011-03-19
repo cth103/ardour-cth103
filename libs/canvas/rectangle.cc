@@ -36,28 +36,30 @@ Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) con
 		context->fill ();
 	}
 
-	if (_outline_what & LEFT) {
-		context->move_to (_rect.x0, _rect.x0);
-		context->line_to (_rect.x0, _rect.y1);
-	}
-
-	if (_outline_what & BOTTOM) {
-		context->move_to (_rect.x0, _rect.y1);
-		context->line_to (_rect.x1, _rect.y1);
-	}
-
-	if (_outline_what & RIGHT) {
-		context->move_to (_rect.x1, _rect.y0);
-		context->line_to (_rect.x1, _rect.y1);
-	}
-
-	if (_outline_what & TOP) {
-		context->move_to (_rect.x0, _rect.y0);
-		context->line_to (_rect.x0, _rect.y1);
-	}
+	if (_outline) {
+		if (_outline_what & LEFT) {
+			context->move_to (_rect.x0, _rect.x0);
+			context->line_to (_rect.x0, _rect.y1);
+		}
 		
-	setup_outline_context (context);
-	context->stroke ();
+		if (_outline_what & BOTTOM) {
+			context->move_to (_rect.x0, _rect.y1);
+			context->line_to (_rect.x1, _rect.y1);
+		}
+		
+		if (_outline_what & RIGHT) {
+			context->move_to (_rect.x1, _rect.y0);
+			context->line_to (_rect.x1, _rect.y1);
+		}
+		
+		if (_outline_what & TOP) {
+			context->move_to (_rect.x0, _rect.y0);
+			context->line_to (_rect.x0, _rect.y1);
+		}
+		
+		setup_outline_context (context);
+		context->stroke ();
+	}
 }
 
 void

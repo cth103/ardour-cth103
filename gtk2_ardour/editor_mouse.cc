@@ -1576,8 +1576,9 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 	case GainLineItem:
 		if (mouse_mode == MouseGain) {
 			ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
-			if (line)
-				line->property_color_rgba() = ARDOUR_UI::config()->canvasvar_EnteredGainLine.get();
+			if (line) {
+				line->set_outline_color (ARDOUR_UI::config()->canvasvar_EnteredGainLine.get());
+			}
 			if (is_drawable()) {
 				set_canvas_cursor (_cursors->fader);
 			}
@@ -1588,8 +1589,9 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 		if (mouse_mode == MouseGain || mouse_mode == MouseObject) {
 			{
 				ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
-				if (line)
-					line->property_color_rgba() = ARDOUR_UI::config()->canvasvar_EnteredAutomationLine.get();
+				if (line) {
+					line->set_outline_color (ARDOUR_UI::config()->canvasvar_EnteredAutomationLine.get());
+				}
 			}
 			if (is_drawable()) {
 				set_canvas_cursor (_cursors->fader);
@@ -1722,11 +1724,12 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 		}
 		break;
 	case FeatureLineItem:
-		{
-			ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
-			line->property_color_rgba() = 0xFF0000FF;
-		}
-		break;
+	{
+		ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
+		line->set_outline_color (0xFF0000FF);
+	}
+	break;
+	
 	case SelectionItem:
 		if (join_object_range_button.get_active()) {
 			set_canvas_cursor ();
@@ -1813,8 +1816,9 @@ Editor::leave_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 		al = reinterpret_cast<AutomationLine*> (item->get_data ("line"));
 		{
 			ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
-			if (line)
-				line->property_color_rgba() = al->get_line_color();
+			if (line) {
+				line->set_outline_color (al->get_line_color());
+			}
 		}
 		if (is_drawable()) {
 			set_canvas_cursor (current_canvas_cursor);
@@ -1867,8 +1871,8 @@ Editor::leave_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 		{
 			ArdourCanvas::Rectangle *rect = dynamic_cast<ArdourCanvas::Rectangle *> (item);
 			if (rect) {
-				rect->property_fill_color_rgba() = rv->get_fill_color();
-				rect->property_outline_pixels() = 0;
+				rect->set_fill_color (rv->get_fill_color());
+				rect->set_outline (false);
 			}
 		}
 		set_canvas_cursor (current_canvas_cursor);
@@ -1884,7 +1888,7 @@ Editor::leave_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 	case FeatureLineItem:
 		{
 			ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
-			line->property_color_rgba() = (guint) ARDOUR_UI::config()->canvasvar_ZeroLine.get();;
+			line->set_outline_color (ARDOUR_UI::config()->canvasvar_ZeroLine.get());
 		}
 		break;
 

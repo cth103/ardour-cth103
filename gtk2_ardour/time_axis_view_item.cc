@@ -172,20 +172,20 @@ TimeAxisViewItem::init (
 	CANVAS_DEBUG_NAME (vestigial_frame, "TAVI vestigial frame");
 	vestigial_frame->hide ();
 	vestigial_frame->set_outline_what (0xf);
-	vestigial_frame->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_VestigialFrame.get();
-	vestigial_frame->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_VestigialFrame.get();
+	vestigial_frame->set_outline_color (ARDOUR_UI::config()->canvasvar_VestigialFrame.get());
+	vestigial_frame->set_fill_color (ARDOUR_UI::config()->canvasvar_VestigialFrame.get());
 
 	if (visibility & ShowFrame) {
 		frame = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, 1.0, trackview.editor().frame_to_pixel(duration), trackview.current_height()));
 		CANVAS_DEBUG_NAME (frame, "TAVI frame");
 		
-		frame->property_outline_pixels() = 1;
+		frame->set_outline_width (1);
 		frame->set_outline_what (0xf);
 		
 		if (_recregion) {
-			frame->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_RecordingRect.get();
+			frame->set_outline_color (ARDOUR_UI::config()->canvasvar_RecordingRect.get());
 		} else {
-			frame->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_TimeAxisFrame.get();
+			frame->set_outline_color (ARDOUR_UI::config()->canvasvar_TimeAxisFrame.get());
 		}
 		
 		frame->set_outline_what (0xf);
@@ -207,7 +207,7 @@ TimeAxisViewItem::init (
 		name_highlight->set_data ("timeaxisviewitem", this);
                 name_highlight->set_outline_what (0x4);
                 /* we should really use a canvas color property here */
-		name_highlight->property_outline_color_rgba() = RGBA_TO_UINT (0,0,0,255);
+		name_highlight->set_outline_color (RGBA_TO_UINT (0, 0, 0, 255));
 
 	} else {
 		name_highlight = 0;
@@ -767,7 +767,7 @@ TimeAxisViewItem::set_frame_color()
                         f = UINT_RGBA_CHANGE_A (f, 64);
                 }
                 
-                frame->property_outline_color_rgba() = f;
+                frame->set_outline_color (f);
         }
 }
 

@@ -37,6 +37,17 @@ Outline::set_outline_width (Distance width)
 }
 
 void
+Outline::set_outline (bool outline)
+{
+	begin_change ();
+
+	_outline = outline;
+
+	_bounding_box_dirty = true;
+	end_change ();
+}
+
+void
 Outline::setup_outline_context (Cairo::RefPtr<Cairo::Context> context) const
 {
 	set_source_rgba (context, _outline_color);
