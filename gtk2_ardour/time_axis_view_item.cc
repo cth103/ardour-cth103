@@ -30,6 +30,7 @@
 #include "canvas/rectangle.h"
 #include "canvas/unimplemented.h"
 #include "canvas/debug.h"
+#include "canvas/pixbuf.h"
 
 #include "ardour_ui.h"
 /*
@@ -215,8 +216,7 @@ TimeAxisViewItem::init (
 	if (visibility & ShowNameText) {
 		name_pixbuf = new ArdourCanvas::Pixbuf (group);
 		CANVAS_DEBUG_NAME (name_pixbuf, "TAVI name pixbuf");
-		name_pixbuf->property_x() = NAME_X_OFFSET;
-		name_pixbuf->property_y() = trackview.current_height() + 1 - NAME_Y_OFFSET;
+		name_pixbuf->set_position (ArdourCanvas::Duple (NAME_X_OFFSET, trackview.current_height() + 1 - NAME_Y_OFFSET));
 	} else {
 		name_pixbuf = 0;
 	}
@@ -520,7 +520,7 @@ TimeAxisViewItem::set_name_text(const string& new_name)
 
 	last_item_width = trackview.editor().frame_to_pixel(item_duration);
 	name_pixbuf_width = pixel_width (new_name, *NAME_FONT) + 2;
-	name_pixbuf->property_pixbuf() = pixbuf_from_string(new_name, NAME_FONT, name_pixbuf_width, NAME_HEIGHT, Gdk::Color ("#000000"));
+	name_pixbuf->set (pixbuf_from_string(new_name, NAME_FONT, name_pixbuf_width, NAME_HEIGHT, Gdk::Color ("#000000")));
 }
 
 
@@ -556,7 +556,7 @@ TimeAxisViewItem::set_height (double height)
 	}
 
 	if (visibility & ShowNameText) {
-		name_pixbuf->property_y() =  height + 1 - NAME_Y_OFFSET;
+		name_pixbuf->set_y_position (height + 1 - NAME_Y_OFFSET);
 	}
 
 	if (frame) {
@@ -919,7 +919,7 @@ TimeAxisViewItem::reset_name_width (double /*pixel_width*/)
 
 	update_name_pixbuf_visibility ();
 	if (pb_width > 0) {
-		name_pixbuf->property_pixbuf() = pixbuf_from_string(item_name, NAME_FONT, pb_width, NAME_HEIGHT, Gdk::Color ("#000000"));
+		name_pixbuf->set (pixbuf_from_string(item_name, NAME_FONT, pb_width, NAME_HEIGHT, Gdk::Color ("#000000")));
 	}
 }
 

@@ -2,6 +2,7 @@
 #include <gtkmm.h>
 #include "canvas/canvas.h"
 #include "canvas/rectangle.h"
+#include "canvas/pixbuf.h"
 
 using namespace std;
 using namespace ArdourCanvas;
@@ -41,6 +42,11 @@ int main (int argc, char* argv[])
 	b.Event.connect (sigc::ptr_fun (foo));
 
 	Rectangle c (canvas->root(), Rect (2048, 2048, 2096, 2096));
+
+	Pixbuf pixbuf (canvas->root());
+	pixbuf.set_position (Duple (192, 192));
+	Glib::RefPtr<Gdk::Pixbuf> p = Gdk::Pixbuf::create_from_file ("../../libs/canvas/test/test.png");
+	pixbuf.set (p);
 
 	window.add (overall_vbox);
 	canvas->show ();

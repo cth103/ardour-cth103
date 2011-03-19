@@ -52,6 +52,8 @@ public:
 	}
 
 	void set_position (Duple);
+	void set_x_position (Coord);
+	void set_y_position (Coord);
 
 	/** @return Position of this item in the parent's coordinates */
 	Duple position () const {

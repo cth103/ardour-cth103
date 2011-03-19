@@ -28,6 +28,7 @@
 
 #include "canvas/unimplemented.h"
 #include "canvas/canvas.h"
+#include "canvas/pixbuf.h"
 
 #include "actions.h"
 #include "ardour_ui.h"

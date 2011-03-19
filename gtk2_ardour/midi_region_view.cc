@@ -44,6 +44,8 @@
 #include "evoral/Control.hpp"
 #include "evoral/midi_util.h"
 
+#include "canvas/pixbuf.h"
+
 #include "automation_region_view.h"
 #include "automation_time_axis.h"
 #include "debug.h"

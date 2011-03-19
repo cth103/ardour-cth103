@@ -24,6 +24,7 @@
 #include "canvas/group.h"
 #include "canvas/line.h"
 #include "canvas/polygon.h"
+#include "canvas/pixbuf.h"
 
 #include "ardour_ui.h"
 /*
@@ -261,8 +262,7 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 	Gtkmm2ext::get_ink_pixel_size (layout, width, name_height);
 
 	name_pixbuf = new ArdourCanvas::Pixbuf (group);
-	name_pixbuf->property_x() = _label_offset;
-	name_pixbuf->property_y() = (13/2) - (name_height/2);
+	name_pixbuf->set_position (ArdourCanvas::Duple (_label_offset, 13 / 2 - name_height / 2));
 
 	set_name (annotation.c_str());
 
@@ -388,17 +388,17 @@ Marker::setup_name_display ()
 	}
 
 	if (label_on_left ()) {
-		name_pixbuf->property_x() = -name_width;
+		name_pixbuf->set_x_position (-name_width);
 	}
 
-	name_pixbuf->property_pixbuf() = pixbuf_from_string (_name, name_font, name_width, name_height, Gdk::Color ("#000000"));
+	name_pixbuf->set (pixbuf_from_string (_name, name_font, name_width, name_height, Gdk::Color ("#000000")));
 
 	if (label_on_left ()) {
-		_name_background->set_x0 (name_pixbuf->property_x() - 2);
-		_name_background->set_x1 (name_pixbuf->property_x() + name_width + _shift);
+		_name_background->set_x0 (name_pixbuf->position().x - 2);
+		_name_background->set_x1 (name_pixbuf->position().x + name_width + _shift);
 	} else {
-		_name_background->set_x0 (name_pixbuf->property_x() - _label_offset + 2);
-		_name_background->set_x1 (name_pixbuf->property_x() + name_width);
+		_name_background->set_x0 (name_pixbuf->position().x - _label_offset + 2);
+		_name_background->set_x1 (name_pixbuf->position().x + name_width);
 	}
 	
 	_name_background->set_y0 (0);

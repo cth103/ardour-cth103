@@ -82,6 +82,18 @@ Item::set_position (Duple p)
 }
 
 void
+Item::set_x_position (Coord x)
+{
+	set_position (Duple (x, _position.y));
+}
+
+void
+Item::set_y_position (Coord y)
+{
+	set_position (Duple (_position.x, y));
+}
+
+void
 Item::raise_to_top ()
 {
 	assert (_parent);

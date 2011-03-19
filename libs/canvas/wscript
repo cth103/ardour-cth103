@@ -27,6 +27,7 @@ canvas_sources = [
 	'line.cc',
 	'lookup_table.cc',
 	'outline.cc',
+	'pixbuf.cc',
 	'poly_item.cc',
 	'poly_line.cc',
 	'polygon.cc',

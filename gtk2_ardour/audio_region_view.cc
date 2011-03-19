@@ -38,6 +38,7 @@
 #include "canvas/rectangle.h"
 #include "canvas/unimplemented.h"
 #include "canvas/polygon.h"
+#include "canvas/pixbuf.h"
 
 #include "streamview.h"
 #include "audio_region_view.h"

@@ -34,6 +34,7 @@
 #include "canvas/unimplemented.h"
 #include "canvas/polygon.h"
 #include "canvas/debug.h"
+#include "canvas/pixbuf.h"
 
 #include "ardour_ui.h"
 #include "global_signals.h"

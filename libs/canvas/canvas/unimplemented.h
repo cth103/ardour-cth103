@@ -103,30 +103,6 @@ private:
 	ARDOUR::framepos_t _foo_framepos;
 };
 
-class Pixbuf : public Item {
-public:
-	Pixbuf (Group* p) : Item (p) {}
-	Pixbuf (Glib::RefPtr<Gdk::Pixbuf>) : Item ((Group *) 0) {}
-	Pixbuf (Group* p, double, double, Glib::RefPtr<Gdk::Pixbuf>) : Item (p) {}
-
-	void compute_bounding_box () const { _bounding_box_dirty = false; }
-	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
-	
-	double& property_x () {
-		return _foo_double;
-	}
-	double& property_y () {
-		return _foo_double;
-	}
-	Glib::RefPtr<Gdk::Pixbuf>& property_pixbuf () {
-		return _foo_pixbuf;
-	}
-
-private:
-	double _foo_double;
-	Glib::RefPtr<Gdk::Pixbuf> _foo_pixbuf;
-};
-
 class CanvasPatchChange: public Item {
 public:
 	CanvasPatchChange (

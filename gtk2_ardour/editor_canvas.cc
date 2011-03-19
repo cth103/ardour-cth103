@@ -30,6 +30,7 @@
 #include "canvas/canvas.h"
 #include "canvas/unimplemented.h"
 #include "canvas/rectangle.h"
+#include "canvas/pixbuf.h"
 
 #include "ardour_ui.h"
 #include "editor.h"
@@ -89,7 +90,7 @@ Editor::initialize_canvas ()
 
 	if (Profile->get_sae()) {
 		Image img (::get_icon (X_("saelogo")));
-		logo_item = new ArdourCanvas::Pixbuf (_track_canvas->root(), 0.0, 0.0, img.get_pixbuf());
+		// logo_item = new ArdourCanvas::Pixbuf (_track_canvas->root(), 0.0, 0.0, img.get_pixbuf());
 		// logo_item->property_height_in_pixels() = true;
 		// logo_item->property_width_in_pixels() = true;
 		// logo_item->property_height_set() = true;
