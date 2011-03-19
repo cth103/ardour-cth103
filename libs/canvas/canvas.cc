@@ -104,7 +104,6 @@ GtkCanvas::motion_notify_handler (GdkEventMotion* ev)
 			synth_event.type = GDK_LEAVE_NOTIFY;
 			synth_event.x = ev->x;
 			synth_event.y = ev->y;
-			cout << "leave " << new_item->name << "\n";
 			_current_item->Event (reinterpret_cast<GdkEvent*> (&synth_event));
 		}
 
@@ -112,22 +111,13 @@ GtkCanvas::motion_notify_handler (GdkEventMotion* ev)
 			synth_event.type = GDK_ENTER_NOTIFY;
 			synth_event.x = ev->x;
 			synth_event.y = ev->y;
-			cout << "enter " << new_item->name << "\n";
 			new_item->Event (reinterpret_cast<GdkEvent*> (&synth_event));
 		}
 
 		_current_item = new_item;
 	}
 
-	if (_current_item) {
-		cout << "motion " << _current_item->name << "\n";
-	}
-
-	if (!_current_item) {
-		return false;
-	}
-	
-	return _current_item->Event (reinterpret_cast<GdkEvent*> (ev));
+	return deliver_event (point, reinterpret_cast<GdkEvent*> (ev));
 }
 
 bool
@@ -139,13 +129,6 @@ GtkCanvas::deliver_event (Duple point, GdkEvent* event)
 		return false;
 	}
 	
-	if (PBD::debug_bits & PBD::DEBUG::CanvasEvents) {
-		for (list<Item*>::reverse_iterator i = items.rbegin(); i != items.rend(); ++i) {
-			DEBUG_TRACE (PBD::DEBUG::CanvasEvents, string_compose ("%1\n", (*i)->name.empty() ? "[unknown]" : (*i)->name));
-		}
-	}
-
-	DEBUG_TRACE (PBD::DEBUG::CanvasEvents, "canvas deliver event to top of:\n");
 	list<Item*>::reverse_iterator i = items.rbegin ();
 	while (i != items.rend()) {
 		if ((*i)->Event (event)) {
@@ -160,7 +143,7 @@ GtkCanvas::deliver_event (Duple point, GdkEvent* event)
 	if (PBD::debug_bits & PBD::DEBUG::CanvasEvents) {
 		while (i != items.rend()) {
 			DEBUG_TRACE (PBD::DEBUG::CanvasEvents, string_compose ("canvas event not seen by %1\n", (*i)->name.empty() ? "[unknown]" : (*i)->name));
-			--i;
+			++i;
 		}
 	}
 	

@@ -124,6 +124,21 @@ LookupTable::items_at_point (Duple point) const
 	int y;
 	point_to_indices (point, x, y);
 
+	if (x >= _dimension) {
+		cout << "WARNING: x=" << x << ", dim=" << _dimension << ", px=" << point.x << " cellsize=" << _cell_size << "\n";
+	}
+
+	if (y >= _dimension) {
+		cout << "WARNING: y=" << y << ", dim=" << _dimension << ", py=" << point.y << " cellsize=" << _cell_size << "\n";
+	}
+	
+	/* XXX: hmm */
+	x = min (_dimension - 1, x);
+	y = min (_dimension - 1, y);
+
+	assert (x >= 0);
+	assert (y >= 0);
+
 	Cell const & cell = _cells[x][y];
 	list<Item*> items;
 	for (Cell::const_iterator i = cell.begin(); i != cell.end(); ++i) {
@@ -147,8 +162,9 @@ LookupTable::get (Rect const & area)
 	int x0, y0, x1, y1;
 	area_to_indices (area, x0, y0, x1, y1);
 
-	x0 = min (_dimension, x0);
-	y0 = min (_dimension, y0);
+	/* XXX: hmm... */
+	x0 = min (_dimension - 1, x0);
+	y0 = min (_dimension - 1, y0);
 	x1 = min (_dimension, x1);
 	y1 = min (_dimension, y1);
 

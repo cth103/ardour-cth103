@@ -1988,7 +1988,7 @@ bool
 Editor::motion_handler (ArdourCanvas::Item* /*item*/, GdkEvent* event, bool from_autoscroll)
 {
 	_last_motion_y = event->motion.y;
-	
+
 	if (event->motion.is_hint) {
 		gint x, y;
 
