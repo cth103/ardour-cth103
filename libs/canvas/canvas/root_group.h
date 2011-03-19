@@ -7,7 +7,9 @@ namespace ArdourCanvas {
 
 class RootGroup : public Group
 {
-public:
+private:
+	friend class Canvas;
+	
 	RootGroup (Canvas *);
 
 	void compute_bounding_box () const;

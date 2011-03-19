@@ -49,8 +49,6 @@ Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 	ensure_lut ();
 	vector<Item*> items = _lut->get (area);
 
-	bounding_box ();
-	
 	for (vector<Item*>::const_iterator i = items.begin(); i != items.end(); ++i) {
 		if (!(*i)->visible ()) {
 			continue;
@@ -74,7 +72,6 @@ Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 			(*i)->render (r.get(), context);
 			context->restore ();
 		}
-			
 	}
 }
 

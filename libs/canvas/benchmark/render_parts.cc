@@ -14,17 +14,16 @@ test (int items_per_cell)
 	Group::default_items_per_cell = items_per_cell;
 	
 	int const n_rectangles = 1e5;
-	int const n_tests = 1e5;
+	int const n_tests = 100;
 	double const rough_size = 1000;
 	srand (1);
 
 	ImageCanvas canvas (Duple (rough_size * 0.25, rough_size * 0.25));
-	RootGroup group (&canvas);
 
 	list<Item*> rectangles;
 
 	for (int i = 0; i < n_rectangles; ++i) {
-		rectangles.push_back (new Rectangle (&group, rect_random (rough_size)));
+		rectangles.push_back (new Rectangle (canvas.root(), rect_random (rough_size)));
 	}
 
 	for (int i = 0; i < n_tests; ++i) {
@@ -34,7 +33,7 @@ test (int items_per_cell)
 
 int main ()
 {
-	int tests[] = { 1, 2, 4, 8, 16, 32, 64, 128, 256, 1e3, 1e4, 1e5 };
+	int tests[] = { 16, 32, 64, 128, 256, 1e3, 1e4, 1e5 };
 
 	for (unsigned int i = 0; i < sizeof (tests) / sizeof (int); ++i) {
 		timeval start;

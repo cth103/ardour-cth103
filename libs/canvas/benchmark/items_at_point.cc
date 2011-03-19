@@ -19,12 +19,11 @@ test (int items_per_cell)
 	srand (1);
 
 	ImageCanvas canvas;
-	RootGroup group (&canvas);
 
 	list<Item*> rectangles;
 
 	for (int i = 0; i < n_rectangles; ++i) {
-		rectangles.push_back (new Rectangle (&group, rect_random (rough_size)));
+		rectangles.push_back (new Rectangle (canvas.root(), rect_random (rough_size)));
 	}
 
 	for (int i = 0; i < n_tests; ++i) {
@@ -32,7 +31,7 @@ test (int items_per_cell)
 
 		/* ask the group what's at this point */
 		vector<Item const *> items;
-		group.add_items_at_point (test, items);
+		canvas.root()->add_items_at_point (test, items);
 	}
 }
 

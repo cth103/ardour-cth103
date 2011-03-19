@@ -17,16 +17,15 @@ GroupTest::bounding_box ()
 {
 	/* a group with 4 rectangles in it */
 	ImageCanvas canvas;
-	RootGroup group (&canvas);
-	Rectangle a (&group, Rect (0, 0, 32, 32));
+	Rectangle a (canvas.root(), Rect (0, 0, 32, 32));
 	a.set_outline_width (0);
-	Rectangle b (&group, Rect (0, 33, 32, 64));
+	Rectangle b (canvas.root(), Rect (0, 33, 32, 64));
 	b.set_outline_width (0);
-	Rectangle c (&group, Rect (33, 0, 64, 32));
+	Rectangle c (canvas.root(), Rect (33, 0, 64, 32));
 	c.set_outline_width (0);
-	Rectangle d (&group, Rect (33, 33, 64, 64));
+	Rectangle d (canvas.root(), Rect (33, 33, 64, 64));
 	d.set_outline_width (0);
-	boost::optional<Rect> bbox = group.bounding_box ();
+	boost::optional<Rect> bbox = canvas.root()->bounding_box ();
 
 	/* check the bounding box */
 	CPPUNIT_ASSERT (bbox.is_initialized ());
@@ -36,8 +35,8 @@ GroupTest::bounding_box ()
 	CPPUNIT_ASSERT (bbox.get().y1 == 64);
 
 	/* check that adding an item resets the bbox */
-	Rectangle e (&group, Rect (64, 64, 128, 128));
-	bbox = group.bounding_box ();
+	Rectangle e (canvas.root(), Rect (64, 64, 128, 128));
+	bbox = canvas.root()->bounding_box ();
 
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == 0);
@@ -51,9 +50,8 @@ void
 GroupTest::null_bounding_box ()
 {
 	ImageCanvas canvas;
-	RootGroup group (&canvas);
 
-	Group empty (&group);
+	Group empty (canvas.root());
 
 	boost::optional<Rect> bbox = empty.bounding_box ();
 	CPPUNIT_ASSERT (!bbox.is_initialized ());
@@ -67,16 +65,15 @@ GroupTest::layers ()
 	   a - b - c - d
 	*/
 	ImageCanvas canvas;
-	RootGroup group (&canvas);
-	Rectangle a (&group, Rect (0, 0, 32, 32));
-	Rectangle b (&group, Rect (0, 0, 32, 32));
-	Rectangle c (&group, Rect (0, 0, 32, 32));
-	Rectangle d (&group, Rect (0, 0, 32, 32));
+	Rectangle a (canvas.root(), Rect (0, 0, 32, 32));
+	Rectangle b (canvas.root(), Rect (0, 0, 32, 32));
+	Rectangle c (canvas.root(), Rect (0, 0, 32, 32));
+	Rectangle d (canvas.root(), Rect (0, 0, 32, 32));
 
 	/* Put a on top and check */
 	a.raise_to_top ();
 
-	list<Item*>::const_iterator i = group.items().begin();
+	list<Item*>::const_iterator i = canvas.root()->items().begin();
 	CPPUNIT_ASSERT (*i++ == &b);
 	CPPUNIT_ASSERT (*i++ == &c);
 	CPPUNIT_ASSERT (*i++ == &d);
@@ -85,7 +82,7 @@ GroupTest::layers ()
 	/* Put a on the bottom and check */
 	a.lower_to_bottom ();
 
-	i = group.items().begin();
+	i = canvas.root()->items().begin();
 	CPPUNIT_ASSERT (*i++ == &a);
 	CPPUNIT_ASSERT (*i++ == &b);
 	CPPUNIT_ASSERT (*i++ == &c);
@@ -95,7 +92,7 @@ GroupTest::layers ()
 	
 	a.raise (2);
 
-	i = group.items().begin();
+	i = canvas.root()->items().begin();
 	CPPUNIT_ASSERT (*i++ == &b);
 	CPPUNIT_ASSERT (*i++ == &c);
 	CPPUNIT_ASSERT (*i++ == &a);
@@ -103,7 +100,7 @@ GroupTest::layers ()
 
 	a.raise (4);
 
-	i = group.items().begin();
+	i = canvas.root()->items().begin();
 	CPPUNIT_ASSERT (*i++ == &b);
 	CPPUNIT_ASSERT (*i++ == &c);
 	CPPUNIT_ASSERT (*i++ == &d);
@@ -116,13 +113,12 @@ GroupTest::children_changing ()
 {
 	ImageCanvas canvas;
 
-	/* A root group with a rectangle in it */
-	RootGroup group (&canvas);
-	Rectangle a (&group, Rect (0, 0, 32, 32));
+	/* Put a rectangle in the root group */
+	Rectangle a (canvas.root(), Rect (0, 0, 32, 32));
 	a.set_outline_width (0);
 
 	/* Check that initial bbox */
-	boost::optional<Rect> bbox = group.bounding_box ();
+	boost::optional<Rect> bbox = canvas.root()->bounding_box ();
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == 0);
 	CPPUNIT_ASSERT (bbox.get().y0 == 0);
@@ -131,7 +127,7 @@ GroupTest::children_changing ()
 
 	/* Change the rectangle's size and check the parent */
 	a.set (Rect (0, 0, 48, 48));
-	bbox = group.bounding_box ();
+	bbox = canvas.root()->bounding_box ();
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == 0);
 	CPPUNIT_ASSERT (bbox.get().y0 == 0);
@@ -140,7 +136,7 @@ GroupTest::children_changing ()
 
 	/* Change the rectangle's line width and check the parent */
 	a.set_outline_width (1);
-	bbox = group.bounding_box ();
+	bbox = canvas.root()->bounding_box ();
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == -0.5);
 	CPPUNIT_ASSERT (bbox.get().y0 == -0.5);
@@ -154,16 +150,15 @@ GroupTest::grandchildren_changing ()
 {
 	ImageCanvas canvas;
 
-	/* A root group A with a child group B */
-	RootGroup A (&canvas);
-	Group B (&A);
+	/* Put a child group B in the root group */
+	Group B (canvas.root());
 
 	/* Grandchild rectangle */
 	Rectangle a (&B, Rect (0, 0, 32, 32));
 	a.set_outline_width (0);
 
 	/* Check the initial bboxes */
-	boost::optional<Rect> bbox = A.bounding_box ();
+	boost::optional<Rect> bbox = canvas.root()->bounding_box ();
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == 0);
 	CPPUNIT_ASSERT (bbox.get().y0 == 0);
@@ -180,7 +175,7 @@ GroupTest::grandchildren_changing ()
 	/* Change the grandchild and check its parent and grandparent */
 	a.set (Rect (0, 0, 48, 48));
 
-	bbox = A.bounding_box ();	
+	bbox = canvas.root()->bounding_box ();	
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == 0);
 	CPPUNIT_ASSERT (bbox.get().y0 == 0);
@@ -201,9 +196,7 @@ GroupTest::add_items_at_point ()
 {
 	ImageCanvas canvas;
 	
-	RootGroup root (&canvas);
-
-	Group gA (&root);
+	Group gA (canvas.root());
 	gA.set_position (Duple (128, 64));
 
 	Group gB (&gA);
@@ -223,20 +216,20 @@ GroupTest::add_items_at_point ()
 	rC.set (Rect (0, 0, 8, 4));
 
 	vector<Item const *> items;
-	root.add_items_at_point (Duple (128 + 64 + 4 + 4, 64 + 32 + 2 + 2), items);
+	canvas.root()->add_items_at_point (Duple (128 + 64 + 4 + 4, 64 + 32 + 2 + 2), items);
 	CPPUNIT_ASSERT (items.size() == 5);
 	vector<Item const *>::iterator i = items.begin ();
-	CPPUNIT_ASSERT (*i++ == &root);
+	CPPUNIT_ASSERT (*i++ == canvas.root ());
 	CPPUNIT_ASSERT (*i++ == &gA);
 	CPPUNIT_ASSERT (*i++ == &gB);
 	CPPUNIT_ASSERT (*i++ == &rA);
 	CPPUNIT_ASSERT (*i++ == &rB);
 
 	items.clear ();
-	root.add_items_at_point (Duple (128 + 64 + 12 + 4, 64 + 32 + 6 + 2), items);
+	canvas.root()->add_items_at_point (Duple (128 + 64 + 12 + 4, 64 + 32 + 6 + 2), items);
 	CPPUNIT_ASSERT (items.size() == 4);
 	i = items.begin ();
-	CPPUNIT_ASSERT (*i++ == &root);
+	CPPUNIT_ASSERT (*i++ == canvas.root ());
 	CPPUNIT_ASSERT (*i++ == &gA);
 	CPPUNIT_ASSERT (*i++ == &gB);
 	CPPUNIT_ASSERT (*i++ == &rC);
@@ -258,12 +251,11 @@ GroupTest::torture_add_items_at_point ()
 	srand (1);
 
 	ImageCanvas canvas;
-	RootGroup group (&canvas);
 
 	list<Item*> rectangles;
 
 	for (int i = 0; i < n_rectangles; ++i) {
-		Rectangle* r = new Rectangle (&group);
+		Rectangle* r = new Rectangle (canvas.root());
 		double const x = double_random () * rough_size / 2;
 		double const y = double_random () * rough_size / 2;
 		double const w = double_random () * rough_size / 2;
@@ -277,12 +269,12 @@ GroupTest::torture_add_items_at_point ()
 
 		/* ask the group what's at this point */
 		vector<Item const *> items_A;
-		group.add_items_at_point (test, items_A);
+		canvas.root()->add_items_at_point (test, items_A);
 
 		/* work it out ourselves */
 		vector<Item*> items_B;
-		if (group.bounding_box() && group.bounding_box().get().contains (test)) {
-			items_B.push_back (&group);
+		if (canvas.root()->bounding_box() && canvas.root()->bounding_box().get().contains (test)) {
+			items_B.push_back (canvas.root());
 		}
 		
 		for (list<Item*>::iterator j = rectangles.begin(); j != rectangles.end(); ++j) {
