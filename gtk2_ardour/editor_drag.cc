@@ -2947,13 +2947,12 @@ FeatureLineDrag::motion (GdkEvent*, bool)
 		cx = 0;
 	}
 	
-	double x1 = 0, x2 = 0, y1 = 0, y2 = 0;
-
-	_line->get_bounds(x1, y2, x2, y2);
+	boost::optional<Rect> bbox = _line->bounding_box ();
+	assert (bbox);
 	
 	_line->set (
 		ArdourCanvas::Point (cx, 2.0),
-		ArdourCanvas::Point (cx, y2 - y1)
+		ArdourCanvas::Point (cx, bbox.get().height ())		
 		);
 	
 	float *pos = new float;

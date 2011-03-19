@@ -2740,11 +2740,12 @@ Editor::set_canvas_cursor_for_region_view (double x, RegionView* rv)
 	double dy = 0;
 	p->w2i (x, dy);
 
-	double x1, x2, y1, y2;
-	g->get_bounds (x1, y1, x2, y2);
+	boost::optional<ArdourCanvas::Rect> item_bbox = g->bounding_box ();
+	assert (item_bbox);
+	ArdourCanvas::Rect parent_bbox = g->item_to_parent (item_bbox.get ());
 
 	/* Halfway across the region */
-	double const h = (x1 + x2) / 2;
+	double const h = (parent_bbox.x0 + parent_bbox.x1) / 2;
 
 	Trimmable::CanTrim ct = rv->region()->can_trim ();
 	if (x <= h) {

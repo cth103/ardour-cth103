@@ -116,7 +116,6 @@ public:
 	void grab (int, uint32_t);
 	void ungrab (int);
 	void grab_focus ();
-	void get_bounds (double &, double &, double &, double &) const;
 #endif	
 	
 	

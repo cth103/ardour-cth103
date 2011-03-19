@@ -244,20 +244,6 @@ Item::w2i (double& x, double& y)
 }
 
 void
-Item::get_bounds (double& x0, double& y0, double& x1, double& y1) const
-{
-	boost::optional<Rect> const bbox = bounding_box ();
-	if (!bbox) {
-		return;
-	}
-
-	x0 = bbox.get().x0;
-	y0 = bbox.get().y0;
-	x1 = bbox.get().x1;
-	y1 = bbox.get().y1;
-}
-
-void
 Item::move (double dx, double dy)
 {
 	Duple p = _position;
