@@ -8,11 +8,15 @@ fi
 
 debug=0
 callgrind=0
+valgrind=0
 if [ "$1" == "--debug" ]; then
     debug=1
     name=$2
 elif [ "$1" == "--callgrind" ]; then
     callgrind=1
+    name=$2
+elif [ "$1" == "--valgrind" ]; then
+    valgrind=1
     name=$2
 else
     name=$1
@@ -34,6 +38,8 @@ if [ "$debug" == "1" ]; then
     gdb ./libs/canvas/benchmark/$name
 elif [ "$callgrind" == "1" ]; then
     valgrind --tool="callgrind" ./libs/canvas/benchmark/$name
+elif [ "$valgrind" == "1" ]; then
+    valgrind --tool="memcheck" ./libs/canvas/benchmark/$name
 else
     ./libs/canvas/benchmark/$name
 fi
