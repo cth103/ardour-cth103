@@ -137,12 +137,12 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 	case Mark:
 		points = new ArdourCanvas::Points ();
 
-		points->push_back (ArdourCanvas::Point (0.0, 0.0));
-		points->push_back (ArdourCanvas::Point (6.0, 0.0));
-		points->push_back (ArdourCanvas::Point (6.0, 5.0));
-		points->push_back (ArdourCanvas::Point (3.0, 13.0));
-		points->push_back (ArdourCanvas::Point (0.0, 5.0));
-		points->push_back (ArdourCanvas::Point (0.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (6.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (6.0, 5.0));
+		points->push_back (ArdourCanvas::Duple (3.0, 13.0));
+		points->push_back (ArdourCanvas::Duple (0.0, 5.0));
+		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
 
 		_shift = 3;
 		_label_offset = 8.0;
@@ -152,12 +152,12 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 	case Meter:
 
 		points = new ArdourCanvas::Points ();
-		points->push_back (ArdourCanvas::Point (3.0, 0.0));
-		points->push_back (ArdourCanvas::Point (6.0, 5.0));
-		points->push_back (ArdourCanvas::Point (6.0, 10.0));
-		points->push_back (ArdourCanvas::Point (0.0, 10.0));
-		points->push_back (ArdourCanvas::Point (0.0, 5.0));
-		points->push_back (ArdourCanvas::Point (3.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (3.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (6.0, 5.0));
+		points->push_back (ArdourCanvas::Duple (6.0, 10.0));
+		points->push_back (ArdourCanvas::Duple (0.0, 10.0));
+		points->push_back (ArdourCanvas::Duple (0.0, 5.0));
+		points->push_back (ArdourCanvas::Duple (3.0, 0.0));
 
 		_shift = 3;
 		_label_offset = 8.0;
@@ -167,10 +167,10 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 	case RangeStart:
 		
 	        points = new ArdourCanvas::Points ();
-		points->push_back (ArdourCanvas::Point (0.0, 0.0));
-		points->push_back (ArdourCanvas::Point (6.5, 6.5));
-		points->push_back (ArdourCanvas::Point (0.0, 13.0));
-		points->push_back (ArdourCanvas::Point (0.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (6.5, 6.5));
+		points->push_back (ArdourCanvas::Duple (0.0, 13.0));
+		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
 
 		_shift = 0;
 		_label_offset = 13.0;
@@ -179,10 +179,10 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 	case SessionEnd:
 	case RangeEnd:
 		points = new ArdourCanvas::Points ();
-		points->push_back (ArdourCanvas::Point (6.5, 6.5));
-		points->push_back (ArdourCanvas::Point (13.0, 0.0));
-		points->push_back (ArdourCanvas::Point (13.0, 13.0));
-		points->push_back (ArdourCanvas::Point (6.5, 6.5));
+		points->push_back (ArdourCanvas::Duple (6.5, 6.5));
+		points->push_back (ArdourCanvas::Duple (13.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (13.0, 13.0));
+		points->push_back (ArdourCanvas::Duple (6.5, 6.5));
 
 		_shift = 13;
 		_label_offset = 6.0;
@@ -190,10 +190,10 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 
 	case LoopStart:
 		points = new ArdourCanvas::Points ();
-		points->push_back (ArdourCanvas::Point (0.0, 0.0));
-		points->push_back (ArdourCanvas::Point (13.0, 13.0));
-		points->push_back (ArdourCanvas::Point (0.0, 13.0));
-		points->push_back (ArdourCanvas::Point (0.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (13.0, 13.0));
+		points->push_back (ArdourCanvas::Duple (0.0, 13.0));
+		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
 
 		_shift = 0;
 		_label_offset = 12.0;
@@ -201,10 +201,10 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 
 	case LoopEnd:
 		points = new ArdourCanvas::Points ();
-		points->push_back (ArdourCanvas::Point (13.0,  0.0));
-		points->push_back (ArdourCanvas::Point (13.0, 13.0));
-		points->push_back (ArdourCanvas::Point (0.0, 13.0));
-		points->push_back (ArdourCanvas::Point (13.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (13.0,  0.0));
+		points->push_back (ArdourCanvas::Duple (13.0, 13.0));
+		points->push_back (ArdourCanvas::Duple (0.0, 13.0));
+		points->push_back (ArdourCanvas::Duple (13.0, 0.0));
 
 		_shift = 13;
 		_label_offset = 0.0;
@@ -212,10 +212,10 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 
 	case  PunchIn:
 		points = new ArdourCanvas::Points ();
-		points->push_back (ArdourCanvas::Point (0.0, 0.0));
-		points->push_back (ArdourCanvas::Point (13.0, 0.0));
-		points->push_back (ArdourCanvas::Point (0.0, 13.0));
-		points->push_back (ArdourCanvas::Point (0.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (13.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (0.0, 13.0));
+		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
 
 		_shift = 0;
 		_label_offset = 13.0;
@@ -223,10 +223,10 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 
 	case  PunchOut:
 		points = new ArdourCanvas::Points ();
-		points->push_back (ArdourCanvas::Point (0.0, 0.0));
-		points->push_back (ArdourCanvas::Point (12.0, 0.0));
-		points->push_back (ArdourCanvas::Point (12.0, 12.0));
-		points->push_back (ArdourCanvas::Point (0.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (12.0, 0.0));
+		points->push_back (ArdourCanvas::Duple (12.0, 12.0));
+		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
 
 		_shift = 13;
 		_label_offset = 0.0;
@@ -326,10 +326,10 @@ Marker::setup_line ()
 
                 _line->i2w (xo, yo);
 
-                _line->property_x1() = _shift;
-                _line->property_x2() = _shift;
-		_line->property_y1() = -yo; // zero in world coordinates, negative in item/parent coordinate space
-		_line->property_y2() = -yo + _canvas_height;
+                _line->set_x0 (_shift);
+                _line->set_x1 (_shift);
+		_line->set_y0 (-yo); // zero in world coordinates, negative in item/parent coordinate space
+		_line->set_y1 (-yo + _canvas_height);
 
 		_line->set_outline_color (_selected ? ARDOUR_UI::config()->canvasvar_EditPoint.get() : _color);
 		_line->raise_to_top ();

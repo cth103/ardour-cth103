@@ -173,17 +173,17 @@ Editor::initialize_canvas ()
 	transport_bar_drag_rect->hide ();
 
 	transport_punchin_line = new ArdourCanvas::Line (_master_group);
-	transport_punchin_line->property_x1() = 0.0;
-	transport_punchin_line->property_y1() = 0.0;
-	transport_punchin_line->property_x2() = 0.0;
-	transport_punchin_line->property_y2() = phys_height;
+	transport_punchin_line->set_x0 (0);
+	transport_punchin_line->set_y0 (0);
+	transport_punchin_line->set_x1 (0);
+	transport_punchin_line->set_y1 (phys_height);
 	transport_punchin_line->hide ();
 
 	transport_punchout_line  = new ArdourCanvas::Line (_master_group);
-	transport_punchout_line->property_x1() = 0.0;
-	transport_punchout_line->property_y1() = 0.0;
-	transport_punchout_line->property_x2() = 0.0;
-	transport_punchout_line->property_y2() = phys_height;
+	transport_punchout_line->set_x0 (0);
+	transport_punchout_line->set_y0 (0);
+	transport_punchout_line->set_x1 (0);
+	transport_punchout_line->set_y1 (phys_height);
 	transport_punchout_line->hide();
 
 	// used to show zoom mode active zooming

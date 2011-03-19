@@ -256,8 +256,8 @@ void
 AutomationLine::reset_line_coords (ControlPoint& cp)
 {
 	if (cp.view_index() < line_points.size()) {
-		line_points[cp.view_index()].set_x (cp.get_x());
-		line_points[cp.view_index()].set_y (cp.get_y());
+		line_points[cp.view_index()].x = cp.get_x ();
+		line_points[cp.view_index()].y = cp.get_y ();
 	}
 }
 
@@ -472,7 +472,7 @@ AutomationLine::determine_visible_control_points (ALPoints& points)
 		/* reset the line coordinates */
 
 		while (line_points.size() < npoints) {
-			line_points.push_back (ArdourCanvas::Point (0,0));
+			line_points.push_back (ArdourCanvas::Duple (0,0));
 		}
 
 		while (line_points.size() > npoints) {
@@ -480,8 +480,8 @@ AutomationLine::determine_visible_control_points (ALPoints& points)
 		}
 
 		for (view_index = 0; view_index < npoints; ++view_index) {
-			line_points[view_index].set_x (control_points[view_index]->get_x());
-			line_points[view_index].set_y (control_points[view_index]->get_y());
+			line_points[view_index].x = control_points[view_index]->get_x();
+			line_points[view_index].y = control_points[view_index]->get_y();
 		}
 
 		line->set (line_points);

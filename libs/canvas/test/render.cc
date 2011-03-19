@@ -44,9 +44,9 @@ RenderTest::basics ()
 	poly_line_group.set_position (Duple (0, 64));
 	PolyLine poly_line (&poly_line_group);
 	Points points;
-	points.push_back (Point (0, 0));
-	points.push_back (Point (16, 48));
-	points.push_back (Point (32, 32));
+	points.push_back (Duple (0, 0));
+	points.push_back (Duple (16, 48));
+	points.push_back (Duple (32, 32));
 	poly_line.set (points);
 	poly_line.set_outline_color (0xff0000ff);
 	poly_line.set_outline_width (2);

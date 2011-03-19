@@ -680,11 +680,11 @@ CrossfadeEditor::redraw ()
 	ArdourCanvas::Points spts;
 
 	while (pts.size() < npoints) {
-		pts.push_back (ArdourCanvas::Point (0,0));
+		pts.push_back (ArdourCanvas::Duple (0,0));
 	}
 
 	while (spts.size() < npoints + 3) {
-		spts.push_back (ArdourCanvas::Point (0,0));
+		spts.push_back (ArdourCanvas::Duple (0,0));
 	}
 
 	/* the shade coordinates *MUST* be in anti-clockwise order.
@@ -694,36 +694,36 @@ CrossfadeEditor::redraw ()
 
 		/* lower left */
 
-		spts[0].set_x (canvas_border);
-		spts[0].set_y (effective_height() + canvas_border);
+		spts[0].x = canvas_border;
+		spts[0].y = effective_height() + canvas_border;
 
 		/* lower right */
 
-		spts[1].set_x (effective_width() + canvas_border);
-		spts[1].set_y (effective_height() + canvas_border);
+		spts[1].x = effective_width() + canvas_border;
+		spts[1].y = effective_height() + canvas_border;
 
 		/* upper right */
 
-		spts[2].set_x (effective_width() + canvas_border);
-		spts[2].set_y (canvas_border);
+		spts[2].x = effective_width() + canvas_border;
+		spts[2].y = canvas_border;
 
 
 	} else {
 
 		/*  upper left */
 
-		spts[0].set_x (canvas_border);
-		spts[0].set_y (canvas_border);
+		spts[0].x = canvas_border;
+		spts[0].y = canvas_border;
 
 		/* lower left */
 
-		spts[1].set_x (canvas_border);
-		spts[1].set_y (effective_height() + canvas_border);
+		spts[1].x = canvas_border;
+		spts[1].y = effective_height() + canvas_border;
 
 		/* lower right */
 
-		spts[2].set_x (effective_width() + canvas_border);
-		spts[2].set_y (effective_height() + canvas_border);
+		spts[2].x = effective_width() + canvas_border;
+		spts[2].y = effective_height() + canvas_border;
 
 	}
 
@@ -733,11 +733,11 @@ CrossfadeEditor::redraw ()
 
 		double y = vec[i];
 
-		pts[i].set_x (canvas_border + i);
-		pts[i].set_y  (y_coordinate (y));
+		pts[i].x = canvas_border + i;
+		pts[i].y = y_coordinate (y);
 
-		spts[last_spt - i].set_x (canvas_border + i);
-		spts[last_spt - i].set_y (pts[i].get_y());
+		spts[last_spt - i].x = canvas_border + i;
+		spts[last_spt - i].y = pts[i].y;
 	}
 
 	fade[current].line->set (pts);

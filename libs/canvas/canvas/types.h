@@ -75,45 +75,7 @@ struct Rect
 
 extern std::ostream & operator<< (std::ostream &, Rect const &);
 
-
-#ifdef CANVAS_COMPATIBILITY
-
-class Point
-{
-public:	
-	Point ()
-		: x (0)
-		, y (0)
-	{}
-	
-	Point (Coord x_, Coord y_)
-		: x (x_)
-		, y (y_)
-	{}
-
-	Coord get_x () const {
-		return x;
-	}
-
-	Coord get_y () const {
-		return y;
-	}
-
-	void set_x (Coord x_) {
-		x = x_;
-	}
-
-	void set_y (Coord y_) {
-		y = y_;
-	}
-	
-	Coord x;
-	Coord y;
-};
-
-typedef std::vector<Point> Points;
-
-#endif
+typedef std::vector<Duple> Points;
 
 }
 	

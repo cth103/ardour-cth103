@@ -198,9 +198,9 @@ CrossfadeView::redraw_curves ()
 	}
 
 	for (int i = 0, pci = 0; i < npoints; ++i) {
-		ArdourCanvas::Point &p = (*points)[pci++];
-		p.set_x (xoff + i + 1);
-		p.set_y (_height - ((_height - 2) * vec[i]));
+		ArdourCanvas::Duple &p = (*points)[pci++];
+		p.x = xoff + i + 1;
+		p.y = _height - ((_height - 2) * vec[i]);
 	}
 
 	fade_in->set (*points);
@@ -208,9 +208,9 @@ CrossfadeView::redraw_curves ()
 	crossfade->fade_out().curve().get_vector (min_frames - crossfade->position(), max_frames - crossfade->position(), vec, npoints);
 
 	for (int i = 0, pci = 0; i < npoints; ++i) {
-		ArdourCanvas::Point &p = (*points)[pci++];
-		p.set_x (xoff + i + 1);
-		p.set_y (_height - ((_height - 2) * vec[i]));
+		ArdourCanvas::Duple &p = (*points)[pci++];
+		p.x = xoff + i + 1;
+		p.y = _height - ((_height - 2) * vec[i]);
 	}
 	
 	fade_out->set (*points);

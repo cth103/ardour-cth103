@@ -201,8 +201,8 @@ AudioRegionView::init (Gdk::Color const & basic_color, bool wfd)
 		
 		fade_position_line = new ArdourCanvas::Line (group);
 		fade_position_line->set_outline_color (0xBBBBBBAA);
-		fade_position_line->property_y1() = 7;
-		fade_position_line->property_y2() = _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1;
+		fade_position_line->set_y0 (7);
+		fade_position_line->set_y1 (_height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1);
 
 		fade_position_line->hide();
 	}
@@ -429,7 +429,7 @@ AudioRegionView::reset_width_dependent_items (double pixel_width)
 	assert(_pixel_width == pixel_width);
 
 	if (zero_line) {
-		zero_line->property_x2() = pixel_width - 1.0;
+		zero_line->set_x1 (pixel_width - 1.0);
 	}
 
 	if (fade_in_handle) {
@@ -454,8 +454,8 @@ AudioRegionView::reset_width_dependent_items (double pixel_width)
 
 		(*l).first = *i;
 		(*l).second->set (
-			ArdourCanvas::Point(x_pos, 2.0),
-			ArdourCanvas::Point(x_pos, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
+			ArdourCanvas::Duple (x_pos, 2.0),
+			ArdourCanvas::Duple (x_pos, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
 			);
 	}
 	
@@ -541,18 +541,17 @@ AudioRegionView::set_height (gdouble height)
 		float pos_x = trackview.editor().frame_to_pixel((*l).first);
 
 		(*l).second->set (
-			ArdourCanvas::Point(pos_x, 2.0),
-			ArdourCanvas::Point(pos_x, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
+			ArdourCanvas::Duple (pos_x, 2.0),
+			ArdourCanvas::Duple (pos_x, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
 			);
 	}
 
 	if (fade_position_line) {
 
 		if (height < NAME_HIGHLIGHT_THRESH) {
-			fade_position_line->property_y2() = _height - 1;
-		}
-		else {
-			fade_position_line->property_y2() = _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1;
+			fade_position_line->set_y1 (_height - 1);
+		} else {
+			fade_position_line->set_y1 (_height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1);
 		}
 	}
 
@@ -570,8 +569,8 @@ AudioRegionView::manage_zero_line ()
 
 	if (_height >= 100) {
 		double const wave_midpoint = (_height - NAME_HIGHLIGHT_SIZE) / 2.0;
-		zero_line->property_y1() = wave_midpoint;
-		zero_line->property_y2() = wave_midpoint;
+		zero_line->set_y0 (wave_midpoint);
+		zero_line->set_y1 (wave_midpoint);
 		zero_line->show();
 	} else {
 		zero_line->hide();
@@ -647,17 +646,17 @@ AudioRegionView::reset_fade_in_shape_width (framecnt_t width)
 	double xdelta = pwidth/npoints;
 
 	for (pi = 0, pc = 0; pc < npoints; ++pc) {
-		(*points)[pi].set_x(1 + (pc * xdelta));
-		(*points)[pi++].set_y(2 + (h - (curve[pc] * h)));
+		(*points)[pi].x = 1 + (pc * xdelta);
+		(*points)[pi++].y = 2 + (h - (curve[pc] * h));
 	}
 
 	/* fold back */
 
-	(*points)[pi].set_x(pwidth);
-	(*points)[pi++].set_y(2);
+	(*points)[pi].x = pwidth;
+	(*points)[pi++].y = 2;
 
-	(*points)[pi].set_x(1);
-	(*points)[pi++].set_y(2);
+	(*points)[pi].x = 1;
+	(*points)[pi++].y = 2;
 
 	/* connect the dots ... */
 
@@ -738,17 +737,17 @@ AudioRegionView::reset_fade_out_shape_width (framecnt_t width)
 	double xdelta = pwidth/npoints;
 
 	for (pi = 0, pc = 0; pc < npoints; ++pc) {
-		(*points)[pi].set_x(_pixel_width - pwidth + (pc * xdelta));
-		(*points)[pi++].set_y(2 + (h - (curve[pc] * h)));
+		(*points)[pi].x = _pixel_width - pwidth + (pc * xdelta);
+		(*points)[pi++].y = 2 + (h - (curve[pc] * h));
 	}
 
 	/* fold back */
 
-	(*points)[pi].set_x(_pixel_width);
-	(*points)[pi++].set_y(h);
+	(*points)[pi].x = _pixel_width;
+	(*points)[pi++].y = h;
 
-	(*points)[pi].set_x(_pixel_width);
-	(*points)[pi++].set_y(2);
+	(*points)[pi].x = _pixel_width;
+	(*points)[pi++].y = 2;
 
 	/* connect the dots ... */
 
@@ -1428,8 +1427,8 @@ AudioRegionView::show_region_editor ()
 void
 AudioRegionView::show_fade_line (framepos_t pos)
 {
-	fade_position_line->property_x1() = trackview.editor().frame_to_pixel (pos);
-	fade_position_line->property_x2() = trackview.editor().frame_to_pixel (pos);
+	fade_position_line->set_x0 (trackview.editor().frame_to_pixel (pos));
+	fade_position_line->set_x1 (trackview.editor().frame_to_pixel (pos));
 	fade_position_line->show ();
 	fade_position_line->raise_to_top ();
 }
@@ -1451,8 +1450,8 @@ AudioRegionView::transients_changed ()
 		ArdourCanvas::Line* canvas_item = new ArdourCanvas::Line (group);
 	
 		canvas_item->set (
-			ArdourCanvas::Point(-1.0, 2.0),
-			ArdourCanvas::Point(1.0, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
+			ArdourCanvas::Duple (-1.0, 2.0),
+			ArdourCanvas::Duple (1.0, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
 			);
 
 		canvas_item->set_outline_width (1);
@@ -1486,8 +1485,8 @@ AudioRegionView::transients_changed ()
 		*pos = trackview.editor().frame_to_pixel (*i);
 
 		(*l).second->set (
-			ArdourCanvas::Point(*pos, 2.0),
-			ArdourCanvas::Point(*pos, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
+			ArdourCanvas::Duple (*pos, 2.0),
+			ArdourCanvas::Duple (*pos, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
 			);
 		
 		(*l).second->set_data ("position", pos);

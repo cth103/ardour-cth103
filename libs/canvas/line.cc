@@ -41,31 +41,13 @@ Line::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 	context->stroke ();
 }
 
-#ifdef CANVAS_COMPATIBILITY
-void
-Line::set (Point a, Point b)
-{
-	begin_change ();
-	
-	_points[0] = a;
-	_points[1] = b;
-
-	_bounding_box_dirty = true;
-	end_change ();
-
-	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: line change\n");
-}
-#endif
-
 void
 Line::set (Duple a, Duple b)
 {
 	begin_change ();
-	
-	_points[0].x = a.x;
-	_points[0].y = a.y;
-	_points[1].x = b.x;
-	_points[1].y = b.y;
+
+	_points[0] = a;
+	_points[1] = b;
 
 	_bounding_box_dirty = true;
 	end_change ();

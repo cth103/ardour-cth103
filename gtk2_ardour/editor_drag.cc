@@ -2356,8 +2356,8 @@ MarkerDrag::MarkerDrag (Editor* e, ArdourCanvas::Item* i)
 	_marker = reinterpret_cast<Marker*> (_item->get_data ("marker"));
 	assert (_marker);
 
-	_points.push_back (ArdourCanvas::Point (0, 0));
-	_points.push_back (ArdourCanvas::Point (0, physical_screen_height (_editor->get_window())));
+	_points.push_back (ArdourCanvas::Duple (0, 0));
+	_points.push_back (ArdourCanvas::Duple (0, physical_screen_height (_editor->get_window())));
 }
 
 MarkerDrag::~MarkerDrag ()
@@ -2951,8 +2951,8 @@ FeatureLineDrag::motion (GdkEvent*, bool)
 	assert (bbox);
 	
 	_line->set (
-		ArdourCanvas::Point (cx, 2.0),
-		ArdourCanvas::Point (cx, bbox.get().height ())		
+		ArdourCanvas::Duple (cx, 2.0),
+		ArdourCanvas::Duple (cx, bbox.get().height ())		
 		);
 	
 	float *pos = new float;

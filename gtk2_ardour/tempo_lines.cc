@@ -47,8 +47,8 @@ TempoLines::tempo_map_changed()
 	for (Lines::iterator i = _lines.begin(); i != _lines.end(); d += 1.0) {
 		Lines::iterator next = i;
 		++next;
-		i->second->property_x1() = - d;
-		i->second->property_x2() = - d;
+		i->second->set_x0 (-d);
+		i->second->set_x1 (-d);
 		_lines.erase(i);
 		_lines.insert(make_pair(- d, i->second));
 		i = next;
@@ -154,7 +154,7 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 			}
 
 			line = (li != _lines.end()) ? li->second : NULL;
-			assert(!line || line->property_x1() == li->first);
+			assert (!line || line->x0() == li->first);
 
 			Lines::iterator next = li;
 			if (next != _lines.end())
@@ -163,7 +163,7 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 			exhausted = (next == _lines.end());
 
 			// Hooray, line is perfect
-			if (line && line->property_x1() == xpos) {
+			if (line && line->x0() == xpos) {
 				if (li != _lines.end())
 					++li;
 
@@ -180,8 +180,8 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 					//cout << "*** STEALING FROM RIGHT" << endl;
 					line = steal->second;
 					_lines.erase(steal);
-					line->property_x1() = xpos;
-					line->property_x2() = xpos;
+					line->set_x0 (xpos);
+					line->set_x1 (xpos);
 					line->set_outline_color (color);
 					_lines.insert(make_pair(xpos, line));
 					inserted_last_time = true; // search next time
@@ -201,7 +201,7 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 						inserted_last_time = false; // don't search next time
 					} else {
 						//cout << "*** MOVING LINE" << endl;
-						const double x1 = line->property_x1();
+						const double x1 = line->x0();
 						const bool was_clean = x1 >= _clean_left && x1 <= _clean_right;
 						invalidated = invalidated || was_clean;
 						// Invalidate clean portion (XXX: too harsh?)
@@ -209,8 +209,8 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 						_clean_right = needed_right;
 						_lines.erase(li);
 						line->set_outline_color (color);
-						line->property_x1() = xpos;
-						line->property_x2() = xpos;
+						line->set_x0 (xpos);
+						line->set_x1 (xpos);
 						_lines.insert(make_pair(xpos, line));
 						inserted_last_time = true; // search next time
 					}
@@ -221,10 +221,10 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 				//cout << "*** CREATING LINE" << endl;
 				assert(_lines.find(xpos) == _lines.end());
 				line = new ArdourCanvas::Line (_group);
-				line->property_x1() = xpos;
-				line->property_x2() = xpos;
-				line->property_y1() = 0.0;
-				line->property_y2() = _height;
+				line->set_x0 (xpos);
+				line->set_x1 (xpos);
+				line->set_y0 (0);
+				line->set_y1 (_height);
 				line->set_outline_color (color);
 				_lines.insert(make_pair(xpos, line));
 				inserted_last_time = true;
@@ -237,8 +237,8 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 				line = steal->second;
 				_lines.erase(steal);
 				line->set_outline_color (color);
-				line->property_x1() = xpos;
-				line->property_x2() = xpos;
+				line->set_x0 (xpos);
+				line->set_x1 (xpos);
 				_lines.insert(make_pair(xpos, line));
 				inserted_last_time = true; // search next time
 				invalidated = true;

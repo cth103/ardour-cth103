@@ -16,7 +16,6 @@ public:
 	
 	void compute_bounding_box () const;
 	
-	void set (Point, Point);
 	void set (Duple, Duple);
 	void set_x0 (Coord);
 	void set_y0 (Coord);
@@ -35,26 +34,8 @@ public:
 		return _points[1].y;
 	}
 
-#ifdef CANVAS_COMPATIBILITY
-	Coord& property_x1 () {
-		return _points[0].x;
-	}
-
-	Coord& property_x2 () {
-		return _points[1].x;
-	}
-
-	Coord& property_y1 () {
-		return _points[0].y;
-	}
-
-	Coord& property_y2 () {
-		return _points[1].y;
-	}
-#endif
-
 private:
-	Point _points[2];
+	Duple _points[2];
 };
 	
 }

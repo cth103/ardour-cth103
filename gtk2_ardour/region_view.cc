@@ -658,14 +658,14 @@ RegionView::region_sync_changed ()
 			//points = sync_mark->property_points().get_value();
 
 			double offset = sync_offset / samples_per_unit;
-			points.push_back (ArdourCanvas::Point (offset - ((sync_mark_width-1)/2), 1));
-			points.push_back (ArdourCanvas::Point (offset + ((sync_mark_width-1)/2), 1));
-			points.push_back (ArdourCanvas::Point (offset, sync_mark_width - 1));
-			points.push_back (ArdourCanvas::Point (offset - ((sync_mark_width-1)/2), 1));
+			points.push_back (ArdourCanvas::Duple (offset - ((sync_mark_width-1)/2), 1));
+			points.push_back (ArdourCanvas::Duple (offset + ((sync_mark_width-1)/2), 1));
+			points.push_back (ArdourCanvas::Duple (offset, sync_mark_width - 1));
+			points.push_back (ArdourCanvas::Duple (offset - ((sync_mark_width-1)/2), 1));
 			sync_mark->set (points);
 			sync_mark->show ();
 
-			sync_line->set (ArdourCanvas::Point (offset, 0), ArdourCanvas::Point (offset, trackview.current_height() - NAME_HIGHLIGHT_SIZE));
+			sync_line->set (ArdourCanvas::Duple (offset, 0), ArdourCanvas::Duple (offset, trackview.current_height() - NAME_HIGHLIGHT_SIZE));
 			sync_line->show ();
 		}
 	}
@@ -732,8 +732,8 @@ RegionView::set_height (double h)
 		double offset = sync_offset / samples_per_unit;
 
 		sync_line->set (
-			ArdourCanvas::Point (offset, 0),
-			ArdourCanvas::Point (offset, h - NAME_HIGHLIGHT_SIZE)
+			ArdourCanvas::Duple (offset, 0),
+			ArdourCanvas::Duple (offset, h - NAME_HIGHLIGHT_SIZE)
 			);
 	}
 

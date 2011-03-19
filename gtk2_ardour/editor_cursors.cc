@@ -34,8 +34,8 @@ EditorCursor::EditorCursor (Editor& ed, bool (Editor::*callbck)(GdkEvent*,Ardour
 	  length(1.0)
 {
 	canvas_item.set (
-		ArdourCanvas::Point (-1.0, 0.0),
-		ArdourCanvas::Point (1.0, 1.0)
+		ArdourCanvas::Duple (-1.0, 0.0),
+		ArdourCanvas::Duple (1.0, 1.0)
 		);
 
 	canvas_item.set_outline_width (1);
