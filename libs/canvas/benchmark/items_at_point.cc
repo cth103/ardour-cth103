@@ -42,7 +42,7 @@ test (int items_per_cell)
 		Duple test (double_random() * rough_size, double_random() * rough_size);
 
 		/* ask the group what's at this point */
-		list<Item*> items;
+		list<Item const *> items;
 		group.add_items_at_point (test, items);
 	}
 }

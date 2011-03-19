@@ -71,7 +71,7 @@ protected:
 	bool deliver_event (Duple, GdkEvent *);
 
 private:
-	Item* _current_item;
+	Item const * _current_item;
 };
 
 class GtkCanvasDrawingArea : public Gtk::EventBox, public GtkCanvas

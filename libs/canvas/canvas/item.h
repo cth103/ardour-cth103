@@ -40,8 +40,8 @@ public:
 	 */
 	virtual void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const = 0;
 
-	virtual void add_items_at_point (Duple, std::list<Item*>& items) const {
-		items.push_back (const_cast<Item*> (this));
+	virtual void add_items_at_point (Duple, std::list<Item const *>& items) const {
+		items.push_back (this);
 	}
 
 	/** Update _bounding_box and _bounding_box_dirty */

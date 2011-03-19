@@ -189,7 +189,7 @@ Group::child_changed ()
 }
 
 void
-Group::add_items_at_point (Duple const point, list<Item*>& items) const
+Group::add_items_at_point (Duple const point, list<Item const *>& items) const
 {
 	boost::optional<Rect> const bbox = bounding_box ();
 	if (!bbox || !bbox.get().contains (point)) {

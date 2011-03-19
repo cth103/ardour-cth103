@@ -93,9 +93,9 @@ GtkCanvas::motion_notify_handler (GdkEventMotion* ev)
 
 	Duple point (ev->x, ev->y);
 	
-	list<Item*> items;
+	list<Item const *> items;
 	_root.add_items_at_point (point, items);
-	Item* new_item = items.empty () ? 0 : items.back ();
+	Item const * new_item = items.empty () ? 0 : items.back ();
 
 	if (new_item != _current_item) {
 		GdkEventCrossing synth_event;
@@ -123,13 +123,13 @@ GtkCanvas::motion_notify_handler (GdkEventMotion* ev)
 bool
 GtkCanvas::deliver_event (Duple point, GdkEvent* event)
 {
-	list<Item*> items;
+	list<Item const *> items;
 	_root.add_items_at_point (point, items);
 	if (items.empty()) {
 		return false;
 	}
 	
-	list<Item*>::reverse_iterator i = items.rbegin ();
+	list<Item const *>::reverse_iterator i = items.rbegin ();
 	while (i != items.rend()) {
 		if ((*i)->Event (event)) {
 			DEBUG_TRACE (PBD::DEBUG::CanvasEvents, string_compose ("canvas event handled by %1\n", (*i)->name.empty() ? "[unknown]" : (*i)->name));

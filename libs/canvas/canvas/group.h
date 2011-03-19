@@ -30,7 +30,7 @@ public:
 	void lower_child_to_bottom (Item *);
 	void child_changed ();
 
-	void add_items_at_point (Duple, std::list<Item*> &) const;
+	void add_items_at_point (Duple, std::list<Item const *> &) const;
 
 	static int default_items_per_cell;
 

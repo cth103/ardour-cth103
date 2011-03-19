@@ -222,10 +222,10 @@ GroupTest::add_items_at_point ()
 	rC.set_position (Duple (12, 6));
 	rC.set (Rect (0, 0, 8, 4));
 
-	list<Item*> items;
+	list<Item const *> items;
 	root.add_items_at_point (Duple (128 + 64 + 4 + 4, 64 + 32 + 2 + 2), items);
 	CPPUNIT_ASSERT (items.size() == 5);
-	list<Item*>::iterator i = items.begin ();
+	list<Item const *>::iterator i = items.begin ();
 	CPPUNIT_ASSERT (*i++ == &root);
 	CPPUNIT_ASSERT (*i++ == &gA);
 	CPPUNIT_ASSERT (*i++ == &gB);
@@ -276,7 +276,7 @@ GroupTest::torture_add_items_at_point ()
 		Duple test (double_random() * rough_size, double_random() * rough_size);
 
 		/* ask the group what's at this point */
-		list<Item*> items_A;
+		list<Item const *> items_A;
 		group.add_items_at_point (test, items_A);
 
 		/* work it out ourselves */
@@ -294,7 +294,7 @@ GroupTest::torture_add_items_at_point ()
 		}
 
 		CPPUNIT_ASSERT (items_A.size() == items_B.size());
-		list<Item*>::iterator j = items_A.begin ();
+		list<Item const *>::iterator j = items_A.begin ();
 		list<Item*>::iterator k = items_B.begin ();
 		while (j != items_A.end ()) {
 			CPPUNIT_ASSERT (*j == *k);
