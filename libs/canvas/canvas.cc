@@ -29,8 +29,6 @@ Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context
 	if (draw) {
 		_root.render (*draw, context);
 	}
-
-	cout << "Root bounding box: " << root_bbox.get() << "\n";
 }
 
 void
@@ -150,8 +148,8 @@ GtkCanvas::deliver_event (Duple point, GdkEvent* event)
 	return false;
 }
 
-ImageCanvas::ImageCanvas ()
-	: _surface (Cairo::ImageSurface::create (Cairo::FORMAT_ARGB32, 1024, 1024))
+ImageCanvas::ImageCanvas (Duple size)
+	: _surface (Cairo::ImageSurface::create (Cairo::FORMAT_ARGB32, size.x, size.y))
 {
 	_context = Cairo::Context::create (_surface);
 }

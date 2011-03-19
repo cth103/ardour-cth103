@@ -1,0 +1,15 @@
+[ardour] frames_per_unit -> frames_per_pixel
+colour type
+XXX_NEW_CANVAS
+LUT could optimise for bboxes with non-zero top-lefts
+Canvas is-a group?
+unparent needed?  can we not just reparent?
+change handling is a little grubby.  Unify perhaps.
+some automated testing of deciding where to render
+outline_what ...
+Check XXX.
+Check declarations in headers.
+GPL boilerplate.
+ArdourCanvas -> ?
+Loading could probably be sped up by suspending all handling of bbox dirty.
+pixbufs for text?!

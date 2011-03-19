@@ -42,7 +42,7 @@ private:
 class ImageCanvas : public Canvas
 {
 public:
-	ImageCanvas ();
+	ImageCanvas (Duple size = Duple (1024, 1024));
 
 	void request_redraw (Rect const &) {
 		/* XXX */
