@@ -210,12 +210,19 @@ GroupTest::add_items_at_point ()
 
 	list<Item*> items;
 	root.add_items_at_point (Duple (128 + 64 + 4 + 4, 64 + 32 + 2 + 2), items);
-	CPPUNIT_ASSERT (items.size() == 2);
-	CPPUNIT_ASSERT (items.front() == &rA);
-	CPPUNIT_ASSERT (items.back() == &rB);
+	CPPUNIT_ASSERT (items.size() == 4);
+	list<Item*>::iterator i = items.begin ();
+	CPPUNIT_ASSERT (*i++ == &gA);
+	CPPUNIT_ASSERT (*i++ == &gB);
+	CPPUNIT_ASSERT (*i++ == &rA);
+	CPPUNIT_ASSERT (*i++ == &rB);
 
 	items.clear ();
 	root.add_items_at_point (Duple (128 + 64 + 12 + 4, 64 + 32 + 6 + 2), items);
-	CPPUNIT_ASSERT (items.size() == 1);
-	CPPUNIT_ASSERT (items.front() == &rC);
+	CPPUNIT_ASSERT (items.size() == 3);
+	i = items.begin ();
+	CPPUNIT_ASSERT (*i++ == &gA);
+	CPPUNIT_ASSERT (*i++ == &gB);
+	CPPUNIT_ASSERT (*i++ == &rC);
 }
+
