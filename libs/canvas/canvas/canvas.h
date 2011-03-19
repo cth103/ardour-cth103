@@ -66,8 +66,12 @@ public:
 	GtkCanvas ();
 
 protected:
-	bool button_press_handler (GdkEventButton *);
+	bool button_handler (GdkEventButton *);
+	bool motion_notify_handler (GdkEventMotion *);
 	bool deliver_event (Duple, GdkEvent *);
+
+private:
+	Item* _current_item;
 };
 
 class GtkCanvasDrawingArea : public Gtk::EventBox, public GtkCanvas
@@ -83,6 +87,8 @@ public:
 protected:
 	bool on_expose_event (GdkEventExpose *);
 	bool on_button_press_event (GdkEventButton *);
+	bool on_button_release_event (GdkEventButton* event);
+	bool on_motion_notify_event (GdkEventMotion *);
 };
 
 class GtkCanvasViewport : public Gtk::Viewport

@@ -73,11 +73,61 @@ Canvas::queue_draw_item_area (Item* item, Rect area)
 	request_redraw (area);
 }
 
+GtkCanvas::GtkCanvas ()
+	: _current_item (0)
+{
+	
+}
+
 bool
-GtkCanvas::button_press_handler (GdkEventButton* ev)
+GtkCanvas::button_handler (GdkEventButton* ev)
 {
 	DEBUG_TRACE (PBD::DEBUG::CanvasEvents, string_compose ("canvas button press %1 %1\n", ev->x, ev->y));
 	return deliver_event (Duple (ev->x, ev->y), reinterpret_cast<GdkEvent*> (ev));
+}
+
+bool
+GtkCanvas::motion_notify_handler (GdkEventMotion* ev)
+{
+	/* XXX: do this every time the mouse moves? really? */
+
+	Duple point (ev->x, ev->y);
+	
+	list<Item*> items;
+	_root.add_items_at_point (point, items);
+	Item* new_item = items.empty () ? 0 : items.back ();
+
+	if (new_item != _current_item) {
+		GdkEventCrossing synth_event;
+
+		if (_current_item) {
+			synth_event.type = GDK_LEAVE_NOTIFY;
+			synth_event.x = ev->x;
+			synth_event.y = ev->y;
+			cout << "leave " << new_item->name << "\n";
+			_current_item->Event (reinterpret_cast<GdkEvent*> (&synth_event));
+		}
+
+		if (new_item) {
+			synth_event.type = GDK_ENTER_NOTIFY;
+			synth_event.x = ev->x;
+			synth_event.y = ev->y;
+			cout << "enter " << new_item->name << "\n";
+			new_item->Event (reinterpret_cast<GdkEvent*> (&synth_event));
+		}
+
+		_current_item = new_item;
+	}
+
+	if (_current_item) {
+		cout << "motion " << _current_item->name << "\n";
+	}
+
+	if (!_current_item) {
+		return false;
+	}
+	
+	return _current_item->Event (reinterpret_cast<GdkEvent*> (ev));
 }
 
 bool
@@ -136,14 +186,9 @@ ImageCanvas::write_to_png (string const & f)
 	_surface->write_to_png (f);
 }
 
-GtkCanvas::GtkCanvas ()
-{
-	
-}
-
 GtkCanvasDrawingArea::GtkCanvasDrawingArea ()
 {
-	add_events (Gdk::BUTTON_PRESS_MASK);
+	add_events (Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK | Gdk::POINTER_MOTION_MASK);
 }
 
 bool
@@ -158,7 +203,19 @@ GtkCanvasDrawingArea::on_expose_event (GdkEventExpose* ev)
 bool
 GtkCanvasDrawingArea::on_button_press_event (GdkEventButton* ev)
 {
-	return button_press_handler (ev);
+	return button_handler (ev);
+}
+
+bool
+GtkCanvasDrawingArea::on_button_release_event (GdkEventButton* ev)
+{
+	return button_handler (ev);
+}
+
+bool
+GtkCanvasDrawingArea::on_motion_notify_event (GdkEventMotion* ev)
+{
+	return motion_notify_handler (ev);
 }
 
 void
