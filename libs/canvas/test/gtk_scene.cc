@@ -27,7 +27,7 @@ int main (int argc, char* argv[])
 	Gtk::VScrollbar v_scroll;
 	
 	GtkCanvasViewport viewport (*h_scroll.get_adjustment(), *v_scroll.get_adjustment());
-	GtkCanvasDrawingArea* canvas = viewport.canvas ();
+	GtkCanvas* canvas = viewport.canvas ();
 
 	overall_vbox.pack_start (viewport, true, true);
 	overall_vbox.pack_start (h_scroll, false, false);

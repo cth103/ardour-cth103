@@ -13,7 +13,7 @@ int main (int argc, char* argv[])
 	Gtk::Window window;
 	window.set_title ("Hello world");
 	window.set_size_request (512, 512);
-	GtkCanvasDrawingArea canvas;
+	GtkCanvas canvas;
 	canvas.set_size_request (2048, 2048);
 
 	int const N = 10000;

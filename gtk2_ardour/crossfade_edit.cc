@@ -128,7 +128,7 @@ CrossfadeEditor::CrossfadeEditor (Session* s, boost::shared_ptr<Crossfade> xf, d
 	point_grabbed = false;
 	toplevel = 0;
 
-	canvas = new ArdourCanvas::GtkCanvasDrawingArea ();
+	canvas = new ArdourCanvas::GtkCanvas ();
 	canvas->signal_size_allocate().connect (sigc::mem_fun(*this, &CrossfadeEditor::canvas_allocation));
 	canvas->set_size_request (425, 200);
 

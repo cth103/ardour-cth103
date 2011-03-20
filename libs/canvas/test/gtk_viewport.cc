@@ -27,7 +27,7 @@ int main (int argc, char* argv[])
 
 	Gtk::Window window;
 	window.set_title ("Hello world");
-	GtkCanvasDrawingArea canvas;
+	GtkCanvas canvas;
 
 	Rectangle a (canvas.root(), Rect (64, 64, 128, 128));
 	a.set_outline_color (0xff0000aa);

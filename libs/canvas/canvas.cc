@@ -93,15 +93,17 @@ Canvas::get_state ()
 
 GtkCanvas::GtkCanvas ()
 	: _current_item (0)
+	, _grabbed_item (0)
 {
-	
+	add_events (Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK | Gdk::POINTER_MOTION_MASK);
 }
 
 GtkCanvas::GtkCanvas (XMLTree const * tree)
 	: Canvas (tree)
 	, _current_item (0)
+	, _grabbed_item (0)
 {
-	
+	add_events (Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK | Gdk::POINTER_MOTION_MASK);
 }
 
 bool
@@ -148,6 +150,10 @@ GtkCanvas::motion_notify_handler (GdkEventMotion* ev)
 bool
 GtkCanvas::deliver_event (Duple point, GdkEvent* event)
 {
+	if (_grabbed_item) {
+		return _grabbed_item->Event (event);
+	}
+	
 	vector<Item const *> items;
 	_root.add_items_at_point (point, items);
 	if (items.empty()) {
@@ -201,54 +207,57 @@ ImageCanvas::write_to_png (string const & f)
 	_surface->write_to_png (f);
 }
 
-GtkCanvasDrawingArea::GtkCanvasDrawingArea ()
-{
-	add_events (Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK | Gdk::POINTER_MOTION_MASK);
-}
-
-GtkCanvasDrawingArea::GtkCanvasDrawingArea (XMLTree const * tree)
-	: GtkCanvas (tree)
-{
-	add_events (Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK | Gdk::POINTER_MOTION_MASK);
-}
-
 bool
-GtkCanvasDrawingArea::on_expose_event (GdkEventExpose* ev)
+GtkCanvas::on_expose_event (GdkEventExpose* ev)
 {
-	cout << "GtkCanvasDrawingArea: exposed x=" << ev->area.x << " width=" << ev->area.width << "\n";
+	cout << "GtkCanvas: exposed x=" << ev->area.x << " width=" << ev->area.width << "\n";
 	Cairo::RefPtr<Cairo::Context> c = get_window()->create_cairo_context ();
 	render (Rect (ev->area.x, ev->area.y, ev->area.x + ev->area.width, ev->area.y + ev->area.height), c);
 	return true;
 }
 
 bool
-GtkCanvasDrawingArea::on_button_press_event (GdkEventButton* ev)
+GtkCanvas::on_button_press_event (GdkEventButton* ev)
 {
 	return button_handler (ev);
 }
 
 bool
-GtkCanvasDrawingArea::on_button_release_event (GdkEventButton* ev)
+GtkCanvas::on_button_release_event (GdkEventButton* ev)
 {
 	return button_handler (ev);
 }
 
 bool
-GtkCanvasDrawingArea::on_motion_notify_event (GdkEventMotion* ev)
+GtkCanvas::on_motion_notify_event (GdkEventMotion* ev)
 {
 	return motion_notify_handler (ev);
 }
 
 void
-GtkCanvasDrawingArea::request_redraw (Rect const & area)
+GtkCanvas::request_redraw (Rect const & area)
 {
 	queue_draw_area (floor (area.x0), floor (area.y0), ceil (area.x1) - floor (area.x0), ceil (area.y1) - floor (area.y0));
 }
 
 void
-GtkCanvasDrawingArea::request_size (Duple size)
+GtkCanvas::request_size (Duple size)
 {
 	set_size_request (size.x, size.y);
+}
+
+void
+GtkCanvas::grab (Item* item)
+{
+	/* XXX: should this be doing gdk_pointer_grab? */
+	_grabbed_item = item;
+}
+
+void
+GtkCanvas::ungrab ()
+{
+	/* XXX: should this be doing gdk_pointer_ungrab? */
+	_grabbed_item = 0;
 }
 
 GtkCanvasViewport::GtkCanvasViewport (Gtk::Adjustment& hadj, Gtk::Adjustment& vadj)

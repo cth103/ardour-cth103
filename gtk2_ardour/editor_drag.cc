@@ -196,14 +196,14 @@ Drag::Drag (Editor* e, ArdourCanvas::Item* i)
 void
 Drag::swap_grab (ArdourCanvas::Item* new_item, Gdk::Cursor* cursor, uint32_t time)
 {
-	_item->ungrab (0);
+	_item->ungrab ();
 	_item = new_item;
 
 	if (cursor == 0) {
 		cursor = _editor->which_grabber_cursor ();
 	}
 
-	_item->grab (Gdk::POINTER_MOTION_MASK | Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK, *cursor, time);
+	_item->grab ();
 }
 
 void
@@ -235,9 +235,7 @@ Drag::start_grab (GdkEvent* event, Gdk::Cursor *cursor)
 	_last_pointer_x = _grab_x;
 	_last_pointer_y = _grab_y;
 
-	_item->grab (Gdk::POINTER_MOTION_MASK|Gdk::BUTTON_PRESS_MASK|Gdk::BUTTON_RELEASE_MASK,
-	             *cursor,
-	             event->button.time);
+	_item->grab ();
 
 	if (_editor->session() && _editor->session()->transport_rolling()) {
 		_was_rolling = true;
@@ -268,7 +266,7 @@ Drag::end_grab (GdkEvent* event)
 {
 	_editor->stop_canvas_autoscroll ();
 
-	_item->ungrab (event ? event->button.time : 0);
+	_item->ungrab ();
 
 	finished (event, _move_threshold_passed);
 
@@ -345,7 +343,7 @@ void
 Drag::abort ()
 {
 	if (_item) {
-		_item->ungrab (0);
+		_item->ungrab ();
 	}
 
 	aborted (_move_threshold_passed);
@@ -1450,7 +1448,7 @@ NoteResizeDrag::start_grab (GdkEvent* event, Gdk::Cursor* /*ignored*/)
 		at_front = false;
 	}
 
-	_item->grab(GDK_POINTER_MOTION_MASK | GDK_BUTTON_RELEASE_MASK, *cursor, event->motion.time);
+	_item->grab ();
 
 	if (event->motion.state & Keyboard::PrimaryModifier) {
 		relative = false;

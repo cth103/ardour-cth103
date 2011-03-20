@@ -64,7 +64,7 @@ namespace ArdourCanvas {
 	class NoEventText;
 	class Rectangle;
 	class Line;
-	class GtkCanvasDrawingArea;
+	class GtkCanvas;
 	class GtkCanvasViewport;
 }
 
@@ -690,7 +690,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	Gdk::Cursor* which_grabber_cursor ();
 	void set_canvas_cursor ();
 
-	ArdourCanvas::GtkCanvasDrawingArea* _track_canvas;
+	ArdourCanvas::GtkCanvas* _track_canvas;
 	ArdourCanvas::GtkCanvasViewport* _track_canvas_viewport;
 	Gtk::Adjustment* _track_canvas_hadj;
 	Gtk::Adjustment* _track_canvas_vadj;

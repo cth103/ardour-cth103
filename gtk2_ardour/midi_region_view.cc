@@ -413,7 +413,7 @@ MidiRegionView::button_release (GdkEventButton* ev)
         event_y = ev->y;
 	
         group->w2i(event_x, event_y);
-        group->ungrab(ev->time);
+        group->ungrab ();
         
 	event_frame = trackview.editor().pixel_to_frame(event_x);
 
@@ -557,8 +557,7 @@ MidiRegionView::motion (GdkEventMotion* ev)
                 if (_pressed_button == 1 && trackview.editor().current_mouse_mode() == MouseObject 
 			&& !Keyboard::modifier_state_contains (ev->state, Keyboard::insert_note_modifier())) {
                         
-			group->grab(GDK_POINTER_MOTION_MASK | GDK_BUTTON_RELEASE_MASK,
-                                    Gdk::Cursor(Gdk::FLEUR), ev->time);
+			group->grab ();
 				    
                         _last_x = event_x;
                         _last_y = event_y;
@@ -580,8 +579,7 @@ MidiRegionView::motion (GdkEventMotion* ev)
                         delete _ghost_note;
                         _ghost_note = 0;
 				
-                        group->grab(GDK_POINTER_MOTION_MASK | GDK_BUTTON_RELEASE_MASK,
-                                    Gdk::Cursor(Gdk::FLEUR), ev->time);
+                        group->grab ();
 				    
                         _last_x = event_x;
                         _last_y = event_y;

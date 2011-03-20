@@ -24,7 +24,9 @@ public:
 
 	virtual void request_redraw (Rect const &) = 0;
 	virtual void request_size (Duple) = 0;
-	
+	virtual void grab (Item *) = 0;
+	virtual void ungrab () = 0;
+
 	void render (Rect const &, Cairo::RefPtr<Cairo::Context> const &) const;
 
 	Group* root () {
@@ -58,6 +60,9 @@ public:
 		/* XXX */
 	}
 	
+	void grab (Item *) {}
+	void ungrab () {}
+
 	void render_to_image (Rect const &) const;
 	void write_to_png (std::string const &);
 
@@ -66,30 +71,17 @@ private:
 	Cairo::RefPtr<Cairo::Context> _context;
 };
 
-class GtkCanvas : public Canvas
+class GtkCanvas : public Canvas, public Gtk::EventBox
 {
 public:
 	GtkCanvas ();
 	GtkCanvas (XMLTree const *);
 
-protected:
-	bool button_handler (GdkEventButton *);
-	bool motion_notify_handler (GdkEventMotion *);
-	bool deliver_event (Duple, GdkEvent *);
-
-private:
-	Item const * _current_item;
-};
-
-class GtkCanvasDrawingArea : public Gtk::EventBox, public GtkCanvas
-{
-public:
-	GtkCanvasDrawingArea ();
-	GtkCanvasDrawingArea (XMLTree const *);
-
 	void request_redraw (Rect const &);
 	void request_size (Duple);
-
+	void grab (Item *);
+	void ungrab ();
+	
 	PBD::Signal1<bool, GdkEventButton *> ButtonPress;
 	
 protected:
@@ -97,6 +89,14 @@ protected:
 	bool on_button_press_event (GdkEventButton *);
 	bool on_button_release_event (GdkEventButton* event);
 	bool on_motion_notify_event (GdkEventMotion *);
+	
+	bool button_handler (GdkEventButton *);
+	bool motion_notify_handler (GdkEventMotion *);
+	bool deliver_event (Duple, GdkEvent *);
+
+private:
+	Item const * _current_item;
+	Item const * _grabbed_item;
 };
 
 class GtkCanvasViewport : public Gtk::Viewport
@@ -104,7 +104,7 @@ class GtkCanvasViewport : public Gtk::Viewport
 public:
 	GtkCanvasViewport (Gtk::Adjustment &, Gtk::Adjustment &);
 
-	GtkCanvasDrawingArea* canvas () {
+	GtkCanvas* canvas () {
 		return &_canvas;
 	}
 
@@ -112,7 +112,7 @@ protected:
 	void on_size_request (Gtk::Requisition *);
 
 private:
-	GtkCanvasDrawingArea _canvas;
+	GtkCanvas _canvas;
 };
 
 }

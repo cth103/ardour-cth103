@@ -224,6 +224,20 @@ Item::set_item_state (XMLNode const * node)
 	_visible = string_is_affirmative (node->property("visible")->value());
 }
 
+void
+Item::grab ()
+{
+	assert (_canvas);
+	_canvas->grab (this);
+}
+
+void
+Item::ungrab ()
+{
+	assert (_canvas);
+	_canvas->ungrab ();
+}
+
 #ifdef CANVAS_COMPATIBILITY
 void
 Item::set_data (char const * key, void* data)
@@ -265,24 +279,6 @@ Item::w2i (double& x, double& y)
 
 	x = d.x;
 	y = d.y;
-}
-
-void
-Item::grab (int, Gdk::Cursor, uint32_t &)
-{
-	/* XXX */
-}
-
-void
-Item::grab (int, uint32_t)
-{
-	/* XXX */
-}
-
-void
-Item::ungrab (int)
-{
-	/* XXX */
 }
 
 #endif

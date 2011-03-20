@@ -112,7 +112,7 @@ class CrossfadeEditor : public ArdourDialog
 	};
 
 	ArdourCanvas::Rectangle*   toplevel;
-	ArdourCanvas::GtkCanvasDrawingArea* canvas;
+	ArdourCanvas::GtkCanvas* canvas;
 
 	struct Half {
 	    ArdourCanvas::PolyLine* line;

@@ -27,7 +27,7 @@ using namespace std;
 
 #define MAX_CACHED_LINES 128
 
-TempoLines::TempoLines (ArdourCanvas::GtkCanvasDrawingArea& canvas, ArdourCanvas::Group* group, double screen_height)
+TempoLines::TempoLines (ArdourCanvas::GtkCanvas& canvas, ArdourCanvas::Group* group, double screen_height)
 	: _canvas(canvas)
 	, _group(group)
 	, _clean_left(DBL_MAX)

@@ -52,6 +52,9 @@ public:
 	virtual XMLNode* get_state () const = 0;
 	virtual void set_state (XMLNode const *) = 0;
 
+	void grab ();
+	void ungrab ();
+	
 	void add_item_state (XMLNode *) const;
 	void set_item_state (XMLNode const *);
 
@@ -120,9 +123,6 @@ public:
 	void* get_data (char const *);
 	void w2i (double &, double &);
 	void i2w (double &, double &);
-	void grab (int, Gdk::Cursor, uint32_t &);
-	void grab (int, uint32_t);
-	void ungrab (int);
 	void grab_focus ();
 #endif	
 	
