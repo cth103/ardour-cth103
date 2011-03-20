@@ -48,6 +48,6 @@ XMLTest::set ()
 	list<Item*>::iterator i = root_items.begin();
 	Rectangle* r = dynamic_cast<Rectangle*> (*i++);
 	CPPUNIT_ASSERT (r);
-	CPPUNIT_ASSERT (r->fill_color() == 0x12345678);
+	CPPUNIT_ASSERT (r->outline_color() == 0x12345678);
 	CPPUNIT_ASSERT (dynamic_cast<Group*> (*i++));
 }
