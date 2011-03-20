@@ -190,3 +190,19 @@ Rectangle::get_state () const
 	add_fill_state (node);
 	return node;
 }
+
+void
+Rectangle::set_state (XMLNode const * node)
+{
+	_rect.x0 = atof (node->property("x0")->value().c_str());
+	_rect.y0 = atof (node->property("y0")->value().c_str());
+	_rect.x1 = atof (node->property("x1")->value().c_str());
+	_rect.y1 = atof (node->property("y1")->value().c_str());
+	_outline_what = (What) atoi (node->property("outline-what")->value().c_str());
+
+	set_item_state (node);
+	set_outline_state (node);
+	set_fill_state (node);
+
+	_bounding_box_dirty = true;
+}

@@ -12,7 +12,8 @@ public:
 	Fill (Group *);
 
 	void add_fill_state (XMLNode *) const;
-	
+	void set_fill_state (XMLNode const *);
+
 	uint32_t fill_color () const;
 	void set_fill_color (uint32_t);
 	bool fill () const {

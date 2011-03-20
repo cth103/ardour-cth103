@@ -1,6 +1,7 @@
 #include "pbd/compose.h"
 #include "pbd/stacktrace.h"
 #include "pbd/xml++.h"
+#include "ardour/utils.h"
 #include "canvas/group.h"
 #include "canvas/item.h"
 #include "canvas/canvas.h"
@@ -213,6 +214,14 @@ Item::add_item_state (XMLNode* node) const
 	node->add_property ("x-position", string_compose ("%1", _position.x));
 	node->add_property ("y-position", string_compose ("%1", _position.y));
 	node->add_property ("visible", _visible ? "yes" : "no");
+}
+
+void
+Item::set_item_state (XMLNode const * node)
+{
+	_position.x = atof (node->property("x-position")->value().c_str());
+	_position.y = atof (node->property("y-position")->value().c_str());
+	_visible = string_is_affirmative (node->property("visible")->value());
 }
 
 #ifdef CANVAS_COMPATIBILITY

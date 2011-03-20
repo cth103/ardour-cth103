@@ -30,3 +30,10 @@ PolyLine::get_state () const
 	add_outline_state (node);
 	return node;
 }
+
+void
+PolyLine::set_state (XMLNode const * node)
+{
+	set_poly_item_state (node);
+	set_outline_state (node);
+}

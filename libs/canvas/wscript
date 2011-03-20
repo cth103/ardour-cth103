@@ -24,6 +24,7 @@ canvas_sources = [
 	'item.cc',
 	'fill.cc',
 	'group.cc',
+	'item_factory.cc',
 	'line.cc',
 	'lookup_table.cc',
 	'outline.cc',

@@ -34,3 +34,17 @@ XMLTest::get ()
 
 	check ("test");
 }
+
+void
+XMLTest::set ()
+{
+	XMLTree* tree = new XMLTree ("../../libs/canvas/test/test.xml");
+	ImageCanvas canvas (tree);
+
+	list<Item*> root_items = canvas.root()->items ();
+	CPPUNIT_ASSERT (root_items.size() == 2);
+
+	list<Item*>::iterator i = root_items.begin();
+	CPPUNIT_ASSERT (dynamic_cast<Rectangle*> (*i++));
+	CPPUNIT_ASSERT (dynamic_cast<Group*> (*i++));
+}

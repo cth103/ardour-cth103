@@ -19,6 +19,7 @@ class Canvas
 public:
 
 	Canvas ();
+	Canvas (XMLTree const *);
 	virtual ~Canvas () {}
 
 	virtual void request_redraw (Rect const &) = 0;
@@ -47,6 +48,7 @@ class ImageCanvas : public Canvas
 {
 public:
 	ImageCanvas (Duple size = Duple (1024, 1024));
+	ImageCanvas (XMLTree const *, Duple size = Duple (1024, 1024));
 
 	void request_redraw (Rect const &) {
 		/* XXX */
@@ -68,6 +70,7 @@ class GtkCanvas : public Canvas
 {
 public:
 	GtkCanvas ();
+	GtkCanvas (XMLTree const *);
 
 protected:
 	bool button_handler (GdkEventButton *);
@@ -82,6 +85,7 @@ class GtkCanvasDrawingArea : public Gtk::EventBox, public GtkCanvas
 {
 public:
 	GtkCanvasDrawingArea ();
+	GtkCanvasDrawingArea (XMLTree const *);
 
 	void request_redraw (Rect const &);
 	void request_size (Duple);

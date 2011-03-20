@@ -1,6 +1,7 @@
 #include <cairomm/context.h>
 #include "pbd/xml++.h"
 #include "pbd/compose.h"
+#include "ardour/utils.h"
 #include "canvas/outline.h"
 #include "canvas/utils.h"
 #include "canvas/debug.h"
@@ -63,4 +64,14 @@ Outline::add_outline_state (XMLNode* node) const
 	node->add_property ("outline-color", string_compose ("%1", _outline_color));
 	node->add_property ("outline", _outline ? "yes" : "no");
 	node->add_property ("outline-width", string_compose ("%1", _outline_width));
+}
+
+void
+Outline::set_outline_state (XMLNode const * node)
+{
+	_outline_color = atoi (node->property("outline-color")->value().c_str());
+	_outline = string_is_affirmative (node->property("outline")->value().c_str());
+	_outline_width = atof (node->property("outline-width")->value().c_str());
+
+	_bounding_box_dirty = true;
 }

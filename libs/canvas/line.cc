@@ -123,4 +123,16 @@ Line::get_state () const
 	return node;
 }
 
-	
+void
+Line::set_state (XMLNode const * node)
+{
+	_points[0].x = atof (node->property("x0")->value().c_str());
+	_points[0].y = atof (node->property("y0")->value().c_str());
+	_points[1].x = atof (node->property("x1")->value().c_str());
+	_points[1].y = atof (node->property("y1")->value().c_str());
+
+	set_item_state (node);
+	set_outline_state (node);
+
+	_bounding_box_dirty = true;
+}

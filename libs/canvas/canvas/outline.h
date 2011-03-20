@@ -14,6 +14,7 @@ public:
 	virtual ~Outline () {}
 
 	void add_outline_state (XMLNode *) const;
+	void set_outline_state (XMLNode const *);
 	
 	uint32_t outline_color () const {
 		return _outline_color;

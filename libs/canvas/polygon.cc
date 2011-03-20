@@ -41,3 +41,12 @@ Polygon::get_state () const
 	add_fill_state (node);
 	return node;
 }
+
+
+void
+Polygon::set_state (XMLNode const * node)
+{
+	set_poly_item_state (node);
+	set_outline_state (node);
+	set_fill_state (node);
+}

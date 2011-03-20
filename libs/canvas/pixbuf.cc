@@ -1,4 +1,5 @@
 #include <gdkmm/general.h>
+#include "pbd/xml++.h"
 #include "canvas/pixbuf.h"
 
 using namespace std;
@@ -40,3 +41,15 @@ Pixbuf::set (Glib::RefPtr<Gdk::Pixbuf> pixbuf)
 	end_change ();
 }
 
+XMLNode *
+Pixbuf::get_state () const
+{
+	/* XXX */
+	return new XMLNode ("Pixbuf");
+}
+
+void
+Pixbuf::set_state (XMLNode const * node)
+{
+	/* XXX */
+}

@@ -5,6 +5,7 @@
 #include "canvas/group.h"
 #include "canvas/types.h"
 #include "canvas/debug.h"
+#include "canvas/item_factory.h"
 
 using namespace std;
 using namespace ArdourCanvas;
@@ -214,4 +215,16 @@ Group::get_state () const
 
 	add_item_state (node);
 	return node;
+}
+
+void
+Group::set_state (XMLNode const * node)
+{
+	set_item_state (node);
+
+	XMLNodeList const & children = node->children ();
+	for (XMLNodeList::const_iterator i = children.begin(); i != children.end(); ++i) {
+		/* this will create the item and add it to this group */
+		create_item (this, *i);
+	}
 }

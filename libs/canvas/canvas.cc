@@ -14,6 +14,13 @@ Canvas::Canvas ()
 
 }
 
+Canvas::Canvas (XMLTree const * tree)
+	: _root (this)
+{
+	/* XXX: little bit hacky */
+	_root.set_state (tree->root()->child ("Group"));
+}
+
 /** @param area Area in canvas coordinates */
 void
 Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
@@ -86,6 +93,13 @@ Canvas::get_state ()
 
 GtkCanvas::GtkCanvas ()
 	: _current_item (0)
+{
+	
+}
+
+GtkCanvas::GtkCanvas (XMLTree const * tree)
+	: Canvas (tree)
+	, _current_item (0)
 {
 	
 }
@@ -167,6 +181,13 @@ ImageCanvas::ImageCanvas (Duple size)
 	_context = Cairo::Context::create (_surface);
 }
 
+ImageCanvas::ImageCanvas (XMLTree const * tree, Duple size)
+	: Canvas (tree)
+	, _surface (Cairo::ImageSurface::create (Cairo::FORMAT_ARGB32, size.x, size.y))
+{
+	_context = Cairo::Context::create (_surface);
+}
+
 void
 ImageCanvas::render_to_image (Rect const & area) const
 {
@@ -181,6 +202,12 @@ ImageCanvas::write_to_png (string const & f)
 }
 
 GtkCanvasDrawingArea::GtkCanvasDrawingArea ()
+{
+	add_events (Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK | Gdk::POINTER_MOTION_MASK);
+}
+
+GtkCanvasDrawingArea::GtkCanvasDrawingArea (XMLTree const * tree)
+	: GtkCanvas (tree)
 {
 	add_events (Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK | Gdk::POINTER_MOTION_MASK);
 }

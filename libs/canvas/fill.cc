@@ -1,3 +1,4 @@
+#include "ardour/utils.h"
 #include "pbd/xml++.h"
 #include "pbd/compose.h"
 #include "canvas/fill.h"
@@ -44,4 +45,13 @@ Fill::add_fill_state (XMLNode* node) const
 {
 	node->add_property ("fill-color", string_compose ("%1", _fill_color));
 	node->add_property ("fill", _fill ? "yes" : "no");
+}
+
+void
+Fill::set_fill_state (XMLNode const * node)
+{
+	_fill_color = atoi (node->property("outline-color")->value().c_str());
+	_fill = string_is_affirmative (node->property("outline")->value ().c_str());
+
+	_bounding_box_dirty = true;
 }
