@@ -5,6 +5,7 @@
 
 #include <gdk/gdkevents.h>
 #include <gtkmm/widget.h>
+#include "pbd/xml++.h"
 #include "evoral/Note.hpp"
 #include "ardour/midi_model.h"
 #include "canvas/item.h"
@@ -25,6 +26,10 @@ public:
 
 	void compute_bounding_box () const { _bounding_box_dirty = false; }
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
+	XMLNode* get_state () const {
+		return new XMLNode ("WaveView");
+	}
+	void set_state (XMLNode const *) {}
 	
 	static GnomeCanvasWaveViewCache* create_cache () {
 		return 0;
@@ -120,6 +125,10 @@ public:
 
 	void compute_bounding_box () const { _bounding_box_dirty = false; }
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
+	XMLNode* get_state () const {
+		return new XMLNode ("CanvasPatchChange");
+	}
+	void set_state (XMLNode const *) {}
 	
 	ARDOUR::MidiModel::PatchChangePtr patch () const {
 		return ARDOUR::MidiModel::PatchChangePtr ();
@@ -132,6 +141,10 @@ class CanvasNoteEvent : public Item {
 public:
 	void compute_bounding_box () const { _bounding_box_dirty = false; }
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
+	XMLNode* get_state () const {
+		return new XMLNode ("CanvasNoteEvent");
+	}
+	void set_state (XMLNode const *) {}
 
 	void set_outline_what (int) {}
 	
@@ -233,6 +246,10 @@ public:
 	
 	void compute_bounding_box () const { _bounding_box_dirty = false; }
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
+	XMLNode* get_state () const {
+		return new XMLNode ("NoEventText");
+	}
+	void set_state (XMLNode const *) {}
 
 	void set_color (uint32_t) {}
 	
@@ -270,6 +287,10 @@ class CanvasSysEx : public Item {
 public:
 	void compute_bounding_box () const { _bounding_box_dirty = false; }
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
+	XMLNode* get_state () const {
+		return new XMLNode ("CanvasSysEx");
+	}
+	void set_state (XMLNode const *) {}
 	
 	CanvasSysEx (MidiRegionView &, Group *, std::string, double, double, double) : Item ((Group *) 0) {}
 };
@@ -290,6 +311,10 @@ class LineSet : public Item {
 public:
 	void compute_bounding_box () const { _bounding_box_dirty = false; }
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
+	XMLNode* get_state () const {
+		return new XMLNode ("LineSet");
+	}
+	void set_state (XMLNode const *) {}
 	
 	enum Orientation {
 		Vertical,

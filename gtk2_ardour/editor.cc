@@ -5557,3 +5557,11 @@ Editor::notebook_tab_clicked (GdkEventButton* ev, Gtk::Widget* page)
 	return true;
 }
 
+
+void
+Editor::save_canvas_state ()
+{
+	XMLTree* tree = static_cast<ArdourCanvas::Canvas*>(_track_canvas)->get_state ();
+	string path = string_compose ("%1/canvas-state.xml", _session->path());
+	tree->write (path);
+}

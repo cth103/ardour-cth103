@@ -69,7 +69,7 @@ Outline::add_outline_state (XMLNode* node) const
 void
 Outline::set_outline_state (XMLNode const * node)
 {
-	_outline_color = atoi (node->property("outline-color")->value().c_str());
+	_outline_color = atoll (node->property("outline-color")->value().c_str());
 	_outline = string_is_affirmative (node->property("outline")->value().c_str());
 	_outline_width = atof (node->property("outline-width")->value().c_str());
 

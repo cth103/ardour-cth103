@@ -14,7 +14,9 @@ public:
 	void add_fill_state (XMLNode *) const;
 	void set_fill_state (XMLNode const *);
 
-	uint32_t fill_color () const;
+	uint32_t fill_color () const {
+		return _fill_color;
+	}
 	void set_fill_color (uint32_t);
 	bool fill () const {
 		return _fill;

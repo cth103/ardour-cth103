@@ -4,6 +4,7 @@
 #include "canvas/fill.h"
 #include "canvas/utils.h"
 
+using namespace std;
 using namespace ArdourCanvas;
 
 Fill::Fill (Group* parent)
@@ -50,8 +51,8 @@ Fill::add_fill_state (XMLNode* node) const
 void
 Fill::set_fill_state (XMLNode const * node)
 {
-	_fill_color = atoi (node->property("outline-color")->value().c_str());
-	_fill = string_is_affirmative (node->property("outline")->value ().c_str());
+	_fill_color = atoll (node->property("fill-color")->value().c_str());
+	_fill = string_is_affirmative (node->property("fill")->value ().c_str());
 
 	_bounding_box_dirty = true;
 }

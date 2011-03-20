@@ -447,6 +447,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 		return _cursors;
 	}
 
+	void save_canvas_state ();
+	
   protected:
 	void map_transport_state ();
 	void map_position_change (framepos_t);

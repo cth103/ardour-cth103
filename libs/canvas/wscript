@@ -114,6 +114,7 @@ def build(bld):
 		benchmarks              = '''
 			benchmark/items_at_point.cc
 			benchmark/render_parts.cc
+			benchmark/session.cc
 		'''.split()
 
 		for t in benchmarks:

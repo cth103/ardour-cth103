@@ -24,6 +24,7 @@ XMLTest::get ()
 	ImageCanvas canvas;
 
 	Rectangle r (canvas.root(), Rect (0, 0, 16, 16));
+	r.set_outline_color (0x12345678);
 	Group g (canvas.root());
 	g.set_position (Duple (64, 72));
 	Line l (&g);
@@ -45,6 +46,8 @@ XMLTest::set ()
 	CPPUNIT_ASSERT (root_items.size() == 2);
 
 	list<Item*>::iterator i = root_items.begin();
-	CPPUNIT_ASSERT (dynamic_cast<Rectangle*> (*i++));
+	Rectangle* r = dynamic_cast<Rectangle*> (*i++);
+	CPPUNIT_ASSERT (r);
+	CPPUNIT_ASSERT (r->fill_color() == 0x12345678);
 	CPPUNIT_ASSERT (dynamic_cast<Group*> (*i++));
 }

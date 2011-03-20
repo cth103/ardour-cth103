@@ -2185,8 +2185,13 @@ ARDOUR_UI::save_state_canfail (string name, bool switch_to_it)
 			return ret;
 		}
 	}
-	cerr << "SS canfail\n";
+
 	save_ardour_state (); /* XXX cannot fail? yeah, right ... */
+
+	/* XXX: CANVAS */
+	cout << "Saving canvas state.\n";
+	editor->save_canvas_state ();
+	
 	return 0;
 }
 

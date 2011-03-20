@@ -1,4 +1,6 @@
 #include <sys/time.h>
+#include "pbd/compose.h"
+#include "pbd/xml++.h"
 #include "canvas/group.h"
 #include "canvas/canvas.h"
 #include "canvas/root_group.h"
@@ -8,51 +10,52 @@
 using namespace std;
 using namespace ArdourCanvas;
 
-static void
-test (int items_per_cell)
+void
+test (string path, int items_per_cell)
 {
 	Group::default_items_per_cell = items_per_cell;
 	
-	int const n_rectangles = 1e5;
-	int const n_tests = 100;
-	double const rough_size = 1000;
-	srand (1);
+	ImageCanvas canvas (new XMLTree (path.c_str()), Duple (4096, 1024));
 
-	ImageCanvas canvas (Duple (rough_size * 0.25, rough_size * 0.25));
-
-	list<Item*> rectangles;
-
-	for (int i = 0; i < n_rectangles; ++i) {
-		rectangles.push_back (new Rectangle (canvas.root(), rect_random (rough_size)));
+	timeval start;
+	timeval stop;
+	
+	gettimeofday (&start, 0);
+	
+	for (int i = 0; i < 1e4; i += 50) {
+		canvas.render_to_image (Rect (i, 0, i + 50, 1024));
 	}
-
-	for (int i = 0; i < n_tests; ++i) {
-		canvas.render_to_image (rect_random (rough_size));
+		
+	gettimeofday (&stop, 0);
+	
+	int sec = stop.tv_sec - start.tv_sec;
+	int usec = stop.tv_usec - start.tv_usec;
+	if (usec < 0) {
+		--sec;
+		usec += 1e6;
 	}
+	
+	double seconds = sec + ((double) usec / 1e6);
+	
+	cout << "render_parts; ipc=" << items_per_cell << ": " << seconds << "\n";
 }
 
-int main ()
+int main (int argc, char* argv[])
 {
-	int tests[] = { 16, 32, 64, 128, 256, 1e3, 1e4, 1e5 };
+	if (argc < 2) {
+		cerr << "Syntax: render_parts <session>\n";
+		exit (EXIT_FAILURE);
+	}
+
+	string path = string_compose ("../../libs/canvas/benchmark/sessions/%1.xml", argv[1]);
+
+	int tests[] = { 16, 32, 64, 128, 256, 512, 1024, 1e4, 1e5, 1e6 };
 
 	for (unsigned int i = 0; i < sizeof (tests) / sizeof (int); ++i) {
-		timeval start;
-		timeval stop;
-		
-		gettimeofday (&start, 0);
-		test (tests[i]);
-		gettimeofday (&stop, 0);
-
-		int sec = stop.tv_sec - start.tv_sec;
-		int usec = stop.tv_usec - start.tv_usec;
-		if (usec < 0) {
-			--sec;
-			usec += 1e6;
-		}
-
-		double seconds = sec + ((double) usec / 1e6);
-
-		cout << "Test " << tests[i] << ": " << seconds << "\n";
+		test (path, tests[i]);
 	}
+
+	return 0;
 }
+
 	

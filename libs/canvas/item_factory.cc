@@ -6,7 +6,9 @@
 #include "canvas/poly_line.h"
 #include "canvas/polygon.h"
 #include "canvas/pixbuf.h"
+#include "canvas/unimplemented.h"
 
+using namespace std;
 using namespace ArdourCanvas;
 
 Item*
@@ -25,6 +27,10 @@ ArdourCanvas::create_item (Group* parent, XMLNode const * node)
 		item = new Polygon (parent);
 	} else if (node->name() == "Pixbuf") {
 		item = new Pixbuf (parent);
+	} else if (node->name() == "WaveView") {
+		item = new WaveView (parent);
+	} else if (node->name() == "NoEventText") {
+		item = new NoEventText (parent);
 	}
 
 	assert (item);
