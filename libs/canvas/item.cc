@@ -238,24 +238,28 @@ Item::ungrab ()
 	_canvas->ungrab ();
 }
 
-#ifdef CANVAS_COMPATIBILITY
 void
-Item::set_data (char const * key, void* data)
+Item::set_data (string const & key, void* data)
 {
 	_data[key] = data;
 }
 
-void*
-Item::get_data (char const * key)
+void *
+Item::get_data (string const & key) const
 {
-	return _data[key];
+	map<string, void*>::const_iterator i = _data.find (key);
+	if (i == _data.end ()) {
+		return 0;
+	}
+	
+	return i->second;
 }
 
 void
-Item::i2w (double& x, double& y)
+Item::item_to_canvas (Coord& x, Coord& y) const
 {
 	Duple d (x, y);
-	Item* i = this;
+	Item const * i = this;
 	
 	while (i) {
 		d = i->item_to_parent (d);
@@ -267,10 +271,10 @@ Item::i2w (double& x, double& y)
 }
 
 void
-Item::w2i (double& x, double& y)
+Item::canvas_to_item (Coord& x, Coord& y) const
 {
 	Duple d (x, y);
-	Item* i = this;
+	Item const * i = this;
 
 	while (i) {
 		d = i->parent_to_item (d);
@@ -281,4 +285,3 @@ Item::w2i (double& x, double& y)
 	y = d.y;
 }
 
-#endif

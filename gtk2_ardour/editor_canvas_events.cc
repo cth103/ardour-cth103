@@ -585,7 +585,7 @@ Editor::canvas_crossfade_view_event (GdkEvent* event, ArdourCanvas::Item* item, 
 						/* position of the event within the track */
 						double cx = event->button.x;
 						double cy = event->button.y;
-						atv->view()->canvas_item()->w2i (cx, cy);
+						atv->view()->canvas_item()->canvas_to_item (cx, cy);
 
 						/* hence layer that we're over */
 						double const c = atv->view()->child_height ();

@@ -608,7 +608,7 @@ AutomationTimeAxisView::add_automation_event (ArdourCanvas::Item* /*item*/, GdkE
 
 	double x = 0;
 
-	_canvas_display->w2i (x, y);
+	_canvas_display->canvas_to_item (x, y);
 
 	/* compute vertical fractional position */
 

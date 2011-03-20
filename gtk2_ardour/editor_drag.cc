@@ -608,7 +608,7 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 			/* convert to world coordinates, ie distance from the top of
 			   the ruler section */
 			
-			rv->get_canvas_frame()->i2w (ix1, iy1);
+			rv->get_canvas_frame()->item_to_canvas (ix1, iy1);
 			
 			/* compensate for the ruler section and the vertical scrollbar position */
 			iy1 += _editor->get_trackview_group_vertical_offset ();
@@ -2819,7 +2819,7 @@ LineDrag::start_grab (GdkEvent* event, Gdk::Cursor* /*cursor*/)
 	double cx = event->button.x;
 	double cy = event->button.y;
 
-	_line->parent_group().w2i (cx, cy);
+	_line->parent_group().canvas_to_item (cx, cy);
 
 	framecnt_t const frame_within_region = (framecnt_t) floor (cx * _editor->frames_per_unit);
 
@@ -2915,7 +2915,7 @@ FeatureLineDrag::start_grab (GdkEvent* event, Gdk::Cursor* /*cursor*/)
 	double cx = event->button.x;
 	double cy = event->button.y;
 
-	_item->parent()->w2i(cx, cy);
+	_item->parent()->canvas_to_item (cx, cy);
 
 	/* store grab start in parent frame */
 	_region_view_grab_x = cx;

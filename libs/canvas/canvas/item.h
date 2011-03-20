@@ -82,6 +82,11 @@ public:
 	Rect item_to_parent (Rect const &) const;
 	Duple parent_to_item (Duple const &) const;
 	Rect parent_to_item (Rect const &) const;
+	/* XXX: it's a pity these aren't the same form as item_to_parent etc.,
+	   but it makes a bit of a mess in the rest of the code if they are not.
+	*/
+	void canvas_to_item (Coord &, Coord &) const;
+	void item_to_canvas (Coord &, Coord &) const;
 
 	void raise_to_top ();
 	void raise (int);
@@ -110,6 +115,9 @@ public:
 		return _watch;
 	}
 
+	void set_data (std::string const &, void *);
+	void* get_data (std::string const &) const;
+	
 	/* XXX: maybe this should be a PBD::Signal */
 	sigc::signal<bool, GdkEvent*> Event;
 
@@ -118,11 +126,6 @@ public:
 #endif
 	
 #ifdef CANVAS_COMPATIBILITY
-
-	void set_data (char const *, void *);
-	void* get_data (char const *);
-	void w2i (double &, double &);
-	void i2w (double &, double &);
 	void grab_focus ();
 #endif	
 	
@@ -149,9 +152,8 @@ protected:
 
 	bool _watch;
 
-#ifdef CANVAS_COMPATIBILITY
+	/* XXX: this is a bit grubby */
 	std::map<std::string, void *> _data;
-#endif
 
 private:
 	void init ();

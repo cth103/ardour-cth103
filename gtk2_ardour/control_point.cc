@@ -185,5 +185,5 @@ ControlPoint::move_to (double x, double y, ShapeType shape)
 void
 ControlPoint::i2w (double& x, double& y) const
 {
-	_item->i2w (x, y);
+	_item->item_to_canvas (x, y);
 }

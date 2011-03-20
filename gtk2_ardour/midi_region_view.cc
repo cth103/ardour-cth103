@@ -384,7 +384,7 @@ MidiRegionView::button_press (GdkEventButton* ev)
         _last_x = ev->x;
         _last_y = ev->y;
         
-        group->w2i (_last_x, _last_y);
+        group->canvas_to_item (_last_x, _last_y);
         
         if (_mouse_state != SelectTouchDragging) {
                 
@@ -412,7 +412,7 @@ MidiRegionView::button_release (GdkEventButton* ev)
         event_x = ev->x;
         event_y = ev->y;
 	
-        group->w2i(event_x, event_y);
+        group->canvas_to_item(event_x, event_y);
         group->ungrab ();
         
 	event_frame = trackview.editor().pixel_to_frame(event_x);
@@ -432,7 +432,7 @@ MidiRegionView::button_release (GdkEventButton* ev)
 				
 				event_x = ev->x;
 				event_y = ev->y;
-				group->w2i(event_x, event_y);
+				group->canvas_to_item(event_x, event_y);
 
 				bool success;
 				Evoral::MusicalTime beats = trackview.editor().get_grid_type_as_beats (success, trackview.editor().pixel_to_frame (event_x));
@@ -508,7 +508,7 @@ MidiRegionView::motion (GdkEventMotion* ev)
 
         event_x = ev->x;
         event_y = ev->y;
-        group->w2i(event_x, event_y);
+        group->canvas_to_item(event_x, event_y);
 
         // convert event_x to global frame
         event_frame = trackview.editor().pixel_to_frame(event_x) + _region->position();
@@ -3131,7 +3131,7 @@ MidiRegionView::update_ghost_note (double x, double y)
 	_last_ghost_x = x;
 	_last_ghost_y = y;
 	
-	_note_group->w2i (x, y);
+	_note_group->canvas_to_item (x, y);
 	framepos_t f = trackview.editor().pixel_to_frame (x) + _region->position ();
 	trackview.editor().snap_to (f);
 	f -= _region->position ();

@@ -146,12 +146,12 @@ Editor::event_frame (GdkEvent const * event, double* pcx, double* pcy) const
 	case GDK_3BUTTON_PRESS:
 		*pcx = event->button.x;
 		*pcy = event->button.y;
-		_trackview_group->w2i(*pcx, *pcy);
+		_trackview_group->canvas_to_item (*pcx, *pcy);
 		break;
 	case GDK_MOTION_NOTIFY:
 		*pcx = event->motion.x;
 		*pcy = event->motion.y;
-		_trackview_group->w2i(*pcx, *pcy);
+		_trackview_group->canvas_to_item (*pcx, *pcy);
 		break;
 	case GDK_ENTER_NOTIFY:
 	case GDK_LEAVE_NOTIFY:
@@ -2702,7 +2702,7 @@ Editor::update_join_object_range_location (double x, double y)
 
 			double cx = 0;
 			double cy = y;
-			rtv->canvas_display()->w2i (cx, cy);
+			rtv->canvas_display()->canvas_to_item (cx, cy);
 
 			double const c = cy / rtv->view()->child_height();
 			double d;
@@ -2742,7 +2742,7 @@ Editor::set_canvas_cursor_for_region_view (double x, RegionView* rv)
 
 	/* Compute x in region view parent coordinates */
 	double dy = 0;
-	p->w2i (x, dy);
+	p->canvas_to_item (x, dy);
 
 	boost::optional<ArdourCanvas::Rect> item_bbox = g->bounding_box ();
 	assert (item_bbox);

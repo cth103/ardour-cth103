@@ -1048,7 +1048,7 @@ AudioRegionView::add_gain_point_event (ArdourCanvas::Item *item, GdkEvent *ev)
 	x = ev->button.x;
 	y = ev->button.y;
 
-	item->w2i (x, y);
+	item->canvas_to_item (x, y);
 
 	framepos_t fx = trackview.editor().pixel_to_frame (x);
 

@@ -324,7 +324,7 @@ Marker::setup_line ()
 		double yo = 0;
                 double xo = 0;
 
-                _line->i2w (xo, yo);
+                _line->item_to_canvas (xo, yo);
 
                 _line->set_x0 (_shift);
                 _line->set_x1 (_shift);

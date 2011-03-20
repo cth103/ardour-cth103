@@ -110,7 +110,7 @@ AutomationRegionView::canvas_event (GdkEvent* ev)
 		double y = ev->button.y;
 		
 		/* convert to item coordinates in the time axis view */
-		automation_view()->canvas_display()->w2i (x, y);
+		automation_view()->canvas_display()->canvas_to_item (x, y);
 
 		/* clamp y */
 		y = max (y, 0.0);
