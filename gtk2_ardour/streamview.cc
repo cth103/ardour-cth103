@@ -370,9 +370,8 @@ StreamView::apply_color (Gdk::Color& color, ColorTarget target)
 		break;
 
 	case StreamBaseColor:
-		stream_base_color = RGBA_TO_UINT (
-			color.get_red_p(), color.get_green_p(), color.get_blue_p(), 255);
-		canvas_rect->property_fill_color_rgba() = stream_base_color;
+		stream_base_color = RGBA_TO_UINT (color.get_red_p(), color.get_green_p(), color.get_blue_p(), 255);
+		canvas_rect->set_fill_color (stream_base_color);
 		break;
 	}
 }

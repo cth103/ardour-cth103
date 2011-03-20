@@ -780,15 +780,15 @@ AudioStreamView::color_handler ()
 {
 	//case cAudioTrackBase:
 	if (_trackview.is_track()) {
-		canvas_rect->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_AudioTrackBase.get();
+		canvas_rect->set_fill_color (ARDOUR_UI::config()->canvasvar_AudioTrackBase.get());
 	}
 
 	//case cAudioBusBase:
 	if (!_trackview.is_track()) {
 		if (Profile->get_sae() && _trackview.route()->is_master()) {
-			canvas_rect->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_AudioMasterBusBase.get();
+			canvas_rect->set_fill_color (ARDOUR_UI::config()->canvasvar_AudioMasterBusBase.get());
 		} else {
-			canvas_rect->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_AudioBusBase.get();
+			canvas_rect->set_fill_color (ARDOUR_UI::config()->canvasvar_AudioBusBase.get());
 		}
 	}
 }

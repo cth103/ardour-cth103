@@ -254,7 +254,7 @@ TimeAxisViewItem::hide_rect ()
 
         if (name_highlight) {
                 name_highlight->set_outline_what (0);
-                name_highlight->property_fill_color_rgba() = UINT_RGBA_CHANGE_A(fill_color,64);
+                name_highlight->set_fill_color (UINT_RGBA_CHANGE_A (fill_color, 64));
         }
 }
 
@@ -266,7 +266,7 @@ TimeAxisViewItem::show_rect ()
 
         if (name_highlight) {
                 name_highlight->set_outline_what (0x4);
-                name_highlight->property_fill_color_rgba() = fill_color;
+                name_highlight->set_fill_color (fill_color);
         }
 }
 
@@ -707,7 +707,7 @@ TimeAxisViewItem::set_colors()
 	set_frame_color();
 
 	if (name_highlight) {
-		name_highlight->property_fill_color_rgba() = fill_color;
+		name_highlight->set_fill_color (fill_color);
 	}
 	set_trim_handle_colors();
 }
@@ -758,7 +758,7 @@ TimeAxisViewItem::set_frame_color()
                 }
 	}
 
-        frame->property_fill_color_rgba() = f;
+        frame->set_fill_color (f);
 
         if (!_recregion) {
                 f = ARDOUR_UI::config()->canvasvar_TimeAxisFrame.get();
@@ -779,11 +779,11 @@ TimeAxisViewItem::set_trim_handle_colors()
 {
 	if (frame_handle_start) {
 		if (position_locked) {
-			frame_handle_start->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_TrimHandleLocked.get();
-			frame_handle_end->property_fill_color_rgba() =  ARDOUR_UI::config()->canvasvar_TrimHandleLocked.get();
+			frame_handle_start->set_fill_color (ARDOUR_UI::config()->canvasvar_TrimHandleLocked.get());
+			frame_handle_end->set_fill_color (ARDOUR_UI::config()->canvasvar_TrimHandleLocked.get());
 		} else {
-			frame_handle_start->property_fill_color_rgba() = RGBA_TO_UINT(1, 1, 1, 0); //ARDOUR_UI::config()->canvasvar_TrimHandle.get();
-			frame_handle_end->property_fill_color_rgba() = RGBA_TO_UINT(1, 1, 1, 0); //ARDOUR_UI::config()->canvasvar_TrimHandle.get();
+			frame_handle_start->set_fill_color (RGBA_TO_UINT (1, 1, 1, 0)); //ARDOUR_UI::config()->canvasvar_TrimHandle.get();
+			frame_handle_end->set_fill_color (RGBA_TO_UINT (1, 1, 1, 0)); //ARDOUR_UI::config()->canvasvar_TrimHandle.get();
 		}
 	}
 }

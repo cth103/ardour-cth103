@@ -230,9 +230,9 @@ void
 CrossfadeView::active_changed ()
 {
 	if (crossfade->active()) {
-		frame->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_ActiveCrossfade.get();
+		frame->set_fill_color (ARDOUR_UI::config()->canvasvar_ActiveCrossfade.get());
 	} else {
-		frame->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_InactiveCrossfade.get();
+		frame->set_fill_color (ARDOUR_UI::config()->canvasvar_InactiveCrossfade.get());
 	}
 
 	redraw_curves ();

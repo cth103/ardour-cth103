@@ -1708,7 +1708,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 		if (mouse_mode == MouseObject && !internal_editing()) {
 			ArdourCanvas::Rectangle *rect = dynamic_cast<ArdourCanvas::Rectangle *> (item);
 			if (rect) {
-				rect->property_fill_color_rgba() = 0xBBBBBBAA;
+				rect->set_fill_color (0xBBBBBBAA);
 			}
 			set_canvas_cursor (_cursors->fade_in);
 		}
@@ -1718,7 +1718,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 		if (mouse_mode == MouseObject && !internal_editing()) {
 			ArdourCanvas::Rectangle *rect = dynamic_cast<ArdourCanvas::Rectangle *> (item);
 			if (rect) {
-				rect->property_fill_color_rgba() = 0xBBBBBBAA;
+				rect->set_fill_color (0xBBBBBBAA);
 			}
 			set_canvas_cursor (_cursors->fade_out);
 		}

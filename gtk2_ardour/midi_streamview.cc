@@ -580,9 +580,9 @@ MidiStreamView::color_handler ()
         draw_note_lines ();
 
 	if (_trackview.is_midi_track()) {
-		canvas_rect->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_MidiTrackBase.get();
+		canvas_rect->set_fill_color (ARDOUR_UI::config()->canvasvar_MidiTrackBase.get());
 	} else {
-		canvas_rect->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_MidiBusBase.get();;
+		canvas_rect->set_fill_color (ARDOUR_UI::config()->canvasvar_MidiBusBase.get());
 	}
 }
 

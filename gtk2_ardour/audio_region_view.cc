@@ -179,22 +179,22 @@ AudioRegionView::init (Gdk::Color const & basic_color, bool wfd)
 	create_waves ();
 
 	fade_in_shape = new ArdourCanvas::Polygon (group);
-	fade_in_shape->property_fill_color_rgba() = fade_color;
+	fade_in_shape->set_fill_color (fade_color);
 	fade_in_shape->set_data ("regionview", this);
 
 	fade_out_shape = new ArdourCanvas::Polygon (group);
-	fade_out_shape->property_fill_color_rgba() = fade_color;
+	fade_out_shape->set_fill_color (fade_color);
 	fade_out_shape->set_data ("regionview", this);
 
 	if (!_recregion) {
 		fade_in_handle = new ArdourCanvas::Rectangle (group);
-		fade_in_handle->property_fill_color_rgba() = UINT_RGBA_CHANGE_A (fill_color, 0);
+		fade_in_handle->set_fill_color (UINT_RGBA_CHANGE_A (fill_color, 0));
 		fade_in_handle->set_outline (false);
 
 		fade_in_handle->set_data ("regionview", this);
 
 		fade_out_handle = new ArdourCanvas::Rectangle (group);
-		fade_out_handle->property_fill_color_rgba() = UINT_RGBA_CHANGE_A (fill_color, 0);
+		fade_out_handle->set_fill_color (UINT_RGBA_CHANGE_A (fill_color, 0));
 		fade_out_handle->set_outline (false);
 
 		fade_out_handle->set_data ("regionview", this);
@@ -333,10 +333,12 @@ void
 AudioRegionView::fade_in_active_changed ()
 {
 	if (audio_region()->fade_in_active()) {
-		fade_in_shape->property_fill_color_rgba() = RGBA_TO_UINT(45,45,45,90);				// FIXME make a themeable colour
+		/* XXX: make a themable colour */
+		fade_in_shape->set_fill_color (RGBA_TO_UINT (45, 45, 45, 90));
 		fade_in_shape->set_outline_width (1);
 	} else {
-		fade_in_shape->property_fill_color_rgba() = RGBA_TO_UINT(45,45,45,20);				// FIXME make a themeable colour
+		/* XXX: make a themable colour */
+		fade_in_shape->set_fill_color (RGBA_TO_UINT (45, 45, 45, 20));
 		fade_in_shape->set_outline_width (1);
 	}
 }
@@ -345,10 +347,12 @@ void
 AudioRegionView::fade_out_active_changed ()
 {
 	if (audio_region()->fade_out_active()) {
-		fade_out_shape->property_fill_color_rgba() = RGBA_TO_UINT(45,45,45,90);				// FIXME make a themeable colour
+		/* XXX: make a themable colour */
+		fade_out_shape->set_fill_color (RGBA_TO_UINT (45, 45, 45, 90));
 		fade_out_shape->set_outline_width (1);
 	} else {
-		fade_out_shape->property_fill_color_rgba() = RGBA_TO_UINT(45,45,45,20);				// FIXME make a themeable colour
+		/* XXX: make a themable colour */
+		fade_out_shape->set_fill_color (RGBA_TO_UINT (45, 45, 45, 20));
 		fade_out_shape->set_outline_width (1);
 	}
 }
@@ -1251,8 +1255,8 @@ AudioRegionView::entered (bool internal_editing)
 	}
 
 	if (fade_in_handle && !internal_editing) {
-		fade_in_handle->property_fill_color_rgba() = UINT_RGBA_CHANGE_A (fade_color, 255);
-		fade_out_handle->property_fill_color_rgba() = UINT_RGBA_CHANGE_A (fade_color, 255);
+		fade_in_handle->set_fill_color (UINT_RGBA_CHANGE_A (fade_color, 255));
+		fade_out_handle->set_fill_color (UINT_RGBA_CHANGE_A (fade_color, 255));
 	}
 }
 
@@ -1267,8 +1271,8 @@ AudioRegionView::exited ()
 	}
 
 	if (fade_in_handle) {
-		fade_in_handle->property_fill_color_rgba() = UINT_RGBA_CHANGE_A (fade_color, 0);
-		fade_out_handle->property_fill_color_rgba() = UINT_RGBA_CHANGE_A (fade_color, 0);
+		fade_in_handle->set_fill_color (UINT_RGBA_CHANGE_A (fade_color, 0));
+		fade_out_handle->set_fill_color (UINT_RGBA_CHANGE_A (fade_color, 0));
 	}
 }
 

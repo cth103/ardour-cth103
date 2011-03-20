@@ -22,20 +22,6 @@ public:
 		return _fill;
 	}
 	void set_fill (bool);
-
-#ifdef CANVAS_COMPATIBILITY
-	uint32_t& property_fill_color () {
-		return _fill_color;
-	}
-
-	uint32_t& property_fill_color_rgba () {
-		return _fill_color;
-	}
-
-	bool& property_fill () {
-		return _fill;
-	}
-#endif
 	
 protected:
 	void setup_fill_context (Cairo::RefPtr<Cairo::Context>) const;

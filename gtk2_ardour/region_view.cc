@@ -247,7 +247,7 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double thres
 		cr->set_y0 (1);
 		cr->set_y1 (_height - 2);
 		cr->set_outline (false);
-		cr->property_fill_color_rgba () = color;
+		cr->set_fill_color (color);
 
 		shortest = min (shortest, i->second - i->first);
 	}
@@ -620,7 +620,8 @@ RegionView::region_sync_changed ()
 
 		sync_mark = new ArdourCanvas::Polygon (group);
 		CANVAS_DEBUG_NAME (sync_mark, "RV sync mark");
-		sync_mark->property_fill_color_rgba() = RGBA_TO_UINT(0,255,0,255);     // fill_color;			// FIXME make a themeable colour
+		/* XXX: make a themable colour */
+		sync_mark->set_fill_color (RGBA_TO_UINT (0, 255, 0, 255));
 
 		sync_line = new ArdourCanvas::Line (group);
 		CANVAS_DEBUG_NAME (sync_mark, "RV sync line");
@@ -776,7 +777,7 @@ RegionView::update_coverage_frames (LayerDisplay d)
 	ArdourCanvas::Rectangle* cr = 0;
 	bool me = false;
 
-	uint32_t const color = frame->property_fill_color_rgba ();
+	uint32_t const color = frame->fill_color ();
 	uint32_t const base_alpha = UINT_RGBA_A (color);
 
 	while (t < end) {
@@ -805,7 +806,7 @@ RegionView::update_coverage_frames (LayerDisplay d)
 			if (new_me) {
 				alpha /= 2;
 			}
-			cr->property_fill_color_rgba () = UINT_RGBA_CHANGE_A (color, alpha);
+			cr->set_fill_color (UINT_RGBA_CHANGE_A (color, alpha));
 		}
 
 		t = pl->find_next_region_boundary (t, 1);

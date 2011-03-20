@@ -2295,10 +2295,10 @@ MidiRegionView::begin_resizing (bool /*at_front*/)
 			fill_color = UINT_INTERPOLATE(fill_color, 0xFFFFFF40, 0.5);
 
 			// calculate color based on note velocity
-			resize_rect->property_fill_color_rgba() = UINT_INTERPOLATE(
+			resize_rect->set_fill_color (UINT_INTERPOLATE(
                                 CanvasNoteEvent::meter_style_fill_color(note->note()->velocity(), note->selected()),
 					fill_color,
-					0.85);
+				0.85));
 
 			resize_rect->set_outline_color (
 				CanvasNoteEvent::calculate_outline (ARDOUR_UI::config()->canvasvar_MidiNoteSelected.get())
@@ -2873,7 +2873,7 @@ MidiRegionView::set_frame_color()
                 f = UINT_RGBA_CHANGE_A (f, 0);
         }
 
-        frame->property_fill_color_rgba() = f;
+        frame->set_fill_color (f);
 }
 
 void
