@@ -8,7 +8,7 @@ if [ ! -f './canvas.cc' ]; then
     exit 1;
 fi
 
-waft -j8 --targets libcanvas-unit-tests
+waft --targets libcanvas-unit-tests
 if [ "$?" != 0 ]; then
   exit
 fi

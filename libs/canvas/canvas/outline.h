@@ -12,6 +12,8 @@ class Outline : virtual public Item
 public:
 	Outline (Group *);
 	virtual ~Outline () {}
+
+	void add_outline_state (XMLNode *) const;
 	
 	uint32_t outline_color () const {
 		return _outline_color;

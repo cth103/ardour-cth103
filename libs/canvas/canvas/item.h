@@ -9,6 +9,8 @@
 #include "pbd/signals.h"
 #include "canvas/types.h"
 
+class XMLNode;
+
 namespace ArdourCanvas
 {
 
@@ -46,6 +48,10 @@ public:
 
 	/** Update _bounding_box and _bounding_box_dirty */
 	virtual void compute_bounding_box () const = 0;
+
+	virtual XMLNode* get_state () const = 0;
+
+	void add_item_state (XMLNode *) const;
 
 	void unparent ();
 	void reparent (Group *);

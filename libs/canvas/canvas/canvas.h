@@ -6,6 +6,8 @@
 #include "pbd/signals.h"
 #include "canvas/root_group.h"
 
+class XMLTree;
+
 namespace ArdourCanvas
 {
 
@@ -30,6 +32,8 @@ public:
 
 	void item_changed (Item *, boost::optional<Rect>);
 	void item_moved (Item *, boost::optional<Rect>);
+
+	XMLTree* get_state ();
 
 protected:
 	RootGroup _root;

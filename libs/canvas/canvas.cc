@@ -1,5 +1,6 @@
 #include <cassert>
 #include <gtkmm/adjustment.h>
+#include "pbd/xml++.h"
 #include "pbd/compose.h"
 #include "canvas/canvas.h"
 #include "canvas/debug.h"
@@ -70,6 +71,18 @@ Canvas::queue_draw_item_area (Item* item, Rect area)
 
 	request_redraw (area);
 }
+
+XMLTree *
+Canvas::get_state ()
+{
+	XMLTree* tree = new XMLTree ();
+	XMLNode* node = new XMLNode ("Canvas");
+	node->add_child_nocopy (*_root.get_state ());
+
+	tree->set_root (node);
+	return tree;
+}
+
 
 GtkCanvas::GtkCanvas ()
 	: _current_item (0)

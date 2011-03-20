@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cairomm/context.h>
 #include "pbd/stacktrace.h"
+#include "pbd/xml++.h"
 #include "canvas/group.h"
 #include "canvas/types.h"
 #include "canvas/debug.h"
@@ -201,4 +202,16 @@ Group::add_items_at_point (Duple const point, vector<Item const *>& items) const
 	for (vector<Item*>::iterator i = our_items.begin(); i != our_items.end(); ++i) {
 		(*i)->add_items_at_point (point - (*i)->position(), items);
 	}
+}
+
+XMLNode *
+Group::get_state () const
+{
+	XMLNode* node = new XMLNode ("Group");
+	for (list<Item*>::const_iterator i = _items.begin(); i != _items.end(); ++i) {
+		node->add_child_nocopy (*(*i)->get_state ());
+	}
+
+	add_item_state (node);
+	return node;
 }

@@ -1,3 +1,4 @@
+#include "pbd/xml++.h"
 #include "canvas/polygon.h"
 
 using namespace ArdourCanvas;
@@ -29,4 +30,14 @@ Polygon::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 		setup_fill_context (context);
 		context->fill ();
 	}
+}
+
+XMLNode *
+Polygon::get_state () const
+{
+	XMLNode* node = new XMLNode ("Polygon");
+	add_poly_item_state (node);
+	add_outline_state (node);
+	add_fill_state (node);
+	return node;
 }

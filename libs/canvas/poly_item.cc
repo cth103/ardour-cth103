@@ -1,4 +1,6 @@
 #include <algorithm>
+#include "pbd/xml++.h"
+#include "pbd/compose.h"
 #include "canvas/poly_item.h"
 
 using namespace std;
@@ -63,4 +65,15 @@ Points const &
 PolyItem::get () const
 {
 	return _points;
+}
+
+void
+PolyItem::add_poly_item_state (XMLNode* node) const
+{
+	for (Points::const_iterator i = _points.begin(); i != _points.end(); ++i) {
+		XMLNode* p = new XMLNode ("Point");
+		p->add_property ("x", string_compose ("%1", i->x));
+		p->add_property ("y", string_compose ("%1", i->y));
+		node->add_child_nocopy (*p);
+	}
 }

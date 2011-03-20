@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cairomm/context.h>
 #include "pbd/stacktrace.h"
+#include "pbd/xml++.h"
+#include "pbd/compose.h"
 #include "canvas/rectangle.h"
 #include "canvas/debug.h"
 #include "canvas/utils.h"
@@ -171,4 +173,20 @@ Rectangle::fix_rect ()
 	r.y1 = max (_rect.y0, _rect.y1);
 
 	_rect = r;
+}
+
+XMLNode *
+Rectangle::get_state () const
+{
+	XMLNode* node = new XMLNode ("Rectangle");
+	node->add_property ("x0", string_compose ("%1", _rect.x0));
+	node->add_property ("y0", string_compose ("%1", _rect.y0));
+	node->add_property ("x1", string_compose ("%1", _rect.x1));
+	node->add_property ("y1", string_compose ("%1", _rect.y1));
+	node->add_property ("outline-what", string_compose ("%1", _outline_what));
+
+	add_item_state (node);
+	add_outline_state (node);
+	add_fill_state (node);
+	return node;
 }

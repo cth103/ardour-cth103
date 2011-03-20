@@ -1,3 +1,4 @@
+#include "pbd/xml++.h"
 #include "canvas/poly_line.h"
 
 using namespace ArdourCanvas;
@@ -18,4 +19,14 @@ PolyLine::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 		render_path (area, context);
 		context->stroke ();
 	}
+}
+
+
+XMLNode *
+PolyLine::get_state () const
+{
+	XMLNode* node = new XMLNode ("PolyLine");
+	add_poly_item_state (node);
+	add_outline_state (node);
+	return node;
 }

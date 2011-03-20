@@ -17,6 +17,7 @@ public:
 	
 	void render (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
 	void compute_bounding_box () const;
+	XMLNode* get_state () const;
 
 	Rect const & get () const {
 		return _rect;

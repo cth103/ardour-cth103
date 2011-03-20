@@ -1,4 +1,6 @@
 #include <cairomm/context.h>
+#include "pbd/xml++.h"
+#include "pbd/compose.h"
 #include "canvas/outline.h"
 #include "canvas/utils.h"
 #include "canvas/debug.h"
@@ -53,4 +55,12 @@ Outline::setup_outline_context (Cairo::RefPtr<Cairo::Context> context) const
 {
 	set_source_rgba (context, _outline_color);
 	context->set_line_width (_outline_width);
+}
+
+void
+Outline::add_outline_state (XMLNode* node) const
+{
+	node->add_property ("outline-color", string_compose ("%1", _outline_color));
+	node->add_property ("outline", _outline ? "yes" : "no");
+	node->add_property ("outline-width", string_compose ("%1", _outline_width));
 }

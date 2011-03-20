@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <cairomm/context.h>
+#include "pbd/xml++.h"
+#include "pbd/compose.h"
 #include "canvas/line.h"
 #include "canvas/types.h"
 #include "canvas/debug.h"
@@ -107,3 +109,18 @@ Line::set_y1 (Coord y1)
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: line change\n");
 }
 
+XMLNode *
+Line::get_state () const
+{
+	XMLNode* node = new XMLNode ("Line");
+	node->add_property ("x0", string_compose ("%1", _points[0].x));
+	node->add_property ("y0", string_compose ("%1", _points[0].y));
+	node->add_property ("x1", string_compose ("%1", _points[1].x));
+	node->add_property ("y1", string_compose ("%1", _points[1].y));
+
+	add_item_state (node);
+	add_outline_state (node);
+	return node;
+}
+
+	

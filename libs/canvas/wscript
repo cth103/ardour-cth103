@@ -96,6 +96,7 @@ def build(bld):
 			test/lookup_table.cc
 			test/types.cc
 			test/render.cc
+			test/xml.cc
 			test/testrunner.cpp
 		'''.split()
 		unit_testobj.includes     = obj.includes + ['test', '../pbd']

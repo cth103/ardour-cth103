@@ -1,5 +1,6 @@
 #include "pbd/compose.h"
 #include "pbd/stacktrace.h"
+#include "pbd/xml++.h"
 #include "canvas/group.h"
 #include "canvas/item.h"
 #include "canvas/canvas.h"
@@ -204,6 +205,14 @@ void
 Item::move (Duple movement)
 {
 	set_position (position() + movement);
+}
+
+void
+Item::add_item_state (XMLNode* node) const
+{
+	node->add_property ("x-position", string_compose ("%1", _position.x));
+	node->add_property ("y-position", string_compose ("%1", _position.y));
+	node->add_property ("visible", _visible ? "yes" : "no");
 }
 
 #ifdef CANVAS_COMPATIBILITY
