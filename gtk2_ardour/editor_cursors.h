@@ -18,14 +18,14 @@
 */
 
 #include "pbd/signals.h"
-#include "canvas/line.h"
+#include "canvas/arrow.h"
 #include "canvas/types.h"
 
 class Editor;
 
 struct EditorCursor {
 	Editor&               editor;
-	ArdourCanvas::Line    canvas_item;
+	ArdourCanvas::Arrow   canvas_item;
 	framepos_t            current_frame;
 	double		      length;
 

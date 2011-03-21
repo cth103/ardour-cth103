@@ -19,6 +19,7 @@ APPNAME = 'canvas'
 VERSION = CANVAS_VERSION
 
 canvas_sources = [
+	'arrow.cc',
 	'canvas.cc',
 	'debug.cc',
 	'item.cc',

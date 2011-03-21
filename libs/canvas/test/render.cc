@@ -2,6 +2,7 @@
 #include "canvas/line.h"
 #include "canvas/rectangle.h"
 #include "canvas/polygon.h"
+#include "canvas/arrow.h"
 #include "render.h"
 
 using namespace std;
@@ -21,7 +22,7 @@ RenderTest::check (string const & name)
 void
 RenderTest::basics ()
 {
-	ImageCanvas canvas (Duple (128, 128));
+	ImageCanvas canvas (Duple (256, 256));
 
 	/* line */
 	Group line_group (canvas.root ());
@@ -59,8 +60,17 @@ RenderTest::basics ()
 	polygon.set_outline_color (0xff00ffff);
 	polygon.set_fill_color (0xcc00ffff);
 	polygon.set_outline_width (2);
+
+	/* arrow */
+	Group arrow_group (canvas.root ());
+	arrow_group.set_position (Duple (128, 0));
+	Arrow arrow (&arrow_group);
+	arrow.set_outline_width (2);
+	arrow.set_x (32);
+	arrow.set_y0 (0);
+	arrow.set_y1 (64);
 	
-	canvas.render_to_image (Rect (0, 0, 128, 128));
+	canvas.render_to_image (Rect (0, 0, 256, 256));
 	canvas.write_to_png ("render_basics.png");
 
 	check ("render_basics");

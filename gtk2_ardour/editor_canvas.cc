@@ -719,7 +719,7 @@ Editor::scroll_canvas_vertically ()
 void
 Editor::color_handler()
 {
-	playhead_cursor->canvas_item.set_outline_color (ARDOUR_UI::config()->canvasvar_PlayHead.get());
+	playhead_cursor->canvas_item.set_color (ARDOUR_UI::config()->canvasvar_PlayHead.get());
 	verbose_canvas_cursor->set_color (ARDOUR_UI::config()->canvasvar_VerboseCanvasCursor.get());
 
 	meter_bar->set_fill_color (ARDOUR_UI::config()->canvasvar_MeterBar.get());

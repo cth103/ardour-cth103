@@ -33,17 +33,13 @@ EditorCursor::EditorCursor (Editor& ed, bool (Editor::*callbck)(GdkEvent*,Ardour
 	  canvas_item (editor.cursor_group),
 	  length(1.0)
 {
-	canvas_item.set (
-		ArdourCanvas::Duple (-1.0, 0.0),
-		ArdourCanvas::Duple (1.0, 1.0)
-		);
-
 	canvas_item.set_outline_width (1);
-	canvas_item.property_first_arrowhead() = TRUE;
-	canvas_item.property_last_arrowhead() = TRUE;
-	canvas_item.property_arrow_shape_a() = 11.0;
-	canvas_item.property_arrow_shape_b() = 0.0;
-	canvas_item.property_arrow_shape_c() = 9.0;
+	for (int i = 0; i < 2; ++i) {
+		canvas_item.set_show_head (i, true);
+		canvas_item.set_head_height (i, 18);
+		canvas_item.set_head_width (i, 15);
+		canvas_item.set_head_outward (i, false);
+	}
 
 	canvas_item.set_data ("cursor", this);
 	canvas_item.Event.connect (sigc::bind (sigc::mem_fun (ed, callbck), &canvas_item));
@@ -61,9 +57,8 @@ EditorCursor::set_position (framepos_t frame)
 
 	double new_pos = editor.frame_to_unit (frame);
 
-	if (new_pos != canvas_item.x0 ()) {
-		canvas_item.set_x0 (new_pos);
-		canvas_item.set_x1 (new_pos);
+	if (new_pos != canvas_item.x ()) {
+		canvas_item.set_x (new_pos);
 	}
 	
 	current_frame = frame;

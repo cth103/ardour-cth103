@@ -14,5 +14,4 @@ ArdourCanvas -> ?
 Loading could probably be sped up by suspending all handling of bbox dirty.
 pixbufs for text?!
 merge GtkCanvas and GtkCanvasDrawingArea?
-separate canvas classes into their own files
-is grab event mask used by Ardour?
+Memory management
