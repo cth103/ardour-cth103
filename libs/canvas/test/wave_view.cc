@@ -3,6 +3,8 @@
 #include "ardour/session.h"
 #include "ardour/audioengine.h"
 #include "ardour/source_factory.h"
+#include "ardour/audiosource.h"
+#include "ardour/audiofilesource.h"
 #include "ardour/region_factory.h"
 #include "ardour/audioregion.h"
 #include "canvas/wave_view.h"
@@ -31,6 +33,9 @@ WaveViewTest::basics ()
 	text_receiver.listen_to (fatal);
 	text_receiver.listen_to (warning);
 
+	AudioFileSource::set_build_peakfiles (true);
+	AudioFileSource::set_build_missing_peakfiles (true);
+
 	AudioEngine engine ("test", "");
 	MIDI::Manager::create (engine.jack ());
 	CPPUNIT_ASSERT (engine.start () == 0);
@@ -43,14 +48,19 @@ WaveViewTest::basics ()
 	string const path = string_compose ("%1/../../libs/canvas/test/sine.wav", buf);
 
 	boost::shared_ptr<Source> source = SourceFactory::createReadable (
-		DataType::AUDIO, session, path, 0, (Source::Flag) 0, false, false
+		DataType::AUDIO, session, path, 0, (Source::Flag) 0, false, true
 		);
+
+	boost::shared_ptr<AudioFileSource> audio_file_source = boost::dynamic_pointer_cast<AudioFileSource> (source);
+
+	audio_file_source->setup_peakfile ();
 
 	PBD::PropertyList properties;
 	boost::shared_ptr<Region> region = RegionFactory::create (source, properties, false);
 	boost::shared_ptr<AudioRegion> audio_region = boost::dynamic_pointer_cast<AudioRegion> (region);
 
 	WaveView wave_view (canvas.root(), audio_region);
+	wave_view.set_frames_per_pixel ((double) (44100 / 1000) / 64);
 
 	canvas.render_to_image (Rect (0, 0, 256, 256));
 	canvas.write_to_png ("waveview.png");

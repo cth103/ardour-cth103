@@ -27,6 +27,8 @@ public:
 	XMLNode* get_state () const;
 	void set_state (XMLNode const *);
 
+	void set_frames_per_pixel (double);
+
 #ifdef CANVAS_COMPATIBILITY	
 	static GnomeCanvasWaveViewCache* create_cache () {
 		return 0;
@@ -106,6 +108,8 @@ private:
 #endif
 
 	boost::shared_ptr<ARDOUR::AudioRegion> _region;
+	double _frames_per_pixel;
+	Coord _height;
 };
 
 }
