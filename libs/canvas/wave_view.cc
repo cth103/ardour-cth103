@@ -18,7 +18,8 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 void
 WaveView::compute_bounding_box () const
 {
-
+	/* XXX */
+	_bounding_box_dirty = false;
 }
 	
 XMLNode *
