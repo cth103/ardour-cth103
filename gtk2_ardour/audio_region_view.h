@@ -23,7 +23,7 @@
 
 #include <sigc++/signal.h>
 #include "ardour/audioregion.h"
-#include "canvas/unimplemented.h"
+#include "canvas/wave_view.h"
 #include "region_view.h"
 #include "time_axis_view_item.h"
 #include "automation_line.h"

@@ -76,6 +76,7 @@
 #include "ardour/audioengine.h"
 
 #include "canvas/debug.h"
+#include "canvas/unimplemented.h"
 
 #include "control_protocol/control_protocol.h"
 

@@ -30,6 +30,7 @@
 #include "ardour/midi_region.h"
 
 #include "canvas/canvas.h"
+#include "canvas/unimplemented.h"
 
 #include "editor.h"
 #include "keyboard.h"

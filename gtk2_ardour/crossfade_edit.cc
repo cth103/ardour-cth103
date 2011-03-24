@@ -40,7 +40,7 @@
 #include <gtkmm2ext/gtk_ui.h>
 
 #include "canvas/rectangle.h"
-#include "canvas/unimplemented.h"
+#include "canvas/wave_view.h"
 #include "canvas/line.h"
 #include "canvas/polygon.h"
 
@@ -1159,7 +1159,7 @@ CrossfadeEditor::make_waves (boost::shared_ptr<AudioRegion> region, WhichFade wh
 		gdouble yoff = n * ht;
 
 		if (region->audio_source(n)->peaks_ready (boost::bind (&CrossfadeEditor::peaks_ready, this, boost::weak_ptr<AudioRegion>(region), which), &_peaks_ready_connection, gui_context())) {
-			ArdourCanvas::WaveView* waveview = new ArdourCanvas::WaveView (canvas->root());
+			ArdourCanvas::WaveView* waveview = new ArdourCanvas::WaveView (canvas->root(), region);
 
 			waveview->property_data_src() = region.get();
 			waveview->property_cache_updater() =  true;

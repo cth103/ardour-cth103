@@ -37,7 +37,8 @@ canvas_sources = [
 	'root_group.cc',
 	'types.cc',
 	'unimplemented.cc',
-	'utils.cc'
+	'utils.cc',
+	'wave_view.cc'
 ]
 
 # Mandatory variables

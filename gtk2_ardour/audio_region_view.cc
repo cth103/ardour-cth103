@@ -953,7 +953,7 @@ AudioRegionView::create_one_wave (uint32_t which, bool /*direct*/)
 
 	gdouble yoff = which * ht;
 
-	WaveView *wave = new WaveView (group);
+	WaveView *wave = new WaveView (group, audio_region ());
 
 	wave->property_data_src() = (gpointer) _region.get();
 	wave->property_cache() =  wave_caches[which];
@@ -1218,7 +1218,7 @@ AudioRegionView::add_ghost (TimeAxisView& tv)
 			break;
 		}
 
-		WaveView *wave = new WaveView (ghost->group);
+		WaveView *wave = new WaveView (ghost->group, audio_region());
 
 		wave->property_data_src() = _region.get();
 		wave->property_cache() =  wave_caches[n];
