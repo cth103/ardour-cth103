@@ -12,6 +12,7 @@ WaveView::WaveView (Group* parent, boost::shared_ptr<ARDOUR::AudioRegion> region
 	, _region (region)
 	, _frames_per_pixel (0)
 	, _height (64)
+	, _wave_color (0x000000ff)
 {
 
 }
@@ -27,7 +28,7 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 {
 	assert (_frames_per_pixel != 0);
 
-	set_source_rgba (context, 0xff0000ff);
+	set_source_rgba (context, _wave_color);
 
 	framepos_t const start = floor (area.x0 * _frames_per_pixel);
 	framepos_t const end   = ceil  (area.x1 * _frames_per_pixel);
@@ -66,7 +67,17 @@ WaveView::set_state (XMLNode const * node)
 	/* XXX */
 }
 
-	   
+void
+WaveView::set_wave_color (uint32_t wave_color)
+{
+	begin_change ();
+	
+	_wave_color = wave_color;
+
+	end_change ();
+}
+
+
 #ifdef CANVAS_COMPATIBILITY
 void
 gnome_canvas_waveview_cache_destroy (GnomeCanvasWaveViewCache* c)

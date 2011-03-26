@@ -464,9 +464,9 @@ AudioRegionView::region_muted ()
 
 	for (uint32_t n=0; n < waves.size(); ++n) {
 		if (_region->muted()) {
-			waves[n]->property_wave_color() = UINT_RGBA_CHANGE_A(ARDOUR_UI::config()->canvasvar_WaveForm.get(), MUTED_ALPHA);
+			waves[n]->set_wave_color (UINT_RGBA_CHANGE_A(ARDOUR_UI::config()->canvasvar_WaveForm.get(), MUTED_ALPHA));
 		} else {
-			waves[n]->property_wave_color() = ARDOUR_UI::config()->canvasvar_WaveForm.get();
+			waves[n]->set_wave_color (ARDOUR_UI::config()->canvasvar_WaveForm.get());
 		}
 	}
 }
@@ -786,9 +786,9 @@ AudioRegionView::set_colors ()
 
 	for (uint32_t n=0; n < waves.size(); ++n) {
 		if (_region->muted()) {
-			waves[n]->property_wave_color() = UINT_RGBA_CHANGE_A(ARDOUR_UI::config()->canvasvar_WaveForm.get(), MUTED_ALPHA);
+			waves[n]->set_wave_color (UINT_RGBA_CHANGE_A(ARDOUR_UI::config()->canvasvar_WaveForm.get(), MUTED_ALPHA));
 		} else {
-			waves[n]->property_wave_color() = ARDOUR_UI::config()->canvasvar_WaveForm.get();
+			waves[n]->set_wave_color (ARDOUR_UI::config()->canvasvar_WaveForm.get());
 		}
 
 		waves[n]->property_clip_color() = ARDOUR_UI::config()->canvasvar_WaveFormClip.get();
@@ -942,16 +942,15 @@ AudioRegionView::create_one_wave (uint32_t which, bool /*direct*/)
 	wave->property_amplitude_above_axis() =  _amplitude_above_axis;
 
 	if (_recregion) {
-		wave->property_wave_color() = _region->muted() ? UINT_RGBA_CHANGE_A(ARDOUR_UI::config()->canvasvar_RecWaveForm.get(), MUTED_ALPHA) : ARDOUR_UI::config()->canvasvar_RecWaveForm.get();
+		wave->set_wave_color (_region->muted() ? UINT_RGBA_CHANGE_A(ARDOUR_UI::config()->canvasvar_RecWaveForm.get(), MUTED_ALPHA) : ARDOUR_UI::config()->canvasvar_RecWaveForm.get());
 		wave->property_fill_color() = ARDOUR_UI::config()->canvasvar_RecWaveFormFill.get();
 	} else {
-		wave->property_wave_color() = _region->muted() ? UINT_RGBA_CHANGE_A(ARDOUR_UI::config()->canvasvar_WaveForm.get(), MUTED_ALPHA) : ARDOUR_UI::config()->canvasvar_WaveForm.get();
+		wave->set_wave_color (_region->muted() ? UINT_RGBA_CHANGE_A(ARDOUR_UI::config()->canvasvar_WaveForm.get(), MUTED_ALPHA) : ARDOUR_UI::config()->canvasvar_WaveForm.get());
 		wave->property_fill_color() = ARDOUR_UI::config()->canvasvar_WaveFormFill.get();
 	}
 
 	wave->property_clip_color() = ARDOUR_UI::config()->canvasvar_WaveFormClip.get();
 	wave->property_zero_color() = ARDOUR_UI::config()->canvasvar_ZeroLine.get();
-	wave->property_zero_line() = true;
 	wave->property_region_start() = _region->start();
 	wave->property_rectified() = (bool) (_flags & WaveformRectified);
 	wave->property_logscaled() = (bool) (_flags & WaveformLogScaled);
@@ -1323,10 +1322,8 @@ AudioRegionView::set_frame_color ()
 	}
 
         for (vector<ArdourCanvas::WaveView*>::iterator w = waves.begin(); w != waves.end(); ++w) {
-                if (_region->muted()) {
-                        (*w)->property_wave_color() = wc;
-                } else {
-                        (*w)->property_wave_color() = wc;
+		(*w)->set_wave_color (wc);
+                if (!_region->muted()) {
                         (*w)->property_fill_color() = fc;
                 }
         }
