@@ -17,26 +17,6 @@ srcdir = '.'
 blddir = 'build'
 
 children = [
-<<<<<<< HEAD
-	'libs/pbd',
-	'libs/midi++2',
-	'libs/evoral',
-	'libs/vamp-sdk',
-	'libs/qm-dsp',
-	'libs/vamp-plugins',
-	'libs/taglib',
-	'libs/rubberband',
-	'libs/surfaces',
-	'libs/panners',
-	'libs/timecode',
-	'libs/ardour',
-	'libs/gtkmm2ext',
-	'libs/clearlooks-newer',
-	'libs/audiographer',
-	'libs/canvas',
-	'gtk2_ardour',
-	'templates',
-=======
         'libs/pbd',
         'libs/midi++2',
         'libs/evoral',
@@ -52,10 +32,9 @@ children = [
         'libs/gtkmm2ext',
         'libs/clearlooks-newer',
         'libs/audiographer',
-        'libs/gnomecanvas',
+        'libs/canvas',
         'gtk2_ardour',
         'templates',
->>>>>>> origin/master
         'export',
 # this needs to be conditional at some point, since
 # we will not build it or use it on OS X
@@ -231,185 +210,56 @@ def set_compiler_flags (conf,opt):
         		elif config[config_cpu] == "i686":
         			optimization_flags.append ("-march=i686")
     
-<<<<<<< HEAD
-		if ((conf.env['build_target'] == 'i686') or (conf.env['build_target'] == 'x86_64')) and build_host_supports_sse:
-			optimization_flags.extend (["-msse", "-mfpmath=sse", "-DUSE_XMMINTRIN"])
-			debug_flags.extend (["-msse", "-mfpmath=sse", "-DUSE_XMMINTRIN"])
-
-	# end of processor-specific section
-
-	# optimization section
-	if conf.env['FPU_OPTIMIZATION']:
-		if conf.env['build_target'] == 'tiger' or conf.env['build_target'] == 'leopard':
-			optimization_flags.append ("-DBUILD_VECLIB_OPTIMIZATIONS");
-			debug_flags.append ("-DBUILD_VECLIB_OPTIMIZATIONS");
-			conf.env.append_value('LINKFLAGS', "-framework Accelerate")
-		elif conf.env['build_target'] == 'i686' or conf.env['build_target'] == 'x86_64':
-			optimization_flags.append ("-DBUILD_SSE_OPTIMIZATIONS")
-			debug_flags.append ("-DBUILD_SSE_OPTIMIZATIONS")
-		elif conf.env['build_target'] == 'x86_64':
-			optimization_flags.append ("-DUSE_X86_64_ASM")
-			debug_flags.append ("-DUSE_X86_64_ASM")
-		if not build_host_supports_sse:
-			print("\nWarning: you are building Ardour with SSE support even though your system does not support these instructions. (This may not be an error, especially if you are a package maintainer)")
-	
-	# check this even if we aren't using FPU optimization
-	if not conf.env['HAVE_POSIX_MEMALIGN']:
-		optimization_flags.append("-DNO_POSIX_MEMALIGN")
-
-	# end optimization section
-			
-	#
-	# no VST on x86_64
-	#
-	    
-	if conf.env['build_target'] == 'x86_64' and opt.vst:
-		print("\n\n==================================================")
-		print("You cannot use VST plugins with a 64 bit host. Please run waf with --vst=0")
-		print("\nIt is theoretically possible to build a 32 bit host on a 64 bit system.")
-		print("However, this is tricky and not recommended for beginners.")
-		sys.exit (-1)
-
-	#
-	# a single way to test if we're on OS X
-	#
-
-	if conf.env['build_target'] in ['panther', 'tiger', 'leopard' ]:
-		conf.define ('IS_OSX', 1)
-		# force tiger or later, to avoid issues on PPC which defaults
-		# back to 10.1 if we don't tell it otherwise.
-		conf.env.append_value('CCFLAGS', "-DMAC_OS_X_VERSION_MIN_REQUIRED=1040")
-
-	else:
-		conf.define ('IS_OSX', 0)
-
-	#
-	# save off guessed arch element in an env
-	#
-	conf.define ('CONFIG_ARCH', config[config_arch])
-
-	#
-	# ARCH="..." overrides all
-	#
-
-	if opt.arch != None:
-		optimization_flags = opt.arch.split()
-		
-	#
-	# prepend boiler plate optimization flags that work on all architectures
-	#
-
-	optimization_flags[:0] = [
-		"-O3",
-		"-fomit-frame-pointer",
-		"-ffast-math",
-		"-fstrength-reduce",
-		"-pipe"
-		]
-
-	if opt.debug:
-		conf.env.append_value('CCFLAGS', debug_flags)
-		conf.env.append_value('CXXFLAGS', debug_flags)
-		conf.env.append_value('LINKFLAGS', debug_flags)
-	else:
-		conf.env.append_value('CCFLAGS', optimization_flags)
-		conf.env.append_value('CXXFLAGS', optimization_flags)
-		conf.env.append_value('LINKFLAGS', optimization_flags)
-
-	if opt.stl_debug:
-		conf.env.append_value('CXXFLAGS', "-D_GLIBCXX_DEBUG")
-
-	if conf.env['DEBUG_RT_ALLOC']:
-		conf.env.append_value('CCFLAGS', '-DDEBUG_RT_ALLOC')
-		conf.env.append_value('CXXFLAGS', '-DDEBUG_RT_ALLOC')
-		conf.env.append_value('LINKFLAGS', '-ldl')
-
-	if opt.universal:
-		conf.env.append_value('CCFLAGS', "-arch i386 -arch ppc")
-		conf.env.append_value('CXXFLAGS', "-arch i386 -arch ppc")
-		conf.env.append_value('LINKFLAGS', "-arch i386 -arch ppc")
-
-	#
-	# warnings flags
-	#
-
-	conf.env.append_value('CCFLAGS', "-Wall")
-	conf.env.append_value('CXXFLAGS', [ '-Wall', '-Woverloaded-virtual'])
-
-	if opt.extra_warn:
-		flags = [ '-Wextra' ]
-		conf.env.append_value('CCFLAGS', flags )
-		conf.env.append_value('CXXFLAGS', flags )
-
-
-	#
-	# more boilerplate
-	#
-
-	conf.env.append_value('CCFLAGS', '-D_LARGEFILE64_SOURCE')
-	conf.env.append_value('CCFLAGS', '-D_FILE_OFFSET_BITS=64')
-	conf.env.append_value('CXXFLAGS', '-D_LARGEFILE64_SOURCE')
-	conf.env.append_value('CXXFLAGS', '-D_FILE_OFFSET_BITS=64')
-
-	conf.env.append_value('CXXFLAGS', '-D__STDC_LIMIT_MACROS')
-	conf.env.append_value('CXXFLAGS', '-D__STDC_FORMAT_MACROS')
-	conf.env.append_value('CXXFLAGS', '-DCANVAS_COMPATIBILITY')
-	conf.env.append_value('CXXFLAGS', '-DCANVAS_DEBUG')
-
-	if opt.nls:
-		conf.env.append_value('CXXFLAGS', '-DENABLE_NLS')
-		conf.env.append_value('CCFLAGS', '-DENABLE_NLS')
-=======
-        	if ((conf.env['build_target'] == 'i686') or (conf.env['build_target'] == 'x86_64')) and build_host_supports_sse:
-        		optimization_flags.extend (["-msse", "-mfpmath=sse", "-DUSE_XMMINTRIN"])
-        		debug_flags.extend (["-msse", "-mfpmath=sse", "-DUSE_XMMINTRIN"])
+                if ((conf.env['build_target'] == 'i686') or (conf.env['build_target'] == 'x86_64')) and build_host_supports_sse:
+                        optimization_flags.extend (["-msse", "-mfpmath=sse", "-DUSE_XMMINTRIN"])
+                        debug_flags.extend (["-msse", "-mfpmath=sse", "-DUSE_XMMINTRIN"])
 
         # end of processor-specific section
 
         # optimization section
         if conf.env['FPU_OPTIMIZATION']:
-        	if conf.env['build_target'] == 'tiger' or conf.env['build_target'] == 'leopard':
-        		optimization_flags.append ("-DBUILD_VECLIB_OPTIMIZATIONS");
-        		debug_flags.append ("-DBUILD_VECLIB_OPTIMIZATIONS");
-        		conf.env.append_value('LINKFLAGS', "-framework Accelerate")
-        	elif conf.env['build_target'] == 'i686' or conf.env['build_target'] == 'x86_64':
-        		optimization_flags.append ("-DBUILD_SSE_OPTIMIZATIONS")
-        		debug_flags.append ("-DBUILD_SSE_OPTIMIZATIONS")
-        	elif conf.env['build_target'] == 'x86_64':
-        		optimization_flags.append ("-DUSE_X86_64_ASM")
-        		debug_flags.append ("-DUSE_X86_64_ASM")
-        	if not build_host_supports_sse:
-        		print("\nWarning: you are building Ardour with SSE support even though your system does not support these instructions. (This may not be an error, especially if you are a package maintainer)")
+                if conf.env['build_target'] == 'tiger' or conf.env['build_target'] == 'leopard':
+                        optimization_flags.append ("-DBUILD_VECLIB_OPTIMIZATIONS");
+                        debug_flags.append ("-DBUILD_VECLIB_OPTIMIZATIONS");
+                        conf.env.append_value('LINKFLAGS', "-framework Accelerate")
+                elif conf.env['build_target'] == 'i686' or conf.env['build_target'] == 'x86_64':
+                        optimization_flags.append ("-DBUILD_SSE_OPTIMIZATIONS")
+                        debug_flags.append ("-DBUILD_SSE_OPTIMIZATIONS")
+                elif conf.env['build_target'] == 'x86_64':
+                        optimization_flags.append ("-DUSE_X86_64_ASM")
+                        debug_flags.append ("-DUSE_X86_64_ASM")
+                if not build_host_supports_sse:
+                        print("\nWarning: you are building Ardour with SSE support even though your system does not support these instructions. (This may not be an error, especially if you are a package maintainer)")
         
         # check this even if we aren't using FPU optimization
         if not conf.env['HAVE_POSIX_MEMALIGN']:
-        	optimization_flags.append("-DNO_POSIX_MEMALIGN")
+                optimization_flags.append("-DNO_POSIX_MEMALIGN")
 
         # end optimization section
-        		
+                        
         #
         # no VST on x86_64
         #
             
         if conf.env['build_target'] == 'x86_64' and opt.vst:
-        	print("\n\n==================================================")
-        	print("You cannot use VST plugins with a 64 bit host. Please run waf with --vst=0")
-        	print("\nIt is theoretically possible to build a 32 bit host on a 64 bit system.")
-        	print("However, this is tricky and not recommended for beginners.")
-        	sys.exit (-1)
+                print("\n\n==================================================")
+                print("You cannot use VST plugins with a 64 bit host. Please run waf with --vst=0")
+                print("\nIt is theoretically possible to build a 32 bit host on a 64 bit system.")
+                print("However, this is tricky and not recommended for beginners.")
+                sys.exit (-1)
 
         #
         # a single way to test if we're on OS X
         #
 
         if conf.env['build_target'] in ['panther', 'tiger', 'leopard' ]:
-        	conf.define ('IS_OSX', 1)
-        	# force tiger or later, to avoid issues on PPC which defaults
-        	# back to 10.1 if we don't tell it otherwise.
-        	conf.env.append_value('CCFLAGS', "-DMAC_OS_X_VERSION_MIN_REQUIRED=1040")
+                conf.define ('IS_OSX', 1)
+                # force tiger or later, to avoid issues on PPC which defaults
+                # back to 10.1 if we don't tell it otherwise.
+                conf.env.append_value('CCFLAGS', "-DMAC_OS_X_VERSION_MIN_REQUIRED=1040")
 
         else:
-        	conf.define ('IS_OSX', 0)
+                conf.define ('IS_OSX', 0)
 
         #
         # save off guessed arch element in an env
@@ -421,41 +271,41 @@ def set_compiler_flags (conf,opt):
         #
 
         if opt.arch != None:
-        	optimization_flags = opt.arch.split()
-        	
+                optimization_flags = opt.arch.split()
+                
         #
         # prepend boiler plate optimization flags that work on all architectures
         #
 
         optimization_flags[:0] = [
-        	"-O3",
-        	"-fomit-frame-pointer",
-        	"-ffast-math",
-        	"-fstrength-reduce",
-        	"-pipe"
-        	]
+                "-O3",
+                "-fomit-frame-pointer",
+                "-ffast-math",
+                "-fstrength-reduce",
+                "-pipe"
+                ]
 
         if opt.debug:
-        	conf.env.append_value('CCFLAGS', debug_flags)
-        	conf.env.append_value('CXXFLAGS', debug_flags)
-        	conf.env.append_value('LINKFLAGS', debug_flags)
+                conf.env.append_value('CCFLAGS', debug_flags)
+                conf.env.append_value('CXXFLAGS', debug_flags)
+                conf.env.append_value('LINKFLAGS', debug_flags)
         else:
-        	conf.env.append_value('CCFLAGS', optimization_flags)
-        	conf.env.append_value('CXXFLAGS', optimization_flags)
-        	conf.env.append_value('LINKFLAGS', optimization_flags)
+                conf.env.append_value('CCFLAGS', optimization_flags)
+                conf.env.append_value('CXXFLAGS', optimization_flags)
+                conf.env.append_value('LINKFLAGS', optimization_flags)
 
         if opt.stl_debug:
-        	conf.env.append_value('CXXFLAGS', "-D_GLIBCXX_DEBUG")
+                conf.env.append_value('CXXFLAGS', "-D_GLIBCXX_DEBUG")
 
         if conf.env['DEBUG_RT_ALLOC']:
-        	conf.env.append_value('CCFLAGS', '-DDEBUG_RT_ALLOC')
-        	conf.env.append_value('CXXFLAGS', '-DDEBUG_RT_ALLOC')
-        	conf.env.append_value('LINKFLAGS', '-ldl')
+                conf.env.append_value('CCFLAGS', '-DDEBUG_RT_ALLOC')
+                conf.env.append_value('CXXFLAGS', '-DDEBUG_RT_ALLOC')
+                conf.env.append_value('LINKFLAGS', '-ldl')
 
         if opt.universal:
-        	conf.env.append_value('CCFLAGS', "-arch i386 -arch ppc")
-        	conf.env.append_value('CXXFLAGS', "-arch i386 -arch ppc")
-        	conf.env.append_value('LINKFLAGS', "-arch i386 -arch ppc")
+                conf.env.append_value('CCFLAGS', "-arch i386 -arch ppc")
+                conf.env.append_value('CXXFLAGS', "-arch i386 -arch ppc")
+                conf.env.append_value('LINKFLAGS', "-arch i386 -arch ppc")
 
         #
         # warnings flags
@@ -465,9 +315,9 @@ def set_compiler_flags (conf,opt):
         conf.env.append_value('CXXFLAGS', [ '-Wall', '-Woverloaded-virtual'])
 
         if opt.extra_warn:
-        	flags = [ '-Wextra' ]
-        	conf.env.append_value('CCFLAGS', flags )
-        	conf.env.append_value('CXXFLAGS', flags )
+                flags = [ '-Wextra' ]
+                conf.env.append_value('CCFLAGS', flags )
+                conf.env.append_value('CXXFLAGS', flags )
 
 
         #
@@ -481,11 +331,12 @@ def set_compiler_flags (conf,opt):
 
         conf.env.append_value('CXXFLAGS', '-D__STDC_LIMIT_MACROS')
         conf.env.append_value('CXXFLAGS', '-D__STDC_FORMAT_MACROS')
+        conf.env.append_value('CXXFLAGS', '-DCANVAS_COMPATIBILITY')
+        conf.env.append_value('CXXFLAGS', '-DCANVAS_DEBUG')
 
         if opt.nls:
-        	conf.env.append_value('CXXFLAGS', '-DENABLE_NLS')
-        	conf.env.append_value('CCFLAGS', '-DENABLE_NLS')
->>>>>>> origin/master
+                conf.env.append_value('CXXFLAGS', '-DENABLE_NLS')
+                conf.env.append_value('CCFLAGS', '-DENABLE_NLS')
 
 #----------------------------------------------------------------
 
@@ -572,179 +423,86 @@ def configure(conf):
                 print('Please use a different version or re-configure with --debug')
                 exit (1)
 
-<<<<<<< HEAD
-	if sys.platform == 'darwin':
-
-		conf.define ('AUDIOUNITS', 1)
-		conf.define ('AU_STATE_SUPPORT', 1)
-		conf.define ('COREAUDIO', 1)
-		conf.define ('GTKOSX', 1)
-		conf.define ('TOP_MENUBAR',1)
-		conf.define ('GTKOSX',1)
-
-		conf.env.append_value('CXXFLAGS_APPLEUTILITY', '-I../libs')
-		#
-		#	Define OSX as a uselib to use when compiling
-		#	on Darwin to add all applicable flags at once
-		#
-		conf.env.append_value('CXXFLAGS_OSX', '-DMAC_OS_X_VERSION_MIN_REQUIRED=1040')
-		conf.env.append_value('CCFLAGS_OSX', '-DMAC_OS_X_VERSION_MIN_REQUIRED=1040')
-		conf.env.append_value('CXXFLAGS_OSX', '-mmacosx-version-min=10.4')
-		conf.env.append_value('CCFLAGS_OSX', '-mmacosx-version-min=10.4')
-
-		#conf.env.append_value('CXXFLAGS_OSX', "-isysroot /Developer/SDKs/MacOSX10.4u.sdk")
-		#conf.env.append_value('CCFLAGS_OSX', "-isysroot /Developer/SDKs/MacOSX10.4u.sdk")
-		#conf.env.append_value('LINKFLAGS_OSX', "-isysroot /Developer/SDKs/MacOSX10.4u.sdk")
-
-		#conf.env.append_value('LINKFLAGS_OSX', "-sysroot /Developer/SDKs/MacOSX10.4u.sdk")
-
-		conf.env.append_value('CXXFLAGS_OSX', "-msse")
-		conf.env.append_value('CCFLAGS_OSX', "-msse")
-		conf.env.append_value('CXXFLAGS_OSX', "-msse2")
-		conf.env.append_value('CCFLAGS_OSX', "-msse2")
-		#
-		#	TODO: The previous sse flags NEED to be based
-		#	off processor type.  Need to add in a check
-		#	for that.
-		#
-		conf.env.append_value('CXXFLAGS_OSX', '-F/System/LibraryFrameworks')
-		conf.env.append_value('CXXFLAGS_OSX', '-F/Library/Frameworks')
-
-		conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'AppKit'])
-		conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'CoreAudio'])
-		conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'CoreFoundation'])
-		conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'CoreServices'])
-
-		conf.env.append_value('LINKFLAGS_OSX', ['-undefined', 'suppress' ])
-		conf.env.append_value('LINKFLAGS_OSX', '-flat_namespace')
-
-		conf.env.append_value('LINKFLAGS_GTKOSX', [ '-Xlinker', '-headerpad'])
-		conf.env.append_value('LINKFLAGS_GTKOSX', ['-Xlinker', '2048'])
-		conf.env.append_value('CPPPATH_GTKOSX', "/System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Headers/")
-	
-		conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DHAVE_AUDIOUNITS")
-		conf.env.append_value('LINKFLAGS_AUDIOUNITS', ['-framework', 'Audiotoolbox', '-framework', 'AudioUnit'])
-
-	if Options.options.boost_include != '':				       
-		conf.env.append_value('CPPPATH', Options.options.boost_include)
-
-	autowaf.check_header(conf, 'boost/signals2.hpp', mandatory = True)
-
-	if Options.options.boost_sp_debug:
-		conf.env.append_value('CXXFLAGS', '-DBOOST_SP_ENABLE_DEBUG_HOOKS')
-
-	autowaf.check_header(conf, 'jack/session.h', define="JACK_SESSION", mandatory = False)
-
-	conf.check_cc(fragment = "#include <boost/version.hpp>\nint main(void) { return (BOOST_VERSION >= 103900 ? 0 : 1); }\n",
-		      execute = "1",
-		      mandatory = True,
-		      msg = 'Checking for boost library >= 1.39',
-		      okmsg = 'ok',
-		      errmsg = 'too old\nPlease install boost version 1.39 or higher.')
-
-	autowaf.check_pkg(conf, 'cppunit', uselib_store='CPPUNIT', atleast_version='1.12.0', mandatory=False)
-	autowaf.check_pkg(conf, 'glib-2.0', uselib_store='GLIB', atleast_version='2.2')
-	autowaf.check_pkg(conf, 'gthread-2.0', uselib_store='GTHREAD', atleast_version='2.2')
-	autowaf.check_pkg(conf, 'glibmm-2.4', uselib_store='GLIBMM', atleast_version='2.14.0')
-	autowaf.check_pkg(conf, 'sndfile', uselib_store='SNDFILE', atleast_version='1.0.18')
-	autowaf.check_pkg(conf, 'gtkmm-2.4', uselib_store='GTKMM', atleast_version='2.18')
-
-	if sys.platform == 'darwin':
-		sub_config_and_use(conf, 'libs/appleutility')
-	for i in children:
-		sub_config_and_use(conf, i)
-
-	# Fix utterly braindead FLAC include path to not smash assert.h
-	conf.env['CPPPATH_FLAC'] = []
-
-	conf.check_cc(function_name='dlopen', header_name='dlfcn.h', linkflags='-ldl', uselib_store='DL')
-	conf.check_cc(function_name='curl_global_init', header_name='curl/curl.h', linkflags='-lcurl', uselib_store='CURL')
-
-	# Tell everyone that this is a waf build
-
-	conf.env.append_value('CCFLAGS', '-DWAF_BUILD')
-	conf.env.append_value('CXXFLAGS', '-DWAF_BUILD')
-	
-=======
         if sys.platform == 'darwin':
 
-        	conf.define ('AUDIOUNITS', 1)
-        	conf.define ('AU_STATE_SUPPORT', 1)
-        	conf.define ('COREAUDIO', 1)
-        	conf.define ('GTKOSX', 1)
-        	conf.define ('TOP_MENUBAR',1)
-        	conf.define ('GTKOSX',1)
+                conf.define ('AUDIOUNITS', 1)
+                conf.define ('AU_STATE_SUPPORT', 1)
+                conf.define ('COREAUDIO', 1)
+                conf.define ('GTKOSX', 1)
+                conf.define ('TOP_MENUBAR',1)
+                conf.define ('GTKOSX',1)
 
-        	conf.env.append_value('CXXFLAGS_APPLEUTILITY', '-I../libs')
-        	#
-        	#	Define OSX as a uselib to use when compiling
-        	#	on Darwin to add all applicable flags at once
-        	#
-        	conf.env.append_value('CXXFLAGS_OSX', '-DMAC_OS_X_VERSION_MIN_REQUIRED=1040')
-        	conf.env.append_value('CCFLAGS_OSX', '-DMAC_OS_X_VERSION_MIN_REQUIRED=1040')
-        	conf.env.append_value('CXXFLAGS_OSX', '-mmacosx-version-min=10.4')
-        	conf.env.append_value('CCFLAGS_OSX', '-mmacosx-version-min=10.4')
+                conf.env.append_value('CXXFLAGS_APPLEUTILITY', '-I../libs')
+                #
+                #       Define OSX as a uselib to use when compiling
+                #       on Darwin to add all applicable flags at once
+                #
+                conf.env.append_value('CXXFLAGS_OSX', '-DMAC_OS_X_VERSION_MIN_REQUIRED=1040')
+                conf.env.append_value('CCFLAGS_OSX', '-DMAC_OS_X_VERSION_MIN_REQUIRED=1040')
+                conf.env.append_value('CXXFLAGS_OSX', '-mmacosx-version-min=10.4')
+                conf.env.append_value('CCFLAGS_OSX', '-mmacosx-version-min=10.4')
 
-        	#conf.env.append_value('CXXFLAGS_OSX', "-isysroot /Developer/SDKs/MacOSX10.4u.sdk")
-        	#conf.env.append_value('CCFLAGS_OSX', "-isysroot /Developer/SDKs/MacOSX10.4u.sdk")
-        	#conf.env.append_value('LINKFLAGS_OSX', "-isysroot /Developer/SDKs/MacOSX10.4u.sdk")
+                #conf.env.append_value('CXXFLAGS_OSX', "-isysroot /Developer/SDKs/MacOSX10.4u.sdk")
+                #conf.env.append_value('CCFLAGS_OSX', "-isysroot /Developer/SDKs/MacOSX10.4u.sdk")
+                #conf.env.append_value('LINKFLAGS_OSX', "-isysroot /Developer/SDKs/MacOSX10.4u.sdk")
 
-        	#conf.env.append_value('LINKFLAGS_OSX', "-sysroot /Developer/SDKs/MacOSX10.4u.sdk")
+                #conf.env.append_value('LINKFLAGS_OSX', "-sysroot /Developer/SDKs/MacOSX10.4u.sdk")
 
-        	conf.env.append_value('CXXFLAGS_OSX', "-msse")
-        	conf.env.append_value('CCFLAGS_OSX', "-msse")
-        	conf.env.append_value('CXXFLAGS_OSX', "-msse2")
-        	conf.env.append_value('CCFLAGS_OSX', "-msse2")
-        	#
-        	#	TODO: The previous sse flags NEED to be based
-        	#	off processor type.  Need to add in a check
-        	#	for that.
-        	#
-        	conf.env.append_value('CXXFLAGS_OSX', '-F/System/LibraryFrameworks')
-        	conf.env.append_value('CXXFLAGS_OSX', '-F/Library/Frameworks')
+                conf.env.append_value('CXXFLAGS_OSX', "-msse")
+                conf.env.append_value('CCFLAGS_OSX', "-msse")
+                conf.env.append_value('CXXFLAGS_OSX', "-msse2")
+                conf.env.append_value('CCFLAGS_OSX', "-msse2")
+                #
+                #       TODO: The previous sse flags NEED to be based
+                #       off processor type.  Need to add in a check
+                #       for that.
+                #
+                conf.env.append_value('CXXFLAGS_OSX', '-F/System/LibraryFrameworks')
+                conf.env.append_value('CXXFLAGS_OSX', '-F/Library/Frameworks')
 
-        	conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'AppKit'])
-        	conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'CoreAudio'])
-        	conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'CoreFoundation'])
-        	conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'CoreServices'])
+                conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'AppKit'])
+                conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'CoreAudio'])
+                conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'CoreFoundation'])
+                conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'CoreServices'])
 
-        	conf.env.append_value('LINKFLAGS_OSX', ['-undefined', 'suppress' ])
-        	conf.env.append_value('LINKFLAGS_OSX', '-flat_namespace')
+                conf.env.append_value('LINKFLAGS_OSX', ['-undefined', 'suppress' ])
+                conf.env.append_value('LINKFLAGS_OSX', '-flat_namespace')
 
-        	conf.env.append_value('LINKFLAGS_GTKOSX', [ '-Xlinker', '-headerpad'])
-        	conf.env.append_value('LINKFLAGS_GTKOSX', ['-Xlinker', '2048'])
-        	conf.env.append_value('CPPPATH_GTKOSX', "/System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Headers/")
+                conf.env.append_value('LINKFLAGS_GTKOSX', [ '-Xlinker', '-headerpad'])
+                conf.env.append_value('LINKFLAGS_GTKOSX', ['-Xlinker', '2048'])
+                conf.env.append_value('CPPPATH_GTKOSX', "/System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Headers/")
         
-        	conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DHAVE_AUDIOUNITS")
-        	conf.env.append_value('LINKFLAGS_AUDIOUNITS', ['-framework', 'Audiotoolbox', '-framework', 'AudioUnit'])
+                conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DHAVE_AUDIOUNITS")
+                conf.env.append_value('LINKFLAGS_AUDIOUNITS', ['-framework', 'Audiotoolbox', '-framework', 'AudioUnit'])
 
-        if Options.options.boost_include != '':				       
-        	conf.env.append_value('CPPPATH', Options.options.boost_include)
+        if Options.options.boost_include != '':                                
+                conf.env.append_value('CPPPATH', Options.options.boost_include)
 
         autowaf.check_header(conf, 'boost/signals2.hpp', mandatory = True)
 
         if Options.options.boost_sp_debug:
-        	conf.env.append_value('CXXFLAGS', '-DBOOST_SP_ENABLE_DEBUG_HOOKS')
+                conf.env.append_value('CXXFLAGS', '-DBOOST_SP_ENABLE_DEBUG_HOOKS')
 
         autowaf.check_header(conf, 'jack/session.h', define="JACK_SESSION", mandatory = False)
 
         conf.check_cc(fragment = "#include <boost/version.hpp>\nint main(void) { return (BOOST_VERSION >= 103900 ? 0 : 1); }\n",
-        	      execute = "1",
-        	      mandatory = True,
-        	      msg = 'Checking for boost library >= 1.39',
-        	      okmsg = 'ok',
-        	      errmsg = 'too old\nPlease install boost version 1.39 or higher.')
+                      execute = "1",
+                      mandatory = True,
+                      msg = 'Checking for boost library >= 1.39',
+                      okmsg = 'ok',
+                      errmsg = 'too old\nPlease install boost version 1.39 or higher.')
 
         autowaf.check_pkg(conf, 'cppunit', uselib_store='CPPUNIT', atleast_version='1.12.0', mandatory=False)
         autowaf.check_pkg(conf, 'glib-2.0', uselib_store='GLIB', atleast_version='2.2')
         autowaf.check_pkg(conf, 'gthread-2.0', uselib_store='GTHREAD', atleast_version='2.2')
         autowaf.check_pkg(conf, 'glibmm-2.4', uselib_store='GLIBMM', atleast_version='2.14.0')
         autowaf.check_pkg(conf, 'sndfile', uselib_store='SNDFILE', atleast_version='1.0.18')
+        autowaf.check_pkg(conf, 'gtkmm-2.4', uselib_store='GTKMM', atleast_version='2.18')
 
         if sys.platform == 'darwin':
-        	sub_config_and_use(conf, 'libs/appleutility')
+                sub_config_and_use(conf, 'libs/appleutility')
         for i in children:
-        	sub_config_and_use(conf, i)
+                sub_config_and_use(conf, i)
 
         # Fix utterly braindead FLAC include path to not smash assert.h
         conf.env['CPPPATH_FLAC'] = []
@@ -757,7 +515,6 @@ def configure(conf):
         conf.env.append_value('CCFLAGS', '-DWAF_BUILD')
         conf.env.append_value('CXXFLAGS', '-DWAF_BUILD')
         
->>>>>>> origin/master
         # debug builds should not call home
 
         opts = Options.options
