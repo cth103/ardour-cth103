@@ -224,7 +224,6 @@ IO::connect (Port* our_port, string other_port, void* src)
 			return -1;
 		}
 	}
-
 	changed (IOChange (IOChange::ConnectionsChanged), src); /* EMIT SIGNAL */
 	_session.set_dirty ();
 	return 0;
@@ -912,7 +911,7 @@ IO::make_connections (const XMLNode& node, int version, bool in)
 					}
                                         
 					if (prop) {
-						p->connect (prop->value());
+                                                connect (p, prop->value(), this);
 					}
 				}
 			} 
@@ -1157,6 +1156,10 @@ IO::latency () const
 
 	for (PortSet::const_iterator i = _ports.begin(); i != _ports.end(); ++i) {
 		if ((latency = i->private_latency_range (_direction == Output).max) > max_latency) {
+                        DEBUG_TRACE (DEBUG::Latency, string_compose ("port %1 has %2 latency of %3 - use\n",
+                                                                     name(), 
+                                                                     ((_direction == Output) ? "PLAYBACK" : "CAPTURE"),
+                                                                     latency));
 			max_latency = latency;
 		}
 	}

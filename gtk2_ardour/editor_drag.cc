@@ -313,7 +313,7 @@ Drag::motion_handler (GdkEvent* event, bool from_autoscroll)
 
 	if (!from_autoscroll && !_move_threshold_passed) {
 
-		bool const xp = (::llabs (_drags->current_pointer_frame () - _grab_frame) >= threshold.first);
+		bool const xp = (::llabs (_drags->current_pointer_frame () - _raw_grab_frame) >= threshold.first);
 		bool const yp = (::fabs ((_drags->current_pointer_y () - _grab_y)) >= threshold.second);
 
 		_move_threshold_passed = ((xp && x_movement_matters()) || (yp && y_movement_matters()));
@@ -2461,10 +2461,6 @@ MarkerDrag::motion (GdkEvent* event, bool)
 	framepos_t const newframe = adjusted_current_frame (event);
 
 	framepos_t next = newframe;
-
-	if (newframe == last_pointer_frame()) {
-		return;
-	}
 
 	if (Keyboard::modifier_state_equals (event->button.state, Keyboard::PrimaryModifier)) {
 		move_both = true;

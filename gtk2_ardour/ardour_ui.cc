@@ -312,8 +312,8 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 		keyboard->set_state (*node, Stateful::loading_state_version);
 	}
 
-        /* we don't like certain modifiers */
-        Bindings::set_ignored_state (GDK_LOCK_MASK|GDK_MOD2_MASK|GDK_MOD3_MASK);
+	/* we don't like certain modifiers */
+	Bindings::set_ignored_state (GDK_LOCK_MASK|GDK_MOD2_MASK|GDK_MOD3_MASK);
 
 	reset_dpi();
 
@@ -334,7 +334,7 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 	}
 
 	setup_clock ();
-        speaker_config_window->set (new SpeakerDialog);
+	speaker_config_window->set (new SpeakerDialog);
 
 	starting.connect (sigc::mem_fun(*this, &ARDOUR_UI::startup));
 	stopping.connect (sigc::mem_fun(*this, &ARDOUR_UI::shutdown));
@@ -762,15 +762,15 @@ ARDOUR_UI::check_memory_locking ()
 
 			if (ram == 0 || ((double) limits.rlim_cur / ram) < 0.75) {
 
-
 				MessageDialog msg (
-					string_compose (_("WARNING: Your system has a limit for maximum amount of locked memory. "
-					                  "This might cause %1 to run out of memory before your system "
-					                  "runs out of memory. \n\n"
-					                  "You can view the memory limit with 'ulimit -l', "
-					                  "and it is normally controlled by /etc/security/limits.conf"),
-					                PROGRAM_NAME).c_str());
-                                                   
+					string_compose (
+						_("WARNING: Your system has a limit for maximum amount of locked memory. "
+						  "This might cause %1 to run out of memory before your system "
+						  "runs out of memory. \n\n"
+						  "You can view the memory limit with 'ulimit -l', "
+						  "and it is normally controlled by /etc/security/limits.conf"),
+						PROGRAM_NAME).c_str());
+
 				VBox* vbox = msg.get_vbox();
 				HBox hbox;
 				CheckButton cb (_("Do not show this window again"));
@@ -1274,9 +1274,10 @@ ARDOUR_UI::check_audioengine ()
 {
 	if (engine) {
 		if (!engine->connected()) {
-			MessageDialog msg (string_compose (_("%1 is not connected to JACK\n"
-			                                     "You cannot open or close sessions in this condition"),
-			                                   PROGRAM_NAME));
+			MessageDialog msg (string_compose (
+				                   _("%1 is not connected to JACK\n"
+				                     "You cannot open or close sessions in this condition"),
+				                   PROGRAM_NAME));
 			pop_back_splash ();
 			msg.run ();
 			return false;
@@ -1653,7 +1654,6 @@ ARDOUR_UI::toggle_roll (bool with_abort, bool roll_out_of_bounded_mode)
 		return;
 	}
 
-#if 0
 	if (_session->config.get_external_sync()) {
 		switch (_session->config.get_sync_source()) {
 		case JACK:
@@ -1663,7 +1663,6 @@ ARDOUR_UI::toggle_roll (bool with_abort, bool roll_out_of_bounded_mode)
 			return;
 		}
 	}
-#endif
 
 	bool rolling = _session->transport_rolling();
 	bool affect_transport = true;
@@ -2097,7 +2096,7 @@ ARDOUR_UI::snapshot_session (bool switch_to_it)
 		char timebuf[128];
 		time_t n;
 		struct tm local_time;
-                
+		
 		time (&n);
 		localtime_r (&n, &local_time);
 		strftime (timebuf, sizeof(timebuf), "%FT%T", &local_time);
@@ -2446,7 +2445,7 @@ ARDOUR_UI::build_session_from_nsd (const std::string& session_path, const std::s
 		}
 
 		/// @todo some minor tweaks.
-                
+
 		bus_profile.output_ac = AutoConnectOption (0);
 
 		if (_startup->connect_outputs ()) {
@@ -2585,7 +2584,7 @@ ARDOUR_UI::get_session_parameters (bool quit_on_cancel, bool should_be_new, stri
 				/* absolute path or cwd-relative path specified for session name: infer session folder
 				   from what was given.
 				*/
-                                
+
 				session_path = Glib::path_get_dirname (session_name);
 				session_name = Glib::path_get_basename (session_name);
 
@@ -2594,16 +2593,18 @@ ARDOUR_UI::get_session_parameters (bool quit_on_cancel, bool should_be_new, stri
 				session_path = _startup->session_folder();
 
 				if (session_name.find ('/') != string::npos) {
-					MessageDialog msg (*_startup, _("To ensure compatibility with various systems\n"
-					                                "session names may not contain a '/' character"));
+					MessageDialog msg (*_startup,
+					                   _("To ensure compatibility with various systems\n"
+					                     "session names may not contain a '/' character"));
 					msg.run ();
 					ARDOUR_COMMAND_LINE::session_name = ""; // cancel that
 					continue;
 				}
-                                
+
 				if (session_name.find ('\\') != string::npos) {
-					MessageDialog msg (*_startup, _("To ensure compatibility with various systems\n"
-					                                "session names may not contain a '\\' character"));
+					MessageDialog msg (*_startup,
+					                   _("To ensure compatibility with various systems\n"
+					                     "session names may not contain a '\\' character"));
 					msg.run ();
 					ARDOUR_COMMAND_LINE::session_name = ""; // cancel that
 					continue;
@@ -2639,16 +2640,18 @@ ARDOUR_UI::get_session_parameters (bool quit_on_cancel, bool should_be_new, stri
 			}
 
 			if (session_name.find ('/') != std::string::npos) {
-				MessageDialog msg (*_startup, _("To ensure compatibility with various systems\n"
-				                                "session names may not contain a '/' character"));
+				MessageDialog msg (*_startup,
+				                   _("To ensure compatibility with various systems\n"
+				                     "session names may not contain a '/' character"));
 				msg.run ();
 				ARDOUR_COMMAND_LINE::session_name = ""; // cancel that
 				continue;
 			}
 
 			if (session_name.find ('\\') != std::string::npos) {
-				MessageDialog msg (*_startup, _("To ensure compatibility with various systems\n"
-				                                "session names may not contain a '\\' character"));
+				MessageDialog msg (*_startup,
+				                   _("To ensure compatibility with various systems\n"
+				                     "session names may not contain a '\\' character"));
 				msg.run ();
 				ARDOUR_COMMAND_LINE::session_name = ""; // cancel that
 				continue;
@@ -2759,7 +2762,9 @@ ARDOUR_UI::load_session (const std::string& path, const std::string& snap_name, 
 
 	catch (...) {
 
-		MessageDialog msg (string_compose(_("Session \"%1 (snapshot %2)\" did not load successfully"),path, snap_name),
+		MessageDialog msg (string_compose(
+			                   _("Session \"%1 (snapshot %2)\" did not load successfully"),
+			                   path, snap_name),
 		                   true,
 		                   Gtk::MESSAGE_INFO,
 		                   BUTTONS_OK);
@@ -3028,8 +3033,8 @@ require some unused files to continue to exist."));
 	if (rep.space < 1000) {
 		bprefix = X_("");
 		space_adjusted = rep.space;
-        } else if (rep.space < 1000000) {
-                        bprefix = X_("kilo");
+	} else if (rep.space < 1000000) {
+		bprefix = X_("kilo");
 		space_adjusted = truncf((float)rep.space / 1000.0);
 	} else if (rep.space < 1000000 * 1000) {
 		bprefix = X_("mega");
@@ -3080,7 +3085,7 @@ require some unused files to continue to exist."));
 
 	results.run ();
 
-}        
+}
 
 void
 ARDOUR_UI::cleanup ()
@@ -3371,8 +3376,8 @@ ARDOUR_UI::disk_underrun_handler ()
 
 	if (!have_disk_speed_dialog_displayed) {
 		have_disk_speed_dialog_displayed = true;
-		MessageDialog* msg = new MessageDialog (*editor,
-		                                        string_compose (_("The disk system on your computer\n\
+		MessageDialog* msg = new MessageDialog (
+			*editor, string_compose (_("The disk system on your computer\n\
 was not able to keep up with %1.\n\
 \n\
 Specifically, it failed to read data from disk\n\
@@ -3717,16 +3722,16 @@ void
 ARDOUR_UI::toggle_translations ()
 {
 	using namespace Glib;
-        
+
 	RefPtr<Action> act = ActionManager::get_action (X_("Main"), X_("EnableTranslation"));
 	if (act) {
 		RefPtr<ToggleAction> ract = RefPtr<ToggleAction>::cast_dynamic (act);
 		if (ract) {
-                        
+
 			string i18n_killer = ARDOUR::translation_kill_path();
-                        
+
 			bool already_enabled = !ARDOUR::translations_are_disabled ();
-                        
+
 			if (ract->get_active ()) {
 /* we don't care about errors */
 				int fd = ::open (i18n_killer.c_str(), O_RDONLY|O_CREAT, 0644);
@@ -3735,7 +3740,7 @@ ARDOUR_UI::toggle_translations ()
 /* we don't care about errors */
 				unlink (i18n_killer.c_str());
 			}
-                        
+
 			if (already_enabled != ract->get_active()) {
 				MessageDialog win (already_enabled ? _("Translations disabled") : _("Translations enabled"),
 				                   false,
@@ -3748,7 +3753,7 @@ ARDOUR_UI::toggle_translations ()
 			}
 		}
 	}
-}        
+}
 
 /** Add a window proxy to our list, so that its state will be saved.
  *  This call also causes the window to be created and opened if its

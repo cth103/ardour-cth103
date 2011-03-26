@@ -761,7 +761,11 @@ TimeAxisViewItem::set_frame_color()
         frame->set_fill_color (f);
 
         if (!_recregion) {
-                f = ARDOUR_UI::config()->canvasvar_TimeAxisFrame.get();
+                if (_selected) {
+                        f = ARDOUR_UI::config()->canvasvar_SelectedTimeAxisFrame.get();
+                } else {
+                        f = ARDOUR_UI::config()->canvasvar_TimeAxisFrame.get();
+                }
                 
                 if (!rect_visible) {
                         f = UINT_RGBA_CHANGE_A (f, 64);
