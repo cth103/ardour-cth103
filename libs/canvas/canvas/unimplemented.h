@@ -98,51 +98,6 @@ public:
 	CanvasSysEx (MidiRegionView &, Group *, std::string, double, double, double) : Item ((Group *) 0) {}
 };
 
-class LineSet : public Item {
-public:
-	void compute_bounding_box () const { _bounding_box_dirty = false; }
-	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
-	XMLNode* get_state () const {
-		return new XMLNode ("LineSet");
-	}
-	void set_state (XMLNode const *) {}
-	
-	enum Orientation {
-		Vertical,
-		Horizontal
-	};
-
-	LineSet (Group* p, Orientation) : Item (p) {}
-
-	double& property_x1 () {
-		return _foo_double;
-	}
-	double& property_x2 () {
-		return _foo_double;
-	}
-	double& property_y1 () {
-		return _foo_double;
-	}
-	double& property_y2 () {
-		return _foo_double;
-	}
-
-	void move_line(double coord, double dest) {}
-	void change_line_width(double coord, double width) {}
-	void change_line_color(double coord, uint32_t color) {}
-	void add_line(double coord, double width, uint32_t color) {}
-	void remove_line(double coord) {}
-	void remove_lines(double c1, double c2) {}
-	void remove_until(double coord) {}
-	void remove_from(double coord) {}
-	void clear() {}
-	void request_lines(double c1, double c2) {}
-	sigc::signal<void, LineSet&, double, double> signal_request_lines;
-
-private:
-	double _foo_double;
-};
-	
 }
 
 #endif

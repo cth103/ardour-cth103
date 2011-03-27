@@ -35,6 +35,8 @@
 #include "ardour/smf_source.h"
 #include "ardour/session.h"
 
+#include "canvas/line_set.h"
+
 #include "ardour_ui.h"
 #include "global_signals.h"
 #include "gui_thread.h"
@@ -71,12 +73,7 @@ MidiStreamView::MidiStreamView (MidiTimeAxisView& tv)
 
 	/* put the note lines in the timeaxisview's group, so it
 	   can be put below ghost regions from MIDI underlays*/
-	_note_lines = new ArdourCanvas::LineSet (_canvas_group, ArdourCanvas::LineSet::Horizontal);
-
-	_note_lines->property_x1() = 0;
-	_note_lines->property_y1() = 0;
-	_note_lines->property_x2() = DBL_MAX;
-	_note_lines->property_y2() = 0;
+	_note_lines = new ArdourCanvas::LineSet (_canvas_group);
 
 	_note_lines->Event.connect (sigc::bind (
 			sigc::mem_fun(_trackview.editor(), &PublicEditor::canvas_stream_view_event),
@@ -301,7 +298,7 @@ void
 MidiStreamView::update_contents_height ()
 {
 	StreamView::update_contents_height();
-	_note_lines->property_y2() = child_height ();
+	_note_lines->set_height (child_height ());
 
         apply_note_range (lowest_note(), highest_note(), true);
 }
@@ -326,7 +323,7 @@ MidiStreamView::draw_note_lines()
 	for (int i = lowest_note(); i <= highest_note(); ++i) {
 		y = floor(note_to_y(i));
 
-		_note_lines->add_line(prev_y, 1.0, ARDOUR_UI::config()->canvasvar_PianoRollBlackOutline.get());
+		_note_lines->add (prev_y, 1.0, ARDOUR_UI::config()->canvasvar_PianoRollBlackOutline.get());
 
 		switch (i % 12) {
 		case 1:
@@ -342,9 +339,9 @@ MidiStreamView::draw_note_lines()
 		}
 
 		if (i == highest_note()) {
-			_note_lines->add_line(y, prev_y - y, color);
+			_note_lines->add (y, prev_y - y, color);
 		} else {
-			_note_lines->add_line(y + 1.0, prev_y - y - 1.0, color);
+			_note_lines->add (y + 1.0, prev_y - y - 1.0, color);
 		}
 
 		prev_y = y;
