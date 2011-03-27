@@ -118,18 +118,16 @@ AudioGhostRegion::set_frames_per_pixel (double fpp)
 void
 AudioGhostRegion::set_height ()
 {
-	gdouble ht;
 	vector<WaveView*>::iterator i;
 	uint32_t n;
 
 	GhostRegion::set_height();
 
-	ht = ((trackview.current_height()) / (double) waves.size());
+	double const ht = ((trackview.current_height()) / (double) waves.size());
 
 	for (n = 0, i = waves.begin(); i != waves.end(); ++i, ++n) {
-		gdouble yoff = n * ht;
-		(*i)->property_height() = ht;
-		(*i)->property_y() = yoff;
+		(*i)->set_height (ht);
+		(*i)->set_y_position (n * ht);
 	}
 }
 
@@ -147,8 +145,8 @@ AudioGhostRegion::set_colors ()
 	}
 
 	for (uint32_t n=0; n < waves.size(); ++n) {
-		waves[n]->set_wave_color (ARDOUR_UI::config()->canvasvar_GhostTrackWave.get());
-		waves[n]->property_fill_color() = fill_color;
+		waves[n]->set_outline_color (ARDOUR_UI::config()->canvasvar_GhostTrackWave.get());
+		waves[n]->set_fill_color (fill_color);
 		waves[n]->property_clip_color() = ARDOUR_UI::config()->canvasvar_GhostTrackWaveClip.get();
 		waves[n]->property_zero_color() = ARDOUR_UI::config()->canvasvar_GhostTrackZeroLine.get();
 	}

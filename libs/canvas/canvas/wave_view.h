@@ -1,6 +1,8 @@
 #include <boost/shared_ptr.hpp>
 #include "ardour/types.h"
 #include "canvas/item.h"
+#include "canvas/fill.h"
+#include "canvas/outline.h"
 
 namespace ARDOUR {
 	class AudioRegion;
@@ -16,7 +18,7 @@ extern void gnome_canvas_waveview_cache_destroy (GnomeCanvasWaveViewCache *);
 	
 namespace ArdourCanvas {
 
-class WaveView : public Item
+class WaveView : virtual public Item, public Outline, public Fill
 {
 public:
 	WaveView (Group *, boost::shared_ptr<ARDOUR::AudioRegion>);
@@ -28,7 +30,7 @@ public:
 	void set_state (XMLNode const *);
 
 	void set_frames_per_pixel (double);
-	void set_wave_color (uint32_t);
+	void set_height (Distance);
 
 #ifdef CANVAS_COMPATIBILITY	
 	static GnomeCanvasWaveViewCache* create_cache () {
@@ -62,9 +64,6 @@ public:
 	void*& property_gain_function () {
 		return _foo_void;
 	}
-	double& property_x () {
-		return _foo_double;
-	}
 	bool& property_rectified () {
 		return _foo_bool;
 	}
@@ -74,12 +73,6 @@ public:
 	ARDOUR::framepos_t& property_region_start () {
 		return _foo_framepos;
 	}
-	double& property_y () {
-		return _foo_double;
-	}
-	double& property_height () {
-		return _foo_double;
-	}
 	double& property_amplitude_above_axis () {
 		return _foo_double;
 	}
@@ -87,9 +80,6 @@ public:
 		return _foo_uint;
 	}
 	uint32_t& property_zero_color () {
-		return _foo_uint;
-	}
-	uint32_t& property_fill_color () {
 		return _foo_uint;
 	}
 
@@ -101,6 +91,9 @@ private:
 	double _foo_double;
 	ARDOUR::framepos_t _foo_framepos;
 #endif
+
+	Coord max_position (float) const;
+	Coord min_position (float) const;
 
 	boost::shared_ptr<ARDOUR::AudioRegion> _region;
 	double _frames_per_pixel;

@@ -9,10 +9,11 @@ using namespace ArdourCanvas;
 
 WaveView::WaveView (Group* parent, boost::shared_ptr<ARDOUR::AudioRegion> region)
 	: Item (parent)
+	, Outline (parent)
+	, Fill (parent)
 	, _region (region)
 	, _frames_per_pixel (0)
 	, _height (64)
-	, _wave_color (0x000000ff)
 {
 
 }
@@ -23,12 +24,22 @@ WaveView::set_frames_per_pixel (double frames_per_pixel)
 	_frames_per_pixel = frames_per_pixel;
 }
 
+Coord
+WaveView::max_position (float max) const
+{
+	return _height / 2 + (max + 1) * _height / 4;
+}
+
+Coord
+WaveView::min_position (float min) const
+{
+	return _height / 2 + (min - 1) * _height / 4;
+}
+
 void
 WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
 	assert (_frames_per_pixel != 0);
-
-	set_source_rgba (context, _wave_color);
 
 	framepos_t const start = floor (area.x0 * _frames_per_pixel);
 	framepos_t const end   = ceil  (area.x1 * _frames_per_pixel);
@@ -38,19 +49,32 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 	PeakData* buf = new PeakData[npeaks];
 	_region->read_peaks (buf, npeaks, start + _region->position(), end - start, 0, _frames_per_pixel);
 
+	setup_outline_context (context);
 	context->move_to (area.x0, area.y0);
 	for (uint32_t i = 0; i < npeaks; ++i) {
-		context->line_to (area.x0 + i, (buf[i].max + 1) * _height / 2);
+		context->line_to (area.x0 + i, max_position (buf[i].max));
 	}
-
 	context->stroke ();
+
+	context->move_to (area.x0, area.y0);
+	for (uint32_t i = 0; i < npeaks; ++i) {
+		context->line_to (area.x0 + i, min_position (buf[i].min));
+	}
+	context->stroke ();
+
+	set_source_rgba (context, _fill_color);
+	for (uint32_t i = 0; i < npeaks; ++i) {
+		context->move_to (area.x0 + i, max_position (buf[i].max) - 1);
+		context->line_to (area.x0 + i, min_position (buf[i].min) + 1);
+		context->stroke ();
+	}
 }
 
 void
 WaveView::compute_bounding_box () const
 {
 	/* XXX */
-	_bounding_box = Rect (0, 0, 256, _height);
+	_bounding_box = Rect (0, 0, _region->length() / _frames_per_pixel, _height);
 	_bounding_box_dirty = false;
 }
 	
@@ -68,15 +92,15 @@ WaveView::set_state (XMLNode const * node)
 }
 
 void
-WaveView::set_wave_color (uint32_t wave_color)
+WaveView::set_height (Distance height)
 {
 	begin_change ();
-	
-	_wave_color = wave_color;
 
+	_height = height;
+
+	_bounding_box_dirty = true;
 	end_change ();
 }
-
 
 #ifdef CANVAS_COMPATIBILITY
 void
