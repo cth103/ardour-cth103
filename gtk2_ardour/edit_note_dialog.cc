@@ -31,7 +31,7 @@ using namespace Gtk;
  *    @param n Note to edit.
  */
 
-EditNoteDialog::EditNoteDialog (MidiRegionView* rv, ArdourCanvas::CanvasNoteEvent* ev)
+EditNoteDialog::EditNoteDialog (MidiRegionView* rv, ArdourCanvas::NoteBase* ev)
 	: ArdourDialog (_("Note"))
 	, _region_view (rv)
 	, _event (ev)

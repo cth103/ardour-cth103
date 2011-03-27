@@ -24,8 +24,8 @@
 #include "pbd/signals.h"
 
 namespace ArdourCanvas {
-	class CanvasNoteEvent;
-	class CanvasNote;
+	class NoteBase;
+	class Note;
 	class CanvasHit;
 	class Diamond;
 	class WaveView;
@@ -74,15 +74,15 @@ class MidiGhostRegion : public GhostRegion {
 public:
 	class Event : public sigc::trackable {
 	public:
-		Event(ArdourCanvas::CanvasNoteEvent*);
+		Event(ArdourCanvas::NoteBase*);
 		virtual ~Event() {}
 
-		ArdourCanvas::CanvasNoteEvent* event;
+		ArdourCanvas::NoteBase* event;
 	};
 
 	class Note : public Event {
 	public:
-		Note(ArdourCanvas::CanvasNote*, ArdourCanvas::Group*);
+		Note(ArdourCanvas::Note*, ArdourCanvas::Group*);
 		~Note();
 
 		ArdourCanvas::Rectangle* rect;
@@ -100,14 +100,14 @@ public:
 
 	void update_range();
 
-	void add_note(ArdourCanvas::CanvasNote*);
-	void update_note (ArdourCanvas::CanvasNote *);
+	void add_note(ArdourCanvas::Note*);
+	void update_note (ArdourCanvas::Note *);
 
 	void clear_events();
 
 private:
 
-	MidiGhostRegion::Event* find_event (ArdourCanvas::CanvasNote *);
+	MidiGhostRegion::Event* find_event (ArdourCanvas::Note *);
 
 	typedef std::list<MidiGhostRegion::Event*> EventList;
 	EventList events;

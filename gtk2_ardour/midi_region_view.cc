@@ -219,7 +219,7 @@ MidiRegionView::init (Gdk::Color const & basic_color, bool wfd)
 {
         PublicEditor::DropDownKeys.connect (sigc::mem_fun (*this, &MidiRegionView::drop_down_keys));
 
-        CanvasNoteEvent::CanvasNoteEventDeleted.connect (note_delete_connection, MISSING_INVALIDATOR, 
+        NoteBase::NoteBaseDeleted.connect (note_delete_connection, MISSING_INVALIDATOR, 
                                                          ui_bind (&MidiRegionView::maybe_remove_deleted_note_from_selection, this, _1),
                                                          gui_context());
 
@@ -889,7 +889,7 @@ MidiRegionView::note_diff_add_note (const boost::shared_ptr<NoteType> note, bool
 }
 
 void
-MidiRegionView::note_diff_remove_note (ArdourCanvas::CanvasNoteEvent* ev)
+MidiRegionView::note_diff_remove_note (NoteBase* ev)
 {
 	if (_note_diff_command && ev->note()) {
 		_note_diff_command->remove(ev->note());
@@ -897,7 +897,7 @@ MidiRegionView::note_diff_remove_note (ArdourCanvas::CanvasNoteEvent* ev)
 }
 
 void
-MidiRegionView::note_diff_add_change (ArdourCanvas::CanvasNoteEvent* ev,
+MidiRegionView::note_diff_add_change (NoteBase* ev,
 				      MidiModel::NoteDiffCommand::Property property,
 				      uint8_t val)
 {
@@ -907,7 +907,7 @@ MidiRegionView::note_diff_add_change (ArdourCanvas::CanvasNoteEvent* ev,
 }
 
 void
-MidiRegionView::note_diff_add_change (ArdourCanvas::CanvasNoteEvent* ev,
+MidiRegionView::note_diff_add_change (NoteBase* ev,
 				      MidiModel::NoteDiffCommand::Property property,
 				      Evoral::MusicalTime val)
 {
@@ -956,7 +956,7 @@ MidiRegionView::abort_command()
 	clear_selection();
 }
 
-CanvasNoteEvent*
+NoteBase*
 MidiRegionView::find_canvas_note (boost::shared_ptr<NoteType> note)
 {
 	if (_optimization_iterator != _events.end()) {
@@ -983,7 +983,7 @@ MidiRegionView::get_events (Events& e, Evoral::Sequence<Evoral::MusicalTime>::No
         _model->get_notes (notes, op, val, chan_mask);
 
         for (MidiModel::Notes::iterator n = notes.begin(); n != notes.end(); ++n) {
-                CanvasNoteEvent* cne = find_canvas_note (*n);
+                NoteBase* cne = find_canvas_note (*n);
                 if (cne) {
                         e.push_back (cne);
                 }
@@ -1015,7 +1015,7 @@ MidiRegionView::redisplay_model()
 	for (MidiModel::Notes::iterator n = notes.begin(); n != notes.end(); ++n) {
 
 		boost::shared_ptr<NoteType> note (*n);
-		CanvasNoteEvent* cne;
+		NoteBase* cne;
 		bool visible;
 
 		if (note_in_region_range (note, visible)) {
@@ -1024,10 +1024,10 @@ MidiRegionView::redisplay_model()
 
 				cne->validate ();
 
-				CanvasNote* cn;
+				Note* cn;
 				CanvasHit* ch;
 
-				if ((cn = dynamic_cast<CanvasNote*>(cne)) != 0) {
+				if ((cn = dynamic_cast<Note*>(cne)) != 0) {
 					update_note (cn);
 				} else if ((ch = dynamic_cast<CanvasHit*>(cne)) != 0) {
 					update_hit (ch);
@@ -1253,7 +1253,7 @@ MidiRegionView::apply_note_range (uint8_t min, uint8_t max, bool force)
 	_current_range_max = max;
 
 	for (Events::const_iterator i = _events.begin(); i != _events.end(); ++i) {
-		CanvasNoteEvent* event = *i;
+		NoteBase* event = *i;
 		boost::shared_ptr<NoteType> note (event->note());
 
 		if (note->note() < _current_range_min ||
@@ -1263,7 +1263,7 @@ MidiRegionView::apply_note_range (uint8_t min, uint8_t max, bool force)
 			event->show();
 		}
 
-		if (CanvasNote* cnote = dynamic_cast<CanvasNote*>(event)) {
+		if (Note* cnote = dynamic_cast<Note*>(event)) {
 
 			const double y1 = midi_stream_view()->note_to_y(note->note());
 			const double y2 = y1 + floor(midi_stream_view()->note_height());
@@ -1283,7 +1283,7 @@ MidiRegionView::apply_note_range (uint8_t min, uint8_t max, bool force)
 GhostRegion*
 MidiRegionView::add_ghost (TimeAxisView& tv)
 {
-	CanvasNote* note;
+	Note* note;
 
 	double unit_position = _region->position () / frames_per_pixel;
 	MidiTimeAxisView* mtv = dynamic_cast<MidiTimeAxisView*>(&tv);
@@ -1299,7 +1299,7 @@ MidiRegionView::add_ghost (TimeAxisView& tv)
 	}
 
 	for (Events::iterator i = _events.begin(); i != _events.end(); ++i) {
-		if ((note = dynamic_cast<CanvasNote*>(*i)) != 0) {
+		if ((note = dynamic_cast<Note*>(*i)) != 0) {
 			ghost->add_note(note);
 		}
 	}
@@ -1320,7 +1320,7 @@ void
 MidiRegionView::begin_write()
 {
 	assert(!_active_notes);
-	_active_notes = new CanvasNote*[128];
+	_active_notes = new Note*[128];
 	for (unsigned i=0; i < 128; ++i) {
 		_active_notes[i] = 0;
 	}
@@ -1436,7 +1436,7 @@ MidiRegionView::note_in_region_range(const boost::shared_ptr<NoteType> note, boo
  *  @param update_ghost_regions true to update the note in any ghost regions that we have, otherwise false.
  */
 void
-MidiRegionView::update_note (CanvasNote* ev, bool update_ghost_regions)
+MidiRegionView::update_note (Note* ev, bool update_ghost_regions)
 {
 	boost::shared_ptr<NoteType> note = ev->note();
 
@@ -1466,7 +1466,7 @@ MidiRegionView::update_note (CanvasNote* ev, bool update_ghost_regions)
 			// If this note is already active there's a stuck note,
 			// finish the old note rectangle
 			if (_active_notes[note->note()]) {
-				CanvasNote* const old_rect = _active_notes[note->note()];
+				Note* const old_rect = _active_notes[note->note()];
 				boost::shared_ptr<NoteType> old_note = old_rect->note();
 				old_rect->property_x2() = x;
 				old_rect->property_outline_what() = (guint32) 0xF;
@@ -1514,7 +1514,7 @@ MidiRegionView::update_hit (CanvasHit* ev)
 void
 MidiRegionView::add_note(const boost::shared_ptr<NoteType> note, bool visible)
 {
-	CanvasNoteEvent* event = 0;
+	NoteBase* event = 0;
 
 	assert(note->time() >= 0);
 	assert(midi_view()->note_mode() == Sustained || midi_view()->note_mode() == Percussive);
@@ -1523,7 +1523,7 @@ MidiRegionView::add_note(const boost::shared_ptr<NoteType> note, bool visible)
 
 	if (midi_view()->note_mode() == Sustained) {
 
-		CanvasNote* ev_rect = new CanvasNote (*this, _note_group, note);
+		Note* ev_rect = new Note (*this, _note_group, note);
 
 		update_note (ev_rect);
 
@@ -1774,7 +1774,7 @@ MidiRegionView::next_patch (CanvasPatchChange& patch)
 }
 
 void
-MidiRegionView::maybe_remove_deleted_note_from_selection (CanvasNoteEvent* cne)
+MidiRegionView::maybe_remove_deleted_note_from_selection (NoteBase* cne)
 {
         if (_selection.empty()) {
                 return;
@@ -1816,7 +1816,7 @@ MidiRegionView::delete_note (boost::shared_ptr<NoteType> n)
 }
 
 void
-MidiRegionView::clear_selection_except(ArdourCanvas::CanvasNoteEvent* ev)
+MidiRegionView::clear_selection_except(NoteBase* ev)
 {
 	for (Selection::iterator i = _selection.begin(); i != _selection.end(); ++i) {
 		if ((*i)->selected() && (*i) != ev) {
@@ -1829,7 +1829,7 @@ MidiRegionView::clear_selection_except(ArdourCanvas::CanvasNoteEvent* ev)
 }
 
 void
-MidiRegionView::unique_select(ArdourCanvas::CanvasNoteEvent* ev)
+MidiRegionView::unique_select(NoteBase* ev)
 {
 	for (Selection::iterator i = _selection.begin(); i != _selection.end(); ) {
 		if ((*i) != ev) {
@@ -1905,7 +1905,7 @@ MidiRegionView::select_matching_notes (uint8_t notenum, uint16_t channel_mask, b
 	for (MidiModel::Notes::iterator n = notes.begin(); n != notes.end(); ++n) {
 
 		boost::shared_ptr<NoteType> note (*n);
-		CanvasNoteEvent* cne;
+		NoteBase* cne;
 		bool select = false;
 
 		if (((1 << note->channel()) & channel_mask) != 0) {
@@ -1942,7 +1942,7 @@ MidiRegionView::toggle_matching_notes (uint8_t notenum, uint16_t channel_mask)
 	for (MidiModel::Notes::iterator n = notes.begin(); n != notes.end(); ++n) {
 
 		boost::shared_ptr<NoteType> note (*n);
-		CanvasNoteEvent* cne;
+		NoteBase* cne;
 
 		if (note->note() == notenum && (((0x0001 << note->channel()) & channel_mask) != 0)) {
 			if ((cne = find_canvas_note (note)) != 0) {
@@ -1957,7 +1957,7 @@ MidiRegionView::toggle_matching_notes (uint8_t notenum, uint16_t channel_mask)
 }
 
 void
-MidiRegionView::note_selected(ArdourCanvas::CanvasNoteEvent* ev, bool add, bool extend)
+MidiRegionView::note_selected(NoteBase* ev, bool add, bool extend)
 {
 	if (!add) {
 		clear_selection_except(ev);
@@ -2015,7 +2015,7 @@ MidiRegionView::note_selected(ArdourCanvas::CanvasNoteEvent* ev, bool add, bool 
 }
 
 void
-MidiRegionView::note_deselected(ArdourCanvas::CanvasNoteEvent* ev)
+MidiRegionView::note_deselected(NoteBase* ev)
 {
 	remove_from_selection (ev);
 }
@@ -2066,7 +2066,7 @@ MidiRegionView::update_drag_selection(double x1, double x2, double y1, double y2
 }
 
 void
-MidiRegionView::remove_from_selection (CanvasNoteEvent* ev)
+MidiRegionView::remove_from_selection (NoteBase* ev)
 {
 	Selection::iterator i = _selection.find (ev);
 
@@ -2084,7 +2084,7 @@ MidiRegionView::remove_from_selection (CanvasNoteEvent* ev)
 }
 
 void
-MidiRegionView::add_to_selection (CanvasNoteEvent* ev)
+MidiRegionView::add_to_selection (NoteBase* ev)
 {
 	bool add_mrv_selection = false;
 
@@ -2147,7 +2147,7 @@ MidiRegionView::move_selection(double dx, double dy, double cumulative_dy)
 }
 
 void
-MidiRegionView::note_dropped(CanvasNoteEvent *, frameoffset_t dt, int8_t dnote)
+MidiRegionView::note_dropped(NoteBase *, frameoffset_t dt, int8_t dnote)
 {
 	assert (!_selection.empty());
 
@@ -2275,9 +2275,9 @@ MidiRegionView::begin_resizing (bool /*at_front*/)
 	_resize_data.clear();
 
 	for (Selection::iterator i = _selection.begin(); i != _selection.end(); ++i) {
-		CanvasNote *note = dynamic_cast<CanvasNote *> (*i);
+		Note *note = dynamic_cast<Note *> (*i);
 
-		// only insert CanvasNotes into the map
+		// only insert Notes into the map
 		if (note) {
 			NoteResizeData *resize_data = new NoteResizeData();
 			resize_data->canvas_note = note;
@@ -2296,12 +2296,12 @@ MidiRegionView::begin_resizing (bool /*at_front*/)
 
 			// calculate color based on note velocity
 			resize_rect->set_fill_color (UINT_INTERPOLATE(
-                                CanvasNoteEvent::meter_style_fill_color(note->note()->velocity(), note->selected()),
+                                NoteBase::meter_style_fill_color(note->note()->velocity(), note->selected()),
 					fill_color,
 				0.85));
 
 			resize_rect->set_outline_color (
-				CanvasNoteEvent::calculate_outline (ARDOUR_UI::config()->canvasvar_MidiNoteSelected.get())
+				NoteBase::calculate_outline (ARDOUR_UI::config()->canvasvar_MidiNoteSelected.get())
 					);
 
 			resize_data->resize_rect = resize_rect;
@@ -2320,13 +2320,13 @@ MidiRegionView::begin_resizing (bool /*at_front*/)
  * as the \a primary note.
  */
 void
-MidiRegionView::update_resizing (ArdourCanvas::CanvasNoteEvent* primary, bool at_front, double delta_x, bool relative)
+MidiRegionView::update_resizing (NoteBase* primary, bool at_front, double delta_x, bool relative)
 {
         bool cursor_set = false;
 
 	for (std::vector<NoteResizeData *>::iterator i = _resize_data.begin(); i != _resize_data.end(); ++i) {
 		Rectangle* resize_rect = (*i)->resize_rect;
-		CanvasNote* canvas_note = (*i)->canvas_note;
+		Note* canvas_note = (*i)->canvas_note;
 		double current_x;
 
 		if (at_front) {
@@ -2389,12 +2389,12 @@ MidiRegionView::update_resizing (ArdourCanvas::CanvasNoteEvent* primary, bool at
  *  Parameters the same as for \a update_resizing().
  */
 void
-MidiRegionView::commit_resizing (ArdourCanvas::CanvasNoteEvent* primary, bool at_front, double delta_x, bool relative)
+MidiRegionView::commit_resizing (NoteBase* primary, bool at_front, double delta_x, bool relative)
 {
 	start_note_diff_command (_("resize notes"));
 
 	for (std::vector<NoteResizeData *>::iterator i = _resize_data.begin(); i != _resize_data.end(); ++i) {
-		CanvasNote*  canvas_note = (*i)->canvas_note;
+		Note*  canvas_note = (*i)->canvas_note;
 		Rectangle*  resize_rect = (*i)->resize_rect;
 		double current_x;
 
@@ -2445,13 +2445,13 @@ MidiRegionView::commit_resizing (ArdourCanvas::CanvasNoteEvent* primary, bool at
 }
 
 void
-MidiRegionView::change_note_channel (CanvasNoteEvent* event, int8_t channel)
+MidiRegionView::change_note_channel (NoteBase* event, int8_t channel)
 {
 	note_diff_add_change (event, MidiModel::NoteDiffCommand::Channel, (uint8_t) channel);
 }
 
 void
-MidiRegionView::change_note_velocity(CanvasNoteEvent* event, int8_t velocity, bool relative)
+MidiRegionView::change_note_velocity(NoteBase* event, int8_t velocity, bool relative)
 {
 	uint8_t new_velocity;
 
@@ -2468,7 +2468,7 @@ MidiRegionView::change_note_velocity(CanvasNoteEvent* event, int8_t velocity, bo
 }
 
 void
-MidiRegionView::change_note_note (CanvasNoteEvent* event, int8_t note, bool relative)
+MidiRegionView::change_note_note (NoteBase* event, int8_t note, bool relative)
 {
 	uint8_t new_note;
 
@@ -2483,7 +2483,7 @@ MidiRegionView::change_note_note (CanvasNoteEvent* event, int8_t note, bool rela
 }
 
 void
-MidiRegionView::trim_note (CanvasNoteEvent* event, Evoral::MusicalTime front_delta, Evoral::MusicalTime end_delta)
+MidiRegionView::trim_note (NoteBase* event, Evoral::MusicalTime front_delta, Evoral::MusicalTime end_delta)
 {
 	bool change_start = false;
 	bool change_length = false;
@@ -2555,7 +2555,7 @@ MidiRegionView::trim_note (CanvasNoteEvent* event, Evoral::MusicalTime front_del
 }
 
 void
-MidiRegionView::change_note_time (CanvasNoteEvent* event, Evoral::MusicalTime delta, bool relative)
+MidiRegionView::change_note_time (NoteBase* event, Evoral::MusicalTime delta, bool relative)
 {
 	Evoral::MusicalTime new_time;
 
@@ -2577,7 +2577,7 @@ MidiRegionView::change_note_time (CanvasNoteEvent* event, Evoral::MusicalTime de
 }
 
 void
-MidiRegionView::change_note_length (CanvasNoteEvent* event, Evoral::MusicalTime t)
+MidiRegionView::change_note_length (NoteBase* event, Evoral::MusicalTime t)
 {
 	note_diff_add_change (event, MidiModel::NoteDiffCommand::Length, t);
 }
@@ -2790,7 +2790,7 @@ MidiRegionView::change_channel(uint8_t channel)
 
 
 void
-MidiRegionView::note_entered(ArdourCanvas::CanvasNoteEvent* ev)
+MidiRegionView::note_entered(NoteBase* ev)
 {
 	Editor* editor = dynamic_cast<Editor*>(&trackview.editor());
         
@@ -2804,7 +2804,7 @@ MidiRegionView::note_entered(ArdourCanvas::CanvasNoteEvent* ev)
 }
 
 void
-MidiRegionView::note_left (ArdourCanvas::CanvasNoteEvent*)
+MidiRegionView::note_left (NoteBase*)
 {
 	Editor* editor = dynamic_cast<Editor*>(&trackview.editor());
 
@@ -3029,7 +3029,7 @@ MidiRegionView::paste (framepos_t pos, float times, const MidiCutBuffer& mcb)
 }
 
 struct EventNoteTimeEarlyFirstComparator {
-    bool operator() (CanvasNoteEvent* a, CanvasNoteEvent* b) {
+    bool operator() (NoteBase* a, NoteBase* b) {
 	    return a->note()->time() < b->note()->time();
     }
 };

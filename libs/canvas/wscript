@@ -28,6 +28,7 @@ canvas_sources = [
 	'item_factory.cc',
 	'line.cc',
 	'lookup_table.cc',
+	'note_base.cc',
 	'outline.cc',
 	'pixbuf.cc',
 	'poly_item.cc',
@@ -36,7 +37,6 @@ canvas_sources = [
 	'rectangle.cc',
 	'root_group.cc',
 	'types.cc',
-	'unimplemented.cc',
 	'utils.cc',
 	'wave_view.cc'
 ]

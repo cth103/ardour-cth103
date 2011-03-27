@@ -209,7 +209,7 @@ MidiTimeAxisView::MidiTimeAxisView (PublicEditor& ed, Session* sess,
 	if ((prop = xml_node->property ("color-mode")) != 0) {
 		_color_mode = ColorMode (string_2_enum(prop->value(), _color_mode));
 		if (_color_mode == ChannelColors) {
-			_channel_selector.set_channel_colors (ArdourCanvas::CanvasNoteEvent::midi_channel_colors);
+			_channel_selector.set_channel_colors (ArdourCanvas::NoteBase::midi_channel_colors);
 		}
 	}
 
@@ -785,7 +785,7 @@ MidiTimeAxisView::set_color_mode(ColorMode mode)
 {
 	if (_color_mode != mode) {
 		if (mode == ChannelColors) {
-			_channel_selector.set_channel_colors (ArdourCanvas::CanvasNoteEvent::midi_channel_colors);
+			_channel_selector.set_channel_colors (ArdourCanvas::NoteBase::midi_channel_colors);
 		} else {
 			_channel_selector.set_default_channel_color();
 		}

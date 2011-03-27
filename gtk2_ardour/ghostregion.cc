@@ -187,14 +187,14 @@ MidiGhostRegion::~MidiGhostRegion()
 	clear_events ();
 }
 
-MidiGhostRegion::Event::Event(ArdourCanvas::CanvasNoteEvent* e)
+MidiGhostRegion::Event::Event(ArdourCanvas::NoteBase* e)
 	: event(e)
 {
 	
 }
 
-MidiGhostRegion::Note::Note(ArdourCanvas::CanvasNote* n, ArdourCanvas::Group* g)
-	: Event(n)
+MidiGhostRegion::Note::Note(ArdourCanvas::Note* n, ArdourCanvas::Group* g)
+	: Event (n)
 {
 	rect = new ArdourCanvas::Rectangle (g, ArdourCanvas::Rect (n->x1(), n->y1(), n->x2(), n->y2()));
 }
@@ -274,7 +274,7 @@ MidiGhostRegion::update_range ()
 }
 
 void
-MidiGhostRegion::add_note(ArdourCanvas::CanvasNote* n)
+MidiGhostRegion::add_note(ArdourCanvas::Note* n)
 {
 	Note* note = new Note(n, group);
 	events.push_back(note);
@@ -308,10 +308,10 @@ MidiGhostRegion::clear_events()
 }
 
 /** Update the x positions of our representation of a parent's note.
- *  @param parent The CanvasNote from the parent MidiRegionView.
+ *  @param parent The Note from the parent MidiRegionView.
  */
 void
-MidiGhostRegion::update_note (ArdourCanvas::CanvasNote* parent)
+MidiGhostRegion::update_note (ArdourCanvas::Note* parent)
 {
 	Event* ev = find_event (parent);
 	if (!ev) {
@@ -333,7 +333,7 @@ MidiGhostRegion::update_note (ArdourCanvas::CanvasNote* parent)
  */
 
 MidiGhostRegion::Event *
-MidiGhostRegion::find_event (ArdourCanvas::CanvasNote* parent)
+MidiGhostRegion::find_event (ArdourCanvas::Note* parent)
 {
 	/* we are using _optimization_iterator to speed up the common case where a caller
 	   is going through our notes in order.

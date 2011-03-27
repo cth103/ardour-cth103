@@ -25,19 +25,19 @@
 class MidiRegionView;
 
 namespace ArdourCanvas {
-	class CanvasNoteEvent;
+	class NoteBase;
 }
 
 class EditNoteDialog : public ArdourDialog
 {
 public:
-	EditNoteDialog (MidiRegionView *, ArdourCanvas::CanvasNoteEvent *);
+	EditNoteDialog (MidiRegionView *, ArdourCanvas::NoteBase *);
 
 	int run ();
 
 private:
 	MidiRegionView* _region_view;
-	ArdourCanvas::CanvasNoteEvent* _event;
+	ArdourCanvas::NoteBase* _event;
 	Gtk::SpinButton _channel;
 	Gtk::SpinButton _pitch;
 	Gtk::SpinButton _velocity;

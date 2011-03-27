@@ -38,7 +38,7 @@ namespace PBD {
 }
 
 namespace ArdourCanvas {
-	class CanvasNoteEvent;
+	class NoteBase;
 	class CanvasPatchChange;
 }
 
@@ -442,7 +442,7 @@ class NoteDrag : public Drag
 	int8_t total_dy () const;
 	
 	MidiRegionView* _region;
-	ArdourCanvas::CanvasNoteEvent* _primary;
+	ArdourCanvas::NoteBase* _primary;
 	double _cumulative_dx;
 	double _cumulative_dy;
 	bool _was_selected;
