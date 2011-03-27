@@ -42,7 +42,6 @@ Item::init ()
 {
 	_visible = true;
 	_bounding_box_dirty = true;
-	_watch = false;
 	
 	if (_parent) {
 		_parent->add (this);

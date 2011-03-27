@@ -107,14 +107,6 @@ public:
 		return _canvas;
 	}
 
-	void set_watch () {
-		_watch = true;
-	}
-
-	bool watch () const {
-		return _watch;
-	}
-
 	void set_data (std::string const &, void *);
 	void* get_data (std::string const &) const;
 	
@@ -149,8 +141,6 @@ protected:
 	mutable boost::optional<Rect> _bounding_box;
 	/** true if _bounding_box might be out of date, false if its definitely not */
 	mutable bool _bounding_box_dirty;
-
-	bool _watch;
 
 	/* XXX: this is a bit grubby */
 	std::map<std::string, void *> _data;
