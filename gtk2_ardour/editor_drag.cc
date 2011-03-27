@@ -54,6 +54,7 @@
 #include "editor_cursors.h"
 #include "mouse_cursors.h"
 #include "note_base.h"
+#include "patch_change.h"
 
 using namespace std;
 using namespace ARDOUR;
@@ -4117,8 +4118,8 @@ DraggingView::DraggingView (RegionView* v, RegionDrag* parent)
 	initial_end = v->region()->position () + v->region()->length ();
 }
 
-PatchChangeDrag::PatchChangeDrag (Editor* e, CanvasPatchChange* i, MidiRegionView* r)
-	: Drag (e, i)
+PatchChangeDrag::PatchChangeDrag (Editor* e, PatchChange* i, MidiRegionView* r)
+	: Drag (e, i->canvas_item ())
 	, _region_view (r)
 	, _patch_change (i)
 	, _cumulative_dx (0)

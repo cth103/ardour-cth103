@@ -24,6 +24,7 @@ canvas_sources = [
 	'debug.cc',
 	'item.cc',
 	'fill.cc',
+        'flag.cc',
 	'group.cc',
 	'item_factory.cc',
 	'line.cc',

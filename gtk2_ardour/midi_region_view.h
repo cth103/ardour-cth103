@@ -52,10 +52,6 @@ namespace MIDI {
 	};
 };
 
-namespace ArdourCanvas {
-	class CanvasPatchChange;
-}
-
 class NoteBase;
 class Note;
 class Hit;
@@ -66,6 +62,7 @@ class AutomationRegionView;
 class MidiCutBuffer;
 class MidiListEditor;
 class EditNoteDialog;
+class PatchChange;
 
 class MidiRegionView : public RegionView
 {
@@ -139,21 +136,21 @@ class MidiRegionView : public RegionView
 	 * @param old_patch the canvas patch change which is to be altered
 	 * @param new_patch new patch
 	 */
-	void change_patch_change (ArdourCanvas::CanvasPatchChange& old_patch, const MIDI::Name::PatchPrimaryKey& new_patch);
+	void change_patch_change (PatchChange& old_patch, const MIDI::Name::PatchPrimaryKey& new_patch);
 	void change_patch_change (ARDOUR::MidiModel::PatchChangePtr, Evoral::PatchChange<Evoral::MusicalTime> const &);
 
 	void add_patch_change (framecnt_t, Evoral::PatchChange<Evoral::MusicalTime> const &);
-	void move_patch_change (ArdourCanvas::CanvasPatchChange &, Evoral::MusicalTime);
-	void delete_patch_change (ArdourCanvas::CanvasPatchChange *);
-	void edit_patch_change (ArdourCanvas::CanvasPatchChange *);
+	void move_patch_change (PatchChange &, Evoral::MusicalTime);
+	void delete_patch_change (PatchChange *);
+	void edit_patch_change (PatchChange *);
 
 	/** Alter a given patch to be its predecessor in the MIDNAM file.
 	 */
-	void previous_patch (ArdourCanvas::CanvasPatchChange &);
+	void previous_patch (PatchChange &);
 
 	/** Alters a given patch to be its successor in the MIDNAM file.
 	 */
-	void next_patch (ArdourCanvas::CanvasPatchChange &);
+	void next_patch (PatchChange &);
 
 	/** Displays all patch change events in the region as flags on the canvas.
 	 */
@@ -182,8 +179,8 @@ class MidiRegionView : public RegionView
 
 	void   note_entered(NoteBase* ev);
 	void   note_left(NoteBase* ev);
-	void   patch_entered (ArdourCanvas::CanvasPatchChange *);
-	void   patch_left (ArdourCanvas::CanvasPatchChange *);
+	void   patch_entered (PatchChange *);
+	void   patch_left (PatchChange *);
 	void   note_mouse_position (float xfraction, float yfraction, bool can_set_cursor=true);
 	void   unique_select(NoteBase* ev);
 	void   note_selected(NoteBase* ev, bool add, bool extend=false);
@@ -352,7 +349,7 @@ class MidiRegionView : public RegionView
 	std::string _custom_device_mode;
 
 	typedef std::list<NoteBase*> Events;
-	typedef std::vector< boost::shared_ptr<ArdourCanvas::CanvasPatchChange> > PatchChanges;
+	typedef std::vector< boost::shared_ptr<PatchChange> > PatchChanges;
 	typedef std::vector< boost::shared_ptr<ArdourCanvas::CanvasSysEx> > SysExes;
 
 	boost::shared_ptr<ARDOUR::MidiModel> _model;

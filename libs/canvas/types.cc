@@ -88,6 +88,12 @@ ArdourCanvas::operator- (Duple const & a, Duple const & b)
 	return Duple (a.x - b.x, a.y - b.y);
 }
 
+Duple
+ArdourCanvas::operator/ (Duple const & a, double b)
+{
+	return Duple (a.x / b, a.y / b);
+}
+
 ostream &
 ArdourCanvas::operator<< (ostream & s, Duple const & r)
 {

@@ -70,6 +70,7 @@
 #include "ardour_ui.h"
 #include "note.h"
 #include "hit.h"
+#include "patch_change.h"
 
 #include "i18n.h"
 
@@ -1623,8 +1624,8 @@ MidiRegionView::add_canvas_patch_change (MidiModel::PatchChangePtr patch, const 
 
 	double const height = midi_stream_view()->contents_height();
 
-	boost::shared_ptr<CanvasPatchChange> patch_change = boost::shared_ptr<CanvasPatchChange>(
-		new CanvasPatchChange (*this, _note_group,
+	boost::shared_ptr<PatchChange> patch_change = boost::shared_ptr<PatchChange>(
+		new PatchChange (*this, _note_group,
 					displaytext,
 					height,
 					x, 1.0,
@@ -1664,7 +1665,7 @@ MidiRegionView::get_patch_key_at (Evoral::MusicalTime time, uint8_t channel, MID
 
 
 void
-MidiRegionView::change_patch_change (CanvasPatchChange& pc, const MIDI::Name::PatchPrimaryKey& new_patch)
+MidiRegionView::change_patch_change (PatchChange& pc, const MIDI::Name::PatchPrimaryKey& new_patch)
 {
 	MidiModel::PatchChangeDiffCommand* c = _model->new_patch_change_diff_command (_("alter patch change"));
 	
@@ -1732,7 +1733,7 @@ MidiRegionView::add_patch_change (framecnt_t t, Evoral::PatchChange<Evoral::Musi
 }
 
 void
-MidiRegionView::move_patch_change (CanvasPatchChange& pc, Evoral::MusicalTime t)
+MidiRegionView::move_patch_change (PatchChange& pc, Evoral::MusicalTime t)
 {
 	MidiModel::PatchChangeDiffCommand* c = _model->new_patch_change_diff_command (_("move patch change"));
 	c->change_time (pc.patch (), t);
@@ -1743,7 +1744,7 @@ MidiRegionView::move_patch_change (CanvasPatchChange& pc, Evoral::MusicalTime t)
 }
 
 void
-MidiRegionView::delete_patch_change (CanvasPatchChange* pc)
+MidiRegionView::delete_patch_change (PatchChange* pc)
 {
 	MidiModel::PatchChangeDiffCommand* c = _model->new_patch_change_diff_command (_("delete patch change"));
 	c->remove (pc->patch ());
@@ -1754,7 +1755,7 @@ MidiRegionView::delete_patch_change (CanvasPatchChange* pc)
 }
 			   
 void
-MidiRegionView::previous_patch (CanvasPatchChange& patch)
+MidiRegionView::previous_patch (PatchChange& patch)
 {
         if (patch.patch()->program() < 127) {
                 MIDI::Name::PatchPrimaryKey key;
@@ -1765,7 +1766,7 @@ MidiRegionView::previous_patch (CanvasPatchChange& patch)
 }
 
 void
-MidiRegionView::next_patch (CanvasPatchChange& patch)
+MidiRegionView::next_patch (PatchChange& patch)
 {
         if (patch.patch()->program() > 0) {
                 MIDI::Name::PatchPrimaryKey key;
@@ -2823,7 +2824,7 @@ MidiRegionView::note_left (NoteBase*)
 }
 
 void
-MidiRegionView::patch_entered (ArdourCanvas::CanvasPatchChange* ev)
+MidiRegionView::patch_entered (PatchChange* ev)
 {
 	ostringstream s;
 	s << ((int) ev->patch()->program() + 1) << ":" << (ev->patch()->bank() + 1);
@@ -2831,7 +2832,7 @@ MidiRegionView::patch_entered (ArdourCanvas::CanvasPatchChange* ev)
 }
 
 void
-MidiRegionView::patch_left (ArdourCanvas::CanvasPatchChange *)
+MidiRegionView::patch_left (PatchChange *)
 {
 	trackview.editor().hide_verbose_canvas_cursor ();
 }
@@ -3415,7 +3416,7 @@ MidiRegionView::get_channel_for_add () const
 }
 
 void
-MidiRegionView::edit_patch_change (ArdourCanvas::CanvasPatchChange* pc)
+MidiRegionView::edit_patch_change (PatchChange* pc)
 {
 	PatchChangeDialog d (&_time_converter, trackview.session(), *pc->patch (), Gtk::Stock::APPLY);
 	if (d.run () != Gtk::RESPONSE_ACCEPT) {

@@ -14,35 +14,6 @@ class MidiRegionView;
 
 namespace ArdourCanvas {
 
-class CanvasPatchChange: public Item {
-public:
-	CanvasPatchChange (
-		MidiRegionView& region,
-		Group*          parent,
-		const string&   text,
-		double          height,
-		double          x,
-		double          y,
-		string&         model_name,
-		string&         custom_device_mode,
-		ARDOUR::MidiModel::PatchChangePtr patch
-		) : Item (parent)
-	{}
-
-	void compute_bounding_box () const { _bounding_box_dirty = false; }
-	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const {}
-	XMLNode* get_state () const {
-		return new XMLNode ("CanvasPatchChange");
-	}
-	void set_state (XMLNode const *) {}
-	
-	ARDOUR::MidiModel::PatchChangePtr patch () const {
-		return ARDOUR::MidiModel::PatchChangePtr ();
-	}
-	
-	void set_height (double) {}
-};
-
 class CanvasSysEx : public Item {
 public:
 	void compute_bounding_box () const { _bounding_box_dirty = false; }

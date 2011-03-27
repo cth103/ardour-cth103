@@ -37,10 +37,7 @@ namespace PBD {
 	class StatefulDiffCommand;
 }
 
-namespace ArdourCanvas {
-	class CanvasPatchChange;
-}
-
+class PatchChange;
 class Editor;
 class EditorCursor;
 class TimeAxisView;
@@ -453,7 +450,7 @@ class NoteDrag : public Drag
 class PatchChangeDrag : public Drag
 {
 public:
-	PatchChangeDrag (Editor *, ArdourCanvas::CanvasPatchChange *, MidiRegionView *);
+	PatchChangeDrag (Editor *, PatchChange *, MidiRegionView *);
 
 	void motion (GdkEvent *, bool);
 	void finished (GdkEvent *, bool);
@@ -467,7 +464,7 @@ public:
 
 private:
 	MidiRegionView* _region_view;
-	ArdourCanvas::CanvasPatchChange* _patch_change;
+	PatchChange* _patch_change;
 	double _cumulative_dx;
 };
 

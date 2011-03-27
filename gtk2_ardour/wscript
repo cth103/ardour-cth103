@@ -150,6 +150,7 @@ gtk2_ardour_sources = [
         'opts.cc',
         'panner2d.cc',
         'panner_ui.cc',
+        'patch_change.cc',
         'piano_roll_header.cc',
         'playlist_selector.cc',
         'plugin_eq_gui.cc',
