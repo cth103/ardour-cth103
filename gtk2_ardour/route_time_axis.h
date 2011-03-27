@@ -79,7 +79,7 @@ public:
 	void show_selection (TimeSelection&);
 	void set_button_names ();
 
-	void set_samples_per_unit (double);
+	void set_frames_per_pixel (double);
  	void set_height (uint32_t h);
 	void show_timestretch (framepos_t start, framepos_t end);
 	void hide_timestretch ();
@@ -210,7 +210,7 @@ protected:
 
 	virtual void label_view ();
 
-	void reset_samples_per_unit ();
+	void reset_frames_per_pixel ();
 	void horizontal_position_changed ();
 
 	void set_color (Gdk::Color const &);

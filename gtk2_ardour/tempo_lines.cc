@@ -72,7 +72,7 @@ TempoLines::hide ()
 }
 
 void
-TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit)
+TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_pixel)
 {
 	ARDOUR::TempoMap::BBTPointList::iterator i;
 	ArdourCanvas::Line *line = 0;
@@ -104,12 +104,12 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 		return;
 	}
 
-	xpos = rint(((framepos_t)(*i).frame) / (double)frames_per_unit);
+	xpos = rint(((framepos_t)(*i).frame) / (double)frames_per_pixel);
 	const double needed_right = xpos;
 
 	i = points.begin();
 
-	xpos = rint(((framepos_t)(*i).frame) / (double)frames_per_unit);
+	xpos = rint(((framepos_t)(*i).frame) / (double)frames_per_pixel);
 	const double needed_left = xpos;
 
 	Lines::iterator left = _lines.lower_bound(xpos); // first line >= xpos
@@ -147,7 +147,7 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_unit
 				}
 			}
 
-			xpos = rint(((framepos_t)(*i).frame) / (double)frames_per_unit);
+			xpos = rint(((framepos_t)(*i).frame) / (double)frames_per_pixel);
 
 			if (inserted_last_time && !_lines.empty()) {
 				li = _lines.lower_bound(xpos); // first line >= xpos

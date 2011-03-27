@@ -147,19 +147,17 @@ ImageFrameTimeAxisGroup::set_item_heights(gdouble h)
  * @param spu the new samples per canvas unit value
  */
 int
-ImageFrameTimeAxisGroup::set_item_samples_per_units(gdouble spp)
+ImageFrameTimeAxisGroup::set_item_frames_per_pixel (double fpp)
 {
-	if(spp < 1.0)
-	{
-		return(-1);
+	if (fpp < 1.0) {
+		return -1;
 	}
 
-	for(ImageFrameViewList::const_iterator citer = imageframe_views.begin(); citer != imageframe_views.end(); ++citer)
-	{
-		(*citer)->set_samples_per_unit(spp);
+	for (ImageFrameViewList::const_iterator citer = imageframe_views.begin(); citer != imageframe_views.end(); ++citer) {
+		(*citer)->set_frames_per_pixel (fpp);
 	}
 
-	return(0);
+	return 0;
 }
 
 /**

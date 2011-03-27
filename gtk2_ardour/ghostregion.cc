@@ -108,10 +108,10 @@ AudioGhostRegion::AudioGhostRegion(TimeAxisView& tv, TimeAxisView& source_tv, do
 }
 
 void
-AudioGhostRegion::set_samples_per_unit (double spu)
+AudioGhostRegion::set_frames_per_pixel (double fpp)
 {
 	for (vector<WaveView*>::iterator i = waves.begin(); i != waves.end(); ++i) {
-		(*i)->property_samples_per_unit() = spu;
+		(*i)->set_frames_per_pixel (fpp);
 	}
 }
 
@@ -207,8 +207,9 @@ MidiGhostRegion::Note::~Note()
 }
 
 void
-MidiGhostRegion::set_samples_per_unit (double /*spu*/)
+MidiGhostRegion::set_frames_per_pixel (double)
 {
+	
 }
 
 /** @return MidiStreamView that we are providing a ghost for */

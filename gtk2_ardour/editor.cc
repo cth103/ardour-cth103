@@ -383,7 +383,7 @@ Editor::Editor ()
 	_internal_editing = false;
 	current_canvas_cursor = 0;
 
-	frames_per_unit = 2048; /* too early to use reset_zoom () */
+	frames_per_pixel = 2048; /* too early to use reset_zoom () */
 
 	_scroll_callbacks = 0;
 
@@ -1025,7 +1025,7 @@ Editor::map_position_change (framepos_t frame)
 void
 Editor::center_screen (framepos_t frame)
 {
-	double page = _visible_canvas_width * frames_per_unit;
+	double const page = _visible_canvas_width * frames_per_pixel;
 
 	/* if we're off the page, then scroll.
 	 */
@@ -1197,7 +1197,7 @@ Editor::set_session (Session *t)
 	_session->tempo_map().apply_with_metrics (*this, &Editor::draw_metric_marks);
 
 	for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {
-		(static_cast<TimeAxisView*>(*i))->set_samples_per_unit (frames_per_unit);
+		(static_cast<TimeAxisView*>(*i))->set_frames_per_pixel (frames_per_pixel);
 	}
 
 	super_rapid_screen_update_connection = ARDOUR_UI::instance()->SuperRapidScreenUpdate.connect (
@@ -2187,7 +2187,7 @@ Editor::set_state (const XMLNode& node, int /*version*/)
 	if ((prop = node.property ("zoom"))) {
 		reset_zoom (PBD::atof (prop->value()));
 	} else {
-		reset_zoom (frames_per_unit);
+		reset_zoom (frames_per_pixel);
 	}
 
 	if ((prop = node.property ("snap-to"))) {
@@ -2378,7 +2378,7 @@ Editor::get_state ()
 
 	snprintf (buf, sizeof(buf), "%d", (int) zoom_focus);
 	node->add_property ("zoom-focus", buf);
-	snprintf (buf, sizeof(buf), "%f", frames_per_unit);
+	snprintf (buf, sizeof(buf), "%f", frames_per_pixel);
 	node->add_property ("zoom", buf);
 	snprintf (buf, sizeof(buf), "%d", (int) _snap_type);
 	node->add_property ("snap-to", buf);
@@ -4194,7 +4194,7 @@ Editor::current_visual_state (bool with_tracks)
 {
 	VisualState* vs = new VisualState;
 	vs->y_position = vertical_adjustment.get_value();
-	vs->frames_per_unit = frames_per_unit;
+	vs->frames_per_pixel = frames_per_pixel;
 	vs->leftmost_frame = leftmost_frame;
 	vs->zoom_focus = zoom_focus;
 
@@ -4255,7 +4255,7 @@ Editor::use_visual_state (VisualState& vs)
 	vertical_adjustment.set_value (vs.y_position);
 
 	set_zoom_focus (vs.zoom_focus);
-	reposition_and_zoom (vs.leftmost_frame, vs.frames_per_unit);
+	reposition_and_zoom (vs.leftmost_frame, vs.frames_per_pixel);
 
 	for (list<TAVState>::iterator i = vs.track_states.begin(); i != vs.track_states.end(); ++i) {
 		TrackViewList::iterator t;
@@ -4278,13 +4278,13 @@ Editor::use_visual_state (VisualState& vs)
 }
 
 void
-Editor::set_frames_per_unit (double fpu)
+Editor::set_frames_per_pixel (double fpu)
 {
 	/* this is the core function that controls the zoom level of the canvas. it is called
 	   whenever one or more calls are made to reset_zoom(). it executes in an idle handler.
 	*/
 
-	if (fpu == frames_per_unit) {
+	if (fpu == frames_per_pixel) {
 		return;
 	}
 
@@ -4304,7 +4304,7 @@ Editor::set_frames_per_unit (double fpu)
 	if (tempo_lines)
 		tempo_lines->tempo_map_changed();
 
-	frames_per_unit = fpu;
+	frames_per_pixel = fpu;
 	post_zoom ();
 }
 
@@ -4313,9 +4313,9 @@ Editor::post_zoom ()
 {
 	// convert fpu to frame count
 
-	framepos_t frames = (framepos_t) floor (frames_per_unit * _visible_canvas_width);
+	framepos_t frames = (framepos_t) floor (frames_per_pixel * _visible_canvas_width);
 
-	if (frames_per_unit != zoom_range_clock.current_duration()) {
+	if (frames_per_pixel != zoom_range_clock.current_duration()) {
 		zoom_range_clock.set (frames);
 	}
 
@@ -4353,7 +4353,7 @@ void
 Editor::queue_visual_change (double fpu)
 {
 	pending_visual_change.add (VisualChange::ZoomLevel);
-	pending_visual_change.frames_per_unit = fpu;
+	pending_visual_change.frames_per_pixel = fpu;
 
 	ensure_visual_change_idle_handler ();
 }
@@ -4390,7 +4390,7 @@ Editor::idle_visual_changer ()
 	double const last_time_origin = horizontal_position ();
 
 	if (p & VisualChange::TimeOrigin) {
-		/* This is a bit of a hack, but set_frames_per_unit
+		/* This is a bit of a hack, but set_frames_per_pixel
 		   below will (if called) end up with the
 		   CrossfadeViews looking at Editor::leftmost_frame,
 		   and if we're changing origin and zoom in the same
@@ -4402,7 +4402,7 @@ Editor::idle_visual_changer ()
 	}
 
 	if (p & VisualChange::ZoomLevel) {
-		set_frames_per_unit (pending_visual_change.frames_per_unit);
+		set_frames_per_pixel (pending_visual_change.frames_per_pixel);
 
 		compute_fixed_ruler_scale ();
 		compute_current_bbt_points(pending_visual_change.time_origin, pending_visual_change.time_origin + current_page_frames());
@@ -4410,7 +4410,7 @@ Editor::idle_visual_changer ()
 		update_tempo_based_rulers ();
 	}
 	if (p & VisualChange::TimeOrigin) {
-		set_horizontal_position (pending_visual_change.time_origin / frames_per_unit);
+		set_horizontal_position (pending_visual_change.time_origin / frames_per_pixel);
 	}
 	if (p & VisualChange::YOrigin) {
 		vertical_adjustment.set_value (pending_visual_change.y_origin);
@@ -5343,11 +5343,11 @@ Editor::super_rapid_screen_update ()
 			*/
 #if 0                        
 			// FIXME DO SOMETHING THAT WORKS HERE - this is 2.X code                         
-			double target = ((double)frame - (double)current_page_frames()/2.0) / frames_per_unit;
+			double target = ((double)frame - (double)current_page_frames()/2.0) / frames_per_pixel;
 			if (target <= 0.0) {
 				target = 0.0;
 			}
-			if (fabs(target - current) < current_page_frames() / frames_per_unit) {
+			if (fabs(target - current) < current_page_frames() / frames_per_pixel) {
 				target = (target * 0.15) + (current * 0.85);
 			} else {
 				/* relax */

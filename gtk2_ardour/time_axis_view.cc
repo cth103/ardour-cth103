@@ -664,10 +664,10 @@ TimeAxisView::build_display_menu ()
 }
 
 void
-TimeAxisView::set_samples_per_unit (double spu)
+TimeAxisView::set_frames_per_pixel (double fpp)
 {
 	for (Children::iterator i = children.begin(); i != children.end(); ++i) {
-		(*i)->set_samples_per_unit (spu);
+		(*i)->set_frames_per_pixel (fpp);
 	}
 
 	AnalysisFeatureList::const_iterator i;

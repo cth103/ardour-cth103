@@ -28,7 +28,6 @@ public:
 	void set_state (XMLNode const *);
 
 	void set_frames_per_pixel (double);
-
 	void set_wave_color (uint32_t);
 
 #ifdef CANVAS_COMPATIBILITY	
@@ -79,9 +78,6 @@ public:
 		return _foo_double;
 	}
 	double& property_height () {
-		return _foo_double;
-	}
-	double& property_samples_per_unit () {
 		return _foo_double;
 	}
 	double& property_amplitude_above_axis () {

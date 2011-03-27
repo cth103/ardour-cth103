@@ -63,9 +63,9 @@ MarkerTimeAxisView::MarkerTimeAxisView(MarkerTimeAxis& tv)
 
 	canvas_rect->signal_event().connect (sigc::bind (sigc::mem_fun (_trackview.editor, &PublicEditor::canvas_marker_time_axis_view_event), canvas_rect, &_trackview));
 
-	_samples_per_unit = _trackview.editor.get_current_zoom() ;
+	_frames_per_pixel = _trackview.editor.get_current_zoom();
 
-	_trackview.editor.ZoomChanged.connect (sigc::mem_fun(*this, &MarkerTimeAxisView::reset_samples_per_unit));
+	_trackview.editor.ZoomChanged.connect (sigc::mem_fun(*this, &MarkerTimeAxisView::reset_frames_per_pixel));
 	MarkerView::CatchDeletion.connect (*this, ui_bind (&MarkerTimeAxisView::remove_marker_view, this, _1), gui_context());
 }
 
@@ -138,25 +138,25 @@ MarkerTimeAxisView::set_position(gdouble x, gdouble y)
 }
 
 /**
- * Sets the current samples per unit.
+ * Sets the current frames per pixel.
  * this method tells each item upon the time axis of the change
  *
- * @param spu the new samples per canvas unit value
+ * @param fpp the new frames per pixel value
  */
 int
-MarkerTimeAxisView::set_samples_per_unit(gdouble spp)
+MarkerTimeAxisView::set_frames_per_pixel (double fpp)
 {
-	if(spp < 1.0) {
-		return -1 ;
+	if (spp < 1.0) {
+		return -1;
 	}
 
-	_samples_per_unit = spp ;
+	_frames_per_pixel = fpp;
 
-	for(MarkerViewList::iterator i = marker_view_list.begin(); i != marker_view_list.end(); ++i)
-	{
-		(*i)->set_samples_per_unit(spp) ;
+	for (MarkerViewList::iterator i = marker_view_list.begin(); i != marker_view_list.end(); ++i) {
+		(*i)->set_frames_per_pixel (spp);
 	}
-	return(0) ;
+	
+	return 0;
 }
 
 /**
@@ -382,7 +382,7 @@ MarkerTimeAxisView::get_selected_time_axis_item()
  *
  */
 void
-MarkerTimeAxisView::reset_samples_per_unit ()
+MarkerTimeAxisView::reset_frames_per_pixel ()
 {
-	set_samples_per_unit(_trackview.editor.get_current_zoom()) ;
+	set_frames_per_pixel (_trackview.editor.get_current_zoom());
 }

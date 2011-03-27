@@ -218,7 +218,7 @@ RouteTimeAxisView::RouteTimeAxisView (PublicEditor& ed, Session* sess, boost::sh
 
 	}
 
-	_editor.ZoomChanged.connect (sigc::mem_fun(*this, &RouteTimeAxisView::reset_samples_per_unit));
+	_editor.ZoomChanged.connect (sigc::mem_fun(*this, &RouteTimeAxisView::reset_frames_per_pixel));
 	_editor.HorizontalPositionChanged.connect (sigc::mem_fun (*this, &RouteTimeAxisView::horizontal_position_changed));
 	ColorsChanged.connect (sigc::mem_fun (*this, &RouteTimeAxisView::color_handler));
 
@@ -943,9 +943,9 @@ RouteTimeAxisView::set_color (Gdk::Color const & c)
 }
 
 void
-RouteTimeAxisView::reset_samples_per_unit ()
+RouteTimeAxisView::reset_frames_per_pixel ()
 {
-	set_samples_per_unit (_editor.get_current_zoom());
+	set_frames_per_pixel (_editor.get_current_zoom());
 }
 
 void
@@ -957,7 +957,7 @@ RouteTimeAxisView::horizontal_position_changed ()
 }
 
 void
-RouteTimeAxisView::set_samples_per_unit (double spu)
+RouteTimeAxisView::set_frames_per_pixel (double fpp)
 {
 	double speed = 1.0;
 
@@ -966,10 +966,10 @@ RouteTimeAxisView::set_samples_per_unit (double spu)
 	}
 
 	if (_view) {
-		_view->set_samples_per_unit (spu * speed);
+		_view->set_frames_per_pixel (fpp * speed);
 	}
 
-	TimeAxisView::set_samples_per_unit (spu * speed);
+	TimeAxisView::set_frames_per_pixel (fpp * speed);
 }
 
 void
@@ -1187,7 +1187,7 @@ RouteTimeAxisView::clear_playlist ()
 void
 RouteTimeAxisView::speed_changed ()
 {
-	Gtkmm2ext::UI::instance()->call_slot (invalidator (*this), boost::bind (&RouteTimeAxisView::reset_samples_per_unit, this));
+	Gtkmm2ext::UI::instance()->call_slot (invalidator (*this), boost::bind (&RouteTimeAxisView::reset_frames_per_pixel, this));
 }
 
 void

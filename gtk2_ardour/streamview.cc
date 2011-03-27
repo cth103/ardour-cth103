@@ -55,7 +55,7 @@ StreamView::StreamView (RouteTimeAxisView& tv, ArdourCanvas::Group* background_g
 	, owns_canvas_group (canvas_group == 0)
 	, _background_group (background_group ? background_group : new ArdourCanvas::Group (_trackview.canvas_background()))
 	, _canvas_group (canvas_group ? canvas_group : new ArdourCanvas::Group (_trackview.canvas_display()))
-	, _samples_per_unit (_trackview.editor().get_current_zoom ())
+	, _frames_per_pixel (_trackview.editor().get_current_zoom ())
 	, rec_updating(false)
 	, rec_active(false)
 	, region_color(_trackview.color())
@@ -144,25 +144,25 @@ StreamView::set_height (double h)
 }
 
 int
-StreamView::set_samples_per_unit (gdouble spp)
+StreamView::set_frames_per_pixel (double fpp)
 {
 	RegionViewList::iterator i;
 
-	if (spp < 1.0) {
+	if (fpp < 1.0) {
 		return -1;
 	}
 
-	_samples_per_unit = spp;
+	_frames_per_pixel = fpp;
 
 	for (i = region_views.begin(); i != region_views.end(); ++i) {
-		(*i)->set_samples_per_unit (spp);
+		(*i)->set_frames_per_pixel (fpp);
 	}
 
 	for (vector<RecBoxInfo>::iterator xi = rec_rects.begin(); xi != rec_rects.end(); ++xi) {
 		RecBoxInfo &recbox = (*xi);
 
-		gdouble xstart = _trackview.editor().frame_to_pixel (recbox.start);
-		gdouble xend = _trackview.editor().frame_to_pixel (recbox.start + recbox.length);
+		ArdourCanvas::Coord const xstart = _trackview.editor().frame_to_pixel (recbox.start);
+		ArdourCanvas::Coord const xend = _trackview.editor().frame_to_pixel (recbox.start + recbox.length);
 
 		recbox.rectangle->set_x0 (xstart);
 		recbox.rectangle->set_x1 (xend);

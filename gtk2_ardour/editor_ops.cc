@@ -1243,7 +1243,7 @@ Editor::cursor_align (bool playhead_to_edit)
 void
 Editor::scroll_backward (float pages)
 {
-	framepos_t const one_page = (framepos_t) rint (_visible_canvas_width * frames_per_unit);
+	framepos_t const one_page = (framepos_t) rint (_visible_canvas_width * frames_per_pixel);
 	framepos_t const cnt = (framepos_t) floor (pages * one_page);
 
 	framepos_t frame;
@@ -1259,7 +1259,7 @@ Editor::scroll_backward (float pages)
 void
 Editor::scroll_forward (float pages)
 {
-	framepos_t const one_page = (framepos_t) rint (_visible_canvas_width * frames_per_unit);
+	framepos_t const one_page = (framepos_t) rint (_visible_canvas_width * frames_per_pixel);
 	framepos_t const cnt = (framepos_t) floor (pages * one_page);
 
 	framepos_t frame;
@@ -1329,23 +1329,23 @@ Editor::temporal_zoom_step (bool coarser)
 {
 	ENSURE_GUI_THREAD (*this, &Editor::temporal_zoom_step, coarser)
 
-	double nfpu;
-
-	nfpu = frames_per_unit;
+	double nfpp = frames_per_pixel;
 
 	if (coarser) {
-		nfpu *= 1.61803399;
+		nfpp *= 1.61803399;
 	} else {
-		nfpu = max(1.0,(nfpu/1.61803399));
+		nfpp = max (1.0, (nfpp / 1.61803399));
 	}
 
-	temporal_zoom (nfpu);
+	temporal_zoom (nfpp);
 }
 
 void
-Editor::temporal_zoom (gdouble fpu)
+Editor::temporal_zoom (double fpp)
 {
-	if (!_session) return;
+	if (!_session) {
+		return;
+	}
 
 	framepos_t current_page = current_page_frames();
 	framepos_t current_leftmost = leftmost_frame;
@@ -1356,18 +1356,17 @@ Editor::temporal_zoom (gdouble fpu)
 	framepos_t leftmost_after_zoom = 0;
 	framepos_t where;
 	bool in_track_canvas;
-	double nfpu;
 	double l;
 
-	/* XXX this limit is also in ::set_frames_per_unit() */
+	/* XXX this limit is also in ::set_frames_per_pixel() */
 
-	if (frames_per_unit <= 1.0 && fpu <= frames_per_unit) {
+	if (frames_per_pixel <= 1.0 && fpp <= frames_per_pixel) {
 		return;
 	}
 
-	nfpu = fpu;
+	double nfpp = fpp;
 
-	new_page_size = (framepos_t) floor (_visible_canvas_width * nfpu);
+	new_page_size = (framepos_t) floor (_visible_canvas_width * nfpp);
 	half_page_size = new_page_size / 2;
 
 	switch (zoom_focus) {
@@ -1460,7 +1459,7 @@ Editor::temporal_zoom (gdouble fpu)
 
 	// leftmost_after_zoom = min (leftmost_after_zoom, _session->current_end_frame());
 
-	reposition_and_zoom (leftmost_after_zoom, nfpu);
+	reposition_and_zoom (leftmost_after_zoom, nfpp);
 }
 
 void
@@ -1505,7 +1504,7 @@ Editor::temporal_zoom_region (bool both_axes)
 	}
 
 	framepos_t range = end - start;
-	double new_fpu = (double)range / (double) _visible_canvas_width;
+	double new_fpu = (double) range / (double) _visible_canvas_width;
 	framepos_t extra_samples = (framepos_t) floor (one_centimeter_in_pixels * new_fpu);
 
 	if (start > extra_samples) {
@@ -1522,7 +1521,7 @@ Editor::temporal_zoom_region (bool both_axes)
 
 	if (both_axes) {
 		/* save visual state with track states included, and prevent
-		   set_frames_per_unit() from doing it again.
+		   set_frames_per_pixel() from doing it again.
 		*/
 		undo_visual_stack.push_back (current_visual_state(true));
 		no_save_visual = true;
@@ -1628,7 +1627,7 @@ Editor::temporal_zoom_to_frame (bool coarser, framepos_t frame)
 	double range_before = frame - leftmost_frame;
 	double new_fpu;
 
-	new_fpu = frames_per_unit;
+	new_fpu = frames_per_pixel;
 
 	if (coarser) {
 		new_fpu *= 1.61803399;
@@ -1638,7 +1637,7 @@ Editor::temporal_zoom_to_frame (bool coarser, framepos_t frame)
 		range_before /= 1.61803399;
 	}
 
-	if (new_fpu == frames_per_unit)  {
+	if (new_fpu == frames_per_pixel)  {
 		return;
 	}
 
@@ -4079,14 +4078,14 @@ Editor::reset_point_selection ()
 void
 Editor::center_playhead ()
 {
-	float const page = _visible_canvas_width * frames_per_unit;
+	float const page = _visible_canvas_width * frames_per_pixel;
 	center_screen_internal (playhead_cursor->current_frame, page);
 }
 
 void
 Editor::center_edit_point ()
 {
-	float const page = _visible_canvas_width * frames_per_unit;
+	float const page = _visible_canvas_width * frames_per_pixel;
 	center_screen_internal (get_preferred_edit_position(), page);
 }
 

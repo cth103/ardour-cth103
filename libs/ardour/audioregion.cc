@@ -323,13 +323,13 @@ AudioRegion::set_envelope_active (bool yn)
 }
 
 ARDOUR::framecnt_t
-AudioRegion::read_peaks (PeakData *buf, framecnt_t npeaks, framecnt_t offset, framecnt_t cnt, uint32_t chan_n, double samples_per_unit) const
+AudioRegion::read_peaks (PeakData *buf, framecnt_t npeaks, framecnt_t offset, framecnt_t cnt, uint32_t chan_n, double frames_per_pixel) const
 {
 	if (chan_n >= _sources.size()) {
 		return 0;
 	}
 
-	if (audio_source(chan_n)->read_peaks (buf, npeaks, offset, cnt, samples_per_unit)) {
+	if (audio_source(chan_n)->read_peaks (buf, npeaks, offset, cnt, frames_per_pixel)) {
 		return 0;
 	} else {
 		if (_scale_amplitude != 1.0f) {
@@ -1587,9 +1587,9 @@ AudioRegion::find_silence (Sample threshold, framecnt_t min_length, InterThreadI
 
 extern "C" {
 
-	int region_read_peaks_from_c (void *arg, uint32_t npeaks, uint32_t start, uint32_t cnt, intptr_t data, uint32_t n_chan, double samples_per_unit)
+	int region_read_peaks_from_c (void *arg, uint32_t npeaks, uint32_t start, uint32_t cnt, intptr_t data, uint32_t n_chan, double frames_per_pixel)
 {
-	return ((AudioRegion *) arg)->read_peaks ((PeakData *) data, (framecnt_t) npeaks, (framepos_t) start, (framecnt_t) cnt, n_chan,samples_per_unit);
+	return ((AudioRegion *) arg)->read_peaks ((PeakData *) data, (framecnt_t) npeaks, (framepos_t) start, (framecnt_t) cnt, n_chan,frames_per_pixel);
 }
 
 uint32_t region_length_from_c (void *arg)

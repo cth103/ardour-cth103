@@ -73,12 +73,12 @@ AudioStreamView::~AudioStreamView ()
 }
 
 int
-AudioStreamView::set_samples_per_unit (gdouble spp)
+AudioStreamView::set_frames_per_pixel (double fpp)
 {
-	StreamView::set_samples_per_unit(spp);
+	StreamView::set_frames_per_pixel (fpp);
 
 	for (CrossfadeViewList::iterator xi = crossfade_views.begin(); xi != crossfade_views.end(); ++xi) {
-		xi->second->set_samples_per_unit (spp);
+		xi->second->set_frames_per_pixel (fpp);
 	}
 
 	return 0;
@@ -120,19 +120,19 @@ AudioStreamView::create_region_view (boost::shared_ptr<Region> r, bool wait_for_
 	case Normal:
 		if (recording) {
 			region_view = new AudioRegionView (_canvas_group, _trackview, region,
-					_samples_per_unit, region_color, recording, TimeAxisViewItem::Visibility(
+					_frames_per_pixel, region_color, recording, TimeAxisViewItem::Visibility(
 							TimeAxisViewItem::ShowFrame | 
 							TimeAxisViewItem::HideFrameRight |
 							TimeAxisViewItem::HideFrameLeft |
 							TimeAxisViewItem::HideFrameTB));
 		} else {
 			region_view = new AudioRegionView (_canvas_group, _trackview, region,
-					_samples_per_unit, region_color);
+					_frames_per_pixel, region_color);
 		}
 		break;
 	case Destructive:
 		region_view = new TapeAudioRegionView (_canvas_group, _trackview, region,
-				_samples_per_unit, region_color);
+				_frames_per_pixel, region_color);
 		break;
 	default:
 		fatal << string_compose (_("programming error: %1"), "illegal track mode in ::add_region_view_internal") << endmsg;
@@ -329,7 +329,7 @@ AudioStreamView::add_crossfade (boost::weak_ptr<Crossfade> wc)
 	CrossfadeView *cv = new CrossfadeView (_trackview.canvas_display (),
 					       _trackview,
 					        crossfade,
-					       _samples_per_unit,
+					       _frames_per_pixel,
 					       region_color,
 					       *lview, *rview);
 	cv->set_valid (true);

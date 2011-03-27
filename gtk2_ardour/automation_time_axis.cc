@@ -494,16 +494,16 @@ AutomationTimeAxisView::set_height (uint32_t h)
 }
 
 void
-AutomationTimeAxisView::set_samples_per_unit (double spu)
+AutomationTimeAxisView::set_frames_per_pixel (double fpp)
 {
-	TimeAxisView::set_samples_per_unit (spu);
+	TimeAxisView::set_frames_per_pixel (fpp);
 
 	if (_line) {
 		_line->reset ();
 	}
 
 	if (_view) {
-		_view->set_samples_per_unit (spu);
+		_view->set_frames_per_pixel (fpp);
 	}
 }
 

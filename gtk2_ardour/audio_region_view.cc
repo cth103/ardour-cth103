@@ -581,7 +581,7 @@ AudioRegionView::reset_fade_in_shape_width (framecnt_t width)
 	Points* points;
 
 	/* round here to prevent little visual glitches with sub-pixel placement */
-	double const pwidth = rint (width / samples_per_unit);
+	double const pwidth = rint (width / frames_per_pixel);
 	uint32_t npoints = std::min (gdk_screen_width(), (int) pwidth);
 	double h;
 
@@ -668,7 +668,7 @@ AudioRegionView::reset_fade_out_shape_width (framecnt_t width)
 	Points* points;
 
 	/* round here to prevent little visual glitches with sub-pixel placement */
-	double const pwidth = rint (width / samples_per_unit);
+	double const pwidth = rint (width / frames_per_pixel);
 	uint32_t npoints = std::min (gdk_screen_width(), (int) pwidth);
 	double h;
 
@@ -678,7 +678,7 @@ AudioRegionView::reset_fade_out_shape_width (framecnt_t width)
 		return;
 	}
 
-	double const handle_center = (_region->length() - width) / samples_per_unit;
+	double const handle_center = (_region->length() - width) / frames_per_pixel;
 
 	/* Put the fade out handle so that its right side is at the end-of-fade line;
 	 * it's `one out' for precise pixel accuracy.
@@ -740,13 +740,13 @@ AudioRegionView::reset_fade_out_shape_width (framecnt_t width)
 }
 
 void
-AudioRegionView::set_samples_per_unit (gdouble spu)
+AudioRegionView::set_frames_per_pixel (double fpp)
 {
-	RegionView::set_samples_per_unit (spu);
+	RegionView::set_frames_per_pixel (fpp);
 
 	if (_flags & WaveformVisible) {
-		for (uint32_t n=0; n < waves.size(); ++n) {
-			waves[n]->property_samples_per_unit() = spu;
+		for (uint32_t n = 0; n < waves.size(); ++n) {
+			waves[n]->set_frames_per_pixel (fpp);
 		}
 	}
 
@@ -805,7 +805,7 @@ AudioRegionView::set_waveform_visible (bool yn)
 				/* make sure the zoom level is correct, since we don't update
 				   this when waveforms are hidden.
 				*/
-				waves[n]->property_samples_per_unit() = samples_per_unit;
+				waves[n]->set_frames_per_pixel (frames_per_pixel);
 				waves[n]->show();
 			}
 			_flags |= WaveformVisible;
@@ -938,7 +938,7 @@ AudioRegionView::create_one_wave (uint32_t which, bool /*direct*/)
 	wave->property_x() =  0.0;
 	wave->property_y() =  yoff;
 	wave->property_height() =  (double) ht;
-	wave->property_samples_per_unit() =  samples_per_unit;
+	wave->set_frames_per_pixel (frames_per_pixel);
 	wave->property_amplitude_above_axis() =  _amplitude_above_axis;
 
 	if (_recregion) {
@@ -1161,7 +1161,7 @@ AudioRegionView::add_ghost (TimeAxisView& tv)
 	RouteTimeAxisView* rtv = dynamic_cast<RouteTimeAxisView*>(&trackview);
 	assert(rtv);
 
-	double unit_position = _region->position () / samples_per_unit;
+	double unit_position = _region->position () / frames_per_pixel;
 	AudioGhostRegion* ghost = new AudioGhostRegion (tv, trackview, unit_position);
 	uint32_t nchans;
 
@@ -1183,7 +1183,7 @@ AudioRegionView::add_ghost (TimeAxisView& tv)
 		wave->property_sourcefile_length_function() = (gpointer) sourcefile_length_from_c;
 		wave->property_peak_function() =  (gpointer) region_read_peaks_from_c;
 		wave->property_x() =  0.0;
-		wave->property_samples_per_unit() =  samples_per_unit;
+		wave->set_frames_per_pixel (frames_per_pixel);
 		wave->property_amplitude_above_axis() =  _amplitude_above_axis;
 
 		wave->property_region_start() = _region->start();
@@ -1192,7 +1192,7 @@ AudioRegionView::add_ghost (TimeAxisView& tv)
 	}
 
 	ghost->set_height ();
-	ghost->set_duration (_region->length() / samples_per_unit);
+	ghost->set_duration (_region->length() / frames_per_pixel);
 	ghost->set_colors();
 	ghosts.push_back (ghost);
 
@@ -1243,7 +1243,7 @@ void
 AudioRegionView::set_waveview_data_src()
 {
 	AudioGhostRegion* agr;
-	double unit_length= _region->length() / samples_per_unit;
+	double unit_length= _region->length() / frames_per_pixel;
 
 	for (uint32_t n = 0; n < waves.size(); ++n) {
 		// TODO: something else to let it know the channel

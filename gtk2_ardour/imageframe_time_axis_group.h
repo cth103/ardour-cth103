@@ -104,13 +104,7 @@ class ImageFrameTimeAxisGroup : public sigc::trackable
 		 */
 		int set_item_heights(gdouble) ;
 
-		/**
-		 * Sets the current samples per unit.
-		 * this method tells each item upon the time axis of the change
-		 *
-		 * @param spu the new samples per canvas unit value
-		 */
-		int set_item_samples_per_units(gdouble spu) ;
+		int set_item_frames_per_pixel (double);
 
 		/**
 		 * Sets the color of the items contained uopn this view helper
@@ -262,7 +256,7 @@ class ImageFrameTimeAxisGroup : public sigc::trackable
 		 * convenience method to re-get the samples per unit and tell items upon this view
 		 *
 		 */
-		void reset_samples_per_unit() ;
+		void reset_frames_per_pixel ();
 
 		/**
 		 * Callback used to remove this group during the gtk idle loop

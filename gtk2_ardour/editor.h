@@ -156,7 +156,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	framepos_t leftmost_position() const { return leftmost_frame; }
 
 	framecnt_t current_page_frames() const {
-		return (framecnt_t) floor (_visible_canvas_width * frames_per_unit);
+		return (framecnt_t) floor (_visible_canvas_width * frames_per_pixel);
 	}
 
 	double visible_canvas_height () const {
@@ -223,15 +223,15 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	/* undo related */
 
 	framepos_t unit_to_frame (double unit) const {
-		return (framepos_t) rint (unit * frames_per_unit);
+		return (framepos_t) rint (unit * frames_per_pixel);
 	}
 
 	double frame_to_unit (framepos_t frame) const {
-		return rint ((double) frame / (double) frames_per_unit);
+		return rint ((double) frame / (double) frames_per_pixel);
 	}
 
 	double frame_to_unit (double frame) const {
-		return rint (frame / frames_per_unit);
+		return rint (frame / frames_per_pixel);
 	}
 
 	/* NOTE: these functions assume that the "pixel" coordinate is
@@ -250,14 +250,14 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 		*/
 
 		if (pixel >= 0) {
-			return (framepos_t) rint (pixel * frames_per_unit);
+			return (framepos_t) rint (pixel * frames_per_pixel);
 		} else {
 			return 0;
 		}
 	}
 
 	gulong frame_to_pixel (framepos_t frame) const {
-		return (gulong) rint (frame / frames_per_unit);
+		return (gulong) rint (frame / frames_per_pixel);
 	}
 
 	void flush_canvas ();
@@ -301,7 +301,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void               set_zoom_focus (Editing::ZoomFocus);
 	Editing::ZoomFocus get_zoom_focus () const { return zoom_focus; }
-	double             get_current_zoom () const { return frames_per_unit; }
+	double             get_current_zoom () const { return frames_per_pixel; }
 
 	void temporal_zoom_step (bool coarser);
 	void tav_zoom_step (bool coarser);
@@ -470,7 +470,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	struct VisualState {
 	    double              y_position;
-	    double              frames_per_unit;
+	    double              frames_per_pixel;
 	    framepos_t         leftmost_frame;
 	    Editing::ZoomFocus  zoom_focus;
 	    std::list<TAVState> track_states;
@@ -492,10 +492,10 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	bool end_visual_state_op (uint32_t n);
 
 	framepos_t leftmost_frame;
-	double      frames_per_unit;
+	double      frames_per_pixel;
 	Editing::ZoomFocus zoom_focus;
 
-	void set_frames_per_unit (double);
+	void set_frames_per_pixel (double);
 	void post_zoom ();
 
 	Editing::MouseMode mouse_mode;
@@ -997,12 +997,12 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 		Type pending;
 		framepos_t time_origin;
-		double frames_per_unit;
+		double frames_per_pixel;
 		double y_origin;
 
 		int idle_handler_id;
 
-		VisualChange() : pending ((VisualChange::Type) 0), time_origin (0), frames_per_unit (0), idle_handler_id (-1) {}
+		VisualChange() : pending ((VisualChange::Type) 0), time_origin (0), frames_per_pixel (0), idle_handler_id (-1) {}
 		void add (Type t) {
 			pending = Type (pending | t);
 		}
@@ -1778,7 +1778,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	struct State {
 	    Selection* selection;
-	    double frames_per_unit;
+	    double frames_per_pixel;
 
 	    State (PublicEditor const * e);
 	    ~State ();

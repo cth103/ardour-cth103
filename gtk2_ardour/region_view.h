@@ -46,7 +46,7 @@ class RegionView : public TimeAxisViewItem
 	RegionView (ArdourCanvas::Group* parent,
 	            TimeAxisView&        time_view,
 	            boost::shared_ptr<ARDOUR::Region> region,
-	            double               samples_per_unit,
+	            double               frames_per_pixel,
 	            Gdk::Color const &   basic_color,
 		    bool 		 automation = false);
 
@@ -64,7 +64,7 @@ class RegionView : public TimeAxisViewItem
 	void set_valid (bool yn) { valid = yn; }
 
 	virtual void set_height (double);
-	virtual void set_samples_per_unit (double);
+	virtual void set_frames_per_pixel (double);
 	virtual bool set_duration (framecnt_t, void*);
 
 	void move (double xdelta, double ydelta);
@@ -122,7 +122,7 @@ class RegionView : public TimeAxisViewItem
 	RegionView (ArdourCanvas::Group *,
 		    TimeAxisView&,
 		    boost::shared_ptr<ARDOUR::Region>,
-		    double samples_per_unit,
+		    double frames_per_pixel,
 		    Gdk::Color const & basic_color,
 		    bool recording,
 		    TimeAxisViewItem::Visibility);

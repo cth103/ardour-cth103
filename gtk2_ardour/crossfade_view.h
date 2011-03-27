@@ -39,7 +39,7 @@ public:
 	CrossfadeView (ArdourCanvas::Group*,
 		       RouteTimeAxisView&,
 		       boost::shared_ptr<ARDOUR::Crossfade>,
-		       double initial_samples_per_unit,
+		       double initial_frames_per_pixel,
 		       Gdk::Color& basic_color,
 		       AudioRegionView& leftview,
 		       AudioRegionView& rightview);

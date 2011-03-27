@@ -485,7 +485,7 @@ RegionMotionDrag::compute_x_delta (GdkEvent const * event, framepos_t* pending_r
 	if ((*pending_region_position != _last_frame_position) && x_move_allowed) {
 
 		/* x movement since last time */
-		dx = (static_cast<double> (*pending_region_position) - _last_frame_position) / _editor->frames_per_unit;
+		dx = (static_cast<double> (*pending_region_position) - _last_frame_position) / _editor->frames_per_pixel;
 
 		/* total x movement */
 		framecnt_t total_dx = *pending_region_position;
@@ -2817,7 +2817,7 @@ LineDrag::start_grab (GdkEvent* event, Gdk::Cursor* /*cursor*/)
 
 	_line->parent_group().canvas_to_item (cx, cy);
 
-	framecnt_t const frame_within_region = (framecnt_t) floor (cx * _editor->frames_per_unit);
+	framecnt_t const frame_within_region = (framecnt_t) floor (cx * _editor->frames_per_pixel);
 
 	uint32_t before;
 	uint32_t after;

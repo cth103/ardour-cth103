@@ -55,7 +55,7 @@ class AudioStreamView : public StreamView
 	AudioStreamView (AudioTimeAxisView&);
 	~AudioStreamView ();
 
-	int set_samples_per_unit (gdouble spp);
+	int set_frames_per_pixel (double);
 	void horizontal_position_changed ();
 
 	int     set_amplitude_above_axis (gdouble app);

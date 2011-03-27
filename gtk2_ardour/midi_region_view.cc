@@ -1285,7 +1285,7 @@ MidiRegionView::add_ghost (TimeAxisView& tv)
 {
 	CanvasNote* note;
 
-	double unit_position = _region->position () / samples_per_unit;
+	double unit_position = _region->position () / frames_per_pixel;
 	MidiTimeAxisView* mtv = dynamic_cast<MidiTimeAxisView*>(&tv);
 	MidiGhostRegion* ghost;
 
@@ -1305,7 +1305,7 @@ MidiRegionView::add_ghost (TimeAxisView& tv)
 	}
 
 	ghost->set_height ();
-	ghost->set_duration (_region->length() / samples_per_unit);
+	ghost->set_duration (_region->length() / frames_per_pixel);
 	ghosts.push_back (ghost);
 
 	GhostRegion::CatchDeletion.connect (*this, invalidator (*this), ui_bind (&RegionView::remove_ghost, this, _1), gui_context());

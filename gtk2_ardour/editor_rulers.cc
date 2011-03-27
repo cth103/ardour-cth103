@@ -818,9 +818,9 @@ Editor::update_fixed_rulers ()
 		return;
 	}
 
-	ruler_metrics[ruler_metric_timecode].units_per_pixel = frames_per_unit;
-	ruler_metrics[ruler_metric_samples].units_per_pixel = frames_per_unit;
-	ruler_metrics[ruler_metric_minsec].units_per_pixel = frames_per_unit;
+	ruler_metrics[ruler_metric_timecode].units_per_pixel = frames_per_pixel;
+	ruler_metrics[ruler_metric_samples].units_per_pixel = frames_per_pixel;
+	ruler_metrics[ruler_metric_minsec].units_per_pixel = frames_per_pixel;
 
 	rightmost_frame = leftmost_frame + current_page_frames();
 
@@ -851,7 +851,7 @@ Editor::update_tempo_based_rulers ()
 		return;
 	}
 
-	ruler_metrics[ruler_metric_bbt].units_per_pixel = frames_per_unit;
+	ruler_metrics[ruler_metric_bbt].units_per_pixel = frames_per_pixel;
 
 	if (ruler_bbt_action->get_active()) {
 		gtk_custom_ruler_set_range (GTK_CUSTOM_RULER(_bbt_ruler), leftmost_frame, leftmost_frame+current_page_frames(),

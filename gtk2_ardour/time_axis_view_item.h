@@ -77,9 +77,9 @@ class TimeAxisViewItem : public Selectable, public PBD::ScopedConnectionList
 	ArdourCanvas::Item* get_name_highlight();
 	ArdourCanvas::Pixbuf* get_name_pixbuf();
 
-	virtual void set_samples_per_unit(double spu);
+	virtual void set_frames_per_pixel (double);
 
-	double get_samples_per_unit();
+	double get_frames_per_pixel () const;
 
 	virtual void raise () { return; }
 	virtual void raise_to_top () { return; }
@@ -188,8 +188,8 @@ class TimeAxisViewItem : public Selectable, public PBD::ScopedConnectionList
 	/** indicates whether the min duration constraint is active */
 	bool min_duration_active;
 	
-	/** samples per canvas unit */
-	double samples_per_unit;
+	/** frames per canvas pixel */
+	double frames_per_pixel;
 
 	/** should the item respond to events */
 	bool _sensitive;

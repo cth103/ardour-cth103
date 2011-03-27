@@ -141,18 +141,18 @@ ImageFrameTimeAxis::set_height (uint32_t h)
 }
 
 /**
- * Sets the number of samples per unit that are used.
+ * Sets the number of frames per pixel that are used.
  * This is used to determine the siezes of items upon this time axis
  *
- * @param spu the number of samples per unit
+ * @param fpp the number of frames per pixel
  */
 void
-ImageFrameTimeAxis::set_samples_per_unit(double spu)
+ImageFrameTimeAxis::set_frames_per_pixel (double fpp)
 {
-	TimeAxisView::set_samples_per_unit (editor.get_current_zoom());
+	TimeAxisView::set_frames_per_pixel (editor.get_current_zoom ());
 
-	if(view) {
-		view->set_samples_per_unit(spu) ;
+	if (view) {
+		view->set_frames_per_pixel (fpp);
 	}
 }
 

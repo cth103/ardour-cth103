@@ -680,7 +680,7 @@ Editor::set_horizontal_position (double p)
 {
 	_track_canvas_hadj->set_value (p);
 
-	leftmost_frame = (framepos_t) floor (p * frames_per_unit);
+	leftmost_frame = (framepos_t) floor (p * frames_per_pixel);
 
 	update_fixed_rulers ();
 	redisplay_tempo (true);
