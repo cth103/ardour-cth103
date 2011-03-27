@@ -12,6 +12,7 @@ WaveView::WaveView (Group* parent, boost::shared_ptr<ARDOUR::AudioRegion> region
 	, Outline (parent)
 	, Fill (parent)
 	, _region (region)
+	, _channel (0)
 	, _frames_per_pixel (0)
 	, _height (64)
 {
@@ -52,7 +53,7 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 	uint32_t const npeaks = ceil ((end - start) / _frames_per_pixel);
 
 	PeakData* buf = new PeakData[npeaks];
-	_region->read_peaks (buf, npeaks, start + _region->position(), end - start, 0, _frames_per_pixel);
+	_region->read_peaks (buf, npeaks, start + _region->position(), end - start, _channel, _frames_per_pixel);
 
 	setup_outline_context (context);
 	context->move_to (area.x0, area.y0);
@@ -102,6 +103,17 @@ WaveView::set_height (Distance height)
 	begin_change ();
 
 	_height = height;
+
+	_bounding_box_dirty = true;
+	end_change ();
+}
+
+void
+WaveView::set_channel (int channel)
+{
+	begin_change ();
+	
+	_channel = channel;
 
 	_bounding_box_dirty = true;
 	end_change ();

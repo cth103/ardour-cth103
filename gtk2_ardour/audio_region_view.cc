@@ -931,7 +931,7 @@ AudioRegionView::create_one_wave (uint32_t which, bool /*direct*/)
 	wave->property_data_src() = (gpointer) _region.get();
 	wave->property_cache() =  wave_caches[which];
 	wave->property_cache_updater() = true;
-	wave->property_channel() =  which;
+	wave->set_channel (which);
 	wave->property_length_function() = (gpointer) region_length_from_c;
 	wave->property_sourcefile_length_function() = (gpointer) sourcefile_length_from_c;
 	wave->property_peak_function() =  (gpointer) region_read_peaks_from_c;
@@ -1178,7 +1178,7 @@ AudioRegionView::add_ghost (TimeAxisView& tv)
 		wave->property_data_src() = _region.get();
 		wave->property_cache() =  wave_caches[n];
 		wave->property_cache_updater() = false;
-		wave->property_channel() = n;
+		wave->set_channel (n);
 		wave->property_length_function() = (gpointer)region_length_from_c;
 		wave->property_sourcefile_length_function() = (gpointer) sourcefile_length_from_c;
 		wave->property_peak_function() =  (gpointer) region_read_peaks_from_c;

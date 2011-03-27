@@ -31,6 +31,7 @@ public:
 
 	void set_frames_per_pixel (double);
 	void set_height (Distance);
+	void set_channel (int);
 
 #ifdef CANVAS_COMPATIBILITY	
 	static GnomeCanvasWaveViewCache* create_cache () {
@@ -48,9 +49,6 @@ public:
 	}
 	bool& property_cache_updater () {
 		return _foo_bool;
-	}
-	int& property_channel () {
-		return _foo_int;
 	}
 	void*& property_length_function () {
 		return _foo_void;
@@ -96,6 +94,7 @@ private:
 	Coord min_position (float) const;
 
 	boost::shared_ptr<ARDOUR::AudioRegion> _region;
+	int _channel;
 	double _frames_per_pixel;
 	Coord _height;
 	uint32_t _wave_color;

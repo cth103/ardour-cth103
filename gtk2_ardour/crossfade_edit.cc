@@ -1164,7 +1164,7 @@ CrossfadeEditor::make_waves (boost::shared_ptr<AudioRegion> region, WhichFade wh
 			waveview->property_data_src() = region.get();
 			waveview->property_cache_updater() =  true;
 			waveview->property_cache() = ArdourCanvas::WaveView::create_cache();
-			waveview->property_channel() = n;
+			waveview->set_channel (n);
 			waveview->property_length_function() = (void*) region_length_from_c;
 			waveview->property_sourcefile_length_function() = (void*) sourcefile_length_from_c;
 			waveview->property_peak_function() = (void*) region_read_peaks_from_c;
