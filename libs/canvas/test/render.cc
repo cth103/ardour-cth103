@@ -1,8 +1,10 @@
+#include <pangomm/init.h>
 #include "canvas/canvas.h"
 #include "canvas/line.h"
 #include "canvas/rectangle.h"
 #include "canvas/polygon.h"
 #include "canvas/arrow.h"
+#include "canvas/text.h"
 #include "render.h"
 
 using namespace std;
@@ -69,6 +71,13 @@ RenderTest::basics ()
 	arrow.set_x (32);
 	arrow.set_y0 (0);
 	arrow.set_y1 (64);
+
+	/* text */
+	Pango::init ();
+	Group text_group (canvas.root ());
+	text_group.set_position (Duple (128, 64));
+	Text text (&text_group);
+	text.set ("Hello world!");
 	
 	canvas.render_to_image (Rect (0, 0, 256, 256));
 	canvas.write_to_png ("render_basics.png");

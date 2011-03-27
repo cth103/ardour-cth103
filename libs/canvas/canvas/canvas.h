@@ -39,6 +39,8 @@ public:
 
 	XMLTree* get_state ();
 
+	virtual Cairo::RefPtr<Cairo::Context> context () = 0;
+
 protected:
 	RootGroup _root;
 	
@@ -67,6 +69,8 @@ public:
 	void render_to_image (Rect const &) const;
 	void write_to_png (std::string const &);
 
+	Cairo::RefPtr<Cairo::Context> context ();
+
 private:
 	Cairo::RefPtr<Cairo::Surface> _surface;
 	Cairo::RefPtr<Cairo::Context> _context;
@@ -84,6 +88,8 @@ public:
 	void ungrab ();
 	
 	PBD::Signal1<bool, GdkEventButton *> ButtonPress;
+
+	Cairo::RefPtr<Cairo::Context> context ();
 	
 protected:
 	bool on_expose_event (GdkEventExpose *);
