@@ -28,7 +28,6 @@
 
 #include "canvas/group.h"
 #include "canvas/rectangle.h"
-#include "canvas/unimplemented.h"
 #include "canvas/debug.h"
 #include "canvas/pixbuf.h"
 

@@ -36,7 +36,6 @@
 #include "evoral/Curve.hpp"
 
 #include "canvas/rectangle.h"
-#include "canvas/unimplemented.h"
 #include "canvas/polygon.h"
 #include "canvas/pixbuf.h"
 

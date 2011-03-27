@@ -71,6 +71,7 @@
 #include "note.h"
 #include "hit.h"
 #include "patch_change.h"
+#include "sys_ex.h"
 
 #include "i18n.h"
 
@@ -1145,8 +1146,8 @@ MidiRegionView::display_sysexes()
 
 		double height = midi_stream_view()->contents_height();
 
-		boost::shared_ptr<CanvasSysEx> sysex = boost::shared_ptr<CanvasSysEx>(
-				new CanvasSysEx (*this, _note_group, text, height, x, 1.0));
+		boost::shared_ptr<SysEx> sysex = boost::shared_ptr<SysEx>(
+				new SysEx (*this, _note_group, text, height, x, 1.0));
 
 		// Show unless patch change is beyond the region bounds
 		if (time - _region->start() >= _region->length() || time < _region->start()) {

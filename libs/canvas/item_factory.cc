@@ -8,7 +8,6 @@
 #include "canvas/pixbuf.h"
 #include "canvas/wave_view.h"
 #include "canvas/text.h"
-#include "canvas/unimplemented.h"
 
 using namespace std;
 using namespace ArdourCanvas;

@@ -20,7 +20,6 @@
 #include "evoral/Note.hpp"
 #include "canvas/group.h"
 #include "canvas/rectangle.h"
-#include "canvas/unimplemented.h"
 #include "canvas/wave_view.h"
 #include "ardour_ui.h"
 #include "automation_time_axis.h"

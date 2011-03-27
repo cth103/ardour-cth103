@@ -19,7 +19,6 @@
 
 #include <sigc++/bind.h>
 #include "ardour/tempo.h"
-#include "canvas/unimplemented.h"
 #include "canvas/rectangle.h"
 #include "canvas/group.h"
 #include "canvas/line.h"

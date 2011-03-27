@@ -26,7 +26,6 @@
 #include "ardour/profile.h"
 #include "ardour/session.h"
 
-#include "canvas/unimplemented.h"
 #include "canvas/canvas.h"
 #include "canvas/pixbuf.h"
 

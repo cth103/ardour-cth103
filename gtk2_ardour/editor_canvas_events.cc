@@ -31,7 +31,6 @@
 
 #include "canvas/canvas.h"
 #include "canvas/text.h"
-#include "canvas/unimplemented.h"
 
 #include "editor.h"
 #include "keyboard.h"

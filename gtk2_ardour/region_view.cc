@@ -31,7 +31,6 @@
 #include "ardour/audio_diskstream.h"
 #include "ardour/session.h"
 
-#include "canvas/unimplemented.h"
 #include "canvas/polygon.h"
 #include "canvas/debug.h"
 #include "canvas/pixbuf.h"

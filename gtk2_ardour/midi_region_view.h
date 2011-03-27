@@ -31,8 +31,6 @@
 #include "ardour/diskstream.h"
 #include "ardour/types.h"
 
-#include "canvas/unimplemented.h"
-
 #include "editing.h"
 #include "region_view.h"
 #include "midi_time_axis.h"
@@ -52,6 +50,7 @@ namespace MIDI {
 	};
 };
 
+class SysEx;
 class NoteBase;
 class Note;
 class Hit;
@@ -350,7 +349,7 @@ class MidiRegionView : public RegionView
 
 	typedef std::list<NoteBase*> Events;
 	typedef std::vector< boost::shared_ptr<PatchChange> > PatchChanges;
-	typedef std::vector< boost::shared_ptr<ArdourCanvas::CanvasSysEx> > SysExes;
+	typedef std::vector< boost::shared_ptr<SysEx> > SysExes;
 
 	boost::shared_ptr<ARDOUR::MidiModel> _model;
 	Events                               _events;

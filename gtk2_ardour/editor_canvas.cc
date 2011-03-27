@@ -28,7 +28,6 @@
 #include "ardour/rc_configuration.h"
 
 #include "canvas/canvas.h"
-#include "canvas/unimplemented.h"
 #include "canvas/rectangle.h"
 #include "canvas/pixbuf.h"
 #include "canvas/text.h"
