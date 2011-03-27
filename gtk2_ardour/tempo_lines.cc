@@ -27,8 +27,8 @@ using namespace std;
 
 #define MAX_CACHED_LINES 128
 
-TempoLines::TempoLines (ArdourCanvas::GtkCanvas& canvas, ArdourCanvas::Group* group, double screen_height)
-	: _canvas(canvas)
+TempoLines::TempoLines (ArdourCanvas::GtkCanvasViewport& canvas_viewport, ArdourCanvas::Group* group, double screen_height)
+	: _canvas_viewport (canvas_viewport)
 	, _group(group)
 	, _clean_left(DBL_MAX)
 	, _clean_right(0.0)
@@ -77,8 +77,7 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_pixe
 	ARDOUR::TempoMap::BBTPointList::iterator i;
 	ArdourCanvas::Line *line = 0;
 	gdouble xpos;
-	double who_cares;
-	double x1, x2, y1, beat_density;
+	double beat_density;
 
 	uint32_t beats = 0;
 	uint32_t bars = 0;
@@ -86,8 +85,7 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_pixe
 
 	const size_t needed = points.size();
 
-	/* XXX: CANVAS */
-//	_canvas.get_scroll_region (x1, y1, x2, who_cares);
+	ArdourCanvas::Rect const visible = _canvas_viewport.visible_area ();
 
 	/* get the first bar spacing */
 
@@ -96,7 +94,7 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_pixe
 	bars = (*i).bar - (*points.begin()).bar;
 	beats = points.size() - bars;
 
-	beat_density = (beats * 10.0f) / _canvas.get_width ();
+	beat_density = (beats * 10.0f) / visible.width ();
 
 	if (beat_density > 4.0f) {
 		/* if the lines are too close together, they become useless */
@@ -104,20 +102,21 @@ TempoLines::draw (ARDOUR::TempoMap::BBTPointList& points, double frames_per_pixe
 		return;
 	}
 
-	xpos = rint(((framepos_t)(*i).frame) / (double)frames_per_pixel);
+	xpos = rint (((framepos_t) i->frame) / (double) frames_per_pixel);
 	const double needed_right = xpos;
 
 	i = points.begin();
 
-	xpos = rint(((framepos_t)(*i).frame) / (double)frames_per_pixel);
+	xpos = rint (((framepos_t) i->frame) / (double) frames_per_pixel);
 	const double needed_left = xpos;
 
 	Lines::iterator left = _lines.lower_bound(xpos); // first line >= xpos
 
 	bool exhausted = (left == _lines.end());
 	Lines::iterator li = left;
-	if (li != _lines.end())
+	if (li != _lines.end()) {
 		line = li->second;
+	}
 
 	// Tempo map hasn't changed and we're entirely within a clean
 	// range, don't need to do anything.  Yay.

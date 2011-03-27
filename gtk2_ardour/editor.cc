@@ -3308,8 +3308,7 @@ Editor::show_verbose_canvas_cursor_with (const string & txt, int32_t xoffset, in
 	double wx, wy;
 
 	_track_canvas->get_pointer (x, y);
-	/* XXX: CANVAS */
-//	track_canvas->window_to_world (x, y, wx, wy);
+	_track_canvas_viewport->window_to_canvas (x, y, wx, wy);
 
 	wx += xoffset;
 	wy += yoffset;

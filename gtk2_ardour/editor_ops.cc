@@ -57,6 +57,8 @@
 #include "ardour/route_group.h"
 #include "ardour/operations.h"
 
+#include "canvas/canvas.h"
+
 #include "ardour_ui.h"
 #include "debug.h"
 #include "editor.h"
@@ -1935,8 +1937,7 @@ Editor::insert_region_list_drag (boost::shared_ptr<Region> region, int x, int y)
 	RouteTimeAxisView *rtv = 0;
 	boost::shared_ptr<Playlist> playlist;
 
-	/* XXX: CANVAS */
-//	track_canvas->window_to_world (x, y, wx, wy);
+	_track_canvas_viewport->window_to_canvas (x, y, wx, wy);
 
 	GdkEvent event;
 	event.type = GDK_BUTTON_RELEASE;
@@ -1981,10 +1982,7 @@ Editor::insert_route_list_drag (boost::shared_ptr<Route> route, int x, int y)
 	RouteTimeAxisView *dest_rtv = 0;
 	RouteTimeAxisView *source_rtv = 0;
 
-	/* XXX: CANVAS */
-//	track_canvas->window_to_world (x, y, wx, wy);
-	wx += horizontal_position ();
-	wy += vertical_adjustment.get_value();
+	_track_canvas_viewport->window_to_canvas (x, y, wx, wy);
 
 	GdkEvent event;
 	event.type = GDK_BUTTON_RELEASE;

@@ -1018,10 +1018,9 @@ Editor::canvas_note_event (GdkEvent *event, ArdourCanvas::Item* item)
 bool
 Editor::track_canvas_drag_motion (Glib::RefPtr<Gdk::DragContext> const & /*c*/, int x, int y, guint /*time*/)
 {
-	double wx;
-	double wy;
-	/* XXX: CANVAS */
-//	track_canvas->window_to_world (x, y, wx, wy);
+	ArdourCanvas::Coord wx;
+	ArdourCanvas::Coord wy;
+	_track_canvas_viewport->window_to_canvas (x, y, wx, wy);
 
 	GdkEvent event;
 	event.type = GDK_MOTION_NOTIFY;

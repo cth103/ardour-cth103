@@ -194,7 +194,7 @@ Editor::draw_measures ()
 	}
 
 	if (tempo_lines == 0) {
-		tempo_lines = new TempoLines (*_track_canvas, time_line_group, physical_screen_height (get_window()));
+		tempo_lines = new TempoLines (*_track_canvas_viewport, time_line_group, physical_screen_height (get_window()));
 	}
 
 	/* XXX: CANVAS */

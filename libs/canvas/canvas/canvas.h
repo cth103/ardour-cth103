@@ -111,6 +111,9 @@ public:
 		return &_canvas;
 	}
 
+	void window_to_canvas (int, int, Coord &, Coord &) const;
+	Rect visible_area () const;
+
 protected:
 	void on_size_request (Gtk::Requisition *);
 

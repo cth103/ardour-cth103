@@ -410,8 +410,7 @@ Editor::drop_paths (const RefPtr<Gdk::DragContext>& context,
 		/* D-n-D coordinates are window-relative, so convert to "world" coordinates
 		 */
 
-		/* XXX: CANVAS */
-//		track_canvas->window_to_world (x, y, wx, wy);
+		_track_canvas_viewport->window_to_canvas (x, y, wx, wy);
 
 		ev.type = GDK_BUTTON_RELEASE;
 		ev.button.x = wx;

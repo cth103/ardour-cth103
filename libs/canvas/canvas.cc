@@ -278,3 +278,18 @@ GtkCanvasViewport::on_size_request (Gtk::Requisition* req)
 	req->width = 128;
 	req->height = 128;
 }
+
+void
+GtkCanvasViewport::window_to_canvas (int wx, int wy, Coord& cx, Coord& cy) const
+{
+	cx = wx + get_hadjustment()->get_value ();
+	cy = wy + get_vadjustment()->get_value ();
+}
+
+Rect
+GtkCanvasViewport::visible_area () const
+{
+	Distance const xo = get_hadjustment()->get_value ();
+	Distance const yo = get_vadjustment()->get_value ();
+	return Rect (xo, yo, xo + get_allocation().get_width (), yo + get_allocation().get_height ());
+}
