@@ -79,7 +79,6 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 void
 WaveView::compute_bounding_box () const
 {
-	/* XXX */
 	_bounding_box = Rect (0, 0, _region->length() / _frames_per_pixel, _height);
 	_bounding_box_dirty = false;
 }
