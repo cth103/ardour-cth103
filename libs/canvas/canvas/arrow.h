@@ -53,7 +53,7 @@ public:
 	void set_head_height (int, Distance);
 	void set_head_width (int, Distance);
 	void set_outline_width (Distance);
-	void set_color (uint32_t);
+	void set_color (Color);
 
 	Coord x () const;
 	Coord y1 () const;

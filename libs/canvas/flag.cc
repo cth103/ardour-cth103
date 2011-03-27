@@ -6,7 +6,7 @@
 using namespace std;
 using namespace ArdourCanvas;
 
-Flag::Flag (Group* parent, Distance height, uint32_t outline_color, uint32_t fill_color, Duple position)
+Flag::Flag (Group* parent, Distance height, Color outline_color, Color fill_color, Duple position)
 	: Group (parent)
 	, _height (height)
 	, _outline_color (outline_color)

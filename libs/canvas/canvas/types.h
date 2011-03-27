@@ -2,16 +2,16 @@
 #define __CANVAS_TYPES_H__
 
 #include <iostream>
-#include <cfloat>
 #include <vector>
+#include <stdint.h>
 #include <boost/optional.hpp>
 
 namespace ArdourCanvas
 {
 
 typedef double Coord;
-#define COORD_EPSILON DBL_EPSILON
 typedef double Distance;
+typedef uint32_t Color;
 
 struct Duple
 {

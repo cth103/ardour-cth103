@@ -210,7 +210,7 @@ Arrow::setup_polygon (int which)
  *  @param color New color.
  */
 void
-Arrow::set_color (uint32_t color)
+Arrow::set_color (Color color)
 {
 	_line->set_outline_color (color);
 	for (int i = 0; i < 2; ++i) {

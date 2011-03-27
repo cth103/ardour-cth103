@@ -65,10 +65,10 @@ public:
 	double& property_amplitude_above_axis () {
 		return _foo_double;
 	}
-	uint32_t& property_clip_color () {
+	Color& property_clip_color () {
 		return _foo_uint;
 	}
-	uint32_t& property_zero_color () {
+	Color& property_zero_color () {
 		return _foo_uint;
 	}
 
@@ -76,7 +76,7 @@ private:
 	void* _foo_void;
 	bool _foo_bool;
 	int _foo_int;
-	uint32_t _foo_uint;
+	Color _foo_uint;
 	double _foo_double;
 	ARDOUR::framepos_t _foo_framepos;
 #endif
@@ -88,7 +88,7 @@ private:
 	int _channel;
 	double _frames_per_pixel;
 	Coord _height;
-	uint32_t _wave_color;
+	Color _wave_color;
 };
 
 }

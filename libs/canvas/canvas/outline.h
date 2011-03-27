@@ -16,11 +16,11 @@ public:
 	void add_outline_state (XMLNode *) const;
 	void set_outline_state (XMLNode const *);
 	
-	uint32_t outline_color () const {
+	Color outline_color () const {
 		return _outline_color;
 	}
 
-	virtual void set_outline_color (uint32_t);
+	virtual void set_outline_color (Color);
 
 	Distance outline_width () const {
 		return _outline_width;
@@ -59,7 +59,7 @@ protected:
 
 	void setup_outline_context (Cairo::RefPtr<Cairo::Context>) const;
 	
-	uint32_t _outline_color;
+	Color _outline_color;
 	Distance _outline_width;
 	bool _outline;
 

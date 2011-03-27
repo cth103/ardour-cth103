@@ -3,7 +3,7 @@
 #include "canvas/utils.h"
 
 void
-ArdourCanvas::set_source_rgba (Cairo::RefPtr<Cairo::Context> context, uint32_t color)
+ArdourCanvas::set_source_rgba (Cairo::RefPtr<Cairo::Context> context, Color color)
 {
 	context->set_source_rgba (
 		((color >> 24) & 0xff) / 255.0,

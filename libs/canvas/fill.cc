@@ -16,7 +16,7 @@ Fill::Fill (Group* parent)
 }
 
 void
-Fill::set_fill_color (uint32_t color)
+Fill::set_fill_color (Color color)
 {
 	begin_change ();
 	

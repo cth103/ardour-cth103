@@ -19,15 +19,15 @@ public:
 
 	void set_height (Distance);
 
-	void add (Coord, Distance, uint32_t);
+	void add (Coord, Distance, Color);
 	void clear ();
 
 	struct Line {
-		Line (Coord y_, Distance width_, uint32_t color_) : y (y_), width (width_), color (color_) {}
+		Line (Coord y_, Distance width_, Color color_) : y (y_), width (width_), color (color_) {}
 		
 		Coord y;
 		Distance width;
-		uint32_t color;
+		Color color;
 	};
 
 private:

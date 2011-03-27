@@ -102,7 +102,7 @@ Text::set_font_description (Pango::FontDescription* font_description)
 }
 
 void
-Text::set_color (uint32_t color)
+Text::set_color (Color color)
 {
 	begin_change ();
 

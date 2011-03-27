@@ -18,7 +18,7 @@ Outline::Outline (Group* parent)
 }
 
 void
-Outline::set_outline_color (uint32_t color)
+Outline::set_outline_color (Color color)
 {
 	begin_change ();
 	

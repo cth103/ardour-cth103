@@ -14,10 +14,10 @@ public:
 	void add_fill_state (XMLNode *) const;
 	void set_fill_state (XMLNode const *);
 
-	uint32_t fill_color () const {
+	Color fill_color () const {
 		return _fill_color;
 	}
-	void set_fill_color (uint32_t);
+	void set_fill_color (Color);
 	bool fill () const {
 		return _fill;
 	}
@@ -26,7 +26,7 @@ public:
 protected:
 	void setup_fill_context (Cairo::RefPtr<Cairo::Context>) const;
 	
-	uint32_t _fill_color;
+	Color _fill_color;
 	bool _fill;
 };
 

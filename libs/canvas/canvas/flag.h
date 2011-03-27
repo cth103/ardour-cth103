@@ -10,15 +10,15 @@ class Rectangle;
 class Flag : public Group
 {
 public:
-	Flag (Group *, Distance, uint32_t, uint32_t, Duple);
+	Flag (Group *, Distance, Color, Color, Duple);
 
 	void set_text (std::string const &);
 	void set_height (Distance);
 	
 private:
 	Distance _height;
-	uint32_t _outline_color;
-	uint32_t _fill_color;
+	Color _outline_color;
+	Color _fill_color;
 	Text* _text;
 	Line* _line;
 	Rectangle* _rectangle;

@@ -70,7 +70,7 @@ LineSet::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 }
 
 void
-LineSet::add (Coord y, Distance width, uint32_t color)
+LineSet::add (Coord y, Distance width, Color color)
 {
 	begin_change ();
 	
