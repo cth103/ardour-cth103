@@ -42,13 +42,14 @@ const uint32_t NoteBase::midi_channel_colors[16] = {
 	  0x832dd3ff,  0xa92dd3ff,  0xd32dbfff,  0xd32d67ff
 	};
 
-NoteBase::NoteBase(MidiRegionView& region, const boost::shared_ptr<NoteType> note)
+NoteBase::NoteBase(MidiRegionView& region, bool with_events, const boost::shared_ptr<NoteType> note)
 	: _region(region)
 	, _item (0)
 //	, _text(0)
 //	, _channel_selector_widget()
 	, _state(None)
 	, _note(note)
+	, _with_events (with_events)
 	, _selected(false)
 	, _valid (true)
 	, _mouse_x_fraction (-1.0)
@@ -76,6 +77,10 @@ NoteBase::set_item (Item* item)
 {
 	_item = item;
 	_item->set_data ("notebase", this);
+
+	if (_with_events) {
+		_item->Event.connect (sigc::mem_fun (*this, &NoteBase::event_handler));
+	}
 }
 
 void
@@ -321,7 +326,7 @@ NoteBase::set_mouse_fractions (GdkEvent* ev)
 }
 
 bool
-NoteBase::on_event(GdkEvent* ev)
+NoteBase::event_handler (GdkEvent* ev)
 {
 	if (!_region.get_time_axis_view().editor().internal_editing()) {
 		return false;
@@ -361,7 +366,7 @@ NoteBase::on_event(GdkEvent* ev)
 		break;
 	}
 
-	return false;
+	return _region.get_time_axis_view().editor().canvas_note_event (ev, _item);
 }
 
 bool

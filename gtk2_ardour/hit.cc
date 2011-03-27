@@ -33,24 +33,10 @@ Hit::Hit (
 	double                            size,
 	const boost::shared_ptr<NoteType> note,
 	bool with_events) 
-	: NoteBase (region, note)
+	: NoteBase (region, with_events, note)
 {
 	_polygon = new Polygon (group);
 	set_item (_polygon);
-	
-	if (with_events) {
-		_polygon->Event.connect (sigc::mem_fun (*this, &Hit::event_handler));
-	}
-}
-
-bool
-Hit::event_handler (GdkEvent* ev)
-{
-	if (!NoteBase::on_event (ev)) {
-		return _region.get_time_axis_view().editor().canvas_note_event (ev, _polygon);
-	}
-	
-	return true;
 }
 
 void

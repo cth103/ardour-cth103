@@ -62,8 +62,6 @@ public:
 	void move_event (double dx, double dy);
 
 private:
-	bool event_handler (GdkEvent* ev);
-	
 	ArdourCanvas::Rectangle* _rectangle;
 };
 

@@ -52,11 +52,12 @@ namespace ArdourCanvas {
  */
 class NoteBase : public sigc::trackable
 {
-  public:
+public:
 	typedef Evoral::Note<ARDOUR::MidiModel::TimeType> NoteType;
 
 	NoteBase (
 		MidiRegionView&                   region,
+		bool,
 		const boost::shared_ptr<NoteType> note = boost::shared_ptr<NoteType>()
 		);
 
@@ -68,7 +69,6 @@ class NoteBase : public sigc::trackable
 
 	virtual void show() = 0;
 	virtual void hide() = 0;
-	virtual bool on_event(GdkEvent* ev);
 
 	bool valid() const { return _valid; }
 	void invalidate ();
@@ -146,7 +146,7 @@ class NoteBase : public sigc::trackable
         bool mouse_near_ends () const;
         bool big_enough_to_trim () const;
 
-  protected:
+protected:
 	enum State { None, Pressed, Dragging };
 
 	MidiRegionView&                   _region;
@@ -155,6 +155,7 @@ class NoteBase : public sigc::trackable
 //	Widget*                           _channel_selector_widget;
 	State                             _state;
 	const boost::shared_ptr<NoteType> _note;
+	bool                              _with_events;
 	bool                              _own_note;
 	bool                              _selected;
 	bool                              _valid;
@@ -162,6 +163,9 @@ class NoteBase : public sigc::trackable
         float                             _mouse_y_fraction;
         
         void set_mouse_fractions (GdkEvent*);
+
+private:
+	bool event_handler (GdkEvent *);
 };
 
 #endif /* __gtk_ardour_note_h__ */

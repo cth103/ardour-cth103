@@ -57,8 +57,6 @@ public:
 	void move_event (double, double);
 
 private:
-	bool event_handler (GdkEvent *);
-
 	ArdourCanvas::Polygon* _polygon;
 };
 
