@@ -7,6 +7,7 @@
 #include "canvas/polygon.h"
 #include "canvas/pixbuf.h"
 #include "canvas/wave_view.h"
+#include "canvas/text.h"
 #include "canvas/unimplemented.h"
 
 using namespace std;
@@ -30,8 +31,8 @@ ArdourCanvas::create_item (Group* parent, XMLNode const * node)
 		item = new Pixbuf (parent);
 	} else if (node->name() == "WaveView") {
 		item = new WaveView (parent, boost::shared_ptr<ARDOUR::AudioRegion> ());
-	} else if (node->name() == "NoEventText") {
-		item = new NoEventText (parent);
+	} else if (node->name() == "Text") {
+		item = new Text (parent);
 	}
 
 	assert (item);

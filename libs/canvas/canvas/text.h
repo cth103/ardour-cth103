@@ -13,13 +13,17 @@ public:
 	void set_state (XMLNode const *);
 
 	void set (std::string const &);
+	void set_color (uint32_t);
 	void set_font_description (Pango::FontDescription *);
+	void set_alignment (Pango::Alignment);
 
 private:
 	Glib::RefPtr<Pango::Layout> layout (Cairo::RefPtr<Cairo::Context>) const;
 	
 	std::string _text;
 	Pango::FontDescription* _font_description;
+	uint32_t _color;
+	Pango::Alignment _alignment;
 };
 
 }

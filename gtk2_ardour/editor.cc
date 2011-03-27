@@ -77,6 +77,7 @@
 
 #include "canvas/debug.h"
 #include "canvas/unimplemented.h"
+#include "canvas/text.h"
 
 #include "control_protocol/control_protocol.h"
 
@@ -3302,7 +3303,7 @@ Editor::clamp_verbose_cursor_y (double y)
 void
 Editor::show_verbose_canvas_cursor_with (const string & txt, int32_t xoffset, int32_t yoffset)
 {
-	verbose_canvas_cursor->property_text() = txt.c_str();
+	verbose_canvas_cursor->set (txt);
 
 	int x, y;
 	double wx, wy;
@@ -3314,8 +3315,8 @@ Editor::show_verbose_canvas_cursor_with (const string & txt, int32_t xoffset, in
 	wy += yoffset;
 
 	/* don't get too close to the edge */
-	verbose_canvas_cursor->property_x() = clamp_verbose_cursor_x (wx);
-	verbose_canvas_cursor->property_y() = clamp_verbose_cursor_y (wy);
+	verbose_canvas_cursor->set_x_position (clamp_verbose_cursor_x (wx));
+	verbose_canvas_cursor->set_y_position (clamp_verbose_cursor_y (wy));
 
 	show_verbose_canvas_cursor ();
 }
@@ -3323,16 +3324,16 @@ Editor::show_verbose_canvas_cursor_with (const string & txt, int32_t xoffset, in
 void
 Editor::set_verbose_canvas_cursor (const string & txt, double x, double y)
 {
-	verbose_canvas_cursor->property_text() = txt.c_str();
+	verbose_canvas_cursor->set (txt);
 	/* don't get too close to the edge */
-	verbose_canvas_cursor->property_x() = clamp_verbose_cursor_x (x);
-	verbose_canvas_cursor->property_y() = clamp_verbose_cursor_y (y);
+	verbose_canvas_cursor->set_x_position (clamp_verbose_cursor_x (x));
+	verbose_canvas_cursor->set_y_position (clamp_verbose_cursor_y (y));
 }
 
 void
 Editor::set_verbose_canvas_cursor_text (const string & txt)
 {
-	verbose_canvas_cursor->property_text() = txt.c_str();
+	verbose_canvas_cursor->set (txt);
 }
 
 void

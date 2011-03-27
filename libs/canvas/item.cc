@@ -42,6 +42,7 @@ Item::init ()
 {
 	_visible = true;
 	_bounding_box_dirty = true;
+	_ignore_events = false;
 	
 	if (_parent) {
 		_parent->add (this);
@@ -286,3 +287,8 @@ Item::canvas_to_item (Coord& x, Coord& y) const
 	y = d.y;
 }
 
+void
+Item::set_ignore_events (bool ignore)
+{
+	_ignore_events = ignore;
+}

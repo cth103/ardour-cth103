@@ -21,6 +21,8 @@
 
 #include "gtkmm2ext/keyboard.h"
 
+#include "canvas/text.h"
+
 #include "note_base.h"
 #include "midi_region_view.h"
 #include "public_editor.h"
@@ -59,14 +61,9 @@ NoteBase::NoteBase(MidiRegionView& region, bool with_events, const boost::shared
 
 NoteBase::~NoteBase()
 {
-	cout << "~NoteBase " << this << "\n";
 	NoteBaseDeleted (this);
 
-	/* XXX */
-	// if (_text) {
-	// 	_text->hide();
-	// 	delete _text;
-	// }
+	delete _text;
 
 	/* XXX */
 //	delete _channel_selector_widget;
@@ -98,32 +95,27 @@ NoteBase::validate ()
 void
 NoteBase::show_velocity()
 {
-	/* XXX */
-#if 0
 	if (!_text) {
-		_text = new NoEventText (*(_item->property_parent()));
-		_text->property_fill_color_rgba() = ARDOUR_UI::config()->canvasvar_MidiNoteVelocityText.get();
-		_text->property_justification() = Gtk::JUSTIFY_CENTER;
+		_text = new Text (_item->parent ());
+		_text->set_ignore_events (true);
+		_text->set_color (ARDOUR_UI::config()->canvasvar_MidiNoteVelocityText.get());
+		_text->set_alignment (Pango::ALIGN_CENTER);
 	}
 
-	_text->property_x() = (x1() + x2()) /2;
-	_text->property_y() = (y1() + y2()) /2;
+	_text->set_x_position ((x0() + x1()) / 2);
+	_text->set_y_position ((y0() + y1()) / 2);
 	ostringstream velo(ios::ate);
 	velo << int(_note->velocity());
-	_text->property_text() = velo.str();
+	_text->set (velo.str ());
 	_text->show();
 	_text->raise_to_top();
-#endif	
 }
 
 void
 NoteBase::hide_velocity()
 {
-//	if (_text) {
-//		_text->hide();
-//		delete _text;
-//		_text = 0;
-//	}
+	delete _text;
+	_text = 0;
 }
 
 void

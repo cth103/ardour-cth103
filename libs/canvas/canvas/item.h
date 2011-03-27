@@ -107,6 +107,11 @@ public:
 		return _canvas;
 	}
 
+	void set_ignore_events (bool);
+	bool ignore_events () const {
+		return _ignore_events;
+	}
+
 	void set_data (std::string const &, void *);
 	void* get_data (std::string const &) const;
 	
@@ -147,6 +152,8 @@ protected:
 
 private:
 	void init ();
+
+	bool _ignore_events;
 };
 
 }

@@ -36,8 +36,8 @@ class AutomationTimeAxisView;
 class AutomationRegionView;
 
 namespace ArdourCanvas {
-	class NoEventText;
 	class Polygon;
+	class Text;
 }
 
 class RegionView : public TimeAxisViewItem
@@ -178,7 +178,7 @@ class RegionView : public TimeAxisViewItem
 	std::list<ArdourCanvas::Rectangle*> _silent_threshold_frames;
         /** a text item to display strip silence statistics
          */
-        ArdourCanvas::NoEventText* _silence_text;
+        ArdourCanvas::Text* _silence_text;
         
 	ARDOUR::BeatsFramesConverter _time_converter;
 };

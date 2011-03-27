@@ -35,6 +35,7 @@
 #include "canvas/polygon.h"
 #include "canvas/debug.h"
 #include "canvas/pixbuf.h"
+#include "canvas/text.h"
 
 #include "ardour_ui.h"
 #include "global_signals.h"
@@ -270,16 +271,16 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double thres
 		shortest_audible = min (shortest_audible, dur);
 	}
 
-        _silence_text = new ArdourCanvas::NoEventText (group);
+        _silence_text = new ArdourCanvas::Text (group);
+	_silence_text->set_ignore_events (true);
 	CANVAS_DEBUG_NAME (group, "TAV silence text");
-        _silence_text->property_font_desc() = *(get_font_for_style (N_("SilenceText")));
-        _silence_text->property_color_rgba() = ARDOUR_UI::config()->canvasvar_SilenceText.get();
-        _silence_text->property_anchor() = ANCHOR_NW;
+        _silence_text->set_font_description (get_font_for_style (N_("SilenceText")));
+        _silence_text->set_color (ARDOUR_UI::config()->canvasvar_SilenceText.get());
         
         /* both positions are relative to the region start offset in source */
         
-        _silence_text->property_x() = trackview.editor().frame_to_pixel (silences.front().first - _region->start()) + 10.0;
-        _silence_text->property_y() = 20.0;
+        _silence_text->set_x_position (trackview.editor().frame_to_pixel (silences.front().first - _region->start()) + 10.0);
+        _silence_text->set_y_position (20);
         
         double ms = (float) shortest/_region->session().frame_rate();
         
@@ -319,7 +320,7 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double thres
 		text += string_compose (_("\n  (shortest audible segment = %1 %2)"), ma, aunits);
 	}
 
-	_silence_text->property_text() = text.c_str ();
+	_silence_text->set (text);
 } 
 
 void

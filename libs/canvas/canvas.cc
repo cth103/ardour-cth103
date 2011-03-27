@@ -161,7 +161,7 @@ GtkCanvas::deliver_event (Duple point, GdkEvent* event)
 	
 	vector<Item const *>::reverse_iterator i = items.rbegin ();
 	while (i != items.rend()) {
-		if ((*i)->Event (event)) {
+		if (!(*i)->ignore_events () && (*i)->Event (event)) {
 			DEBUG_TRACE (PBD::DEBUG::CanvasEvents, string_compose ("canvas event handled by %1\n", (*i)->name.empty() ? "[unknown]" : (*i)->name));
 			return true;
 		}
@@ -232,7 +232,12 @@ GtkCanvas::on_expose_event (GdkEventExpose* ev)
 Cairo::RefPtr<Cairo::Context>
 GtkCanvas::context ()
 {
-	return get_window()->create_cairo_context ();
+	Glib::RefPtr<Gdk::Window> w = get_window ();
+	if (!w) {
+		return Cairo::RefPtr<Cairo::Context> ();
+	}
+
+	return w->create_cairo_context ();
 }
 
 bool

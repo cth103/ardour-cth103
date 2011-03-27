@@ -61,11 +61,11 @@
 #include "window_proxy.h"
 
 namespace ArdourCanvas {
-	class NoEventText;
 	class Rectangle;
 	class Line;
 	class GtkCanvas;
 	class GtkCanvasViewport;
+	class Text;
 }
 
 namespace Gtkmm2ext {
@@ -695,7 +695,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	Gtk::Adjustment* _track_canvas_hadj;
 	Gtk::Adjustment* _track_canvas_vadj;
 
-	ArdourCanvas::NoEventText* verbose_canvas_cursor;
+	ArdourCanvas::Text* verbose_canvas_cursor;
 	bool                 verbose_cursor_visible;
 
 	void parameter_changed (std::string);

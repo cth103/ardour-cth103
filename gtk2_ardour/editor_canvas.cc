@@ -31,6 +31,7 @@
 #include "canvas/unimplemented.h"
 #include "canvas/rectangle.h"
 #include "canvas/pixbuf.h"
+#include "canvas/text.h"
 
 #include "ardour_ui.h"
 #include "editor.h"
@@ -78,11 +79,9 @@ Editor::initialize_canvas ()
 
 	Pango::FontDescription* font = get_font_for_style (N_("VerboseCanvasCursor"));
 
-	verbose_canvas_cursor = new ArdourCanvas::NoEventText (_track_canvas->root());
-	verbose_canvas_cursor->property_font_desc() = *font;
-	verbose_canvas_cursor->property_anchor() = ANCHOR_NW;
-
-	delete font;
+	verbose_canvas_cursor = new ArdourCanvas::Text (_track_canvas->root());
+	verbose_canvas_cursor->set_ignore_events (true);
+	verbose_canvas_cursor->set_font_description (font);
 
 	verbose_cursor_visible = false;
 

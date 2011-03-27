@@ -37,6 +37,7 @@ namespace Evoral {
 
 namespace ArdourCanvas {
 	class Item;
+	class Text;
 }
 
 /** This manages all the event handling for any MIDI event on the canvas.
@@ -151,7 +152,7 @@ protected:
 
 	MidiRegionView&                   _region;
 	ArdourCanvas::Item*               _item;
-//	NoEventText*                      _text;
+	ArdourCanvas::Text*               _text;
 //	Widget*                           _channel_selector_widget;
 	State                             _state;
 	const boost::shared_ptr<NoteType> _note;
