@@ -33,6 +33,7 @@ public:
 		return &_root;
 	}
 
+	virtual void item_going_away (Item *) {}
 	void item_changed (Item *, boost::optional<Rect>);
 	void item_moved (Item *, boost::optional<Rect>);
 
@@ -95,6 +96,8 @@ protected:
 	bool deliver_event (Duple, GdkEvent *);
 
 private:
+	void item_going_away (Item *);
+	
 	Item const * _current_item;
 	Item const * _grabbed_item;
 };

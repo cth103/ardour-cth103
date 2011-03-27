@@ -54,9 +54,11 @@ namespace MIDI {
 
 namespace ArdourCanvas {
 	class CanvasPatchChange;
-	class NoteBase;
 }
 
+class NoteBase;
+class Note;
+class Hit;
 class MidiTimeAxisView;
 class GhostRegion;
 class AutomationTimeAxisView;
@@ -170,29 +172,29 @@ class MidiRegionView : public RegionView
 	void display_model(boost::shared_ptr<ARDOUR::MidiModel> model);
 
 	void start_note_diff_command (std::string name = "midi edit");
-	void note_diff_add_change (ArdourCanvas::NoteBase* ev, ARDOUR::MidiModel::NoteDiffCommand::Property, uint8_t val);
-	void note_diff_add_change (ArdourCanvas::NoteBase* ev, ARDOUR::MidiModel::NoteDiffCommand::Property, Evoral::MusicalTime val);
+	void note_diff_add_change (NoteBase* ev, ARDOUR::MidiModel::NoteDiffCommand::Property, uint8_t val);
+	void note_diff_add_change (NoteBase* ev, ARDOUR::MidiModel::NoteDiffCommand::Property, Evoral::MusicalTime val);
 	void note_diff_add_note (const boost::shared_ptr<NoteType> note, bool selected, bool show_velocity = false);
-	void note_diff_remove_note (ArdourCanvas::NoteBase* ev);
+	void note_diff_remove_note (NoteBase* ev);
 
 	void apply_diff (bool as_subcommand = false);
 	void abort_command();
 
-	void   note_entered(ArdourCanvas::NoteBase* ev);
-	void   note_left(ArdourCanvas::NoteBase* ev);
+	void   note_entered(NoteBase* ev);
+	void   note_left(NoteBase* ev);
 	void   patch_entered (ArdourCanvas::CanvasPatchChange *);
 	void   patch_left (ArdourCanvas::CanvasPatchChange *);
 	void   note_mouse_position (float xfraction, float yfraction, bool can_set_cursor=true);
-	void   unique_select(ArdourCanvas::NoteBase* ev);
-	void   note_selected(ArdourCanvas::NoteBase* ev, bool add, bool extend=false);
-	void   note_deselected(ArdourCanvas::NoteBase* ev);
+	void   unique_select(NoteBase* ev);
+	void   note_selected(NoteBase* ev, bool add, bool extend=false);
+	void   note_deselected(NoteBase* ev);
 	void   delete_selection();
 	void   delete_note (boost::shared_ptr<NoteType>);
 	size_t selection_size() { return _selection.size(); }
         void   select_all_notes ();
 
 	void move_selection(double dx, double dy, double cumulative_dy);
-	void note_dropped (ArdourCanvas::NoteBase* ev, ARDOUR::frameoffset_t, int8_t d_note);
+	void note_dropped (NoteBase* ev, ARDOUR::frameoffset_t, int8_t d_note);
 
 	void select_matching_notes (uint8_t notenum, uint16_t channel_mask, bool add, bool extend);
 	void toggle_matching_notes (uint8_t notenum, uint16_t channel_mask);
@@ -214,8 +216,8 @@ class MidiRegionView : public RegionView
 	 */
 	void begin_resizing(bool at_front);
 
-	void update_resizing (ArdourCanvas::NoteBase*, bool, double, bool);
-	void commit_resizing (ArdourCanvas::NoteBase*, bool, double, bool);
+	void update_resizing (NoteBase*, bool, double, bool);
+	void commit_resizing (NoteBase*, bool, double, bool);
 
 	/** Change the channel of the selection.
 	 * @param channel - the channel number of the new channel, zero-based
@@ -233,7 +235,7 @@ class MidiRegionView : public RegionView
 	MouseState mouse_state() const { return _mouse_state; }
 
 	struct NoteResizeData {
-		ArdourCanvas::Note  *canvas_note;
+		Note                     *note;
 		ArdourCanvas::Rectangle  *resize_rect;
 	};
 
@@ -274,8 +276,8 @@ class MidiRegionView : public RegionView
 
 	void enable_display (bool);
 	
-	void set_channel_selector_scoped_note(ArdourCanvas::NoteBase* note){ _channel_selection_scoped_note = note; }
-	ArdourCanvas::NoteBase* channel_selector_scoped_note(){  return _channel_selection_scoped_note; }
+	void set_channel_selector_scoped_note(NoteBase* note){ _channel_selection_scoped_note = note; }
+	NoteBase* channel_selector_scoped_note(){  return _channel_selection_scoped_note; }
 
 	void trim_front_starting ();
 	void trim_front_ending ();
@@ -321,20 +323,20 @@ class MidiRegionView : public RegionView
 	void midi_channel_mode_changed(ARDOUR::ChannelMode mode, uint16_t mask);
 	void midi_patch_settings_changed(std::string model, std::string custom_device_mode);
 
-	void change_note_channel (ArdourCanvas::NoteBase *, int8_t);
-	void change_note_velocity(ArdourCanvas::NoteBase* ev, int8_t vel, bool relative=false);
-	void change_note_note(ArdourCanvas::NoteBase* ev, int8_t note, bool relative=false);
-	void change_note_time(ArdourCanvas::NoteBase* ev, ARDOUR::MidiModel::TimeType, bool relative=false);
-	void change_note_length (ArdourCanvas::NoteBase *, ARDOUR::MidiModel::TimeType);
-	void trim_note(ArdourCanvas::NoteBase* ev, ARDOUR::MidiModel::TimeType start_delta,
+	void change_note_channel (NoteBase *, int8_t);
+	void change_note_velocity(NoteBase* ev, int8_t vel, bool relative=false);
+	void change_note_note(NoteBase* ev, int8_t note, bool relative=false);
+	void change_note_time(NoteBase* ev, ARDOUR::MidiModel::TimeType, bool relative=false);
+	void change_note_length (NoteBase *, ARDOUR::MidiModel::TimeType);
+	void trim_note(NoteBase* ev, ARDOUR::MidiModel::TimeType start_delta,
 		       ARDOUR::MidiModel::TimeType end_delta);
 
-	void clear_selection_except(ArdourCanvas::NoteBase* ev);
+	void clear_selection_except(NoteBase* ev);
 	void clear_selection() { clear_selection_except(NULL); }
 	void update_drag_selection(double last_x, double x, double last_y, double y);
 
-	void add_to_selection (ArdourCanvas::NoteBase*);
-	void remove_from_selection (ArdourCanvas::NoteBase*);
+	void add_to_selection (NoteBase*);
+	void remove_from_selection (NoteBase*);
 
 	uint8_t get_channel_for_add () const;
 
@@ -349,7 +351,7 @@ class MidiRegionView : public RegionView
 	/// MIDNAM information of the current track: CustomDeviceMode
 	std::string _custom_device_mode;
 
-	typedef std::list<ArdourCanvas::NoteBase*> Events;
+	typedef std::list<NoteBase*> Events;
 	typedef std::vector< boost::shared_ptr<ArdourCanvas::CanvasPatchChange> > PatchChanges;
 	typedef std::vector< boost::shared_ptr<ArdourCanvas::CanvasSysEx> > SysExes;
 
@@ -357,10 +359,10 @@ class MidiRegionView : public RegionView
 	Events                               _events;
 	PatchChanges                         _patch_changes;
 	SysExes                              _sys_exes;
-	ArdourCanvas::Note**           _active_notes;
+	Note**                               _active_notes;
 	ArdourCanvas::Group*                 _note_group;
 	ARDOUR::MidiModel::NoteDiffCommand*  _note_diff_command;
-	ArdourCanvas::Note*            _ghost_note;
+	Note*                                _ghost_note;
 	double                               _last_ghost_x;
 	double                               _last_ghost_y;
         double                               _drag_start_x;
@@ -371,7 +373,7 @@ class MidiRegionView : public RegionView
         ArdourCanvas::Rectangle*             _step_edit_cursor;
         Evoral::MusicalTime                  _step_edit_cursor_width;
         Evoral::MusicalTime                  _step_edit_cursor_position;
-	ArdourCanvas::NoteBase*	     _channel_selection_scoped_note;
+	NoteBase*	     _channel_selection_scoped_note;
 	
 
 	/** A group used to temporarily reparent _note_group to during start trims, so
@@ -382,7 +384,7 @@ class MidiRegionView : public RegionView
 	MouseState _mouse_state;
 	int _pressed_button;
 
-	typedef std::set<ArdourCanvas::NoteBase*> Selection;
+	typedef std::set<NoteBase*> Selection;
 	/// Currently selected NoteBases
 	Selection _selection;
 
@@ -404,11 +406,11 @@ class MidiRegionView : public RegionView
 	/** connection used to connect to model's ContentChanged signal */
 	PBD::ScopedConnection content_connection;
 
-	ArdourCanvas::NoteBase* find_canvas_note (boost::shared_ptr<NoteType>);
+	NoteBase* find_canvas_note (boost::shared_ptr<NoteType>);
 	Events::iterator _optimization_iterator;
 
-	void update_note (ArdourCanvas::Note *, bool update_ghost_regions = true);
-	double update_hit (ArdourCanvas::CanvasHit *);
+	void update_note (Note *, bool update_ghost_regions = true);
+	double update_hit (Hit *);
 	void create_ghost_note (double, double);
 	void update_ghost_note (double, double);
 
@@ -416,7 +418,7 @@ class MidiRegionView : public RegionView
 	bool no_sound_notes;
 
         PBD::ScopedConnection note_delete_connection;
-        void maybe_remove_deleted_note_from_selection (ArdourCanvas::NoteBase*);
+        void maybe_remove_deleted_note_from_selection (NoteBase*);
 
 	void snap_changed ();
 	PBD::ScopedConnection snap_changed_connection;

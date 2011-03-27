@@ -56,6 +56,8 @@ Item::~Item ()
 	if (_parent) {
 		_parent->remove (this);
 	}
+
+	_canvas->item_going_away (this);
 }
 
 Rect

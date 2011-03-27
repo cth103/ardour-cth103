@@ -1365,8 +1365,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	bool canvas_zoom_rect_event (GdkEvent* event,ArdourCanvas::Item*);
 	bool canvas_tempo_marker_event (GdkEvent* event,ArdourCanvas::Item*, TempoMarker*);
 	bool canvas_meter_marker_event (GdkEvent* event,ArdourCanvas::Item*, MeterMarker*);
-	bool canvas_automation_track_event(GdkEvent* event, ArdourCanvas::Item*, AutomationTimeAxisView*) ;
-	bool canvas_note_event (GdkEvent* event, ArdourCanvas::Item*);
+	bool canvas_automation_track_event(GdkEvent* event, ArdourCanvas::Item*, AutomationTimeAxisView*);
+	bool canvas_note_event (GdkEvent* event, ArdourCanvas::Item *);
 
 	bool canvas_tempo_bar_event (GdkEvent* event, ArdourCanvas::Item*);
 	bool canvas_meter_bar_event (GdkEvent* event, ArdourCanvas::Item*);

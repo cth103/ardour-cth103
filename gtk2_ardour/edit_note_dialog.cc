@@ -22,6 +22,7 @@
 #include "ardour/midi_model.h"
 #include "edit_note_dialog.h"
 #include "midi_region_view.h"
+#include "note_base.h"
 
 using namespace Gtk;
 
@@ -31,7 +32,7 @@ using namespace Gtk;
  *    @param n Note to edit.
  */
 
-EditNoteDialog::EditNoteDialog (MidiRegionView* rv, ArdourCanvas::NoteBase* ev)
+EditNoteDialog::EditNoteDialog (MidiRegionView* rv, NoteBase* ev)
 	: ArdourDialog (_("Note"))
 	, _region_view (rv)
 	, _event (ev)

@@ -9,7 +9,6 @@
 #include "evoral/Note.hpp"
 #include "ardour/midi_model.h"
 #include "canvas/item.h"
-#include "canvas/note.h"
 
 class MidiRegionView;
 
@@ -42,13 +41,6 @@ public:
 	}
 	
 	void set_height (double) {}
-};
-
-class NoEventCanvasNote : public Note {
-public:
-	NoEventCanvasNote (MidiRegionView& rv, Group* g, const boost::shared_ptr<Evoral::Note<ARDOUR::MidiModel::TimeType> > n)
-		: Note (rv, g, n) {}
-
 };
 
 class NoEventText : public Item {
@@ -104,18 +96,6 @@ public:
 	void set_state (XMLNode const *) {}
 	
 	CanvasSysEx (MidiRegionView &, Group *, std::string, double, double, double) : Item ((Group *) 0) {}
-};
-
-class CanvasHit : public NoteBase {
-public:
-	CanvasHit (MidiRegionView& rv, Group&, double, const boost::shared_ptr<Evoral::Note<ARDOUR::MidiModel::TimeType> > n) 
-		: NoteBase (rv, this, n) {}
-	
-	void set_height (double) {}
-	const boost::shared_ptr<Evoral::Note<ARDOUR::MidiModel::TimeType> > note () {
-		return boost::shared_ptr<Evoral::Note<ARDOUR::MidiModel::TimeType> > ();
-	}
-	void move_to (double, double) {}
 };
 
 class LineSet : public Item {

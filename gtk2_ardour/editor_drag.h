@@ -38,7 +38,6 @@ namespace PBD {
 }
 
 namespace ArdourCanvas {
-	class NoteBase;
 	class CanvasPatchChange;
 }
 
@@ -47,6 +46,7 @@ class EditorCursor;
 class TimeAxisView;
 class MidiTimeAxisView;
 class Drag;
+class NoteBase;
 
 /** Class to manage current drags */
 class DragManager
@@ -442,7 +442,7 @@ class NoteDrag : public Drag
 	int8_t total_dy () const;
 	
 	MidiRegionView* _region;
-	ArdourCanvas::NoteBase* _primary;
+	NoteBase* _primary;
 	double _cumulative_dx;
 	double _cumulative_dy;
 	bool _was_selected;

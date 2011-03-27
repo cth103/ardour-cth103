@@ -61,6 +61,7 @@
 #include "edit_note_dialog.h"
 #include "mouse_cursors.h"
 #include "editor_cursors.h"
+#include "note.h"
 
 #include "ardour/types.h"
 #include "ardour/profile.h"
@@ -712,7 +713,7 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 		case NoteItem:
 			if (internal_editing()) {
 				/* trim notes if we're in internal edit mode and near the ends of the note */
-				ArdourCanvas::Note* cn = dynamic_cast<ArdourCanvas::Note*> (item);
+				Note* cn = dynamic_cast<Note*> (item);
 				if (cn->big_enough_to_trim() && cn->mouse_near_ends()) {
 					_drags->set (new NoteResizeDrag (this, item), event, current_canvas_cursor);
 				} else {
@@ -762,7 +763,8 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 		switch (item_type) {
 		case NoteItem:
 			if (internal_editing()) {
-				ArdourCanvas::NoteBase* cn = dynamic_cast<ArdourCanvas::NoteBase*> (item);
+				NoteBase* cn = reinterpret_cast<NoteBase*> (item->get_data ("notebase"));
+				assert (cn);
 				if (cn->mouse_near_ends()) {
 					_drags->set (new NoteResizeDrag (this, item), event, current_canvas_cursor);
 				} else {
@@ -2098,7 +2100,7 @@ Editor::edit_control_point (ArdourCanvas::Item* item)
 void
 Editor::edit_note (ArdourCanvas::Item* item)
 {
-	ArdourCanvas::NoteBase* e = dynamic_cast<ArdourCanvas::NoteBase*> (item);
+	NoteBase* e = reinterpret_cast<NoteBase*> (item->get_data ("notebase"));
 	assert (e);
 
 	EditNoteDialog d (&e->region_view(), e);
@@ -2728,7 +2730,7 @@ Editor::effective_mouse_mode () const
 void
 Editor::remove_midi_note (ArdourCanvas::Item* item, GdkEvent *)
 {
-	ArdourCanvas::NoteBase* e = dynamic_cast<ArdourCanvas::NoteBase*> (item);
+	NoteBase* e = reinterpret_cast<NoteBase*> (item->get_data ("notebase"));
 	assert (e);
 
 	e->region_view().delete_note (e->note ());

@@ -90,7 +90,6 @@ Canvas::get_state ()
 	return tree;
 }
 
-
 GtkCanvas::GtkCanvas ()
 	: _current_item (0)
 	, _grabbed_item (0)
@@ -181,6 +180,14 @@ GtkCanvas::deliver_event (Duple point, GdkEvent* event)
 	return false;
 }
 
+void
+GtkCanvas::item_going_away (Item* item)
+{
+	if (_current_item == item) {
+		_current_item = 0;
+	}
+}
+
 ImageCanvas::ImageCanvas (Duple size)
 	: _surface (Cairo::ImageSurface::create (Cairo::FORMAT_ARGB32, size.x, size.y))
 {
@@ -210,7 +217,6 @@ ImageCanvas::write_to_png (string const & f)
 bool
 GtkCanvas::on_expose_event (GdkEventExpose* ev)
 {
-	cout << "GtkCanvas: exposed x=" << ev->area.x << " width=" << ev->area.width << "\n";
 	Cairo::RefPtr<Cairo::Context> c = get_window()->create_cairo_context ();
 	render (Rect (ev->area.x, ev->area.y, ev->area.x + ev->area.width, ev->area.y + ev->area.height), c);
 	return true;

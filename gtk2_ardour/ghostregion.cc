@@ -28,6 +28,7 @@
 #include "midi_streamview.h"
 #include "midi_time_axis.h"
 #include "rgb_macros.h"
+#include "note.h"
 
 using namespace std;
 using namespace Editing;
@@ -187,19 +188,19 @@ MidiGhostRegion::~MidiGhostRegion()
 	clear_events ();
 }
 
-MidiGhostRegion::Event::Event(ArdourCanvas::NoteBase* e)
+MidiGhostRegion::GhostEvent::GhostEvent (NoteBase* e)
 	: event(e)
 {
 	
 }
 
-MidiGhostRegion::Note::Note(ArdourCanvas::Note* n, ArdourCanvas::Group* g)
-	: Event (n)
+MidiGhostRegion::GhostNote::GhostNote (Note* n, ArdourCanvas::Group* g)
+	: GhostEvent (n)
 {
-	rect = new ArdourCanvas::Rectangle (g, ArdourCanvas::Rect (n->x1(), n->y1(), n->x2(), n->y2()));
+	rect = new ArdourCanvas::Rectangle (g, ArdourCanvas::Rect (n->x0(), n->y0(), n->x1(), n->y1()));
 }
 
-MidiGhostRegion::Note::~Note()
+MidiGhostRegion::GhostNote::~GhostNote()
 {
 	delete rect;
 }
@@ -232,13 +233,13 @@ MidiGhostRegion::set_height ()
 void
 MidiGhostRegion::set_colors()
 {
-	MidiGhostRegion::Note* note;
+	GhostNote* note;
 	guint fill = source_track_color(200);
 
 	GhostRegion::set_colors();
 
 	for (EventList::iterator it = events.begin(); it != events.end(); ++it) {
-		if ((note = dynamic_cast<MidiGhostRegion::Note*>(*it)) != 0) {
+		if ((note = dynamic_cast<GhostNote*>(*it)) != 0) {
 			note->rect->set_fill_color (fill);
 			note->rect->set_outline_color (ARDOUR_UI::config()->canvasvar_GhostTrackMidiOutline.get());
 		}
@@ -254,11 +255,11 @@ MidiGhostRegion::update_range ()
 		return;
 	}
 
-	MidiGhostRegion::Note* note;
+	GhostNote* note;
 	double const h = trackview.current_height() / double (mv->contents_note_range ());
 
 	for (EventList::iterator it = events.begin(); it != events.end(); ++it) {
-		if ((note = dynamic_cast<MidiGhostRegion::Note*>(*it)) != 0) {
+		if ((note = dynamic_cast<GhostNote*>(*it)) != 0) {
 			uint8_t const note_num = note->event->note()->note();
 
 			if (note_num < mv->lowest_note() || note_num > mv->highest_note()) {
@@ -274,10 +275,10 @@ MidiGhostRegion::update_range ()
 }
 
 void
-MidiGhostRegion::add_note(ArdourCanvas::Note* n)
+MidiGhostRegion::add_note (Note* n)
 {
-	Note* note = new Note(n, group);
-	events.push_back(note);
+	GhostNote* note = new GhostNote (n, group);
+	events.push_back (note);
 
 	note->rect->set_fill_color (source_track_color(200));
 	note->rect->set_outline_color (ARDOUR_UI::config()->canvasvar_GhostTrackMidiOutline.get());
@@ -311,19 +312,17 @@ MidiGhostRegion::clear_events()
  *  @param parent The Note from the parent MidiRegionView.
  */
 void
-MidiGhostRegion::update_note (ArdourCanvas::Note* parent)
+MidiGhostRegion::update_note (Note* parent)
 {
-	Event* ev = find_event (parent);
+	GhostEvent* ev = find_event (parent);
 	if (!ev) {
 		return;
 	}
 
-	Note* note = dynamic_cast<Note *> (ev);
+	GhostNote* note = dynamic_cast<GhostNote *> (ev);
 	if (note) {
-		double const x1 = parent->property_x1 ();
-		double const x2 = parent->property_x2 ();
-		note->rect->set_x0 (x1);
-		note->rect->set_x1 (x2);
+		note->rect->set_x0 (parent->x0 ());
+		note->rect->set_x1 (parent->x1 ());
 	}
 }
 
@@ -332,8 +331,8 @@ MidiGhostRegion::update_note (ArdourCanvas::Note* parent)
  *  @return Our Event, or 0 if not found.
  */
 
-MidiGhostRegion::Event *
-MidiGhostRegion::find_event (ArdourCanvas::Note* parent)
+MidiGhostRegion::GhostEvent *
+MidiGhostRegion::find_event (Note* parent)
 {
 	/* we are using _optimization_iterator to speed up the common case where a caller
 	   is going through our notes in order.

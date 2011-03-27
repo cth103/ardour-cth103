@@ -68,6 +68,8 @@
 #include "mouse_cursors.h"
 #include "patch_change_dialog.h"
 #include "ardour_ui.h"
+#include "note.h"
+#include "hit.h"
 
 #include "i18n.h"
 
@@ -1025,11 +1027,11 @@ MidiRegionView::redisplay_model()
 				cne->validate ();
 
 				Note* cn;
-				CanvasHit* ch;
+				Hit* ch;
 
 				if ((cn = dynamic_cast<Note*>(cne)) != 0) {
 					update_note (cn);
-				} else if ((ch = dynamic_cast<CanvasHit*>(cne)) != 0) {
+				} else if ((ch = dynamic_cast<Hit*>(cne)) != 0) {
 					update_hit (ch);
 				}
 
@@ -1265,13 +1267,13 @@ MidiRegionView::apply_note_range (uint8_t min, uint8_t max, bool force)
 
 		if (Note* cnote = dynamic_cast<Note*>(event)) {
 
-			const double y1 = midi_stream_view()->note_to_y(note->note());
-			const double y2 = y1 + floor(midi_stream_view()->note_height());
+			const double y0 = midi_stream_view()->note_to_y(note->note());
+			const double y1 = y1 + floor(midi_stream_view()->note_height());
 
-			cnote->property_y1() = y1;
-			cnote->property_y2() = y2;
+			cnote->set_y0 (y0);
+			cnote->set_y1 (y1);
 
-		} else if (CanvasHit* chit = dynamic_cast<CanvasHit*>(event)) {
+		} else if (Hit* chit = dynamic_cast<Hit*>(event)) {
 
 			const double diamond_size = update_hit (chit);
 
@@ -1352,7 +1354,7 @@ MidiRegionView::resolve_note(uint8_t note, double end_time)
 
 		const framepos_t end_time_frames = beats_to_frames(end_time);
 
-		_active_notes[note]->property_x2() = trackview.editor().frame_to_pixel(end_time_frames);
+		_active_notes[note]->set_x1 (trackview.editor().frame_to_pixel(end_time_frames));
 		_active_notes[note]->set_outline_what (0xf);
 		_active_notes[note] = 0;
 	}
@@ -1370,7 +1372,7 @@ MidiRegionView::extend_active_notes()
 
 	for (unsigned i=0; i < 128; ++i) {
 		if (_active_notes[i]) {
-			_active_notes[i]->property_x2() = trackview.editor().frame_to_pixel(_region->length());
+			_active_notes[i]->set_x1 (trackview.editor().frame_to_pixel(_region->length()));
 		}
 	}
 }
@@ -1449,16 +1451,16 @@ MidiRegionView::update_note (Note* ev, bool update_ghost_regions)
 	const double y1 = midi_stream_view()->note_to_y(note->note());
 	const double note_endpixel = trackview.editor().frame_to_pixel(note_end_frames - _region->start());
 
-	ev->property_x1() = x;
-	ev->property_y1() = y1;
+	ev->set_x0 (x);
+	ev->set_y0 (y1);
 	
 	if (note->length() > 0) {
-		ev->property_x2() = note_endpixel;
+		ev->set_x1 (note_endpixel);
 	} else {
-		ev->property_x2() = trackview.editor().frame_to_pixel(_region->length());
+		ev->set_x1 (trackview.editor().frame_to_pixel(_region->length()));
 	}
 	
-	ev->property_y2() = y1 + floor(midi_stream_view()->note_height());
+	ev->set_y1 (y1 + floor(midi_stream_view()->note_height()));
 
 	if (note->length() == 0) {
 		if (_active_notes) {
@@ -1468,16 +1470,16 @@ MidiRegionView::update_note (Note* ev, bool update_ghost_regions)
 			if (_active_notes[note->note()]) {
 				Note* const old_rect = _active_notes[note->note()];
 				boost::shared_ptr<NoteType> old_note = old_rect->note();
-				old_rect->property_x2() = x;
-				old_rect->property_outline_what() = (guint32) 0xF;
+				old_rect->set_x1 (x);
+				old_rect->set_outline_what (0xF);
 			}
 			_active_notes[note->note()] = ev;
 		}
 		/* outline all but right edge */
-		ev->property_outline_what() = (guint32) (0x1 & 0x4 & 0x8);
+		ev->set_outline_what (0x1 & 0x4 & 0x8);
 	} else {
 		/* outline all edges */
-		ev->property_outline_what() = (guint32) 0xF;
+		ev->set_outline_what (0xF);
 	}
 
 	if (update_ghost_regions) {
@@ -1491,7 +1493,7 @@ MidiRegionView::update_note (Note* ev, bool update_ghost_regions)
 }
 
 double
-MidiRegionView::update_hit (CanvasHit* ev)
+MidiRegionView::update_hit (Hit* ev)
 {
 	boost::shared_ptr<NoteType> note = ev->note();
 
@@ -1500,7 +1502,7 @@ MidiRegionView::update_hit (CanvasHit* ev)
 	const double diamond_size = midi_stream_view()->note_height() / 2.0;
 	const double y = midi_stream_view()->note_to_y(note->note()) + ((diamond_size-2) / 4.0);
 
-	ev->move_to (x, y);
+	ev->set_position (ArdourCanvas::Duple (x, y));
 
 	return diamond_size;
 }
@@ -1541,7 +1543,7 @@ MidiRegionView::add_note(const boost::shared_ptr<NoteType> note, bool visible)
 
 		const double diamond_size = midi_stream_view()->note_height() / 2.0;
 
-		CanvasHit* ev_diamond = new CanvasHit(*this, *_note_group, diamond_size, note);
+		Hit* ev_diamond = new Hit (*this, _note_group, diamond_size, note);
 
 		update_hit (ev_diamond);
 
@@ -2044,10 +2046,10 @@ MidiRegionView::update_drag_selection(double x1, double x2, double y1, double y2
 		     2) this does not require that events be sorted in time.
 		 */
 
-		const double ix1 = (*i)->x1();
-		const double ix2 = (*i)->x2();
-		const double iy1 = (*i)->y1();
-		const double iy2 = (*i)->y2();
+		const double ix1 = (*i)->x0();
+		const double ix2 = (*i)->x1();
+		const double iy1 = (*i)->y0();
+		const double iy2 = (*i)->y1();
 
 		if ((ix1 >= x1 && ix1 <= x2 && iy1 >= y1 && iy1 <= y2) ||
 		    (ix1 >= x1 && ix1 <= x2 && iy2 >= y1 && iy2 <= y2) ||
@@ -2280,11 +2282,11 @@ MidiRegionView::begin_resizing (bool /*at_front*/)
 		// only insert Notes into the map
 		if (note) {
 			NoteResizeData *resize_data = new NoteResizeData();
-			resize_data->canvas_note = note;
+			resize_data->note = note;
 
 			// create a new Rectangle from the note which will be the resize preview
 			Rectangle *resize_rect = new Rectangle(
-				_note_group, ArdourCanvas::Rect (note->x1(), note->y1(), note->x2(), note->y2()));
+				_note_group, ArdourCanvas::Rect (note->x0(), note->y0(), note->x1(), note->y1()));
 
 			// calculate the colors: get the color settings
 			uint32_t fill_color = UINT_RGBA_CHANGE_A(
@@ -2326,29 +2328,29 @@ MidiRegionView::update_resizing (NoteBase* primary, bool at_front, double delta_
 
 	for (std::vector<NoteResizeData *>::iterator i = _resize_data.begin(); i != _resize_data.end(); ++i) {
 		Rectangle* resize_rect = (*i)->resize_rect;
-		Note* canvas_note = (*i)->canvas_note;
+		Note* canvas_note = (*i)->note;
 		double current_x;
 
 		if (at_front) {
+			if (relative) {
+				current_x = canvas_note->x0() + delta_x;
+			} else {
+				current_x = primary->x0() + delta_x;
+			}
+		} else {
 			if (relative) {
 				current_x = canvas_note->x1() + delta_x;
 			} else {
 				current_x = primary->x1() + delta_x;
 			}
-		} else {
-			if (relative) {
-				current_x = canvas_note->x2() + delta_x;
-			} else {
-				current_x = primary->x2() + delta_x;
-			}
 		}
 
 		if (at_front) {
 			resize_rect->set_x0 (snap_to_pixel(current_x));
-			resize_rect->set_x1 (canvas_note->x2());
+			resize_rect->set_x1 (canvas_note->x1());
 		} else {
 			resize_rect->set_x1 (snap_to_pixel(current_x));
-			resize_rect->set_x0 (canvas_note->x1());
+			resize_rect->set_x0 (canvas_note->x0());
 		}
 
                 if (!cursor_set) {
@@ -2394,21 +2396,21 @@ MidiRegionView::commit_resizing (NoteBase* primary, bool at_front, double delta_
 	start_note_diff_command (_("resize notes"));
 
 	for (std::vector<NoteResizeData *>::iterator i = _resize_data.begin(); i != _resize_data.end(); ++i) {
-		Note*  canvas_note = (*i)->canvas_note;
+		Note*  canvas_note = (*i)->note;
 		Rectangle*  resize_rect = (*i)->resize_rect;
 		double current_x;
 
 		if (at_front) {
 			if (relative) {
-				current_x = canvas_note->x1() + delta_x;
+				current_x = canvas_note->x0() + delta_x;
 			} else {
-				current_x = primary->x1() + delta_x;
+				current_x = primary->x0() + delta_x;
 			}
 		} else {
 			if (relative) {
-				current_x = canvas_note->x2() + delta_x;
+				current_x = canvas_note->x1() + delta_x;
 			} else {
-				current_x = primary->x2() + delta_x;
+				current_x = primary->x1() + delta_x;
 			}
 		}
 
@@ -3162,8 +3164,10 @@ MidiRegionView::create_ghost_note (double x, double y)
 	_ghost_note = 0;
 
 	boost::shared_ptr<NoteType> g (new NoteType);
-	_ghost_note = new NoEventCanvasNote (*this, _note_group, g);
-	_ghost_note->property_outline_color_rgba() = 0x000000aa;
+	_ghost_note = new Note (*this, _note_group, g);
+	/* XXX: CANVAS */
+//	_ghost_note->set_ignore_events (true);
+	_ghost_note->set_outline_color (0x000000aa);
 	update_ghost_note (x, y);
 	_ghost_note->show ();
 

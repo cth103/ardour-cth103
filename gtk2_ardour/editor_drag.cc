@@ -53,6 +53,7 @@
 #include "debug.h"
 #include "editor_cursors.h"
 #include "mouse_cursors.h"
+#include "note_base.h"
 
 using namespace std;
 using namespace ARDOUR;
@@ -1424,7 +1425,8 @@ void
 NoteResizeDrag::start_grab (GdkEvent* event, Gdk::Cursor* /*ignored*/)
 {
 	Gdk::Cursor* cursor;
-	ArdourCanvas::NoteBase* cnote = dynamic_cast<ArdourCanvas::NoteBase*>(_item);
+	NoteBase* cnote = reinterpret_cast<NoteBase*> (_item->get_data ("notebase"));
+	assert (cnote);
 	float x_fraction = cnote->mouse_x_fraction ();
 
 	if (x_fraction > 0.0 && x_fraction < 0.25) {
@@ -1438,7 +1440,7 @@ NoteResizeDrag::start_grab (GdkEvent* event, Gdk::Cursor* /*ignored*/)
 	region = &cnote->region_view();
 
 	double const region_start = region->get_position_pixels();
-	double const middle_point = region_start + cnote->x1() + (cnote->x2() - cnote->x1()) / 2.0L;
+	double const middle_point = region_start + cnote->x0() + (cnote->x1() - cnote->x0()) / 2.0L;
 
 	if (grab_x() <= middle_point) {
 		cursor = _editor->cursors()->left_side_trim;
@@ -1482,7 +1484,9 @@ NoteResizeDrag::motion (GdkEvent* /*event*/, bool /*first_move*/)
 {
 	MidiRegionSelection& ms (_editor->get_selection().midi_regions);
 	for (MidiRegionSelection::iterator r = ms.begin(); r != ms.end(); ++r) {
-		(*r)->update_resizing (dynamic_cast<ArdourCanvas::NoteBase*>(_item), at_front, _drags->current_pointer_x() - grab_x(), relative);
+		NoteBase* nb = reinterpret_cast<NoteBase*> (_item->get_data ("notebase"));
+		assert (nb);
+		(*r)->update_resizing (nb, at_front, _drags->current_pointer_x() - grab_x(), relative);
 	}
 }
 
@@ -1491,7 +1495,9 @@ NoteResizeDrag::finished (GdkEvent*, bool /*movement_occurred*/)
 {
 	MidiRegionSelection& ms (_editor->get_selection().midi_regions);
 	for (MidiRegionSelection::iterator r = ms.begin(); r != ms.end(); ++r) {
-		(*r)->commit_resizing (dynamic_cast<ArdourCanvas::NoteBase*>(_item), at_front, _drags->current_pointer_x() - grab_x(), relative);
+		NoteBase* nb = reinterpret_cast<NoteBase*> (_item->get_data ("notebase"));
+		assert (nb);
+		(*r)->commit_resizing (nb, at_front, _drags->current_pointer_x() - grab_x(), relative);
 	}
 }
 
@@ -3758,7 +3764,8 @@ NoteDrag::NoteDrag (Editor* e, ArdourCanvas::Item* i)
 {
 	DEBUG_TRACE (DEBUG::Drags, "New NoteDrag\n");
 
-	_primary = dynamic_cast<NoteBase*> (_item);
+	_primary = reinterpret_cast<NoteBase*> (_item->get_data ("notebase"));
+	assert (_primary);
 	_region = &_primary->region_view ();
 	_note_height = _region->midi_stream_view()->note_height ();
 }
