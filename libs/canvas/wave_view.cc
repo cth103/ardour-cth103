@@ -21,7 +21,12 @@ WaveView::WaveView (Group* parent, boost::shared_ptr<ARDOUR::AudioRegion> region
 void
 WaveView::set_frames_per_pixel (double frames_per_pixel)
 {
+	begin_change ();
+	
 	_frames_per_pixel = frames_per_pixel;
+
+	_bounding_box_dirty = true;
+	end_change ();
 }
 
 Coord
