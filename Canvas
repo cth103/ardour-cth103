@@ -16,4 +16,3 @@ pixbufs for text?!
 merge GtkCanvas and GtkCanvasDrawingArea?
 Memory management
 AudioSource::available_peaks
-Hit/Note event handler can go into NoteBase
