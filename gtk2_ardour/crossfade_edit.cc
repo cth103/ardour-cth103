@@ -1161,13 +1161,9 @@ CrossfadeEditor::make_waves (boost::shared_ptr<AudioRegion> region, WhichFade wh
 		if (region->audio_source(n)->peaks_ready (boost::bind (&CrossfadeEditor::peaks_ready, this, boost::weak_ptr<AudioRegion>(region), which), &_peaks_ready_connection, gui_context())) {
 			ArdourCanvas::WaveView* waveview = new ArdourCanvas::WaveView (canvas->root(), region);
 
-			waveview->property_data_src() = region.get();
 			waveview->property_cache_updater() =  true;
 			waveview->property_cache() = ArdourCanvas::WaveView::create_cache();
 			waveview->set_channel (n);
-			waveview->property_length_function() = (void*) region_length_from_c;
-			waveview->property_sourcefile_length_function() = (void*) sourcefile_length_from_c;
-			waveview->property_peak_function() = (void*) region_read_peaks_from_c;
 			waveview->property_gain_function() = (void*) curve_get_vector_from_c;
 			waveview->property_gain_src() = static_cast<Evoral::Curve*>(&fade[which].gain_curve.curve());
 			waveview->set_x_position (canvas_border);

@@ -176,7 +176,6 @@ class AudioRegionView : public RegionView
 	void set_colors ();
 	void compute_colors (Gdk::Color const &);
 	void reset_width_dependent_items (double pixel_width);
-	void set_waveview_data_src();
 	void set_frame_color ();
 	
 	void color_handler ();

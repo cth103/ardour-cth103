@@ -245,12 +245,4 @@ class AudioRegion : public Region
 
 } /* namespace ARDOUR */
 
-/* access from C objects */
-
-extern "C" {
-	int    region_read_peaks_from_c   (void *arg, uint32_t npeaks, uint32_t start, uint32_t length, intptr_t data, uint32_t n_chan, double frames_per_pixel);
-	uint32_t region_length_from_c (void *arg);
-	uint32_t sourcefile_length_from_c (void *arg, double);
-}
-
 #endif /* __ardour_audio_region_h__ */

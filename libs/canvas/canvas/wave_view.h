@@ -33,14 +33,14 @@ public:
 	void set_height (Distance);
 	void set_channel (int);
 
+	/* XXX */
+	void rebuild () {}
+
 #ifdef CANVAS_COMPATIBILITY	
 	static GnomeCanvasWaveViewCache* create_cache () {
 		return 0;
 	}
 	
-	void*& property_data_src () {
-		return _foo_void;
-	}
 	void*& property_gain_src () {
 		return _foo_void;
 	}
@@ -49,15 +49,6 @@ public:
 	}
 	bool& property_cache_updater () {
 		return _foo_bool;
-	}
-	void*& property_length_function () {
-		return _foo_void;
-	}
-	void*& property_sourcefile_length_function () {
-		return _foo_void;
-	}
-	void*& property_peak_function () {
-		return _foo_void;
 	}
 	void*& property_gain_function () {
 		return _foo_void;

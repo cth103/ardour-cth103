@@ -1582,25 +1582,3 @@ AudioRegion::find_silence (Sample threshold, framecnt_t min_length, InterThreadI
 
 	return silent_periods;
 }
-
-
-
-extern "C" {
-
-	int region_read_peaks_from_c (void *arg, uint32_t npeaks, uint32_t start, uint32_t cnt, intptr_t data, uint32_t n_chan, double frames_per_pixel)
-{
-	return ((AudioRegion *) arg)->read_peaks ((PeakData *) data, (framecnt_t) npeaks, (framepos_t) start, (framecnt_t) cnt, n_chan,frames_per_pixel);
-}
-
-uint32_t region_length_from_c (void *arg)
-{
-
-	return ((AudioRegion *) arg)->length();
-}
-
-uint32_t sourcefile_length_from_c (void *arg, double zoom_factor)
-{
-	return ( (AudioRegion *) arg)->audio_source()->available_peaks (zoom_factor) ;
-}
-
-} /* extern "C" */

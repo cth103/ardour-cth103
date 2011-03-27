@@ -228,7 +228,11 @@ AudioRegionView::init (Gdk::Color const & basic_color, bool wfd)
 	region_sync_changed ();
 
 	region_resized (ARDOUR::bounds_change);
-	set_waveview_data_src();
+
+	for (vector<GhostRegion*>::iterator i = ghosts.begin(); i != ghosts.end(); ++i) {
+		(*i)->set_duration (_region->length() / frames_per_pixel);
+	}
+
 	region_locked ();
 	envelope_active_changed ();
 	fade_in_active_changed ();
@@ -359,8 +363,7 @@ AudioRegionView::region_scale_amplitude_changed ()
 	ENSURE_GUI_THREAD (*this, &AudioRegionView::region_scale_amplitude_changed)
 
 	for (uint32_t n = 0; n < waves.size(); ++n) {
-		// force a reload of the cache
-		waves[n]->property_data_src() = _region.get();
+		waves[n]->rebuild ();
 	}
 }
 
@@ -928,13 +931,9 @@ AudioRegionView::create_one_wave (uint32_t which, bool /*direct*/)
 
 	WaveView *wave = new WaveView (group, audio_region ());
 
-	wave->property_data_src() = (gpointer) _region.get();
 	wave->property_cache() =  wave_caches[which];
 	wave->property_cache_updater() = true;
 	wave->set_channel (which);
-	wave->property_length_function() = (gpointer) region_length_from_c;
-	wave->property_sourcefile_length_function() = (gpointer) sourcefile_length_from_c;
-	wave->property_peak_function() =  (gpointer) region_read_peaks_from_c;
 	wave->set_x_position (0);
 	wave->set_y_position (yoff);
 	wave->set_height (ht);
@@ -1175,13 +1174,9 @@ AudioRegionView::add_ghost (TimeAxisView& tv)
 
 		WaveView *wave = new WaveView (ghost->group, audio_region());
 
-		wave->property_data_src() = _region.get();
 		wave->property_cache() =  wave_caches[n];
 		wave->property_cache_updater() = false;
 		wave->set_channel (n);
-		wave->property_length_function() = (gpointer)region_length_from_c;
-		wave->property_sourcefile_length_function() = (gpointer) sourcefile_length_from_c;
-		wave->property_peak_function() =  (gpointer) region_read_peaks_from_c;
 		wave->set_x_position (0);
 		wave->set_frames_per_pixel (frames_per_pixel);
 		wave->property_amplitude_above_axis() =  _amplitude_above_axis;
@@ -1237,30 +1232,6 @@ AudioRegionView::envelope_active_changed ()
 	if (gain_line) {
 		gain_line->set_line_color (audio_region()->envelope_active() ? ARDOUR_UI::config()->canvasvar_GainLine.get() : ARDOUR_UI::config()->canvasvar_GainLineInactive.get());
 	}
-}
-
-void
-AudioRegionView::set_waveview_data_src()
-{
-	AudioGhostRegion* agr;
-	double unit_length= _region->length() / frames_per_pixel;
-
-	for (uint32_t n = 0; n < waves.size(); ++n) {
-		// TODO: something else to let it know the channel
-		waves[n]->property_data_src() = _region.get();
-	}
-
-	for (vector<GhostRegion*>::iterator i = ghosts.begin(); i != ghosts.end(); ++i) {
-
-		(*i)->set_duration (unit_length);
-
-		if((agr = dynamic_cast<AudioGhostRegion*>(*i)) != 0) {
-			for (vector<WaveView*>::iterator w = agr->waves.begin(); w != agr->waves.end(); ++w) {
-				(*w)->property_data_src() = _region.get();
-			}
-		}
-	}
-
 }
 
 void
