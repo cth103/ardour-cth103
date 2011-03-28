@@ -725,9 +725,11 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	ArdourCanvas::Group      *transport_marker_group;
 	ArdourCanvas::Group*      cd_marker_group;
 
-	ArdourCanvas::Group*      timebar_group;
+	/* parent for groups which themselves contain time bars */	
+	ArdourCanvas::Group*     _time_bars_group;
+	/* parent for groups which themselves contain time markers */
+	ArdourCanvas::Group*     _time_markers_group;
 
-	/* These bars never need to be scrolled */
 	ArdourCanvas::Group*      meter_bar_group;
 	ArdourCanvas::Group*      tempo_bar_group;
 	ArdourCanvas::Group*      marker_bar_group;
@@ -939,6 +941,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	Gtk::Table          edit_packer;
 
+	/** the adjustment that controls the overall editor vertical scroll position */
 	Gtk::Adjustment     vertical_adjustment;
         
 	Gtk::Layout         controls_layout;
@@ -986,7 +989,6 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void tie_vertical_scrolling ();
 	void set_horizontal_position (double);
 	double horizontal_position () const;
-	void scroll_canvas_vertically ();
 
 	struct VisualChange {
 		enum Type {
