@@ -287,6 +287,20 @@ Item::canvas_to_item (Coord& x, Coord& y) const
 	y = d.y;
 }
 
+Rect
+Item::item_to_canvas (Rect const & area) const
+{
+	Rect r = area;
+	Item const * i = this;
+
+	while (i) {
+		r = i->item_to_parent (area);
+		i = i->parent ();
+	}
+
+	return r;
+}
+
 void
 Item::set_ignore_events (bool ignore)
 {

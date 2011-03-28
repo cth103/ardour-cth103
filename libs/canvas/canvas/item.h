@@ -87,6 +87,7 @@ public:
 	*/
 	void canvas_to_item (Coord &, Coord &) const;
 	void item_to_canvas (Coord &, Coord &) const;
+	Rect item_to_canvas (Rect const &) const;
 
 	void raise_to_top ();
 	void raise (int);
