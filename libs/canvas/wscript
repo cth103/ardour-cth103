@@ -99,7 +99,9 @@ def build(bld):
 		unit_testobj              = bld.new_task_gen('cxx', 'program')
 		unit_testobj.source       = '''
 			test/group.cc
+			test/arrow.cc
 			test/lookup_table.cc
+			test/polygon.cc
 			test/types.cc
 			test/render.cc
 			test/xml.cc

@@ -124,13 +124,15 @@ Arrow::set_head_width (int which, Distance width)
 	end_change ();
 }
 
-/** Set the width of our line.
+/** Set the width of our line, and the outline of our arrow(s).
  *  @param width New width in pixels.
  */
 void
 Arrow::set_outline_width (Distance width)
 {
 	_line->set_outline_width (width);
+	_heads[0].polygon->set_outline_width (width);
+	_heads[1].polygon->set_outline_width (width);
 }
 
 /** Set the x position of our line.

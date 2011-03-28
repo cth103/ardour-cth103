@@ -59,7 +59,12 @@ PolyItem::render_path (Rect const & area, Cairo::RefPtr<Cairo::Context> context)
 void
 PolyItem::set (Points const & points)
 {
+	begin_change ();
+	
 	_points = points;
+	
+	_bounding_box_dirty = true;
+	end_change ();
 }
 
 Points const &
