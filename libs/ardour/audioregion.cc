@@ -322,6 +322,14 @@ AudioRegion::set_envelope_active (bool yn)
 	}
 }
 
+/** @param buf Buffer to put peak data in.
+ *  @param npeaks Number of peaks to read (ie the number of PeakDatas in buf)
+ *  @param offset Start position, as an offset from the start of this region's source.
+ *  @param cnt Number of samples to read.
+ *  @param chan_n Channel.
+ *  @param frames_per_pixel Number of samples to use to generate one peak value.
+ */
+ 
 ARDOUR::framecnt_t
 AudioRegion::read_peaks (PeakData *buf, framecnt_t npeaks, framecnt_t offset, framecnt_t cnt, uint32_t chan_n, double frames_per_pixel) const
 {

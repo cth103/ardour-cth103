@@ -53,7 +53,7 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 	uint32_t const npeaks = ceil ((end - start) / _frames_per_pixel);
 
 	PeakData* buf = new PeakData[npeaks];
-	_region->read_peaks (buf, npeaks, start + _region->position(), end - start, _channel, _frames_per_pixel);
+	_region->read_peaks (buf, npeaks, start + _region->start(), end - start, _channel, _frames_per_pixel);
 
 	setup_outline_context (context);
 	context->move_to (area.x0, area.y0);
