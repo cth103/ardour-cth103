@@ -11,6 +11,7 @@ Text::Text (Group* parent)
 	: Item (parent)
 	, _font_description (0)
 	, _color (0x000000ff)
+	, _alignment (Pango::ALIGN_LEFT)
 {
 
 }
