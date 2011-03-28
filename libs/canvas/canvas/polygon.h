@@ -7,7 +7,7 @@
 
 namespace ArdourCanvas {
 
-class Polygon : public PolyItem, public Outline, public Fill
+class Polygon : public PolyItem, public Fill
 {
 public:
 	Polygon (Group *);

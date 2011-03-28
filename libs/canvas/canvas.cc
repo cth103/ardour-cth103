@@ -75,6 +75,18 @@ Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context
 	}
 }
 
+/** Called when an item has been shown or hidden.
+ *  @param item Item that has been shown or hidden.
+ */
+void
+Canvas::item_shown_or_hidden (Item* item)
+{
+	boost::optional<Rect> bbox = item->bounding_box ();
+	if (bbox) {
+		queue_draw_item_area (item, bbox.get ());
+	}
+}
+
 /** Called when an item has changed, but not moved.
  *  @param item Item that has changed.
  *  @param pre_change_bounding_box The bounding box of item before the change,

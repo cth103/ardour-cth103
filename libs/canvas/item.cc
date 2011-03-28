@@ -122,12 +122,14 @@ void
 Item::hide ()
 {
 	_visible = false;
+	_canvas->item_shown_or_hidden (this);
 }
 
 void
 Item::show ()
 {
 	_visible = true;
+	_canvas->item_shown_or_hidden (this);
 }
 
 Duple

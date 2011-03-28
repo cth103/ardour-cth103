@@ -2,10 +2,11 @@
 #define __CANVAS_POLY_ITEM_H__
 
 #include "canvas/item.h"
+#include "canvas/outline.h"
 
 namespace ArdourCanvas {
 
-class PolyItem : virtual public Item
+class PolyItem : virtual public Item, public Outline
 {
 public:
 	PolyItem (Group *);

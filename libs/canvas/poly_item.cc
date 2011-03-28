@@ -8,6 +8,7 @@ using namespace ArdourCanvas;
 
 PolyItem::PolyItem (Group* parent)
 	: Item (parent)
+	, Outline (parent)
 {
 
 }
@@ -35,7 +36,7 @@ PolyItem::compute_bounding_box () const
 	if (!have_one) {
 		_bounding_box = boost::optional<Rect> ();
 	} else {
-		_bounding_box = bbox;
+		_bounding_box = bbox.expand (_outline_width / 2);
 	}
 	
 	_bounding_box_dirty = false;
