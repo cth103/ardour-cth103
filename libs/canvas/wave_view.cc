@@ -74,6 +74,8 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 		context->line_to (area.x0 + i, min_position (buf[i].min) + 1);
 		context->stroke ();
 	}
+
+	delete[] buf;
 }
 
 void
