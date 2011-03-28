@@ -104,6 +104,7 @@ def build(bld):
 			test/render.cc
 			test/xml.cc
 			test/wave_view.cc
+			test/item.cc
 			test/testrunner.cpp
 		'''.split()
 		unit_testobj.includes     = obj.includes + ['test', '../pbd']

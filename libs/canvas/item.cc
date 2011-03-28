@@ -294,7 +294,7 @@ Item::item_to_canvas (Rect const & area) const
 	Item const * i = this;
 
 	while (i) {
-		r = i->item_to_parent (area);
+		r = i->item_to_parent (r);
 		i = i->parent ();
 	}
 
