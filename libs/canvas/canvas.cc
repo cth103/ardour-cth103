@@ -183,52 +183,84 @@ GtkCanvas::button_handler (GdkEventButton* ev)
 	return deliver_event (Duple (ev->x, ev->y), reinterpret_cast<GdkEvent*> (ev));
 }
 
+/** Send a GTK leave event to an item.
+ *  @param item Item; can be 0, in which case no event is sent.
+ *  @param x Event x position.
+ *  @param y Event x position.
+ *  @return Item's response.
+ */
+bool
+GtkCanvas::send_leave_event (Item const * item, double x, double y) const
+{
+	if (!item) {
+		return false;
+	}
+	
+	GdkEventCrossing leave_event;
+	leave_event.type = GDK_LEAVE_NOTIFY;
+	leave_event.x = x;
+	leave_event.y = y;
+	return item->Event (reinterpret_cast<GdkEvent*> (&leave_event));
+}
+
 /** Handler for pointer motion events on the canvas.
  *  @param ev GDK event.
+ *  @return true if the motion event was handled, otherwise false.
  */
 bool
 GtkCanvas::motion_notify_handler (GdkEventMotion* ev)
 {
+	if (_grabbed_item) {
+		/* if we have a grabbed item, it gets just the motion event,
+		   since no enter/leave events can have happened.
+		*/
+		return _grabbed_item->Event (reinterpret_cast<GdkEvent*> (ev));
+	}
+
 	Duple point (ev->x, ev->y);
 
 	/* find the items at the new mouse position */
 	vector<Item const *> items;
 	_root.add_items_at_point (point, items);
 
-	/* pick the uppermost one */
-	Item const * new_item = items.empty () ? 0 : items.back ();
-
-	if (new_item != _current_item) {
-		/* we've moved from one item to another; we need to generate
-		   appropriate enter and leave events.
-		*/
-		
-		GdkEventCrossing synth_event;
-
+	if (items.empty ()) {
 		if (_current_item) {
-			/* out with the old */
-			synth_event.type = GDK_LEAVE_NOTIFY;
-			synth_event.x = ev->x;
-			synth_event.y = ev->y;
-			_current_item->Event (reinterpret_cast<GdkEvent*> (&synth_event));
+			_current_item = 0;
+			send_leave_event (_current_item, ev->x, ev->y);
+			/* motion event was not handled */
+			return false;
+		}
+	}
+
+	/* make up an enter event */
+	GdkEventCrossing enter_event;
+	enter_event.type = GDK_ENTER_NOTIFY;
+	enter_event.x = ev->x;
+	enter_event.y = ev->y;
+	
+	/* run through from top to bottom to see if any items are interested in the event */
+	for (vector<Item const *>::reverse_iterator i = items.rbegin(); i != items.rend(); ++i) {
+
+		if (*i == _current_item) {
+			/* we're still over the item we last entered, so all is well */
+			break;
 		}
 
-		if (new_item) {
-			/* and in with the new */
-			synth_event.type = GDK_ENTER_NOTIFY;
-			synth_event.x = ev->x;
-			synth_event.y = ev->y;
-			new_item->Event (reinterpret_cast<GdkEvent*> (&synth_event));
+		if ((*i)->Event (reinterpret_cast<GdkEvent*> (&enter_event))) {
+			/* enter event was handled, so send a leave event if appropriate */
+			send_leave_event (_current_item, ev->x, ev->y);
+			/* and we have a new current item */
+			_current_item = *i;
+			break;
 		}
-
-		_current_item = new_item;
 	}
 
 	/* now deliver the motion event */
-	return deliver_event (point, reinterpret_cast<GdkEvent*> (ev));
+	return deliver_event (point, reinterpret_cast<GdkEvent*> (ev), items);
 }
 
-/** Deliver an event to the appropriate Item.
+/** Deliver an event to the appropriate item; either the grabbed item, or
+ *  one of the items underneath the event.
  *  @param point Position that the event has occurred at, in canvas coordinates.
  *  @param event The event.
  */
@@ -248,8 +280,19 @@ GtkCanvas::deliver_event (Duple point, GdkEvent* event)
 		return false;
 	}
 
+	return deliver_event (point, event, items);
+}
+
+/** Deliver an event to the appropriate item from a list.
+ *  @param point Position that the event has occurred at, in canvas coordinates.
+ *  @param event The event.
+ *  @param items Items underneath the event.
+ */
+bool
+GtkCanvas::deliver_event (Duple point, GdkEvent* event, vector<Item const *> const & items)
+{
 	/* run through the items under the event, from top to bottom, until one claims the event */
-	vector<Item const *>::reverse_iterator i = items.rbegin ();
+	vector<Item const *>::const_reverse_iterator i = items.rbegin ();
 	while (i != items.rend()) {
 		if (!(*i)->ignore_events () && (*i)->Event (event)) {
 			/* this item is not set to ignore events, and it has just handled it */

@@ -147,9 +147,11 @@ protected:
 	bool button_handler (GdkEventButton *);
 	bool motion_notify_handler (GdkEventMotion *);
 	bool deliver_event (Duple, GdkEvent *);
+	bool deliver_event (Duple, GdkEvent *, std::vector<Item const *> const &);
 
 private:
 	void item_going_away (Item *);
+	bool send_leave_event (Item const *, double, double) const;
 
 	/** the item that the mouse is currently over, or 0 */
 	Item const * _current_item;

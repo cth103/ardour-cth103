@@ -81,8 +81,7 @@ private:
 	ARDOUR::framepos_t _foo_framepos;
 #endif
 
-	Coord max_position (float) const;
-	Coord min_position (float) const;
+	Coord position (float) const;
 
 	boost::shared_ptr<ARDOUR::AudioRegion> _region;
 	int _channel;
