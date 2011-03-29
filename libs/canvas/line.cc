@@ -114,7 +114,9 @@ Line::get_state () const
 {
 	XMLNode* node = new XMLNode ("Line");
 #ifdef CANVAS_DEBUG
-	node->add_property ("name", name);
+	if (!name.empty ()) {
+		node->add_property ("name", name);
+	}
 #endif	
 	node->add_property ("x0", string_compose ("%1", _points[0].x));
 	node->add_property ("y0", string_compose ("%1", _points[0].y));

@@ -36,7 +36,9 @@ Polygon::get_state () const
 {
 	XMLNode* node = new XMLNode ("Polygon");
 #ifdef CANVAS_DEBUG
-	node->add_property ("name", name);
+	if (!name.empty ()) {
+		node->add_property ("name", name);
+	}
 #endif	
 	add_poly_item_state (node);
 	add_outline_state (node);

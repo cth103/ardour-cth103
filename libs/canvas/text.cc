@@ -72,7 +72,9 @@ Text::get_state () const
 {
 	XMLNode* node = new XMLNode ("Text");
 #ifdef CANVAS_DEBUG
-	node->add_property ("name", name);
+	if (!name.empty ()) {
+		node->add_property ("name", name);
+	}
 #endif
 	return node;
 }

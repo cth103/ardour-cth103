@@ -163,7 +163,9 @@ Rectangle::get_state () const
 {
 	XMLNode* node = new XMLNode ("Rectangle");
 #ifdef CANVAS_DEBUG
-	node->add_property ("name", name);
+	if (!name.empty ()) {
+		node->add_property ("name", name);
+	}
 #endif	
 	node->add_property ("x0", string_compose ("%1", _rect.x0));
 	node->add_property ("y0", string_compose ("%1", _rect.y0));
