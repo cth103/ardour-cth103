@@ -176,13 +176,12 @@ LookupTable::get (Rect const & area)
 	for (int x = x0; x < x1; ++x) {
 		for (int y = y0; y < y1; ++y) {
 			for (Cell::const_iterator i = _cells[x][y].begin(); i != _cells[x][y].end(); ++i) {
-				items.push_back (*i);
+				if (find (items.begin(), items.end(), *i) == items.end ()) {
+					items.push_back (*i);
+				}
 			}
 		}
 	}
-
-	items.sort ();
-	items.unique ();
 
 	vector<Item*> vitems;
 	copy (items.begin (), items.end (), back_inserter (vitems));

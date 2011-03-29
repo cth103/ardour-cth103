@@ -41,6 +41,8 @@ protected:
 	explicit Group (Canvas *);
 	
 private:
+	friend class ::LookupTableTest;
+	
 	Group (Group const &);
 	void ensure_lut () const;
 	void invalidate_lut () const;
