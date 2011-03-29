@@ -7,7 +7,9 @@ using namespace ArdourCanvas;
 RootGroup::RootGroup (Canvas* canvas)
 	: Group (canvas)
 {
-
+#ifdef CANVAS_DEBUG
+	name = "ROOT";
+#endif	
 }
 
 void
