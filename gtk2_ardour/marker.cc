@@ -271,7 +271,7 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 
 	name_pixbuf = new ArdourCanvas::Pixbuf (group);
 #ifdef CANVAS_DEBUG
-	mark->name = string_compose ("Marker::name_pixbuf for %1", annotation);
+	name_pixbuf->name = string_compose ("Marker::name_pixbuf for %1", annotation);
 #endif	
 	name_pixbuf->set_position (ArdourCanvas::Duple (_label_offset, 13 / 2 - name_height / 2));
 
@@ -279,11 +279,10 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 
 	editor.ZoomChanged.connect (sigc::mem_fun (*this, &Marker::reposition));
 
-	mark->set_data ("marker", this);
-	_name_background->set_data ("marker", this);
+	group->set_data ("marker", this);
 
 	if (handle_events) {
-		group->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_marker_event), mark, this));
+		group->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_marker_event), group, this));
 	}
 
 }
