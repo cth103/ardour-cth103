@@ -47,7 +47,7 @@ const uint32_t NoteBase::midi_channel_colors[16] = {
 NoteBase::NoteBase(MidiRegionView& region, bool with_events, const boost::shared_ptr<NoteType> note)
 	: _region(region)
 	, _item (0)
-//	, _text(0)
+	, _text(0)
 //	, _channel_selector_widget()
 	, _state(None)
 	, _note(note)

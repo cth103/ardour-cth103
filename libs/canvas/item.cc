@@ -53,11 +53,11 @@ Item::init ()
 
 Item::~Item ()
 {
+	_canvas->item_going_away (this, _bounding_box);
+	
 	if (_parent) {
 		_parent->remove (this);
 	}
-
-	_canvas->item_going_away (this);
 }
 
 Rect

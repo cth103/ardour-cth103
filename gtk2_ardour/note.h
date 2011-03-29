@@ -59,6 +59,8 @@ public:
 	void show ();
 	void hide ();
 
+	void set_ignore_events (bool);
+
 	void move_event (double dx, double dy);
 
 private:

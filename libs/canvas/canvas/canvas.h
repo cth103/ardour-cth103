@@ -75,7 +75,7 @@ public:
 	}
 
 	/** Called when an item is being destroyed */
-	virtual void item_going_away (Item *) {}
+	virtual void item_going_away (Item *, boost::optional<Rect>) {}
 	void item_shown_or_hidden (Item *);
 	void item_changed (Item *, boost::optional<Rect>);
 	void item_moved (Item *, boost::optional<Rect>);
@@ -85,11 +85,10 @@ public:
 	virtual Cairo::RefPtr<Cairo::Context> context () = 0;
 
 protected:
+	void queue_draw_item_area (Item *, Rect);
+	
 	/** our root group */
 	RootGroup _root;
-	
-private:
-	void queue_draw_item_area (Item *, Rect);
 };
 
 /** A Canvas which renders onto an in-memory pixbuf.  In Ardour's context,
@@ -147,10 +146,9 @@ protected:
 	bool button_handler (GdkEventButton *);
 	bool motion_notify_handler (GdkEventMotion *);
 	bool deliver_event (Duple, GdkEvent *);
-	bool deliver_event (Duple, GdkEvent *, std::vector<Item const *> const &);
 
 private:
-	void item_going_away (Item *);
+	void item_going_away (Item *, boost::optional<Rect>);
 	bool send_leave_event (Item const *, double, double) const;
 
 	/** the item that the mouse is currently over, or 0 */

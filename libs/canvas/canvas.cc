@@ -246,6 +246,10 @@ GtkCanvas::motion_notify_handler (GdkEventMotion* ev)
 			break;
 		}
 
+		if ((*i)->ignore_events ()) {
+			continue;
+		}
+
 		if ((*i)->Event (reinterpret_cast<GdkEvent*> (&enter_event))) {
 			/* enter event was handled, so send a leave event if appropriate */
 			send_leave_event (_current_item, ev->x, ev->y);
@@ -255,8 +259,12 @@ GtkCanvas::motion_notify_handler (GdkEventMotion* ev)
 		}
 	}
 
-	/* now deliver the motion event */
-	return deliver_event (point, reinterpret_cast<GdkEvent*> (ev), items);
+	/* Now deliver the motion event.  It may seem a little inefficient
+	   to recompute the items under the event, but the enter notify/leave
+	   events may have deleted canvas items so it is important to
+	   recompute the list in deliver_event.
+	*/
+	return deliver_event (point, reinterpret_cast<GdkEvent*> (ev));
 }
 
 /** Deliver an event to the appropriate item; either the grabbed item, or
@@ -275,27 +283,13 @@ GtkCanvas::deliver_event (Duple point, GdkEvent* event)
 	/* find the items that exist at the event's position */
 	vector<Item const *> items;
 	_root.add_items_at_point (point, items);
-	if (items.empty()) {
-		/* no items under the event */
-		return false;
-	}
 
-	return deliver_event (point, event, items);
-}
-
-/** Deliver an event to the appropriate item from a list.
- *  @param point Position that the event has occurred at, in canvas coordinates.
- *  @param event The event.
- *  @param items Items underneath the event.
- */
-bool
-GtkCanvas::deliver_event (Duple point, GdkEvent* event, vector<Item const *> const & items)
-{
 	/* run through the items under the event, from top to bottom, until one claims the event */
 	vector<Item const *>::const_reverse_iterator i = items.rbegin ();
 	while (i != items.rend()) {
 
 		if ((*i)->ignore_events ()) {
+			++i;
 			continue;
 		}
 
@@ -328,10 +322,17 @@ GtkCanvas::deliver_event (Duple point, GdkEvent* event, vector<Item const *> con
 	return false;
 }
 
-/** Called when an item is being destroyed */
+/** Called when an item is being destroyed.
+ *  @param item Item being destroyed.
+ *  @param bounding_box Last known bounding box of the item.
+ */
 void
-GtkCanvas::item_going_away (Item* item)
+GtkCanvas::item_going_away (Item* item, boost::optional<Rect> bounding_box)
 {
+	if (bounding_box) {
+		queue_draw_item_area (item, bounding_box.get ());
+	}
+	
 	if (_current_item == item) {
 		_current_item = 0;
 	}

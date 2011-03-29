@@ -67,7 +67,8 @@ Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) con
 void
 Rectangle::compute_bounding_box () const
 {
-	_bounding_box = boost::optional<Rect> (_rect.expand (_outline_width / 2));
+	Rect r = _rect.fix ();
+	_bounding_box = boost::optional<Rect> (r.expand (_outline_width / 2));
 	
 	_bounding_box_dirty = false;
 }
@@ -82,7 +83,6 @@ Rectangle::set (Rect const & r)
 	begin_change ();
 	
 	_rect = r;
-	fix_rect ();
 	
 	_bounding_box_dirty = true;
 	end_change ();
@@ -96,7 +96,6 @@ Rectangle::set_x0 (Coord x0)
 	begin_change ();
 
 	_rect.x0 = x0;
-	fix_rect ();
 
 	_bounding_box_dirty = true;
 	end_change ();
@@ -110,7 +109,6 @@ Rectangle::set_y0 (Coord y0)
 	begin_change ();
 	
 	_rect.y0 = y0;
-	fix_rect ();
 
 	_bounding_box_dirty = true;
 	end_change();
@@ -124,7 +122,6 @@ Rectangle::set_x1 (Coord x1)
 	begin_change ();
 	
 	_rect.x1 = x1;
-	fix_rect ();
 
 	_bounding_box_dirty = true;
 	end_change ();
@@ -138,7 +135,6 @@ Rectangle::set_y1 (Coord y1)
 	begin_change ();
 
 	_rect.y1 = y1;
-	fix_rect ();
 
 	_bounding_box_dirty = true;
 	end_change ();
@@ -160,19 +156,6 @@ void
 Rectangle::set_outline_what (int what)
 {
 	set_outline_what ((What) what);
-}
-
-void
-Rectangle::fix_rect ()
-{
-	Rect r;
-	
-	r.x0 = min (_rect.x0, _rect.x1);
-	r.y0 = min (_rect.y0, _rect.y1);
-	r.x1 = max (_rect.x0, _rect.x1);
-	r.y1 = max (_rect.y0, _rect.y1);
-
-	_rect = r;
 }
 
 XMLNode *

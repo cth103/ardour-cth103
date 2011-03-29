@@ -64,6 +64,7 @@ struct Rect
 	Rect translate (Duple) const;
 	Rect expand (Distance) const;
 	bool contains (Duple) const;
+	Rect fix () const;
 
 	Distance width () const {
 		return x1 - x0;

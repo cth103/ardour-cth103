@@ -70,6 +70,19 @@ Rect::contains (Duple point) const
 	return point.x >= x0 && point.x <= x1 && point.y >= y0 && point.y <= y1;
 }
 
+Rect
+Rect::fix () const
+{
+	Rect r;
+	
+	r.x0 = min (x0, x1);
+	r.y0 = min (y0, y1);
+	r.x1 = max (x0, x1);
+	r.y1 = max (y0, y1);
+
+	return r;
+}
+
 Duple
 ArdourCanvas::operator- (Duple const & o)
 {
