@@ -184,26 +184,6 @@ GtkCanvas::button_handler (GdkEventButton* ev)
 	return deliver_event (Duple (ev->x, ev->y), reinterpret_cast<GdkEvent*> (ev));
 }
 
-/** Send a GTK leave event to an item.
- *  @param item Item; can be 0, in which case no event is sent.
- *  @param x Event x position.
- *  @param y Event x position.
- *  @return Item's response.
- */
-bool
-GtkCanvas::send_leave_event (Item const * item, double x, double y) const
-{
-	if (!item) {
-		return false;
-	}
-	
-	GdkEventCrossing leave_event;
-	leave_event.type = GDK_LEAVE_NOTIFY;
-	leave_event.x = x;
-	leave_event.y = y;
-	return item->Event (reinterpret_cast<GdkEvent*> (&leave_event));
-}
-
 /** Handler for pointer motion events on the canvas.
  *  @param ev GDK event.
  *  @return true if the motion event was handled, otherwise false.
@@ -225,41 +205,27 @@ GtkCanvas::motion_notify_handler (GdkEventMotion* ev)
 	vector<Item const *> items;
 	_root.add_items_at_point (point, items);
 
-	if (items.empty ()) {
-		if (_current_item) {
-			_current_item = 0;
-			send_leave_event (_current_item, ev->x, ev->y);
-			/* motion event was not handled */
-			return false;
-		}
+	Item const * new_item = items.empty() ? 0 : items.back ();
+
+	if (_current_item && _current_item != new_item) {
+		/* leave event */
+		GdkEventCrossing leave_event;
+		leave_event.type = GDK_LEAVE_NOTIFY;
+		leave_event.x = ev->x;
+		leave_event.y = ev->y;
+		_current_item->Event (reinterpret_cast<GdkEvent*> (&leave_event));
 	}
 
-	/* make up an enter event */
-	GdkEventCrossing enter_event;
-	enter_event.type = GDK_ENTER_NOTIFY;
-	enter_event.x = ev->x;
-	enter_event.y = ev->y;
-	
-	/* run through from top to bottom to see if any items are interested in the event */
-	for (vector<Item const *>::reverse_iterator i = items.rbegin(); i != items.rend(); ++i) {
-
-		if (*i == _current_item) {
-			/* we're still over the item we last entered, so all is well */
-			break;
-		}
-
-		if ((*i)->ignore_events ()) {
-			continue;
-		}
-
-		if ((*i)->Event (reinterpret_cast<GdkEvent*> (&enter_event))) {
-			/* enter event was handled, so send a leave event if appropriate */
-			send_leave_event (_current_item, ev->x, ev->y);
-			/* and we have a new current item */
-			_current_item = *i;
-			break;
-		}
+	if (new_item && _current_item != new_item) {
+		/* enter event */
+		GdkEventCrossing enter_event;
+		enter_event.type = GDK_ENTER_NOTIFY;
+		enter_event.x = ev->x;
+		enter_event.y = ev->y;
+		new_item->Event (reinterpret_cast<GdkEvent*> (&enter_event));
 	}
+
+	_current_item = new_item;
 
 	/* Now deliver the motion event.  It may seem a little inefficient
 	   to recompute the items under the event, but the enter notify/leave
