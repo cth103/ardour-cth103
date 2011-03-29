@@ -1,4 +1,5 @@
 #include <sys/time.h>
+#include <pangomm/init.h>
 #include "pbd/xml++.h"
 #include "pbd/compose.h"
 #include "canvas/canvas.h"
@@ -13,6 +14,8 @@ int main (int argc, char* argv[])
 		cerr << "Syntax: session <session-name>\n";
 		exit (EXIT_FAILURE);
 	}
+
+	Pango::init ();
 
 	string path = string_compose ("../../libs/canvas/benchmark/sessions/%1.xml", argv[1]);
 	
