@@ -40,7 +40,7 @@ Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) con
 
 	if (_outline) {
 		if (_outline_what & LEFT) {
-			context->move_to (_rect.x0, _rect.x0);
+			context->move_to (_rect.x0, _rect.y0);
 			context->line_to (_rect.x0, _rect.y1);
 		}
 		
