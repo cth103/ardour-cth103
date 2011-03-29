@@ -294,9 +294,13 @@ GtkCanvas::deliver_event (Duple point, GdkEvent* event, vector<Item const *> con
 	/* run through the items under the event, from top to bottom, until one claims the event */
 	vector<Item const *>::const_reverse_iterator i = items.rbegin ();
 	while (i != items.rend()) {
-		if (!(*i)->ignore_events () && (*i)->Event (event)) {
-			/* this item is not set to ignore events, and it has just handled it */
 
+		if ((*i)->ignore_events ()) {
+			continue;
+		}
+
+		if ((*i)->Event (event)) {
+			/* this item has just handled the event */
 			DEBUG_TRACE (
 				PBD::DEBUG::CanvasEvents,
 				string_compose ("canvas event handled by %1\n", (*i)->name.empty() ? "[unknown]" : (*i)->name)
@@ -304,7 +308,7 @@ GtkCanvas::deliver_event (Duple point, GdkEvent* event, vector<Item const *> con
 			
 			return true;
 		}
-
+		
 		DEBUG_TRACE (
 			PBD::DEBUG::CanvasEvents,
 			string_compose ("canvas event ignored by %1\n", (*i)->name.empty() ? "[unknown]" : (*i)->name)
