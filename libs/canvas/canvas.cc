@@ -294,7 +294,7 @@ GtkCanvas::deliver_event (Duple point, GdkEvent* event)
 			++i;
 			continue;
 		}
-
+		
 		if ((*i)->Event (event)) {
 			/* this item has just handled the event */
 			DEBUG_TRACE (

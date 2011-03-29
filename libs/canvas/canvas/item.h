@@ -117,7 +117,23 @@ public:
 	void* get_data (std::string const &) const;
 	
 	/* XXX: maybe this should be a PBD::Signal */
-	sigc::signal<bool, GdkEvent*> Event;
+
+	template <class T>
+	struct EventAccumulator {
+		typedef T result_type;
+		template <class U>
+		result_type operator () (U first, U last) {
+			while (first != last) {
+				if (*first) {
+					return true;
+				}
+				++first;
+			}
+			return false;
+		}
+	};
+	
+	sigc::signal<bool, GdkEvent*>::accumulated<EventAccumulator<bool> > Event;
 
 #ifdef CANVAS_DEBUG
 	std::string name;

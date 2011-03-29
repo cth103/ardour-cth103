@@ -20,3 +20,5 @@ bugs
 
 Vert scroll with summary doesn't work
 Dragging regions around is a bit odd
+Autoscroll broken
+Drag a region & you get a selection rect too

@@ -691,6 +691,7 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 			    (event->button.state, Keyboard::ModifierMask(Keyboard::PrimaryModifier))) {
 				// contains and not equals because I can't use alt as a modifier alone.
 				start_selection_grab (item, event);
+				return true;
 			} else if (Keyboard::modifier_state_equals (event->button.state, Keyboard::SecondaryModifier)) {
 				/* grab selection for moving */
 				_drags->set (new SelectionDrag (this, item, SelectionDrag::SelectionMove), event);
@@ -841,6 +842,7 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 				}
 
 				_drags->start_grab (event);
+				return true;
 				break;
 
 			case RegionViewNameHighlight:
@@ -920,6 +922,7 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 										rvs.push_back (rv);
 										_drags->add (new RegionMoveDrag (this, item, rv, rvs, false, false));
 										_drags->start_grab (event);
+										return true;
 									}
 								}
 							}
