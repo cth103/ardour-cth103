@@ -1269,7 +1269,7 @@ MidiRegionView::apply_note_range (uint8_t min, uint8_t max, bool force)
 		if (Note* cnote = dynamic_cast<Note*>(event)) {
 
 			const double y0 = midi_stream_view()->note_to_y(note->note());
-			const double y1 = y1 + floor(midi_stream_view()->note_height());
+			const double y1 = y0 + floor(midi_stream_view()->note_height());
 
 			cnote->set_y0 (y0);
 			cnote->set_y1 (y1);
