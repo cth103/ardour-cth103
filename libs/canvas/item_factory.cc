@@ -8,6 +8,7 @@
 #include "canvas/pixbuf.h"
 #include "canvas/wave_view.h"
 #include "canvas/text.h"
+#include "canvas/line_set.h"
 
 using namespace std;
 using namespace ArdourCanvas;
@@ -32,6 +33,8 @@ ArdourCanvas::create_item (Group* parent, XMLNode const * node)
 		item = new WaveView (parent, boost::shared_ptr<ARDOUR::AudioRegion> ());
 	} else if (node->name() == "Text") {
 		item = new Text (parent);
+	} else if (node->name() == "LineSet") {
+		item = new LineSet (parent);
 	}
 
 	assert (item);
