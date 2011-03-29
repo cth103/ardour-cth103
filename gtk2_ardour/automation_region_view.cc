@@ -50,8 +50,7 @@ AutomationRegionView::AutomationRegionView (ArdourCanvas::Group*                
 		create_line(list);
 	}
 
-	/* XXX: CANVAS */
-//	group->signal_event().connect (sigc::mem_fun (this, &AutomationRegionView::canvas_event), false);
+	group->Event.connect (sigc::mem_fun (this, &AutomationRegionView::canvas_event));
 	group->raise_to_top();
 }
 

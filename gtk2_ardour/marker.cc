@@ -238,13 +238,22 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 	unit_position -= _shift;
 	
 	group = new ArdourCanvas::Group (&parent, ArdourCanvas::Duple (unit_position, 1.0));
+#ifdef CANVAS_DEBUG
+	group->name = string_compose ("Marker::group for %1", annotation);
+#endif	
 
 	_name_background = new ArdourCanvas::Rectangle (group);
+#ifdef CANVAS_DEBUG
+	_name_background->name = string_compose ("Marker::_name_background for %1", annotation);
+#endif	
 	_name_background->set_outline_width (1);
 
 	/* adjust to properly locate the tip */
 
 	mark = new ArdourCanvas::Polygon (group);
+#ifdef CANVAS_DEBUG
+	mark->name = string_compose ("Marker::mark for %1", annotation);
+#endif	
 	mark->set (*points);
 	set_color_rgba (rgba);
 	mark->set_outline_width (1);
@@ -261,17 +270,19 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 	Gtkmm2ext::get_ink_pixel_size (layout, width, name_height);
 
 	name_pixbuf = new ArdourCanvas::Pixbuf (group);
+#ifdef CANVAS_DEBUG
+	name_pixbuf->name = string_compose ("Marker::name_pixbuf for %1", annotation);
+#endif	
 	name_pixbuf->set_position (ArdourCanvas::Duple (_label_offset, 13 / 2 - name_height / 2));
 
 	set_name (annotation.c_str());
 
 	editor.ZoomChanged.connect (sigc::mem_fun (*this, &Marker::reposition));
 
-	mark->set_data ("marker", this);
-	_name_background->set_data ("marker", this);
+	group->set_data ("marker", this);
 
 	if (handle_events) {
-		group->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_marker_event), mark, this));
+		group->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_marker_event), group, this));
 	}
 
 }

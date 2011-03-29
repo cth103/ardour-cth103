@@ -41,7 +41,6 @@ Note::Note (
 
 Note::~Note ()
 {
-	cout << "~NoteBase " << this << "\n";
 	delete _rectangle;
 }
 
@@ -137,3 +136,8 @@ Note::set_outline_what (int what)
 	_rectangle->set_outline_what (what);
 }
 
+void
+Note::set_ignore_events (bool ignore)
+{
+	_rectangle->set_ignore_events (ignore);
+}

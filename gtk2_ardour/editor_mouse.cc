@@ -713,7 +713,8 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 		case NoteItem:
 			if (internal_editing()) {
 				/* trim notes if we're in internal edit mode and near the ends of the note */
-				Note* cn = dynamic_cast<Note*> (item);
+				NoteBase* cn = reinterpret_cast<NoteBase*> (item->get_data ("notebase"));
+				assert (cn);
 				if (cn->big_enough_to_trim() && cn->mouse_near_ends()) {
 					_drags->set (new NoteResizeDrag (this, item), event, current_canvas_cursor);
 				} else {

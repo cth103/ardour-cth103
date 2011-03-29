@@ -53,11 +53,11 @@ Item::init ()
 
 Item::~Item ()
 {
+	_canvas->item_going_away (this, _bounding_box);
+	
 	if (_parent) {
 		_parent->remove (this);
 	}
-
-	_canvas->item_going_away (this);
 }
 
 Rect
@@ -122,12 +122,14 @@ void
 Item::hide ()
 {
 	_visible = false;
+	_canvas->item_shown_or_hidden (this);
 }
 
 void
 Item::show ()
 {
 	_visible = true;
+	_canvas->item_shown_or_hidden (this);
 }
 
 Duple
@@ -294,7 +296,7 @@ Item::item_to_canvas (Rect const & area) const
 	Item const * i = this;
 
 	while (i) {
-		r = i->item_to_parent (area);
+		r = i->item_to_parent (r);
 		i = i->parent ();
 	}
 

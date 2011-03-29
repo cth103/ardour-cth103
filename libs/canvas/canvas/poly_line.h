@@ -6,7 +6,7 @@
 
 namespace ArdourCanvas {
 
-class PolyLine : public PolyItem, public Outline
+class PolyLine : public PolyItem
 {
 public:
 	PolyLine (Group *);

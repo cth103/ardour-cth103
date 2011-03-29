@@ -9,8 +9,6 @@ using namespace ArdourCanvas;
 
 CPPUNIT_TEST_SUITE_REGISTRATION (GroupTest);
 
-extern Rectangle* shitcunt;
-
 /* Do some basic checks on the group's computation of its bounding box */
 void
 GroupTest::bounding_box ()

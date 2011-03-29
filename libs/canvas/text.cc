@@ -11,6 +11,7 @@ Text::Text (Group* parent)
 	: Item (parent)
 	, _font_description (0)
 	, _color (0x000000ff)
+	, _alignment (Pango::ALIGN_LEFT)
 {
 
 }
@@ -69,8 +70,11 @@ Text::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 XMLNode *
 Text::get_state () const
 {
-	/* XXX */
-	return new XMLNode ("Text");
+	XMLNode* node = new XMLNode ("Text");
+#ifdef CANVAS_DEBUG
+	node->add_property ("name", name);
+#endif
+	return node;
 }
 
 void

@@ -31,15 +31,9 @@ WaveView::set_frames_per_pixel (double frames_per_pixel)
 }
 
 Coord
-WaveView::max_position (float max) const
+WaveView::position (float s) const
 {
-	return _height / 2 + (max + 1) * _height / 4;
-}
-
-Coord
-WaveView::min_position (float min) const
-{
-	return _height / 2 + (min - 1) * _height / 4;
+	return (s + 1) * _height / 2;
 }
 
 void
@@ -53,27 +47,29 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 	uint32_t const npeaks = ceil ((end - start) / _frames_per_pixel);
 
 	PeakData* buf = new PeakData[npeaks];
-	_region->read_peaks (buf, npeaks, start + _region->position(), end - start, _channel, _frames_per_pixel);
+	_region->read_peaks (buf, npeaks, start + _region->start(), end - start, _channel, _frames_per_pixel);
 
 	setup_outline_context (context);
 	context->move_to (area.x0, area.y0);
 	for (uint32_t i = 0; i < npeaks; ++i) {
-		context->line_to (area.x0 + i, max_position (buf[i].max));
+		context->line_to (area.x0 + i, position (buf[i].max));
 	}
 	context->stroke ();
 
 	context->move_to (area.x0, area.y0);
 	for (uint32_t i = 0; i < npeaks; ++i) {
-		context->line_to (area.x0 + i, min_position (buf[i].min));
+		context->line_to (area.x0 + i, position (buf[i].min));
 	}
 	context->stroke ();
 
 	set_source_rgba (context, _fill_color);
 	for (uint32_t i = 0; i < npeaks; ++i) {
-		context->move_to (area.x0 + i, max_position (buf[i].max) - 1);
-		context->line_to (area.x0 + i, min_position (buf[i].min) + 1);
+		context->move_to (area.x0 + i, position (buf[i].max) - 1);
+		context->line_to (area.x0 + i, position (buf[i].min) + 1);
 		context->stroke ();
 	}
+
+	delete[] buf;
 }
 
 void

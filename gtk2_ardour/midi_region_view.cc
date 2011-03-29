@@ -257,8 +257,7 @@ MidiRegionView::init (Gdk::Color const & basic_color, bool wfd)
 	}
 
 	group->raise_to_top();
-	/* XXX: CANVAS */
-//	group->signal_event().connect (sigc::mem_fun (this, &MidiRegionView::canvas_event), false);
+	group->Event.connect (sigc::mem_fun (this, &MidiRegionView::canvas_event));
 
 	midi_view()->signal_channel_mode_changed().connect(
 			sigc::mem_fun(this, &MidiRegionView::midi_channel_mode_changed));
@@ -1450,11 +1449,11 @@ MidiRegionView::update_note (Note* ev, bool update_ghost_regions)
 	const framepos_t note_end_frames = min (beats_to_frames (note->end_time()), _region->start() + _region->length());
 
 	const double x = trackview.editor().frame_to_pixel(note_start_frames - _region->start());
-	const double y1 = midi_stream_view()->note_to_y(note->note());
+	const double y0 = midi_stream_view()->note_to_y(note->note());
 	const double note_endpixel = trackview.editor().frame_to_pixel(note_end_frames - _region->start());
 
 	ev->set_x0 (x);
-	ev->set_y0 (y1);
+	ev->set_y0 (y0);
 	
 	if (note->length() > 0) {
 		ev->set_x1 (note_endpixel);
@@ -1462,7 +1461,7 @@ MidiRegionView::update_note (Note* ev, bool update_ghost_regions)
 		ev->set_x1 (trackview.editor().frame_to_pixel(_region->length()));
 	}
 	
-	ev->set_y1 (y1 + floor(midi_stream_view()->note_height()));
+	ev->set_y1 (y0 + floor(midi_stream_view()->note_height()));
 
 	if (note->length() == 0) {
 		if (_active_notes) {
@@ -3167,8 +3166,7 @@ MidiRegionView::create_ghost_note (double x, double y)
 
 	boost::shared_ptr<NoteType> g (new NoteType);
 	_ghost_note = new Note (*this, _note_group, g);
-	/* XXX: CANVAS */
-//	_ghost_note->set_ignore_events (true);
+	_ghost_note->set_ignore_events (true);
 	_ghost_note->set_outline_color (0x000000aa);
 	update_ghost_note (x, y);
 	_ghost_note->show ();
