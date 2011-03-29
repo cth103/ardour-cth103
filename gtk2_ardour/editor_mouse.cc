@@ -97,7 +97,7 @@ Editor::mouse_frame (framepos_t& where, bool& in_track_canvas) const
 	int x, y;
 	double wx, wy;
 	Gdk::ModifierType mask;
-	Glib::RefPtr<Gdk::Window> canvas_window = const_cast<Editor*>(this)->_track_canvas->get_window();
+	Glib::RefPtr<Gdk::Window> canvas_window = const_cast<Editor*>(this)->_track_canvas_viewport->get_bin_window();
 	Glib::RefPtr<const Gdk::Window> pointer_window;
 
 	if (!canvas_window) {
@@ -106,7 +106,6 @@ Editor::mouse_frame (framepos_t& where, bool& in_track_canvas) const
 
 	pointer_window = canvas_window->get_pointer (x, y, mask);
 
-	/* XXX: CANVAS: was get_bin_window */
 	if (pointer_window == _track_canvas->get_window()) {
 		wx = x;
 		wy = y;
@@ -139,6 +138,8 @@ Editor::event_frame (GdkEvent const * event, double* pcx, double* pcy) const
 
 	*pcx = 0;
 	*pcy = 0;
+
+	/* The event coordinates will be canvas coordinates */
 
 	switch (event->type) {
 	case GDK_BUTTON_RELEASE:

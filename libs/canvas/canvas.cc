@@ -180,6 +180,7 @@ bool
 GtkCanvas::button_handler (GdkEventButton* ev)
 {
 	DEBUG_TRACE (PBD::DEBUG::CanvasEvents, string_compose ("canvas button press %1 %1\n", ev->x, ev->y));
+	/* The Duple that we are passing in here is in canvas coordinates */
 	return deliver_event (Duple (ev->x, ev->y), reinterpret_cast<GdkEvent*> (ev));
 }
 
@@ -217,6 +218,7 @@ GtkCanvas::motion_notify_handler (GdkEventMotion* ev)
 		return _grabbed_item->Event (reinterpret_cast<GdkEvent*> (ev));
 	}
 
+	/* This is in canvas coordinates */
 	Duple point (ev->x, ev->y);
 
 	/* find the items at the new mouse position */
@@ -419,6 +421,9 @@ GtkCanvas::context ()
 bool
 GtkCanvas::on_button_press_event (GdkEventButton* ev)
 {
+	/* Coordinates in the event will be canvas coordinates, correctly adjusted
+	   for scroll if this GtkCanvas is in a GtkCanvasViewport.
+	*/
 	return button_handler (ev);
 }
 
@@ -429,6 +434,9 @@ GtkCanvas::on_button_press_event (GdkEventButton* ev)
 bool
 GtkCanvas::on_button_release_event (GdkEventButton* ev)
 {
+	/* Coordinates in the event will be canvas coordinates, correctly adjusted
+	   for scroll if this GtkCanvas is in a GtkCanvasViewport.
+	*/
 	return button_handler (ev);
 }
 
@@ -439,6 +447,9 @@ GtkCanvas::on_button_release_event (GdkEventButton* ev)
 bool
 GtkCanvas::on_motion_notify_event (GdkEventMotion* ev)
 {
+	/* Coordinates in the event will be canvas coordinates, correctly adjusted
+	   for scroll if this GtkCanvas is in a GtkCanvasViewport.
+	*/
 	return motion_notify_handler (ev);
 }
 
