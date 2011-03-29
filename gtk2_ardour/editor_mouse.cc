@@ -157,6 +157,8 @@ Editor::event_frame (GdkEvent const * event, double* pcx, double* pcy) const
 		break;
 	case GDK_ENTER_NOTIFY:
 	case GDK_LEAVE_NOTIFY:
+		*pcx = event->crossing.x;
+		*pcy = event->crossing.y;
 		/* XXX: CANVAS */
 //		track_canvas->w2c(event->crossing.x, event->crossing.y, *pcx, *pcy);
 		break;
@@ -1549,6 +1551,8 @@ Editor::button_release_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 bool
 Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_type)
 {
+	cout << "ENTER: " << item->name << " " << item << "\n";
+	
 	ControlPoint* cp;
 	Marker * marker;
 	double fraction;
@@ -1607,6 +1611,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 		break;
 
 	case RegionViewNameHighlight:
+		cout << "RV name highlight\n";
 		if (is_drawable() && mouse_mode == MouseObject && entered_regionview) {
 			set_canvas_cursor_for_region_view (event->crossing.x, entered_regionview);
 			_over_region_trim_target = true;
@@ -1615,6 +1620,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 
 	case LeftFrameHandle:
 	case RightFrameHandle:
+		cout << "RV frame handle\n";
 		if (is_drawable() && mouse_mode == MouseObject && !internal_editing() && entered_regionview) {
 			set_canvas_cursor_for_region_view (event->crossing.x, entered_regionview);
 		}
@@ -1649,6 +1655,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 		break;
 
 	case RegionViewName:
+		cout << "RV name\n";
 
 		/* when the name is not an active item, the entire name highlight is for trimming */
 
@@ -1773,6 +1780,8 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 bool
 Editor::leave_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_type)
 {
+	cout << "LEAVE: " << item->name << " " << item << "\n";
+	
 	AutomationLine* al;
 	ControlPoint* cp;
 	Marker *marker;
@@ -1803,6 +1812,7 @@ Editor::leave_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 	case StartSelectionTrimItem:
 	case EndSelectionTrimItem:
 	case PlayheadCursorItem:
+		cout << "RV name highlight/frame\n";
 
 #ifdef WITH_CMT
 	case ImageFrameHandleStartItem:
@@ -1833,6 +1843,7 @@ Editor::leave_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 		break;
 
 	case RegionViewName:
+		cout << "RV name\n";
 		/* see enter_handler() for notes */
 		_over_region_trim_target = false;
 		
