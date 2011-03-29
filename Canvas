@@ -14,3 +14,9 @@ pixbufs for text?!
 Memory management
 AudioSource::available_peaks
 Use Canvas::context() always (ie don't pass into render) ?
+Waveview caching
+
+bugs
+
+Vert scroll with summary doesn't work
+Dragging regions around is a bit odd
