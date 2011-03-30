@@ -4,8 +4,54 @@
 using namespace std;
 using namespace ArdourCanvas;
 
-LookupTable::LookupTable (Group const & group, int items_per_cell)
+LookupTable::LookupTable (Group const & group)
 	: _group (group)
+{
+
+}
+
+LookupTable::~LookupTable ()
+{
+
+}
+
+DumbLookupTable::DumbLookupTable (Group const & group)
+	: LookupTable (group)
+{
+
+}
+
+vector<Item *>
+DumbLookupTable::get (Rect const &)
+{
+	list<Item *> const & items = _group.items ();
+	vector<Item *> vitems;
+	copy (items.begin(), items.end(), back_inserter (vitems));
+	return vitems;
+}
+
+/* XXX: what coordinate system is the point in? parent of our group I think */
+vector<Item *>
+DumbLookupTable::items_at_point (Duple point) const
+{
+	list<Item *> items = _group.items ();
+	vector<Item *> vitems;
+
+	for (list<Item *>::const_iterator i = items.begin(); i != items.end(); ++i) {
+		boost::optional<Rect> item_bbox = (*i)->bounding_box ();
+		if (item_bbox) {
+			Rect parent_bbox = (*i)->item_to_parent (item_bbox.get ());
+			if (parent_bbox.contains (point)) {
+				vitems.push_back (*i);
+			}
+		}
+	}
+
+	return vitems;
+}
+
+OptimizingLookupTable::OptimizingLookupTable (Group const & group, int items_per_cell)
+	: LookupTable (group)
 	, _items_per_cell (items_per_cell)
 	, _added (false)
 {
@@ -84,7 +130,7 @@ LookupTable::LookupTable (Group const & group, int items_per_cell)
 }
 
 void
-LookupTable::area_to_indices (Rect const & area, int& x0, int& y0, int& x1, int& y1) const
+OptimizingLookupTable::area_to_indices (Rect const & area, int& x0, int& y0, int& x1, int& y1) const
 {
 	if (_cell_size.x == 0 || _cell_size.y == 0) {
 		x0 = y0 = x1 = y1 = 0;
@@ -99,7 +145,7 @@ LookupTable::area_to_indices (Rect const & area, int& x0, int& y0, int& x1, int&
 	y1 = ceil  (offset_area.y1 / _cell_size.y);
 }
 
-LookupTable::~LookupTable ()
+OptimizingLookupTable::~OptimizingLookupTable ()
 {
 	for (int i = 0; i < _dimension; ++i) {
 		delete[] _cells[i];
@@ -109,7 +155,7 @@ LookupTable::~LookupTable ()
 }
 
 void
-LookupTable::point_to_indices (Duple point, int& x, int& y) const
+OptimizingLookupTable::point_to_indices (Duple point, int& x, int& y) const
 {
 	if (_cell_size.x == 0 || _cell_size.y == 0) {
 		x = y = 0;
@@ -123,7 +169,7 @@ LookupTable::point_to_indices (Duple point, int& x, int& y) const
 }
 
 vector<Item*>
-LookupTable::items_at_point (Duple point) const
+OptimizingLookupTable::items_at_point (Duple point) const
 {
 	int x;
 	int y;
@@ -161,7 +207,7 @@ LookupTable::items_at_point (Duple point) const
 	
 /** @param area Area in our owning group's coordinates */
 vector<Item*>
-LookupTable::get (Rect const & area)
+OptimizingLookupTable::get (Rect const & area)
 {
 	list<Item*> items;
 	int x0, y0, x1, y1;

@@ -15,10 +15,10 @@ Memory management
 AudioSource::available_peaks
 Use Canvas::context() always (ie don't pass into render) ?
 Waveview caching
+Names of stuff in LookupTable; get vs. items_at_point
 
 bugs
 
 Vert scroll with summary doesn't work
 Dragging regions around is a bit odd
 Autoscroll broken
-Drag a region & you get a selection rect too

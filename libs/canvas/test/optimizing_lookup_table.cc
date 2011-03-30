@@ -3,15 +3,15 @@
 #include "canvas/rectangle.h"
 #include "canvas/group.h"
 #include "canvas/canvas.h"
-#include "lookup_table.h"
+#include "optimizing_lookup_table.h"
 
 using namespace std;
 using namespace ArdourCanvas;
 
-CPPUNIT_TEST_SUITE_REGISTRATION (LookupTableTest);
+CPPUNIT_TEST_SUITE_REGISTRATION (OptimizingLookupTableTest);
 
 void
-LookupTableTest::build_1 ()
+OptimizingLookupTableTest::build_1 ()
 {
 	ImageCanvas canvas;
 	Rectangle a (canvas.root(), Rect (0, 0, 32, 32));
@@ -22,7 +22,7 @@ LookupTableTest::build_1 ()
 	c.set_outline_width (0);
 	Rectangle d (canvas.root(), Rect (33, 33, 64, 64));
 	d.set_outline_width (0);
-	LookupTable table (*canvas.root(), 1);
+	OptimizingLookupTable table (*canvas.root(), 1);
 	
 	CPPUNIT_ASSERT (table._items_per_cell == 1);
 	CPPUNIT_ASSERT (table._cell_size.x == 32);
@@ -34,26 +34,26 @@ LookupTableTest::build_1 ()
 }
 
 void
-LookupTableTest::build_2 ()
+OptimizingLookupTableTest::build_2 ()
 {
 	ImageCanvas canvas;
 	Rectangle a (canvas.root(), Rect (0, 0, 713, 1024));
 	a.set_outline_width (0);
 	Rectangle b (canvas.root(), Rect (0, 0, 0, 1024));
 	b.set_outline_width (0);
-	LookupTable table (*canvas.root(), 64);
+	OptimizingLookupTable table (*canvas.root(), 64);
 }
 
 void
-LookupTableTest::build_negative ()
+OptimizingLookupTableTest::build_negative ()
 {
 	ImageCanvas canvas;
 	Rectangle a (canvas.root(), Rect (-32, -32, 32, 32));
-	LookupTable table (*canvas.root(), 1);
+	OptimizingLookupTable table (*canvas.root(), 1);
 }
 
 void
-LookupTableTest::get_small ()
+OptimizingLookupTableTest::get_small ()
 {
 	ImageCanvas canvas;
 	Rectangle a (canvas.root(), Rect (0, 0, 32, 32));
@@ -64,7 +64,7 @@ LookupTableTest::get_small ()
 	c.set_outline_width (0);
 	Rectangle d (canvas.root(), Rect (33, 33, 64, 64));
 	d.set_outline_width (0);
-	LookupTable table (*canvas.root(), 1);
+	OptimizingLookupTable table (*canvas.root(), 1);
 	
 	vector<Item*> items = table.get (Rect (16, 16, 48, 48));
 	CPPUNIT_ASSERT (items.size() == 4);
@@ -74,7 +74,7 @@ LookupTableTest::get_small ()
 }
 
 void
-LookupTableTest::get_big ()
+OptimizingLookupTableTest::get_big ()
 {
 	ImageCanvas canvas;
 
@@ -89,16 +89,16 @@ LookupTableTest::get_big ()
 		}
 	}
 
-	LookupTable table (*canvas.root(), 16);
+	OptimizingLookupTable table (*canvas.root(), 16);
 	vector<Item*> items = table.get (Rect (0, 0, 15, 15));
 	CPPUNIT_ASSERT (items.size() == 16);
 }
 
-/** Check that calling LookupTable::get() returns things in the correct order.
+/** Check that calling OptimizingLookupTable::get() returns things in the correct order.
  *  The order should be the same as it is in the owning group.
  */
 void
-LookupTableTest::check_ordering ()
+OptimizingLookupTableTest::check_ordering ()
 {
 	ImageCanvas canvas;
 

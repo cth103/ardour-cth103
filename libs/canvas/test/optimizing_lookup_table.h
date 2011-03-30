@@ -1,9 +1,9 @@
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
 
-class LookupTableTest : public CppUnit::TestFixture
+class OptimizingLookupTableTest : public CppUnit::TestFixture
 {
-	CPPUNIT_TEST_SUITE (LookupTableTest);
+	CPPUNIT_TEST_SUITE (OptimizingLookupTableTest);
 	CPPUNIT_TEST (build_1);
 	CPPUNIT_TEST (build_2);
 	CPPUNIT_TEST (build_negative);

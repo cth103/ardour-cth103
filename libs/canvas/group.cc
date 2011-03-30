@@ -165,7 +165,7 @@ void
 Group::ensure_lut () const
 {
 	if (!_lut) {
-		_lut = new LookupTable (*this, default_items_per_cell);
+		_lut = new DumbLookupTable (*this);
 	}
 }
 
