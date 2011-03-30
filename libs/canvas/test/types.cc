@@ -45,4 +45,10 @@ TypesTest::extend ()
 	}
 }
 		
-		
+void
+TypesTest::test_safe_add ()
+{
+	CPPUNIT_ASSERT (safe_add (4, 9) == 13);
+	CPPUNIT_ASSERT (safe_add (4, COORD_MAX) == COORD_MAX);
+	CPPUNIT_ASSERT (safe_add (COORD_MAX, 4) == COORD_MAX);
+}

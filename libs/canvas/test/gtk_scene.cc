@@ -43,6 +43,9 @@ int main (int argc, char* argv[])
 
 	Rectangle c (canvas->root(), Rect (2048, 2048, 2096, 2096));
 
+	Rectangle d (canvas->root(), Rect (0, 256, COORD_MAX, 284));
+	d.name = "d";
+
 	Pixbuf pixbuf (canvas->root());
 	pixbuf.set_position (Duple (192, 192));
 	Glib::RefPtr<Gdk::Pixbuf> p = Gdk::Pixbuf::create_from_file ("../../libs/canvas/test/test.png");

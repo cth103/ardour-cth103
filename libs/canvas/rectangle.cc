@@ -32,31 +32,37 @@ Rectangle::Rectangle (Group* parent, Rect const & rect)
 void
 Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
+	Rect plot = _rect;
+
+	/* XXX: these limits empirically arrived at */
+	plot.x1 = min (plot.x1, static_cast<Coord> (1677216));
+	plot.y1 = min (plot.y1, static_cast<Coord> (1677126));
+
 	if (_fill) {
 		setup_fill_context (context);
-		context->rectangle (_rect.x0, _rect.y0, _rect.width(), _rect.height());
+		context->rectangle (plot.x0, plot.y0, plot.width(), plot.height());
 		context->fill ();
 	}
 
 	if (_outline) {
 		if (_outline_what & LEFT) {
-			context->move_to (_rect.x0, _rect.y0);
-			context->line_to (_rect.x0, _rect.y1);
+			context->move_to (plot.x0, plot.y0);
+			context->line_to (plot.x0, plot.y1);
 		}
 		
 		if (_outline_what & BOTTOM) {
-			context->move_to (_rect.x0, _rect.y1);
-			context->line_to (_rect.x1, _rect.y1);
+			context->move_to (plot.x0, plot.y1);
+			context->line_to (plot.x1, plot.y1);
 		}
 		
 		if (_outline_what & RIGHT) {
-			context->move_to (_rect.x1, _rect.y0);
-			context->line_to (_rect.x1, _rect.y1);
+			context->move_to (plot.x1, plot.y0);
+			context->line_to (plot.x1, plot.y1);
 		}
 		
 		if (_outline_what & TOP) {
-			context->move_to (_rect.x0, _rect.y0);
-			context->line_to (_rect.x0, _rect.y1);
+			context->move_to (plot.x0, plot.y0);
+			context->line_to (plot.x0, plot.y1);
 		}
 		
 		setup_outline_context (context);

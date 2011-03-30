@@ -71,9 +71,6 @@ Editor::initialize_canvas ()
 	_track_canvas_viewport = new ArdourCanvas::GtkCanvasViewport (*_track_canvas_hadj, *_track_canvas_vadj);
 	_track_canvas = _track_canvas_viewport->canvas ();
 
-        gint phys_width = physical_screen_width (Glib::RefPtr<Gdk::Window>());
-        gint phys_height = physical_screen_height (Glib::RefPtr<Gdk::Window>());
-
 	/* stuff for the verbose canvas cursor */
 
 	Pango::FontDescription* font = get_font_for_style (N_("VerboseCanvasCursor"));
@@ -107,11 +104,11 @@ Editor::initialize_canvas ()
 	bogus_background_rect =  new ArdourCanvas::Rectangle (time_line_group, ArdourCanvas::Rect (0.0, 0.0, max_canvas_coordinate/3, phys_height));
 	bogus_background_rect->property_outline_pixels() = 0;
 #endif
-	transport_loop_range_rect = new ArdourCanvas::Rectangle (time_line_group, ArdourCanvas::Rect (0.0, 0.0, 0.0, phys_height));
+	transport_loop_range_rect = new ArdourCanvas::Rectangle (time_line_group, ArdourCanvas::Rect (0.0, 0.0, 0.0, ArdourCanvas::COORD_MAX));
 	transport_loop_range_rect->set_outline_width (1);
 	transport_loop_range_rect->hide();
 
-	transport_punch_range_rect = new ArdourCanvas::Rectangle (time_line_group, ArdourCanvas::Rect (0.0, 0.0, 0.0, phys_height));
+	transport_punch_range_rect = new ArdourCanvas::Rectangle (time_line_group, ArdourCanvas::Rect (0.0, 0.0, 0.0, ArdourCanvas::COORD_MAX));
 	transport_punch_range_rect->set_outline (0);
 	transport_punch_range_rect->hide();
 
@@ -124,32 +121,32 @@ Editor::initialize_canvas ()
 	_time_bars_group = new ArdourCanvas::Group (_track_canvas->root ());
 
 	meter_bar_group = new ArdourCanvas::Group (_time_bars_group);
-	meter_bar = new ArdourCanvas::Rectangle (meter_bar_group, ArdourCanvas::Rect (0.0, 0.0, phys_width, timebar_height - 1));
+	meter_bar = new ArdourCanvas::Rectangle (meter_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
 	meter_bar->set_outline_width (1);
 	meter_bar->set_outline_what (0x8);
 
 	tempo_bar_group = new ArdourCanvas::Group (_time_bars_group);
-	tempo_bar = new ArdourCanvas::Rectangle (tempo_bar_group, ArdourCanvas::Rect (0.0, 0.0, phys_width, timebar_height - 1));
+	tempo_bar = new ArdourCanvas::Rectangle (tempo_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
 	tempo_bar->set_outline_width (1);
 	tempo_bar->set_outline_what (0x8);
 
 	range_marker_bar_group = new ArdourCanvas::Group (_time_bars_group);
-	range_marker_bar = new ArdourCanvas::Rectangle (range_marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, phys_width, timebar_height - 1));
+	range_marker_bar = new ArdourCanvas::Rectangle (range_marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
 	range_marker_bar->set_outline_width (1);
 	range_marker_bar->set_outline_what (0x8);
 
 	transport_marker_bar_group = new ArdourCanvas::Group (_time_bars_group);
-	transport_marker_bar = new ArdourCanvas::Rectangle (transport_marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, phys_width, timebar_height - 1));
+	transport_marker_bar = new ArdourCanvas::Rectangle (transport_marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
 	transport_marker_bar->set_outline_width (1);
 	transport_marker_bar->set_outline_what (0x8);
 
 	marker_bar_group = new ArdourCanvas::Group (_time_bars_group);
-	marker_bar = new ArdourCanvas::Rectangle (marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, phys_width, timebar_height - 1));
+	marker_bar = new ArdourCanvas::Rectangle (marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
 	marker_bar->set_outline_width (1);
 	marker_bar->set_outline_what (0x8);
 
 	cd_marker_bar_group = new ArdourCanvas::Group (_time_bars_group);
-	cd_marker_bar = new ArdourCanvas::Rectangle (cd_marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, phys_width, timebar_height - 1));
+	cd_marker_bar = new ArdourCanvas::Rectangle (cd_marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
 	cd_marker_bar->set_outline_width (1);
  	cd_marker_bar->set_outline_what (0x8);
 
@@ -179,14 +176,14 @@ Editor::initialize_canvas ()
 	transport_punchin_line->set_x0 (0);
 	transport_punchin_line->set_y0 (0);
 	transport_punchin_line->set_x1 (0);
-	transport_punchin_line->set_y1 (phys_height);
+	transport_punchin_line->set_y1 (ArdourCanvas::COORD_MAX);
 	transport_punchin_line->hide ();
 
 	transport_punchout_line  = new ArdourCanvas::Line (_master_group);
 	transport_punchout_line->set_x0 (0);
 	transport_punchout_line->set_y0 (0);
 	transport_punchout_line->set_x1 (0);
-	transport_punchout_line->set_y1 (phys_height);
+	transport_punchout_line->set_y1 (ArdourCanvas::COORD_MAX);
 	transport_punchout_line->hide();
 
 	// used to show zoom mode active zooming

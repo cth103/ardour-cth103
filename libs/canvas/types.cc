@@ -8,12 +8,24 @@ using namespace ArdourCanvas;
 
 Coord const ArdourCanvas::COORD_MAX = DBL_MAX;
 
+Coord
+ArdourCanvas::safe_add (Coord a, Coord b)
+{
+	if (a == COORD_MAX || b == COORD_MAX) {
+		return COORD_MAX;
+	}
+
+	return a + b;
+}
+
 Duple
 Duple::translate (Duple t) const
 {
 	Duple d;
-	d.x = x + t.x;
-	d.y = y + t.y;
+
+	d.x = safe_add (x, t.x);
+	d.y = safe_add (y, t.y);
+	
 	return d;
 }
 
@@ -38,10 +50,11 @@ Rect
 Rect::translate (Duple t) const
 {
 	Rect r;
-	r.x0 = x0 + t.x;
-	r.y0 = y0 + t.y;
-	r.x1 = x1 + t.x;
-	r.y1 = y1 + t.y;
+	
+	r.x0 = safe_add (x0, t.x);
+	r.y0 = safe_add (y0, t.y);
+	r.x1 = safe_add (x1, t.x);
+	r.y1 = safe_add (y1, t.y);
 	return r;
 }
 
@@ -62,8 +75,8 @@ Rect::expand (Distance amount) const
 	Rect r;
 	r.x0 = x0 - amount;
 	r.y0 = y0 - amount;
-	r.x1 = x1 + amount;
-	r.y1 = y1 + amount;
+	r.x1 = safe_add (x1, amount);
+	r.y1 = safe_add (y1, amount);
 	return r;
 }
 
@@ -95,7 +108,7 @@ ArdourCanvas::operator- (Duple const & o)
 Duple
 ArdourCanvas::operator+ (Duple const & a, Duple const & b)
 {
-	return Duple (a.x + b.x, a.y + b.y);
+	return Duple (safe_add (a.x, b.x), safe_add (a.y, b.y));
 }
 
 Duple
