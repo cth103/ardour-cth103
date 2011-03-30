@@ -41,6 +41,10 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 {
 	assert (_frames_per_pixel != 0);
 
+	if (!_region) {
+		return;
+	}
+
 	framepos_t const start = floor (area.x0 * _frames_per_pixel);
 	framepos_t const end   = ceil  (area.x1 * _frames_per_pixel);
 
@@ -75,7 +79,12 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 void
 WaveView::compute_bounding_box () const
 {
-	_bounding_box = Rect (0, 0, _region->length() / _frames_per_pixel, _height);
+	if (_region) {
+		_bounding_box = Rect (0, 0, _region->length() / _frames_per_pixel, _height);
+	} else {
+		_bounding_box = boost::optional<Rect> ();
+	}
+	
 	_bounding_box_dirty = false;
 }
 	

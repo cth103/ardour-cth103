@@ -10,35 +10,29 @@
 using namespace std;
 using namespace ArdourCanvas;
 
-void
-test (string path, int items_per_cell)
+class RenderParts : public Benchmark
 {
-	Group::default_items_per_cell = items_per_cell;
-	
-	ImageCanvas canvas (new XMLTree (path.c_str()), Duple (4096, 1024));
+public:
+	RenderParts (string const & session)
+		: Benchmark (session) {}
 
-	timeval start;
-	timeval stop;
-	
-	gettimeofday (&start, 0);
-	
-	for (int i = 0; i < 1e4; i += 50) {
-		canvas.render_to_image (Rect (i, 0, i + 50, 1024));
-	}
-		
-	gettimeofday (&stop, 0);
-	
-	int sec = stop.tv_sec - start.tv_sec;
-	int usec = stop.tv_usec - start.tv_usec;
-	if (usec < 0) {
-		--sec;
-		usec += 1e6;
+	void set_items_per_cell (int items)
+	{
+		_items_per_cell = items;
 	}
 	
-	double seconds = sec + ((double) usec / 1e6);
+	void do_run (ImageCanvas& canvas)
+	{
+		Group::default_items_per_cell = _items_per_cell;
 	
-	cout << "render_parts; ipc=" << items_per_cell << ": " << seconds << "\n";
-}
+		for (int i = 0; i < 1e4; i += 50) {
+			canvas.render_to_image (Rect (i, 0, i + 50, 1024));
+		}
+	}
+
+private:
+	int _items_per_cell;
+};
 
 int main (int argc, char* argv[])
 {
@@ -47,12 +41,13 @@ int main (int argc, char* argv[])
 		exit (EXIT_FAILURE);
 	}
 
-	string path = string_compose ("../../libs/canvas/benchmark/sessions/%1.xml", argv[1]);
+	RenderParts render_parts (argv[1]);
 
 	int tests[] = { 16, 32, 64, 128, 256, 512, 1024, 1e4, 1e5, 1e6 };
 
 	for (unsigned int i = 0; i < sizeof (tests) / sizeof (int); ++i) {
-		test (path, tests[i]);
+		render_parts.set_items_per_cell (tests[i]);
+		cout << tests[i] << " " << render_parts.run () << "\n";
 	}
 
 	return 0;
