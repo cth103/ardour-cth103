@@ -13,6 +13,7 @@ typedef double Coord;
 typedef double Distance;
 typedef uint32_t Color;
 extern Coord const COORD_MAX;
+extern Coord const CAIRO_MAX;
 
 extern Coord safe_add (Coord, Coord);
 

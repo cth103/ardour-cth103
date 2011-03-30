@@ -34,9 +34,8 @@ Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) con
 {
 	Rect plot = _rect;
 
-	/* XXX: these limits empirically arrived at */
-	plot.x1 = min (plot.x1, static_cast<Coord> (1677216));
-	plot.y1 = min (plot.y1, static_cast<Coord> (1677126));
+	plot.x1 = min (plot.x1, CAIRO_MAX);
+	plot.y1 = min (plot.y1, CAIRO_MAX);
 
 	if (_fill) {
 		setup_fill_context (context);

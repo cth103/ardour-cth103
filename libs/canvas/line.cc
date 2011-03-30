@@ -38,8 +38,13 @@ Line::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
 	setup_outline_context (context);
 
-	context->move_to (_points[0].x, _points[0].y);
-	context->line_to (_points[1].x, _points[1].y);
+	Duple plot[2] = {
+		Duple (min (_points[0].x, CAIRO_MAX), min (_points[0].y, CAIRO_MAX)),
+		Duple (min (_points[1].x, CAIRO_MAX), min (_points[1].y, CAIRO_MAX))
+	};
+
+	context->move_to (plot[0].x, plot[0].y);
+	context->line_to (plot[1].x, plot[1].y);
 	context->stroke ();
 }
 

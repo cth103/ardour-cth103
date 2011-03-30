@@ -2,6 +2,7 @@
 #include <gtkmm.h>
 #include "canvas/canvas.h"
 #include "canvas/rectangle.h"
+#include "canvas/line.h"
 #include "canvas/pixbuf.h"
 
 using namespace std;
@@ -45,6 +46,11 @@ int main (int argc, char* argv[])
 
 	Rectangle d (canvas->root(), Rect (0, 256, COORD_MAX, 284));
 	d.name = "d";
+
+	Line e (canvas->root());
+	e.set (Duple (256, 0), Duple (256, COORD_MAX));
+	e.name = "e";
+	e.set_outline_color (0xff0000ff);
 
 	Pixbuf pixbuf (canvas->root());
 	pixbuf.set_position (Duple (192, 192));
