@@ -1,0 +1,886 @@
+diff --git a/gtk2_ardour/editor_mouse.cc b/gtk2_ardour/editor_mouse.cc
+index 177efef..5a180d1 100644
+--- a/gtk2_ardour/editor_mouse.cc
++++ b/gtk2_ardour/editor_mouse.cc
+@@ -2758,7 +2758,7 @@ Editor::set_canvas_cursor_for_region_view (double x, RegionView* rv)
+ 	ArdourCanvas::Rect parent_bbox = g->item_to_parent (item_bbox.get ());
+ 
+ 	/* Halfway across the region */
+-	double const h = (parent_bbox.x0 + parent_bbox.x1) / 2;
++	double const h = (parent_bbox.x0() + parent_bbox.x1()) / 2;
+ 
+ 	Trimmable::CanTrim ct = rv->region()->can_trim ();
+ 	if (x <= h) {
+diff --git a/gtk2_ardour/hit.cc b/gtk2_ardour/hit.cc
+index c3bf972..fa29d43 100644
+--- a/gtk2_ardour/hit.cc
++++ b/gtk2_ardour/hit.cc
+@@ -50,7 +50,7 @@ Hit::x0 () const
+ {
+ 	boost::optional<Rect> bbox = _polygon->bounding_box ();
+ 	assert (bbox);
+-	return bbox.get().x0;
++	return bbox.get().x0();
+ }
+ 
+ Coord
+@@ -58,7 +58,7 @@ Hit::x1 () const
+ {
+ 	boost::optional<Rect> bbox = _polygon->bounding_box ();
+ 	assert (bbox);
+-	return bbox.get().x1;
++	return bbox.get().x1();
+ }
+ 
+ Coord
+@@ -66,7 +66,7 @@ Hit::y0 () const
+ {
+ 	boost::optional<Rect> bbox = _polygon->bounding_box ();
+ 	assert (bbox);
+-	return bbox.get().y0;
++	return bbox.get().y0();
+ }
+ 
+ Coord
+@@ -74,7 +74,7 @@ Hit::y1 () const
+ {
+ 	boost::optional<Rect> bbox = _polygon->bounding_box ();
+ 	assert (bbox);
+-	return bbox.get().y1;
++	return bbox.get().y1();
+ }
+ 
+ void
+diff --git a/gtk2_ardour/note_base.cc b/gtk2_ardour/note_base.cc
+index 69c2e7c..c74eada 100644
+--- a/gtk2_ardour/note_base.cc
++++ b/gtk2_ardour/note_base.cc
+@@ -287,8 +287,8 @@ NoteBase::set_mouse_fractions (GdkEvent* ev)
+ 	/* hmm, something wrong here. w2i should give item-local coordinates
+ 	   but it doesn't. for now, finesse this.
+ 	*/
+-	ix = ix - bbox.get().x0;
+-	iy = iy - bbox.get().y0;
++	ix = ix - bbox.get().x0();
++	iy = iy - bbox.get().y0();
+ 
+ 	/* fraction of width/height */
+ 	double xf;
+diff --git a/libs/canvas/canvas.cc b/libs/canvas/canvas.cc
+index 8ac8341..4346b4c 100644
+--- a/libs/canvas/canvas.cc
++++ b/libs/canvas/canvas.cc
+@@ -57,7 +57,7 @@ void
+ Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
+ {
+ 	/* clip to the requested area */
+-	context->rectangle (area.x0, area.y0, area.width(), area.height());
++	context->rectangle (area.x0(), area.y0(), area.width(), area.height());
+ 	context->clip ();
+ 
+ 	boost::optional<Rect> root_bbox = _root.bounding_box();
+@@ -425,7 +425,7 @@ GtkCanvas::on_motion_notify_event (GdkEventMotion* ev)
+ void
+ GtkCanvas::request_redraw (Rect const & area)
+ {
+-	queue_draw_area (floor (area.x0), floor (area.y0), ceil (area.x1) - floor (area.x0), ceil (area.y1) - floor (area.y0));
++	queue_draw_area (floor (area.x0()), floor (area.y0()), ceil (area.x1()) - floor (area.x0()), ceil (area.y1()) - floor (area.y0()));
+ }
+ 
+ /** Called to request that we try to get a particular size for ourselves.
+diff --git a/libs/canvas/canvas/rectangle.h b/libs/canvas/canvas/rectangle.h
+index dd8232c..dc337bc 100644
+--- a/libs/canvas/canvas/rectangle.h
++++ b/libs/canvas/canvas/rectangle.h
+@@ -25,19 +25,19 @@ public:
+ 	}
+ 
+ 	Coord x0 () const {
+-		return _rect.x0;
++		return _rect.x0();
+ 	}
+ 
+ 	Coord y0 () const {
+-		return _rect.y0;
++		return _rect.y0();
+ 	}
+ 
+ 	Coord x1 () const {
+-		return _rect.x1;
++		return _rect.x1();
+ 	}
+ 
+ 	Coord y1 () const {
+-		return _rect.y1;
++		return _rect.y1();
+ 	}
+ 
+ 	void set (Rect const &);
+diff --git a/libs/canvas/canvas/types.h b/libs/canvas/canvas/types.h
+index c6582a1..6420d81 100644
+--- a/libs/canvas/canvas/types.h
++++ b/libs/canvas/canvas/types.h
+@@ -38,26 +38,32 @@ extern Duple operator- (Duple const &, Duple const &);
+ extern Duple operator/ (Duple const &, double);
+ extern std::ostream & operator<< (std::ostream &, Duple const &);
+ 
+-struct Rect
++class Rect
+ {
+-	Rect ()
+-		: x0 (0)
+-		, y0 (0)
+-		, x1 (0)
+-		, y1 (0)
+-	{}
+-	
+-	Rect (Coord x0_, Coord y0_, Coord x1_, Coord y1_)
+-		: x0 (x0_)
+-		, y0 (y0_)
+-		, x1 (x1_)
+-		, y1 (y1_)
+-	{}
++public:
++	Rect ();
++	Rect (Coord, Coord, Coord, Coord);
+ 		
+-	Coord x0;
+-	Coord y0;
+-	Coord x1;
+-	Coord y1;
++	Coord x0 () const {
++		return _x0;
++	}
++	
++	Coord y0 () const {
++		return _y0;
++	}
++	
++	Coord x1 () const {
++		return _x1;
++	}
++	
++	Coord y1 () const {
++		return _y1;
++	}
++
++	void set_x0 (Coord);
++	void set_y0 (Coord);
++	void set_x1 (Coord);
++	void set_y1 (Coord);
+ 
+ 	boost::optional<Rect> intersection (Rect const &) const;
+ 	Rect extend (Rect const &) const;
+@@ -66,13 +72,14 @@ struct Rect
+ 	bool contains (Duple) const;
+ 	Rect fix () const;
+ 
+-	Distance width () const {
+-		return x1 - x0;
+-	}
++	Distance width () const;
++	Distance height () const;
+ 
+-	Distance height () const {
+-		return y1 - y0;
+-	}
++private:
++	Coord _x0;
++	Coord _y0;
++	Coord _x1;
++	Coord _y1;
+ };
+ 
+ extern std::ostream & operator<< (std::ostream &, Rect const &);
+diff --git a/libs/canvas/line.cc b/libs/canvas/line.cc
+index 3b46473..328313b 100644
+--- a/libs/canvas/line.cc
++++ b/libs/canvas/line.cc
+@@ -22,10 +22,10 @@ Line::compute_bounding_box () const
+ {
+ 	Rect bbox;
+ 	
+-	bbox.x0 = min (_points[0].x, _points[1].x);
+-	bbox.y0 = min (_points[0].y, _points[1].y);
+-	bbox.x1 = max (_points[0].x, _points[1].x);
+-	bbox.y1 = max (_points[0].y, _points[1].y);
++	bbox.set_x0 (min (_points[0].x, _points[1].x));
++	bbox.set_y0 (min (_points[0].y, _points[1].y));
++	bbox.set_x1 (max (_points[0].x, _points[1].x));
++	bbox.set_y1 (max (_points[0].y, _points[1].y));
+ 
+ 	bbox = bbox.expand (_outline_width / 2);
+ 
+diff --git a/libs/canvas/line_set.cc b/libs/canvas/line_set.cc
+index f570522..b8c4b73 100644
+--- a/libs/canvas/line_set.cc
++++ b/libs/canvas/line_set.cc
+@@ -57,13 +57,13 @@ void
+ LineSet::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
+ {
+ 	for (list<Line>::const_iterator i = _lines.begin(); i != _lines.end(); ++i) {
+-		if (i->y > area.y1) {
++		if (i->y > area.y1()) {
+ 			break;
+-		} else if (i->y > area.y0) {
++		} else if (i->y > area.y0()) {
+ 			set_source_rgba (context, i->color);
+ 			context->set_line_width (i->width);
+-			context->move_to (area.x0, i->y);
+-			context->line_to (area.x1, i->y);
++			context->move_to (area.x0(), i->y);
++			context->line_to (area.x1(), i->y);
+ 			context->stroke ();
+ 		}
+ 	}
+diff --git a/libs/canvas/lookup_table.cc b/libs/canvas/lookup_table.cc
+index 43e15da..abc30ea 100644
+--- a/libs/canvas/lookup_table.cc
++++ b/libs/canvas/lookup_table.cc
+@@ -29,8 +29,8 @@ LookupTable::LookupTable (Group const & group, int items_per_cell)
+ 
+ 	_cell_size.x = bbox.get().width() / _dimension;
+ 	_cell_size.y = bbox.get().height() / _dimension;
+-	_offset.x = bbox.get().x0;
+-	_offset.y = bbox.get().y0;
++	_offset.x = bbox.get().x0();
++	_offset.y = bbox.get().y0();
+ 
+ //	cout << "BUILD bbox=" << bbox.get() << ", cellsize=" << _cell_size << ", offset=" << _offset << ", dimension=" << _dimension << "\n";
+ 
+@@ -59,19 +59,19 @@ LookupTable::LookupTable (Group const & group, int items_per_cell)
+ 		//assert (y1 <= _dimension);
+ 
+ 		if (x0 > _dimension) {
+-			cout << "WARNING: item outside bbox by " << (item_bbox_in_group.x0 - bbox.get().x0) << "\n";
++			cout << "WARNING: item outside bbox by " << (item_bbox_in_group.x0() - bbox.get().x0()) << "\n";
+ 			x0 = _dimension;
+ 		}
+ 		if (x1 > _dimension) {
+-			cout << "WARNING: item outside bbox by " << (item_bbox_in_group.x1 - bbox.get().x1) << "\n";
++			cout << "WARNING: item outside bbox by " << (item_bbox_in_group.x1() - bbox.get().x1()) << "\n";
+ 			x1 = _dimension;
+ 		}
+ 		if (y0 > _dimension) {
+-			cout << "WARNING: item outside bbox by " << (item_bbox_in_group.y0 - bbox.get().y0) << "\n";
++			cout << "WARNING: item outside bbox by " << (item_bbox_in_group.y0() - bbox.get().y0()) << "\n";
+ 			y0 = _dimension;
+ 		}
+ 		if (y1 > _dimension) {
+-			cout << "WARNING: item outside bbox by " << (item_bbox_in_group.y1 - bbox.get().y1) << "\n";
++			cout << "WARNING: item outside bbox by " << (item_bbox_in_group.y1() - bbox.get().y1()) << "\n";
+ 			y1 = _dimension;
+ 		}
+ 
+@@ -93,10 +93,10 @@ LookupTable::area_to_indices (Rect const & area, int& x0, int& y0, int& x1, int&
+ 
+ 	Rect const offset_area = area.translate (-_offset);
+ 
+-	x0 = floor (offset_area.x0 / _cell_size.x);
+-	y0 = floor (offset_area.y0 / _cell_size.y);
+-	x1 = ceil  (offset_area.x1 / _cell_size.x);
+-	y1 = ceil  (offset_area.y1 / _cell_size.y);
++	x0 = floor (offset_area.x0() / _cell_size.x);
++	y0 = floor (offset_area.y0() / _cell_size.y);
++	x1 = ceil  (offset_area.x1() / _cell_size.x);
++	y1 = ceil  (offset_area.y1() / _cell_size.y);
+ }
+ 
+ LookupTable::~LookupTable ()
+diff --git a/libs/canvas/poly_item.cc b/libs/canvas/poly_item.cc
+index badfdf3..0bb78a8 100644
+--- a/libs/canvas/poly_item.cc
++++ b/libs/canvas/poly_item.cc
+@@ -22,13 +22,15 @@ PolyItem::compute_bounding_box () const
+ 
+ 	for (Points::const_iterator i = _points.begin(); i != _points.end(); ++i) {
+ 		if (have_one) {
+-			bbox.x0 = min (bbox.x0, i->x);
+-			bbox.y0 = min (bbox.y0, i->y);
+-			bbox.x1 = max (bbox.x1, i->x);
+-			bbox.y1 = max (bbox.y1, i->y);
++			bbox.set_x0 (min (bbox.x0(), i->x));
++			bbox.set_y0 (min (bbox.y0(), i->y));
++			bbox.set_x1 (max (bbox.x1(), i->x));
++			bbox.set_y1 (max (bbox.y1(), i->y));
+ 		} else {
+-			bbox.x0 = bbox.x1 = i->x;
+-			bbox.y0 = bbox.y1 = i->y;
++			bbox.set_x0 (i->x);
++			bbox.set_x1 (i->x);
++			bbox.set_y0 (i->y);
++			bbox.set_y1 (i->y);
+ 			have_one = true;
+ 		}
+ 	}
+diff --git a/libs/canvas/rectangle.cc b/libs/canvas/rectangle.cc
+index ea33664..4843c82 100644
+--- a/libs/canvas/rectangle.cc
++++ b/libs/canvas/rectangle.cc
+@@ -34,29 +34,29 @@ Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) con
+ {
+ 	if (_fill) {
+ 		setup_fill_context (context);
+-		context->rectangle (_rect.x0, _rect.y0, _rect.width(), _rect.height());
++		context->rectangle (_rect.x0(), _rect.y0(), _rect.width(), _rect.height());
+ 		context->fill ();
+ 	}
+ 
+ 	if (_outline) {
+ 		if (_outline_what & LEFT) {
+-			context->move_to (_rect.x0, _rect.y0);
+-			context->line_to (_rect.x0, _rect.y1);
++			context->move_to (_rect.x0(), _rect.y0());
++			context->line_to (_rect.x0(), _rect.y1());
+ 		}
+ 		
+ 		if (_outline_what & BOTTOM) {
+-			context->move_to (_rect.x0, _rect.y1);
+-			context->line_to (_rect.x1, _rect.y1);
++			context->move_to (_rect.x0(), _rect.y1());
++			context->line_to (_rect.x1(), _rect.y1());
+ 		}
+ 		
+ 		if (_outline_what & RIGHT) {
+-			context->move_to (_rect.x1, _rect.y0);
+-			context->line_to (_rect.x1, _rect.y1);
++			context->move_to (_rect.x1(), _rect.y0());
++			context->line_to (_rect.x1(), _rect.y1());
+ 		}
+ 		
+ 		if (_outline_what & TOP) {
+-			context->move_to (_rect.x0, _rect.y0);
+-			context->line_to (_rect.x0, _rect.y1);
++			context->move_to (_rect.x0(), _rect.y0());
++			context->line_to (_rect.x0(), _rect.y1());
+ 		}
+ 		
+ 		setup_outline_context (context);
+@@ -95,7 +95,7 @@ Rectangle::set_x0 (Coord x0)
+ {
+ 	begin_change ();
+ 
+-	_rect.x0 = x0;
++	_rect.set_x0 (x0);
+ 
+ 	_bounding_box_dirty = true;
+ 	end_change ();
+@@ -108,7 +108,7 @@ Rectangle::set_y0 (Coord y0)
+ {
+ 	begin_change ();
+ 	
+-	_rect.y0 = y0;
++	_rect.set_y0 (y0);
+ 
+ 	_bounding_box_dirty = true;
+ 	end_change();
+@@ -121,7 +121,7 @@ Rectangle::set_x1 (Coord x1)
+ {
+ 	begin_change ();
+ 	
+-	_rect.x1 = x1;
++	_rect.set_x1 (x1);
+ 
+ 	_bounding_box_dirty = true;
+ 	end_change ();
+@@ -134,7 +134,7 @@ Rectangle::set_y1 (Coord y1)
+ {
+ 	begin_change ();
+ 
+-	_rect.y1 = y1;
++	_rect.set_y1 (y1);
+ 
+ 	_bounding_box_dirty = true;
+ 	end_change ();
+@@ -167,10 +167,10 @@ Rectangle::get_state () const
+ 		node->add_property ("name", name);
+ 	}
+ #endif	
+-	node->add_property ("x0", string_compose ("%1", _rect.x0));
+-	node->add_property ("y0", string_compose ("%1", _rect.y0));
+-	node->add_property ("x1", string_compose ("%1", _rect.x1));
+-	node->add_property ("y1", string_compose ("%1", _rect.y1));
++	node->add_property ("x0", string_compose ("%1", _rect.x0()));
++	node->add_property ("y0", string_compose ("%1", _rect.y0()));
++	node->add_property ("x1", string_compose ("%1", _rect.x1()));
++	node->add_property ("y1", string_compose ("%1", _rect.y1()));
+ 	node->add_property ("outline-what", string_compose ("%1", _outline_what));
+ 
+ 	add_item_state (node);
+@@ -182,10 +182,10 @@ Rectangle::get_state () const
+ void
+ Rectangle::set_state (XMLNode const * node)
+ {
+-	_rect.x0 = atof (node->property("x0")->value().c_str());
+-	_rect.y0 = atof (node->property("y0")->value().c_str());
+-	_rect.x1 = atof (node->property("x1")->value().c_str());
+-	_rect.y1 = atof (node->property("y1")->value().c_str());
++	_rect.set_x0 (atof (node->property("x0")->value().c_str()));
++	_rect.set_y0 (atof (node->property("y0")->value().c_str()));
++	_rect.set_x1 (atof (node->property("x1")->value().c_str()));
++	_rect.set_y1 (atof (node->property("y1")->value().c_str()));
+ 	_outline_what = (What) atoi (node->property("outline-what")->value().c_str());
+ 
+ 	set_item_state (node);
+diff --git a/libs/canvas/test/arrow.cc b/libs/canvas/test/arrow.cc
+index 9112b6f..d0498f9 100644
+--- a/libs/canvas/test/arrow.cc
++++ b/libs/canvas/test/arrow.cc
+@@ -30,8 +30,8 @@ ArrowTest::bounding_box ()
+ 	boost::optional<Rect> bbox = arrow.bounding_box ();
+ 	
+ 	CPPUNIT_ASSERT (bbox.is_initialized ());
+-	CPPUNIT_ASSERT (bbox.get().x0 == -6);
+-	CPPUNIT_ASSERT (bbox.get().y0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().x1 == 6);
+-	CPPUNIT_ASSERT (bbox.get().y1 == 128);
++	CPPUNIT_ASSERT (bbox.get().x0() == -6);
++	CPPUNIT_ASSERT (bbox.get().y0() == 0);
++	CPPUNIT_ASSERT (bbox.get().x1() == 6);
++	CPPUNIT_ASSERT (bbox.get().y1() == 128);
+ }
+diff --git a/libs/canvas/test/group.cc b/libs/canvas/test/group.cc
+index 914b940..9fb3eb1 100644
+--- a/libs/canvas/test/group.cc
++++ b/libs/canvas/test/group.cc
+@@ -27,20 +27,20 @@ GroupTest::bounding_box ()
+ 
+ 	/* check the bounding box */
+ 	CPPUNIT_ASSERT (bbox.is_initialized ());
+-	CPPUNIT_ASSERT (bbox.get().x0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().y0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().x1 == 64);
+-	CPPUNIT_ASSERT (bbox.get().y1 == 64);
++	CPPUNIT_ASSERT (bbox.get().x0() == 0);
++	CPPUNIT_ASSERT (bbox.get().y0() == 0);
++	CPPUNIT_ASSERT (bbox.get().x1() == 64);
++	CPPUNIT_ASSERT (bbox.get().y1() == 64);
+ 
+ 	/* check that adding an item resets the bbox */
+ 	Rectangle e (canvas.root(), Rect (64, 64, 128, 128));
+ 	bbox = canvas.root()->bounding_box ();
+ 
+ 	CPPUNIT_ASSERT (bbox.is_initialized ());
+-	CPPUNIT_ASSERT (bbox.get().x0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().y0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().x1 == 128.25);
+-	CPPUNIT_ASSERT (bbox.get().y1 == 128.25);
++	CPPUNIT_ASSERT (bbox.get().x0() == 0);
++	CPPUNIT_ASSERT (bbox.get().y0() == 0);
++	CPPUNIT_ASSERT (bbox.get().x1() == 128.25);
++	CPPUNIT_ASSERT (bbox.get().y1() == 128.25);
+ }
+ 
+ /* Check that a group containing only items with no bounding box itself has no bounding box */
+@@ -118,28 +118,28 @@ GroupTest::children_changing ()
+ 	/* Check that initial bbox */
+ 	boost::optional<Rect> bbox = canvas.root()->bounding_box ();
+ 	CPPUNIT_ASSERT (bbox.is_initialized ());
+-	CPPUNIT_ASSERT (bbox.get().x0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().y0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().x1 == 32);
+-	CPPUNIT_ASSERT (bbox.get().y1 == 32);
++	CPPUNIT_ASSERT (bbox.get().x0() == 0);
++	CPPUNIT_ASSERT (bbox.get().y0() == 0);
++	CPPUNIT_ASSERT (bbox.get().x1() == 32);
++	CPPUNIT_ASSERT (bbox.get().y1() == 32);
+ 
+ 	/* Change the rectangle's size and check the parent */
+ 	a.set (Rect (0, 0, 48, 48));
+ 	bbox = canvas.root()->bounding_box ();
+ 	CPPUNIT_ASSERT (bbox.is_initialized ());
+-	CPPUNIT_ASSERT (bbox.get().x0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().y0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().x1 == 48);
+-	CPPUNIT_ASSERT (bbox.get().y1 == 48);
++	CPPUNIT_ASSERT (bbox.get().x0() == 0);
++	CPPUNIT_ASSERT (bbox.get().y0() == 0);
++	CPPUNIT_ASSERT (bbox.get().x1() == 48);
++	CPPUNIT_ASSERT (bbox.get().y1() == 48);
+ 
+ 	/* Change the rectangle's line width and check the parent */
+ 	a.set_outline_width (1);
+ 	bbox = canvas.root()->bounding_box ();
+ 	CPPUNIT_ASSERT (bbox.is_initialized ());
+-	CPPUNIT_ASSERT (bbox.get().x0 == -0.5);
+-	CPPUNIT_ASSERT (bbox.get().y0 == -0.5);
+-	CPPUNIT_ASSERT (bbox.get().x1 == 48.5);
+-	CPPUNIT_ASSERT (bbox.get().y1 == 48.5);
++	CPPUNIT_ASSERT (bbox.get().x0() == -0.5);
++	CPPUNIT_ASSERT (bbox.get().y0() == -0.5);
++	CPPUNIT_ASSERT (bbox.get().x1() == 48.5);
++	CPPUNIT_ASSERT (bbox.get().y1() == 48.5);
+ }
+ 
+ /* Check that a group notices when its grandchildren change */
+@@ -158,34 +158,34 @@ GroupTest::grandchildren_changing ()
+ 	/* Check the initial bboxes */
+ 	boost::optional<Rect> bbox = canvas.root()->bounding_box ();
+ 	CPPUNIT_ASSERT (bbox.is_initialized ());
+-	CPPUNIT_ASSERT (bbox.get().x0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().y0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().x1 == 32);
+-	CPPUNIT_ASSERT (bbox.get().y1 == 32);
++	CPPUNIT_ASSERT (bbox.get().x0() == 0);
++	CPPUNIT_ASSERT (bbox.get().y0() == 0);
++	CPPUNIT_ASSERT (bbox.get().x1() == 32);
++	CPPUNIT_ASSERT (bbox.get().y1() == 32);
+ 
+ 	bbox = B.bounding_box ();
+ 	CPPUNIT_ASSERT (bbox.is_initialized ());
+-	CPPUNIT_ASSERT (bbox.get().x0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().y0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().x1 == 32);
+-	CPPUNIT_ASSERT (bbox.get().y1 == 32);
++	CPPUNIT_ASSERT (bbox.get().x0() == 0);
++	CPPUNIT_ASSERT (bbox.get().y0() == 0);
++	CPPUNIT_ASSERT (bbox.get().x1() == 32);
++	CPPUNIT_ASSERT (bbox.get().y1() == 32);
+ 
+ 	/* Change the grandchild and check its parent and grandparent */
+ 	a.set (Rect (0, 0, 48, 48));
+ 
+ 	bbox = canvas.root()->bounding_box ();	
+ 	CPPUNIT_ASSERT (bbox.is_initialized ());
+-	CPPUNIT_ASSERT (bbox.get().x0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().y0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().x1 == 48);
+-	CPPUNIT_ASSERT (bbox.get().y1 == 48);
++	CPPUNIT_ASSERT (bbox.get().x0() == 0);
++	CPPUNIT_ASSERT (bbox.get().y0() == 0);
++	CPPUNIT_ASSERT (bbox.get().x1() == 48);
++	CPPUNIT_ASSERT (bbox.get().y1() == 48);
+ 
+ 	bbox = B.bounding_box ();
+ 	CPPUNIT_ASSERT (bbox.is_initialized ());
+-	CPPUNIT_ASSERT (bbox.get().x0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().y0 == 0);
+-	CPPUNIT_ASSERT (bbox.get().x1 == 48);
+-	CPPUNIT_ASSERT (bbox.get().y1 == 48);
++	CPPUNIT_ASSERT (bbox.get().x0() == 0);
++	CPPUNIT_ASSERT (bbox.get().y0() == 0);
++	CPPUNIT_ASSERT (bbox.get().x1() == 48);
++	CPPUNIT_ASSERT (bbox.get().y1() == 48);
+ }
+ 
+ /* Basic tests on the code to find items at a particular point */
+diff --git a/libs/canvas/test/gtk_movement.cc b/libs/canvas/test/gtk_movement.cc
+index 24a517d..882504f 100644
+--- a/libs/canvas/test/gtk_movement.cc
++++ b/libs/canvas/test/gtk_movement.cc
+@@ -12,8 +12,8 @@ void
+ bigger_clicked ()
+ {
+ 	Rect r = rectangle[0]->get ();
+-	r.x1 += 16;
+-	r.y1 += 16;
++	r.set_x1 (r.x1() + 16);
++	r.set_y1 (r.y1() + 16);
+ 	rectangle[0]->set (r);
+ }
+ 
+@@ -21,8 +21,8 @@ void
+ smaller_clicked ()
+ {
+ 	Rect r = rectangle[0]->get ();
+-	r.x1 -= 16;
+-	r.y1 -= 16;
++	r.set_x1 (r.x1() - 16);
++	r.set_y1 (r.y1() - 16);
+ 	rectangle[0]->set (r);
+ }
+ 
+diff --git a/libs/canvas/test/item.cc b/libs/canvas/test/item.cc
+index 96ea2d2..1230cba 100644
+--- a/libs/canvas/test/item.cc
++++ b/libs/canvas/test/item.cc
+@@ -21,8 +21,8 @@ ItemTest::item_to_canvas ()
+ 	rA.set_position (Duple (99, 23));
+ 
+ 	Rect const r = rA.item_to_canvas (Rect (3, 6, 7, 9));
+-	CPPUNIT_ASSERT (r.x0 == (128 + 45 + 99 + 3));
+-	CPPUNIT_ASSERT (r.y0 == (128 + 55 + 23 + 6));
+-	CPPUNIT_ASSERT (r.x1 == (128 + 45 + 99 + 7));
+-	CPPUNIT_ASSERT (r.y1 == (128 + 55 + 23 + 9));
++	CPPUNIT_ASSERT (r.x0() == (128 + 45 + 99 + 3));
++	CPPUNIT_ASSERT (r.y0() == (128 + 55 + 23 + 6));
++	CPPUNIT_ASSERT (r.x1() == (128 + 45 + 99 + 7));
++	CPPUNIT_ASSERT (r.y1() == (128 + 55 + 23 + 9));
+ }
+diff --git a/libs/canvas/test/polygon.cc b/libs/canvas/test/polygon.cc
+index 353246f..efc5965 100644
+--- a/libs/canvas/test/polygon.cc
++++ b/libs/canvas/test/polygon.cc
+@@ -31,10 +31,10 @@ PolygonTest::bounding_box ()
+ 	*/
+ 	boost::optional<Rect> bbox = polygon.bounding_box ();
+ 	CPPUNIT_ASSERT (bbox.is_initialized ());
+-	CPPUNIT_ASSERT (bbox.get().x0 == -6.25);
+-	CPPUNIT_ASSERT (bbox.get().x1 ==  6.25);
+-	CPPUNIT_ASSERT (bbox.get().y0 == -6.25);
+-	CPPUNIT_ASSERT (bbox.get().y1 ==  6.25);
++	CPPUNIT_ASSERT (bbox.get().x0() == -6.25);
++	CPPUNIT_ASSERT (bbox.get().x1() ==  6.25);
++	CPPUNIT_ASSERT (bbox.get().y0() == -6.25);
++	CPPUNIT_ASSERT (bbox.get().y1() ==  6.25);
+ 
+ 	/* and its parent group should have noticed and adjusted
+ 	   its bounding box
+@@ -42,8 +42,8 @@ PolygonTest::bounding_box ()
+ 
+ 	bbox = group.bounding_box ();
+ 	CPPUNIT_ASSERT (bbox.is_initialized ());
+-	CPPUNIT_ASSERT (bbox.get().x0 == -6.25);
+-	CPPUNIT_ASSERT (bbox.get().x1 ==  6.25);
+-	CPPUNIT_ASSERT (bbox.get().y0 == -6.25);
+-	CPPUNIT_ASSERT (bbox.get().y1 ==  6.25);
++	CPPUNIT_ASSERT (bbox.get().x0() == -6.25);
++	CPPUNIT_ASSERT (bbox.get().x1() ==  6.25);
++	CPPUNIT_ASSERT (bbox.get().y0() == -6.25);
++	CPPUNIT_ASSERT (bbox.get().y1() ==  6.25);
+ }
+diff --git a/libs/canvas/test/types.cc b/libs/canvas/test/types.cc
+index b44065b..863f13e 100644
+--- a/libs/canvas/test/types.cc
++++ b/libs/canvas/test/types.cc
+@@ -15,10 +15,10 @@ TypesTest::intersect ()
+ 		boost::optional<Rect> c = a.intersection (b);
+ 
+ 		CPPUNIT_ASSERT (c.is_initialized ());
+-		CPPUNIT_ASSERT (c->x0 == 0);
+-		CPPUNIT_ASSERT (c->x1 == 512);
+-		CPPUNIT_ASSERT (c->y0 == 0);
+-		CPPUNIT_ASSERT (c->y1 == 512);
++		CPPUNIT_ASSERT (c->x0() == 0);
++		CPPUNIT_ASSERT (c->x1() == 512);
++		CPPUNIT_ASSERT (c->y0() == 0);
++		CPPUNIT_ASSERT (c->y1() == 512);
+ 	}
+ 
+ 	{
+@@ -38,10 +38,10 @@ TypesTest::extend ()
+ 		Rect b (100, 110, 120, 130);
+ 		Rect c = a.extend (b);
+ 
+-		CPPUNIT_ASSERT (c.x0 == 50);
+-		CPPUNIT_ASSERT (c.y0 == 60);
+-		CPPUNIT_ASSERT (c.x1 == 120);
+-		CPPUNIT_ASSERT (c.y1 == 130);
++		CPPUNIT_ASSERT (c.x0() == 50);
++		CPPUNIT_ASSERT (c.y0() == 60);
++		CPPUNIT_ASSERT (c.x1() == 120);
++		CPPUNIT_ASSERT (c.y1() == 130);
+ 	}
+ }
+ 		
+diff --git a/libs/canvas/types.cc b/libs/canvas/types.cc
+index 40b327d..142f6e8 100644
+--- a/libs/canvas/types.cc
++++ b/libs/canvas/types.cc
+@@ -5,6 +5,8 @@
+ using namespace std;
+ using namespace ArdourCanvas;
+ 
++Coord INFINITY = -1;
++
+ Duple
+ Duple::translate (Duple t) const
+ {
+@@ -14,17 +16,71 @@ Duple::translate (Duple t) const
+ 	return d;
+ }
+ 
++Rect::Rect ()
++	: _x0 (0)
++	, _y0 (0)
++	, _x1 (0)
++	, _y1 (0)
++{
++
++}
++
++Rect::Rect (Coord x0, Coord y0, Coord x1, Coord y1)
++	: _x0 (x0)
++	, _y0 (y0)
++	, _x1 (x1)
++	, _y1 (y1)
++{
++	
++}
++
++Distance
++Rect::width () const
++{
++	return _x1 - _x0;
++}
++
++Distance
++Rect::height () const
++{
++	return _y1 - _y0;
++}
++
++void
++Rect::set_x0 (Coord x0)
++{
++	_x0 = x0;
++}
++
++void
++Rect::set_y0 (Coord y0)
++{
++	_y0 = y0;
++}
++
++void
++Rect::set_x1 (Coord x1)
++{
++	_x1 = x1;
++}
++
++void
++Rect::set_y1 (Coord y1)
++{
++	_y1 = y1;
++}
++
+ boost::optional<Rect>
+ Rect::intersection (Rect const & o) const
+ {
+ 	Rect i;
+ 	
+-	i.x0 = max (x0, o.x0);
+-	i.y0 = max (y0, o.y0);
+-	i.x1 = min (x1, o.x1);
+-	i.y1 = min (y1, o.y1);
++	i._x0 = max (_x0, o._x0);
++	i._y0 = max (_y0, o._y0);
++	i._x1 = min (_x1, o._x1);
++	i._y1 = min (_y1, o._y1);
+ 
+-	if (i.x0 > i.x1 || i.y0 > i.y1) {
++	if (i._x0 > i._x1 || i._y0 > i._y1) {
+ 		return boost::optional<Rect> ();
+ 	}
+ 	
+@@ -35,10 +91,10 @@ Rect
+ Rect::translate (Duple t) const
+ {
+ 	Rect r;
+-	r.x0 = x0 + t.x;
+-	r.y0 = y0 + t.y;
+-	r.x1 = x1 + t.x;
+-	r.y1 = y1 + t.y;
++	r._x0 = _x0 + t.x;
++	r._y0 = _y0 + t.y;
++	r._x1 = _x1 + t.x;
++	r._y1 = _y1 + t.y;
+ 	return r;
+ }
+ 
+@@ -46,10 +102,10 @@ Rect
+ Rect::extend (Rect const & o) const
+ {
+ 	Rect r;
+-	r.x0 = min (x0, o.x0);
+-	r.y0 = min (y0, o.y0);
+-	r.x1 = max (x1, o.x1);
+-	r.y1 = max (y1, o.y1);
++	r._x0 = min (_x0, o._x0);
++	r._y0 = min (_y0, o._y0);
++	r._x1 = max (_x1, o._x1);
++	r._y1 = max (_y1, o._y1);
+ 	return r;
+ }
+ 
+@@ -57,17 +113,17 @@ Rect
+ Rect::expand (Distance amount) const
+ {
+ 	Rect r;
+-	r.x0 = x0 - amount;
+-	r.y0 = y0 - amount;
+-	r.x1 = x1 + amount;
+-	r.y1 = y1 + amount;
++	r._x0 = _x0 - amount;
++	r._y0 = _y0 - amount;
++	r._x1 = _x1 + amount;
++	r._y1 = _y1 + amount;
+ 	return r;
+ }
+ 
+ bool
+ Rect::contains (Duple point) const
+ {
+-	return point.x >= x0 && point.x <= x1 && point.y >= y0 && point.y <= y1;
++	return point.x >= _x0 && point.x <= _x1 && point.y >= _y0 && point.y <= _y1;
+ }
+ 
+ Rect
+@@ -75,10 +131,10 @@ Rect::fix () const
+ {
+ 	Rect r;
+ 	
+-	r.x0 = min (x0, x1);
+-	r.y0 = min (y0, y1);
+-	r.x1 = max (x0, x1);
+-	r.y1 = max (y0, y1);
++	r._x0 = min (_x0, _x1);
++	r._y0 = min (_y0, _y1);
++	r._x1 = max (_x0, _x1);
++	r._y1 = max (_y0, _y1);
+ 
+ 	return r;
+ }
+@@ -117,7 +173,7 @@ ArdourCanvas::operator<< (ostream & s, Duple const & r)
+ ostream &
+ ArdourCanvas::operator<< (ostream & s, Rect const & r)
+ {
+-	s << "[(" << r.x0 << ", " << r.y0 << "), (" << r.x1 << ", " << r.y1 << ")]";
++	s << "[(" << r.x0() << ", " << r.y0() << "), (" << r.x1() << ", " << r.y1() << ")]";
+ 	return s;
+ }
+ 
+diff --git a/libs/canvas/wave_view.cc b/libs/canvas/wave_view.cc
+index 9f554b4..766138f 100644
+--- a/libs/canvas/wave_view.cc
++++ b/libs/canvas/wave_view.cc
+@@ -41,8 +41,8 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
+ {
+ 	assert (_frames_per_pixel != 0);
+ 
+-	framepos_t const start = floor (area.x0 * _frames_per_pixel);
+-	framepos_t const end   = ceil  (area.x1 * _frames_per_pixel);
++	framepos_t const start = floor (area.x0() * _frames_per_pixel);
++	framepos_t const end   = ceil  (area.x1() * _frames_per_pixel);
+ 
+ 	uint32_t const npeaks = ceil ((end - start) / _frames_per_pixel);
+ 
+@@ -50,22 +50,22 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
+ 	_region->read_peaks (buf, npeaks, start + _region->start(), end - start, _channel, _frames_per_pixel);
+ 
+ 	setup_outline_context (context);
+-	context->move_to (area.x0, area.y0);
++	context->move_to (area.x0(), area.y0());
+ 	for (uint32_t i = 0; i < npeaks; ++i) {
+-		context->line_to (area.x0 + i, position (buf[i].max));
++		context->line_to (area.x0() + i, position (buf[i].max));
+ 	}
+ 	context->stroke ();
+ 
+-	context->move_to (area.x0, area.y0);
++	context->move_to (area.x0(), area.y0());
+ 	for (uint32_t i = 0; i < npeaks; ++i) {
+-		context->line_to (area.x0 + i, position (buf[i].min));
++		context->line_to (area.x0() + i, position (buf[i].min));
+ 	}
+ 	context->stroke ();
+ 
+ 	set_source_rgba (context, _fill_color);
+ 	for (uint32_t i = 0; i < npeaks; ++i) {
+-		context->move_to (area.x0 + i, position (buf[i].max) - 1);
+-		context->line_to (area.x0 + i, position (buf[i].min) + 1);
++		context->move_to (area.x0() + i, position (buf[i].max) - 1);
++		context->line_to (area.x0() + i, position (buf[i].min) + 1);
+ 		context->stroke ();
+ 	}
+ 

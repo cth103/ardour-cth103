@@ -1,0 +1,276 @@
+diff --git a/libs/canvas/canvas/types.h b/libs/canvas/canvas/types.h
+index 6420d81..6ca0f3e 100644
+--- a/libs/canvas/canvas/types.h
++++ b/libs/canvas/canvas/types.h
+@@ -13,6 +13,8 @@ typedef double Coord;
+ typedef double Distance;
+ typedef uint32_t Color;
+ 
++extern Coord INFINITY;
++
+ struct Duple
+ {
+ 	Duple ()
+diff --git a/libs/canvas/test/types.cc b/libs/canvas/test/types.cc
+index 863f13e..96cee17 100644
+--- a/libs/canvas/test/types.cc
++++ b/libs/canvas/test/types.cc
+@@ -45,4 +45,8 @@ TypesTest::extend ()
+ 	}
+ }
+ 		
+-		
++void
++TypesTest::infinity ()
++{
++	Rect a ();
++}
+diff --git a/libs/canvas/test/types.h b/libs/canvas/test/types.h
+index 67382ef..347d1dd 100644
+--- a/libs/canvas/test/types.h
++++ b/libs/canvas/test/types.h
+@@ -5,11 +5,14 @@ class TypesTest : public CppUnit::TestFixture
+ {
+ 	CPPUNIT_TEST_SUITE (TypesTest);
+ 	CPPUNIT_TEST (intersect);
++	CPPUNIT_TEST (extend);
++	CPPUNIT_TEST (infinity);
+ 	CPPUNIT_TEST_SUITE_END ();
+ 
+ public:
+ 	void intersect ();
+ 	void extend ();
++	void infinity ();
+ };
+ 
+ 	
+diff --git a/libs/canvas/types.cc b/libs/canvas/types.cc
+index 142f6e8..a9b5fb4 100644
+--- a/libs/canvas/types.cc
++++ b/libs/canvas/types.cc
+@@ -5,7 +5,7 @@
+ using namespace std;
+ using namespace ArdourCanvas;
+ 
+-Coord INFINITY = -1;
++Coord ArdourCanvas::INFINITY = -1;
+ 
+ Duple
+ Duple::translate (Duple t) const
+@@ -31,18 +31,27 @@ Rect::Rect (Coord x0, Coord y0, Coord x1, Coord y1)
+ 	, _x1 (x1)
+ 	, _y1 (y1)
+ {
+-	
++	assert (_x0 != INFINITY);
++	assert (_y0 != INFINITY);
+ }
+ 
+ Distance
+ Rect::width () const
+ {
++	if (_x1 == INFINITY) {
++		return INFINITY;
++	}
++	
+ 	return _x1 - _x0;
+ }
+ 
+ Distance
+ Rect::height () const
+ {
++	if (_y1 == INFINITY) {
++		return INFINITY;
++	}
++	
+ 	return _y1 - _y0;
+ }
+ 
+@@ -50,12 +59,14 @@ void
+ Rect::set_x0 (Coord x0)
+ {
+ 	_x0 = x0;
++	assert (_x0 != INFINITY);
+ }
+ 
+ void
+ Rect::set_y0 (Coord y0)
+ {
+ 	_y0 = y0;
++	assert (_y0 != INFINITY);
+ }
+ 
+ void
+@@ -74,12 +85,30 @@ boost::optional<Rect>
+ Rect::intersection (Rect const & o) const
+ {
+ 	Rect i;
+-	
++
+ 	i._x0 = max (_x0, o._x0);
+ 	i._y0 = max (_y0, o._y0);
+-	i._x1 = min (_x1, o._x1);
+-	i._y1 = min (_y1, o._y1);
+ 
++	if (_x1 == INFINITY && o._x1 == INFINITY) {
++		i._x1 = INFINITY;
++	} else if (_x1 == INFINITY) {
++		i._x1 = o._x1;
++	} else if (o._x1 == INFINITY) {
++		i._x1 = _x1;
++	} else {
++		i._x1 = min (_x1, o._x1);
++	}
++
++	if (_y1 == INFINITY && o._y1 == INFINITY) {
++		i._y1 = INFINITY;
++	} else if (_y1 == INFINITY) {
++		i._y1 = o._y1;
++	} else if (o._y1 == INFINITY) {
++		i._y1 = _y1;
++	} else {
++		i._y1 = min (_y1, o._y1);
++	}
++	
+ 	if (i._x0 > i._x1 || i._y0 > i._y1) {
+ 		return boost::optional<Rect> ();
+ 	}
+@@ -91,21 +120,50 @@ Rect
+ Rect::translate (Duple t) const
+ {
+ 	Rect r;
++	
+ 	r._x0 = _x0 + t.x;
+ 	r._y0 = _y0 + t.y;
+-	r._x1 = _x1 + t.x;
+-	r._y1 = _y1 + t.y;
++
++	if (_x1 == INFINITY) {
++		r._x1 = _x1;
++	} else {
++		r._x1 = _x1 + t.x;
++	}
++
++	if (_y1 == INFINITY) {
++		r._y1 = _y1;
++	} else {
++		r._y1 = _y1 + t.y;
++	}
++	
+ 	return r;
+ }
+ 
++/** Extend this to contain o, and return the result */
+ Rect
+ Rect::extend (Rect const & o) const
+ {
+ 	Rect r;
++	
+ 	r._x0 = min (_x0, o._x0);
+ 	r._y0 = min (_y0, o._y0);
+-	r._x1 = max (_x1, o._x1);
+-	r._y1 = max (_y1, o._y1);
++
++	if (_x1 == INFINITY) {
++		r._x1 = _x1;
++	} else if (o._x1 == INFINITY) {
++		r._x1 = o._x1;
++	} else {
++		r._x1 = max (_x1, o._x1);
++	}
++
++	if (_y1 == INFINITY) {
++		r._y1 = _y1;
++	} else if (o._y1 == INFINITY) {
++		r._y1 = o._y1;
++	} else {
++		r._y1 = max (_y1, o._y1);
++	}
++	
+ 	return r;
+ }
+ 
+@@ -113,28 +171,47 @@ Rect
+ Rect::expand (Distance amount) const
+ {
+ 	Rect r;
++
+ 	r._x0 = _x0 - amount;
+ 	r._y0 = _y0 - amount;
+-	r._x1 = _x1 + amount;
+-	r._y1 = _y1 + amount;
++
++	if (_x1 != INFINITY) {
++		r._x1 = _x1 + amount;
++	}
++
++	if (_y1 != INFINITY) {
++		r._y1 = _y1 + amount;
++	}
++	
+ 	return r;
+ }
+ 
+ bool
+ Rect::contains (Duple point) const
+ {
+-	return point.x >= _x0 && point.x <= _x1 && point.y >= _y0 && point.y <= _y1;
++	return (point.x >= _x0 && (_x1 == INFINITY || point.x <= _x1) && point.y >= _y0 && (_y1 == INFINITY || point.y <= _y1));
+ }
+ 
+ Rect
+ Rect::fix () const
+ {
+ 	Rect r;
+-	
+-	r._x0 = min (_x0, _x1);
+-	r._y0 = min (_y0, _y1);
+-	r._x1 = max (_x0, _x1);
+-	r._y1 = max (_y0, _y1);
++
++	if (_x1 == INFINITY) {
++		r._x0 = _x0;
++		r._x1 = _x1;
++	} else {
++		r._x0 = min (_x0, _x1);
++		r._x1 = max (_x0, _x1);
++	}
++
++	if (_y1 == INFINITY) {
++		r._y0 = _y0;
++		r._y1 = _y1;
++	} else {
++		r._y0 = min (_y0, _y1);
++		r._y1 = max (_y0, _y1);
++	}
+ 
+ 	return r;
+ }
+@@ -173,7 +250,26 @@ ArdourCanvas::operator<< (ostream & s, Duple const & r)
+ ostream &
+ ArdourCanvas::operator<< (ostream & s, Rect const & r)
+ {
+-	s << "[(" << r.x0() << ", " << r.y0() << "), (" << r.x1() << ", " << r.y1() << ")]";
++	s << "[("
++	  << r.x0() << ", "
++	  << r.y0() << "), (";
++
++	if (r.x1() == INFINITY) {
++		s << "inf";
++	} else {
++		s << r.x1();
++	}
++	
++	s << ", ";
++
++	if (r.y1() == INFINITY) {
++		s << "inf";
++	} else {
++		s << r.y1();
++	}
++
++	s << ")]";
++	
+ 	return s;
+ }
+ 
