@@ -1,9 +1,12 @@
 #include <algorithm>
+#include <cfloat>
 #include <cassert>
 #include "canvas/types.h"
 
 using namespace std;
 using namespace ArdourCanvas;
+
+Coord const ArdourCanvas::COORD_MAX = DBL_MAX;
 
 Duple
 Duple::translate (Duple t) const

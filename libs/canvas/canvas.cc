@@ -434,7 +434,17 @@ GtkCanvas::request_redraw (Rect const & area)
 void
 GtkCanvas::request_size (Duple size)
 {
-	set_size_request (size.x, size.y);
+	Duple req = size;
+
+	if (req.x > INT_MAX) {
+		req.x = INT_MAX;
+	}
+
+	if (req.y > INT_MAX) {
+		req.y = INT_MAX;
+	}
+	
+	set_size_request (req.x, req.y);
 }
 
 /** `Grab' an item, so that all events are sent to that item until it is `ungrabbed'.

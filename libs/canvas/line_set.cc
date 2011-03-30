@@ -37,8 +37,7 @@ LineSet::compute_bounding_box () const
 		return;
 	}
 	
-	/* XXX: want infinite width */
-	_bounding_box = Rect (0, _lines.front().y, 1000, min (_height, _lines.back().y));
+	_bounding_box = Rect (0, _lines.front().y, COORD_MAX, min (_height, _lines.back().y));
 	_bounding_box_dirty = false;
 }
 

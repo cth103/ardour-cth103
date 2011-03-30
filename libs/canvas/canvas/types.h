@@ -12,6 +12,7 @@ namespace ArdourCanvas
 typedef double Coord;
 typedef double Distance;
 typedef uint32_t Color;
+extern Coord const COORD_MAX;	
 
 struct Duple
 {
