@@ -201,18 +201,6 @@ fixup_bundle_environment (int, char* [])
 
 	setenv ("VAMP_PATH", path.c_str(), 1);
 
-	cstr = getenv ("ARDOUR_CONTROL_SURFACE_PATH");
-	if (cstr) {
-		path = cstr;
-		path += ':';
-	} else {
-		path = "";
-	}
-	path += dir_path;
-	path += "/../Surfaces";
-
-	setenv ("ARDOUR_CONTROL_SURFACE_PATH", path.c_str(), 1);
-
 	cstr = getenv ("ARDOUR_PANNER_PATH");
 	if (cstr) {
 		path = cstr;
@@ -224,6 +212,30 @@ fixup_bundle_environment (int, char* [])
 	path += "/lib/panners";
 	
 	setenv ("ARDOUR_PANNER_PATH", path.c_str(), 1);
+
+	cstr = getenv ("ARDOUR_SURFACES_PATH");
+	if (cstr) {
+		path = cstr;
+		path += ':';
+	} else {
+		path = "";
+	}
+	path += dir_path;
+	path += "/lib/surfaces";
+	
+	setenv ("ARDOUR_SURFACES_PATH", path.c_str(), 1);
+
+	cstr = getenv ("ARDOUR_MIDIMAPS_PATH");
+	if (cstr) {
+		path = cstr;
+		path += ':';
+	} else {
+		path = "";
+	}
+	path += dir_path;
+	path += "/share/midi_maps";
+	
+	setenv ("ARDOUR_MIDIMAPS_PATH", path.c_str(), 1);
 
 	path = dir_path;
 	path += "/../Frameworks/clearlooks";
@@ -387,18 +399,6 @@ fixup_bundle_environment (int /*argc*/, char* argv[])
 	
 	setenv ("VAMP_PATH", path.c_str(), 1);
 
-	cstr = getenv ("ARDOUR_CONTROL_SURFACE_PATH");
-	if (cstr) {
-		path = cstr;
-		path += ':';
-	} else {
-		path = "";
-	}
-	path += dir_path;
-	path += "/lib/surfaces";
-	
-	setenv ("ARDOUR_CONTROL_SURFACE_PATH", path.c_str(), 1);
-
 	cstr = getenv ("ARDOUR_PANNER_PATH");
 	if (cstr) {
 		path = cstr;
@@ -410,6 +410,30 @@ fixup_bundle_environment (int /*argc*/, char* argv[])
 	path += "/lib/panners";
 	
 	setenv ("ARDOUR_PANNER_PATH", path.c_str(), 1);
+
+	cstr = getenv ("ARDOUR_SURFACES_PATH");
+	if (cstr) {
+		path = cstr;
+		path += ':';
+	} else {
+		path = "";
+	}
+	path += dir_path;
+	path += "/lib/surfaces";
+	
+	setenv ("ARDOUR_SURFACES_PATH", path.c_str(), 1);
+
+	cstr = getenv ("ARDOUR_MIDIMAPS_PATH");
+	if (cstr) {
+		path = cstr;
+		path += ':';
+	} else {
+		path = "";
+	}
+	path += dir_path;
+	path += "/share/midi_maps";
+	
+	setenv ("ARDOUR_MIDIMAPS_PATH", path.c_str(), 1);
 
 	path = dir_path;
 	path += "/lib/clearlooks";

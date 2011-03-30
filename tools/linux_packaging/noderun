@@ -1,10 +1,9 @@
 #!/bin/sh
 
-BASE=$1
-
-if [ x$BASE = "x" ] ; then 
-   exit 1
-fi
+BASE=$(readlink -f $0)
+BASE=$(dirname $BASE) # up one
+BASE=$(dirname $BASE) # up one more
+BASE=$(dirname $BASE) # up again
 
 if mount | grep --silent vmshare ; then
     sudo mount -t vboxsf vmshare $HOME/vmshare
@@ -16,7 +15,8 @@ svn update || exit 1
 ./waf || exit 1
 cd tools/linux_packaging || exit 1
 ./build --public --nostrip || exit 1
-file=`ls -t *.bz2 | head -1`
+./package --public --nostrip --singlearch || exit 1
+file=`ls -t *.tar`
 echo "Copying $file to shared folder ..."
 sudo cp $file $HOME/vmshare || exit 1
 
