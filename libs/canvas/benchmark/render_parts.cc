@@ -13,8 +13,7 @@ using namespace ArdourCanvas;
 class RenderParts : public Benchmark
 {
 public:
-	RenderParts (string const & session)
-		: Benchmark (session) {}
+	RenderParts (string const & session) : Benchmark (session) {}
 
 	void set_items_per_cell (int items)
 	{

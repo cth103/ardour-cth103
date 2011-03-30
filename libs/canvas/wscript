@@ -123,7 +123,7 @@ def build(bld):
 		benchmarks              = '''
 			benchmark/items_at_point.cc
 			benchmark/render_parts.cc
-			benchmark/session.cc
+			benchmark/render_whole.cc
 		'''.split()
 
 		for t in benchmarks:
