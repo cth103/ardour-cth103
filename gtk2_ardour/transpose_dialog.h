@@ -1,6 +1,6 @@
 /*
-    Copyright (C) 2009 Paul Davis
-    Author: David Robillard
+    Copyright (C) 2011 Paul Davis
+    Author: Carl Hetherington <cth@carlh.net>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,25 +16,26 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-    $Id: midiregion.h 733 2006-08-01 17:19:38Z drobilla $
 */
 
-#include "ardour/beats_frames_converter.h"
-#include "ardour/tempo.h"
+#include <gtkmm/spinbutton.h>
+#include "ardour_dialog.h"
 
-namespace ARDOUR {
+/** A dialog box to select a transposition to apply to a MIDI region.
+ *  It asks for octaves and semitones, with the transposition being
+ *  the sum of the two.
+ */
 
-framecnt_t
-BeatsFramesConverter::to (double beats) const
+class TransposeDialog : public ArdourDialog
 {
-	return _tempo_map.framepos_plus_bbt (_origin_b, Timecode::BBT_Time(beats)) - _origin_b;
-}
+public:
+	TransposeDialog ();
 
-double
-BeatsFramesConverter::from (framecnt_t frames) const
-{
-	return _tempo_map.framewalk_to_beats (_origin_b, frames);
-}
+	int semitones () const;
 
-} /* namespace ARDOUR */
-
+private:
+	Gtk::Adjustment _octaves_adjustment;
+	Gtk::Adjustment _semitones_adjustment;
+	Gtk::SpinButton _octaves_spinner;
+	Gtk::SpinButton _semitones_spinner;
+};
