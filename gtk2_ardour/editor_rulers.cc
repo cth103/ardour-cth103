@@ -122,7 +122,7 @@ Editor::initialize_rulers ()
 	using namespace Box_Helpers;
 	BoxList & ruler_lab_children =  ruler_label_vbox.children();
 	BoxList & ruler_children =  time_canvas_vbox.children();
-	BoxList & lab_children =  time_button_vbox.children();
+	BoxList & lab_children =  time_bars_vbox.children();
 
 	BoxList::iterator canvaspos = ruler_children.begin();
 

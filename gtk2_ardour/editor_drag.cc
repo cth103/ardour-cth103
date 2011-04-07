@@ -687,10 +687,6 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 
 	_total_x_delta += x_delta;
 	
-	if (first_move) {
-		_editor->cursor_group->raise_to_top();
-	}
-
 	if (x_delta != 0 && !_brushing) {
 		_editor->show_verbose_time_cursor (_last_frame_position, 10);
 	}

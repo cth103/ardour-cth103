@@ -507,9 +507,9 @@ Editor::Editor ()
 	ruler_label_event_box.set_events (Gdk::BUTTON_PRESS_MASK|Gdk::BUTTON_RELEASE_MASK);
 	ruler_label_event_box.signal_button_release_event().connect (sigc::mem_fun(*this, &Editor::ruler_label_button_release));
 
-	time_button_event_box.add (time_button_vbox);
-	time_button_event_box.set_events (Gdk::BUTTON_PRESS_MASK|Gdk::BUTTON_RELEASE_MASK);
-	time_button_event_box.signal_button_release_event().connect (sigc::mem_fun(*this, &Editor::ruler_label_button_release));
+	time_bars_event_box.add (time_bars_vbox);
+	time_bars_event_box.set_events (Gdk::BUTTON_PRESS_MASK|Gdk::BUTTON_RELEASE_MASK);
+	time_bars_event_box.signal_button_release_event().connect (sigc::mem_fun(*this, &Editor::ruler_label_button_release));
 
 	/* these enable us to have a dedicated window (for cursor setting, etc.)
 	   for the canvas areas.
@@ -529,13 +529,13 @@ Editor::Editor ()
 	/* labels for the rulers */
 	edit_packer.attach (ruler_label_event_box,   1, 2, 0, 1,    FILL,        SHRINK, 0, 0);
 	/* labels for the marker "tracks" (time bars) */
-	edit_packer.attach (time_button_event_box,   1, 2, 1, 2,    FILL,        SHRINK, 0, 0);
+	edit_packer.attach (time_bars_event_box,     1, 2, 1, 2,    FILL,        SHRINK, 0, 0);
 	/* the rulers */
 	edit_packer.attach (time_canvas_event_box,   2, 3, 0, 1,    FILL|EXPAND, FILL, 0, 0);
 	/* track controls */
 	edit_packer.attach (controls_layout,         0, 2, 2, 3,    FILL,        FILL|EXPAND, 0, 0);
 	/* time bars canvas */
-	edit_packer.attach (*_time_bars_canvas_viewport, 2, 3, 1, 2,    FILL,    SHRINK, 0, 0);
+	edit_packer.attach (*_time_bars_canvas_viewport, 2, 3, 1, 2,    FILL,    FILL, 0, 0);
 	/* track canvas */
 	edit_packer.attach (track_canvas_event_box,  2, 3, 2, 3,    FILL|EXPAND, FILL|EXPAND, 0, 0);
 

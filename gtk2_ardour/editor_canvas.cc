@@ -154,8 +154,7 @@ Editor::initialize_canvas ()
 	cd_marker_bar->set_outline_width (1);
  	cd_marker_bar->set_outline_what (0x8);
 
-	_time_markers_group =  new ArdourCanvas::Group (_track_canvas->root());
-	cursor_group = new ArdourCanvas::Group (_track_canvas->root());
+	_time_markers_group = new ArdourCanvas::Group (_time_bars_canvas->root());
 
 	meter_group = new ArdourCanvas::Group (_time_markers_group, ArdourCanvas::Duple (0.0, timebar_height * 5.0));
 	tempo_group = new ArdourCanvas::Group (_time_markers_group, ArdourCanvas::Duple (0.0, timebar_height * 4.0));

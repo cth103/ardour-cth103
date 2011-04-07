@@ -715,7 +715,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	Gtk::EventBox             time_canvas_event_box;
 	Gtk::EventBox             track_canvas_event_box;
-	Gtk::EventBox             time_button_event_box;
+	Gtk::EventBox             time_bars_event_box;
 	Gtk::EventBox             ruler_label_event_box;
 
 	ArdourCanvas::Group      *minsec_group;
@@ -898,13 +898,11 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	Gtk::Label  transport_mark_label;
 	Gtk::Label  cd_mark_label;
 
-	Gtk::VBox          time_button_vbox;
-	Gtk::HBox          time_button_hbox;
+	Gtk::VBox          time_bars_vbox;
 
 	friend class EditorCursor;
 
 	EditorCursor*        playhead_cursor;
-	ArdourCanvas::Group* cursor_group;
 
 	framepos_t get_region_boundary (framepos_t pos, int32_t dir, bool with_selection, bool only_onscreen);
 
