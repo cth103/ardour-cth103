@@ -695,6 +695,11 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	Gtk::Adjustment* _track_canvas_hadj;
 	Gtk::Adjustment* _track_canvas_vadj;
 
+	ArdourCanvas::GtkCanvas* _time_bars_canvas;
+	ArdourCanvas::GtkCanvasViewport* _time_bars_canvas_viewport;
+	Gtk::Adjustment* _time_bars_canvas_hadj;
+	Gtk::Adjustment* _time_bars_canvas_vadj;
+	
 	ArdourCanvas::Text* verbose_canvas_cursor;
 	bool                 verbose_cursor_visible;
 
@@ -725,8 +730,6 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	ArdourCanvas::Group      *transport_marker_group;
 	ArdourCanvas::Group*      cd_marker_group;
 
-	/* parent for groups which themselves contain time bars */	
-	ArdourCanvas::Group*     _time_bars_group;
 	/* parent for groups which themselves contain time markers */
 	ArdourCanvas::Group*     _time_markers_group;
 
@@ -875,8 +878,6 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	static const double timebar_height;
 	guint32 visible_timebars;
-	gdouble canvas_timebars_vsize;
-	gdouble get_canvas_timebars_vsize () const { return canvas_timebars_vsize; }
 	Gtk::Menu          *editor_ruler_menu;
 
 	ArdourCanvas::Rectangle* tempo_bar;
@@ -982,7 +983,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	bool deferred_control_scroll (framepos_t);
 	sigc::connection control_scroll_connection;
 
-	gdouble get_trackview_group_vertical_offset () const { return vertical_adjustment.get_value () - canvas_timebars_vsize;}
+	gdouble get_trackview_group_vertical_offset () const { return vertical_adjustment.get_value (); }
 
 	ArdourCanvas::Group* get_background_group () const { return _background_group; }
 	ArdourCanvas::Group* get_trackview_group () const { return _trackview_group; }

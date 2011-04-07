@@ -528,14 +528,16 @@ Editor::Editor ()
 
 	/* labels for the rulers */
 	edit_packer.attach (ruler_label_event_box,   1, 2, 0, 1,    FILL,        SHRINK, 0, 0);
-	/* labels for the marker "tracks" */
+	/* labels for the marker "tracks" (time bars) */
 	edit_packer.attach (time_button_event_box,   1, 2, 1, 2,    FILL,        SHRINK, 0, 0);
 	/* the rulers */
 	edit_packer.attach (time_canvas_event_box,   2, 3, 0, 1,    FILL|EXPAND, FILL, 0, 0);
 	/* track controls */
 	edit_packer.attach (controls_layout,         0, 2, 2, 3,    FILL,        FILL|EXPAND, 0, 0);
-	/* main canvas */
-	edit_packer.attach (track_canvas_event_box,  2, 3, 1, 3,    FILL|EXPAND, FILL|EXPAND, 0, 0);
+	/* time bars canvas */
+	edit_packer.attach (*_time_bars_canvas_viewport, 2, 3, 1, 2,    FILL,    SHRINK, 0, 0);
+	/* track canvas */
+	edit_packer.attach (track_canvas_event_box,  2, 3, 2, 3,    FILL|EXPAND, FILL|EXPAND, 0, 0);
 
 	bottom_hbox.set_border_width (2);
 	bottom_hbox.set_spacing (3);
@@ -1115,7 +1117,7 @@ Editor::set_session (Session *t)
 
 	/* catch up with the playhead */
 
-	_session->request_locate (playhead_cursor->current_frame);
+	_session->request_locate (playhead_cursor->current_frame ());
 	_pending_initial_locate = true;
 
 	update_title ();
@@ -1153,7 +1155,7 @@ Editor::set_session (Session *t)
 		nudge_clock.set (_session->frame_rate() * 5, true, 0, AudioClock::Timecode); // default of 5 seconds
 	}
 
-	playhead_cursor->canvas_item.show ();
+	playhead_cursor->show ();
 
 	Location* loc = _session->locations()->auto_loop_location();
 	if (loc == 0) {
@@ -2387,7 +2389,7 @@ Editor::get_state ()
 
 	node->add_property ("edit-point", enum_2_string (_edit_point));
 
-	snprintf (buf, sizeof (buf), "%" PRIi64, playhead_cursor->current_frame);
+	snprintf (buf, sizeof (buf), "%" PRIi64, playhead_cursor->current_frame ());
 	node->add_property ("playhead", buf);
 	snprintf (buf, sizeof (buf), "%" PRIi64, leftmost_frame);
 	node->add_property ("left-frame", buf);
@@ -3295,11 +3297,8 @@ Editor::clamp_verbose_cursor_x (double x)
 double
 Editor::clamp_verbose_cursor_y (double y)
 {
-	if (y < canvas_timebars_vsize) {
-		y = canvas_timebars_vsize;
-	} else {
-		y = min (_visible_canvas_height - 50, y);
-	}
+	y = max (0.0, y);
+	y = min (_visible_canvas_height - 50, y);
 	return y;
 }
 
@@ -4333,7 +4332,7 @@ Editor::post_zoom ()
 	//reset_scrolling_region ();
 
 	if (playhead_cursor) {
-		playhead_cursor->set_position (playhead_cursor->current_frame);
+		playhead_cursor->set_position (playhead_cursor->current_frame ());
 	}
 
 	refresh_location_display();
@@ -5243,7 +5242,7 @@ Editor::scroll_release ()
 void
 Editor::reset_x_origin_to_follow_playhead ()
 {
-	framepos_t const frame = playhead_cursor->current_frame;
+	framepos_t const frame = playhead_cursor->current_frame ();
 
 	if (frame < leftmost_frame || frame > leftmost_frame + current_page_frames()) {
 
@@ -5386,7 +5385,7 @@ Editor::session_going_away ()
 	last_update_frame = 0;
 	_drags->abort ();
 
-	playhead_cursor->canvas_item.hide ();
+	playhead_cursor->hide ();
 
 	/* rip everything out of the list displays */
 

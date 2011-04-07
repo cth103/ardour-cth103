@@ -169,7 +169,7 @@ Editor::external_audio_dialog ()
 				where = -1;
 				break;
 			case ImportAtPlayhead:
-				where = playhead_cursor->current_frame;
+				where = playhead_cursor->current_frame ();
 				break;
 			case ImportAtStart:
 				where = _session->current_start_frame();
