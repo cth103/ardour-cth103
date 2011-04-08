@@ -16,6 +16,9 @@ AudioSource::available_peaks
 Use Canvas::context() always (ie don't pass into render) ?
 Waveview caching
 Names of stuff in LookupTable; get vs. items_at_point
+Is track_canvas_event_box still needed?
+frame_to_unit -> frame_to_pixel
+Cache single-res peakfiles from disk & resample on demand? Or resample and cache again?
 
 bugs
 
