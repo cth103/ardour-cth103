@@ -1,5 +1,6 @@
 #include <gdkmm/general.h>
 #include "gtkmm2ext/utils.h"
+#include "pbd/signals.h"
 #include "ardour/types.h"
 #include "ardour/audioregion.h"
 #include "canvas/wave_view.h"
@@ -18,7 +19,7 @@ WaveView::WaveView (Group* parent, boost::shared_ptr<ARDOUR::AudioRegion> region
 	, _frames_per_pixel (0)
 	, _height (64)
 {
-
+	
 }
 
 void
@@ -45,8 +46,8 @@ WaveView::make_render_list (Rect const & area, frameoffset_t& start, frameoffset
 		return render_list;
 	}
 
-	start = floor (area.x0 * _frames_per_pixel);
-	end   = ceil  (area.x1 * _frames_per_pixel);
+	start = floor (area.x0 * _frames_per_pixel) + _region->start ();
+	end   = ceil  (area.x1 * _frames_per_pixel) + _region->start ();
 
 	list<CacheEntry*>::iterator cache = _cache.begin ();
 
@@ -109,23 +110,20 @@ WaveView::make_render_list (Rect const & area, frameoffset_t& start, frameoffset
 void
 WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
+	/* clip to the requested area */
+	context->rectangle (area.x0, area.y0, area.width(), area.height());
+	context->clip ();
+
 	framepos_t start;
 	framepos_t end;
-	
+
 	list<CacheEntry*> render_list = make_render_list (area, start, end);
 
 	framepos_t p = start;
 
 	for (list<CacheEntry*>::iterator i = render_list.begin(); i != render_list.end(); ++i) {
 
-		Rect r (
-			floor (((*i)->start() - _region->start()) / _frames_per_pixel),
-			area.y0,
-			ceil (((*i)->end() - _region->start()) / _frames_per_pixel),
-			area.y1
-			);
-
-		Gdk::Cairo::set_source_pixbuf (context, (*i)->pixbuf (), 0, 0);
+		Gdk::Cairo::set_source_pixbuf (context, (*i)->pixbuf (), ((*i)->start() - p) / _frames_per_pixel, 0);
 		context->paint ();
 
 		p = min (end, (*i)->end ());
@@ -197,6 +195,12 @@ WaveView::invalidate_cache ()
 	}
 
 	_cache.clear ();
+}
+
+void
+WaveView::region_resized ()
+{
+	_bounding_box_dirty = true;
 }
 
 /** Construct a new CacheEntry with peak data between two offsets

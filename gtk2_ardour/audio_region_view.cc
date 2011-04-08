@@ -397,14 +397,14 @@ AudioRegionView::region_resized (const PropertyChange& what_changed)
 	if (what_changed.contains (interesting_stuff)) {
 
 		for (uint32_t n = 0; n < waves.size(); ++n) {
-			waves[n]->property_region_start() = _region->start();
+			waves[n]->region_resized ();
 		}
 
 		for (vector<GhostRegion*>::iterator i = ghosts.begin(); i != ghosts.end(); ++i) {
 			if ((agr = dynamic_cast<AudioGhostRegion*>(*i)) != 0) {
 
 				for (vector<WaveView*>::iterator w = agr->waves.begin(); w != agr->waves.end(); ++w) {
-					(*w)->property_region_start() = _region->start();
+					(*w)->region_resized ();
 				}
 			}
 		}

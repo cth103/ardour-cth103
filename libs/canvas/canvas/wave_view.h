@@ -1,4 +1,5 @@
 #include <boost/shared_ptr.hpp>
+#include "pbd/properties.h"
 #include "ardour/types.h"
 #include "canvas/item.h"
 #include "canvas/fill.h"
@@ -34,6 +35,8 @@ public:
 	void set_frames_per_pixel (double);
 	void set_height (Distance);
 	void set_channel (int);
+
+	void region_resized ();
 
 	/* XXX */
 	void rebuild () {}

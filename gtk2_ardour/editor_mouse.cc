@@ -2751,6 +2751,11 @@ Editor::remove_midi_note (ArdourCanvas::Item* item, GdkEvent *)
 void
 Editor::set_canvas_cursor_for_region_view (double x, RegionView* rv)
 {
+	/* XXX: this check should not be necessary */
+	if (rv == 0) {
+		return;
+	}
+	
 	assert (rv);
 	
 	ArdourCanvas::Group* g = rv->get_canvas_group ();
