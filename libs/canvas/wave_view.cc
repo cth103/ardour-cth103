@@ -129,7 +129,7 @@ void
 WaveView::compute_bounding_box () const
 {
 	if (_region) {
-		_bounding_box = Rect (0, 0, ceil (_region->length() / _frames_per_pixel), _height);
+		_bounding_box = Rect (0, 0, _region->length() / _frames_per_pixel, _height);
 	} else {
 		_bounding_box = boost::optional<Rect> ();
 	}
