@@ -10,14 +10,6 @@ namespace ARDOUR {
 }
 
 class WaveViewTest;
-
-#ifdef CANVAS_COMPATIBILITY	
-class GnomeCanvasWaveViewCache {
-
-};
-
-extern void gnome_canvas_waveview_cache_destroy (GnomeCanvasWaveViewCache *);
-#endif
 	
 namespace ArdourCanvas {
 
@@ -42,18 +34,8 @@ public:
 	void rebuild () {}
 
 #ifdef CANVAS_COMPATIBILITY	
-	static GnomeCanvasWaveViewCache* create_cache () {
-		return 0;
-	}
-	
 	void*& property_gain_src () {
 		return _foo_void;
-	}
-	void*& property_cache () {
-		return _foo_void;
-	}
-	bool& property_cache_updater () {
-		return _foo_bool;
 	}
 	void*& property_gain_function () {
 		return _foo_void;

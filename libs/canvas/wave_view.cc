@@ -179,14 +179,6 @@ WaveView::set_channel (int channel)
 	invalidate_cache ();
 }
 
-#ifdef CANVAS_COMPATIBILITY
-void
-gnome_canvas_waveview_cache_destroy (GnomeCanvasWaveViewCache* c)
-{
-	
-}
-#endif
-
 void
 WaveView::invalidate_cache ()
 {

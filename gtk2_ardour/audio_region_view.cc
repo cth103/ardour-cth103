@@ -261,10 +261,6 @@ AudioRegionView::~AudioRegionView ()
 
 	RegionViewGoingAway (this); /* EMIT_SIGNAL */
 
-	for (vector<GnomeCanvasWaveViewCache *>::iterator cache = wave_caches.begin(); cache != wave_caches.end() ; ++cache) {
-		gnome_canvas_waveview_cache_destroy (*cache);
-	}
-
 	for (vector<ScopedConnection*>::iterator i = _data_ready_connections.begin(); i != _data_ready_connections.end(); ++i) {
 		delete *i;
 	}
@@ -888,8 +884,6 @@ AudioRegionView::create_waves ()
 			break;
 		}
 
-		wave_caches.push_back (WaveView::create_cache ());
-
 		// cerr << "\tchannel " << n << endl;
 
 		if (wait_for_data) {
@@ -930,8 +924,6 @@ AudioRegionView::create_one_wave (uint32_t which, bool /*direct*/)
 
 	WaveView *wave = new WaveView (group, audio_region ());
 
-	wave->property_cache() =  wave_caches[which];
-	wave->property_cache_updater() = true;
 	wave->set_channel (which);
 	wave->set_x_position (0);
 	wave->set_y_position (yoff);
@@ -1173,8 +1165,6 @@ AudioRegionView::add_ghost (TimeAxisView& tv)
 
 		WaveView *wave = new WaveView (ghost->group, audio_region());
 
-		wave->property_cache() =  wave_caches[n];
-		wave->property_cache_updater() = false;
 		wave->set_channel (n);
 		wave->set_x_position (0);
 		wave->set_frames_per_pixel (frames_per_pixel);
