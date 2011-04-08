@@ -45,12 +45,16 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 		return;
 	}
 
+	cout << "Render: CAIRO " << area << "\n";
+
 	/* p, start and end are offsets from the start of the source.
 	   area is relative to the position of the region.
 	 */
 	
 	frameoffset_t const start = floor (area.x0 * _frames_per_pixel) + _region->start ();
 	frameoffset_t const end   = ceil  (area.x1 * _frames_per_pixel) + _region->start ();
+
+	cout << "FRAMES: " << start << " to " << end << "\n";
 
 	frameoffset_t p = start;
 	list<CacheEntry*>::iterator cache = _cache.begin ();
@@ -106,8 +110,8 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 
 		frameoffset_t const this_end = min (end, render->end ());
 		
-		Coord const left = floor ((p - _region->start()) / _frames_per_pixel);
-		Coord const right = ceil ((this_end - _region->start()) / _frames_per_pixel);
+		Coord const left = (p - _region->start()) / _frames_per_pixel;
+		Coord const right = (this_end - _region->start()) / _frames_per_pixel;
 		
 		context->save ();
 		
@@ -115,7 +119,8 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 		context->clip ();
 		
 		context->translate (left, 0);
-		
+
+		cout << "Render at CAIRO " << left << "\n";
 		Gdk::Cairo::set_source_pixbuf (context, render->pixbuf (), (render->start() - p) / _frames_per_pixel, 0);
 		context->paint ();
 		
@@ -213,6 +218,7 @@ WaveView::CacheEntry::CacheEntry (
 	, _end (end)
 {
 	_n_peaks = ceil ((_end - _start) / _wave_view->_frames_per_pixel);
+	cout << "Cache: FRAMES " << start << " to " << end << " peaks " << _n_peaks << "\n";
 	_peaks = new PeakData[_n_peaks];
 	_wave_view->_region->read_peaks (_peaks, _n_peaks, _start, _end - _start, _wave_view->_channel, _wave_view->_frames_per_pixel);
 }

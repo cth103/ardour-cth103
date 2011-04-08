@@ -106,9 +106,11 @@ WaveViewTest::render_in_pieces ()
 {
 	make_canvas ();
 
+	cout << "\n\n--------------> PIECES\n";
 	_canvas->render_to_image (Rect (0, 0, 128, 256));
 	_canvas->render_to_image (Rect (128, 0, 256, 256));
 	_canvas->write_to_png ("waveview_2.png");
+	cout << "\n\n<-------------- PIECES\n";
 
 	/* XXX: doesn't check the result! */
 }
