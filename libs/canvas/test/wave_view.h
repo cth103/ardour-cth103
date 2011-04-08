@@ -12,12 +12,15 @@ public:
 	void all ();
 
 private:
-	void basics ();
+	void make_canvas ();
+	void render_all_at_once ();
+	void render_in_pieces ();
 	void cache ();
-	
+
 	ArdourCanvas::ImageCanvas* _canvas;
 	ArdourCanvas::WaveView* _wave_view;
 	boost::shared_ptr<ARDOUR::Region> _region;
+	boost::shared_ptr<ARDOUR::AudioRegion> _audio_region;
 };
 
 

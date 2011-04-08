@@ -112,6 +112,7 @@ public:
 	void ungrab () {}
 
 	void render_to_image (Rect const &) const;
+	void clear ();
 	void write_to_png (std::string const &);
 
 	Cairo::RefPtr<Cairo::Context> context ();

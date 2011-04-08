@@ -1,5 +1,6 @@
 #include <gdkmm/general.h>
 #include "gtkmm2ext/utils.h"
+#include "pbd/compose.h"
 #include "pbd/signals.h"
 #include "ardour/types.h"
 #include "ardour/audioregion.h"
@@ -110,21 +111,35 @@ WaveView::make_render_list (Rect const & area, frameoffset_t& start, frameoffset
 void
 WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
-	/* clip to the requested area */
-	context->rectangle (area.x0, area.y0, area.width(), area.height());
-	context->clip ();
-
-	framepos_t start;
-	framepos_t end;
+	frameoffset_t start;
+	frameoffset_t end;
 
 	list<CacheEntry*> render_list = make_render_list (area, start, end);
 
-	framepos_t p = start;
+	/* p, start and end are offsets from the start of the source.
+	   area is relative to the start of the region.
+	 */
+	
+	frameoffset_t p = start;
 
 	for (list<CacheEntry*>::iterator i = render_list.begin(); i != render_list.end(); ++i) {
 
+		frameoffset_t const this_end = min (end, (*i)->end ());
+
+		Coord const left = (p - _region->start()) / _frames_per_pixel;
+		Coord const right = (this_end - _region->start()) / _frames_per_pixel;
+
+		context->save ();
+		
+		context->rectangle (left, area.y0, right, area.height());
+		context->clip ();
+
+		context->translate (left, 0);
+
 		Gdk::Cairo::set_source_pixbuf (context, (*i)->pixbuf (), ((*i)->start() - p) / _frames_per_pixel, 0);
 		context->paint ();
+
+		context->restore ();
 
 		p = min (end, (*i)->end ());
 	}

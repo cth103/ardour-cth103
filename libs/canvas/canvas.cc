@@ -56,6 +56,8 @@ Canvas::Canvas (XMLTree const * tree)
 void
 Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
 {
+	context->save ();
+	
 	/* clip to the requested area */
 	context->rectangle (area.x0, area.y0, area.width(), area.height());
 	context->clip ();
@@ -63,6 +65,7 @@ Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context
 	boost::optional<Rect> root_bbox = _root.bounding_box();
 	if (!root_bbox) {
 		/* the root has no bounding box, so there's nothing to render */
+		context->restore ();
 		return;
 	}
 
@@ -73,6 +76,8 @@ Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context
 		*/
 		_root.render (*draw, context);
 	}
+	
+	context->restore ();
 }
 
 /** Called when an item has been shown or hidden.

@@ -25,8 +25,6 @@ TextReceiver text_receiver ("test");
 void
 WaveViewTest::setUp ()
 {
-	_canvas = new ImageCanvas (Duple (256, 256));
-
 	init (false, true);
 	Gtkmm2ext::init ();
 	SessionEvent::create_per_thread_pool ("test", 512);
@@ -65,24 +63,51 @@ WaveViewTest::setUp ()
 	properties.add (Properties::position, 128);
 	properties.add (Properties::length, audio_file_source->readable_length ());
 	_region = RegionFactory::create (source, properties, false);
-	boost::shared_ptr<AudioRegion> audio_region = boost::dynamic_pointer_cast<AudioRegion> (_region);
+	_audio_region = boost::dynamic_pointer_cast<AudioRegion> (_region);
+}
 
-	_wave_view = new WaveView (_canvas->root(), audio_region);
+void
+WaveViewTest::make_canvas ()
+{
+	/* this leaks various things, but hey ho */
+	
+	_canvas = new ImageCanvas (Duple (256, 256));
+	_wave_view = new WaveView (_canvas->root(), _audio_region);
 	_wave_view->set_frames_per_pixel ((double) (44100 / 1000) / 64);
 }
 
 void
 WaveViewTest::all ()
 {
-	basics ();
+	/* XXX: we run these all from the same method so that the setUp code only
+	   gets called once; there are various singletons etc. in Ardour which don't
+	   like being recreated.
+	*/
+	
+	render_all_at_once ();
+	render_in_pieces ();
 	cache ();
 }
 
 void
-WaveViewTest::basics ()
+WaveViewTest::render_all_at_once ()
 {
+	make_canvas ();
+	
 	_canvas->render_to_image (Rect (0, 0, 256, 256));
-	_canvas->write_to_png ("waveview.png");
+	_canvas->write_to_png ("waveview_1.png");
+
+	/* XXX: doesn't check the result! */
+}
+
+void
+WaveViewTest::render_in_pieces ()
+{
+	make_canvas ();
+
+	_canvas->render_to_image (Rect (0, 0, 128, 256));
+	_canvas->render_to_image (Rect (128, 0, 256, 256));
+	_canvas->write_to_png ("waveview_2.png");
 
 	/* XXX: doesn't check the result! */
 }
@@ -90,6 +115,8 @@ WaveViewTest::basics ()
 void
 WaveViewTest::cache ()
 {
+	make_canvas ();
+	
 	/* Whole of the render area needs caching from scratch */
 	
 	_wave_view->invalidate_cache ();
