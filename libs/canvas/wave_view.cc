@@ -1,3 +1,5 @@
+#include <gdkmm/general.h>
+#include "gtkmm2ext/utils.h"
 #include "ardour/types.h"
 #include "ardour/audioregion.h"
 #include "canvas/wave_view.h"
@@ -30,12 +32,6 @@ WaveView::set_frames_per_pixel (double frames_per_pixel)
 	end_change ();
 
 	invalidate_cache ();
-}
-
-Coord
-WaveView::position (float s) const
-{
-	return (s + 1) * _height / 2;
 }
 
 list<WaveView::CacheEntry*>
@@ -129,40 +125,11 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 			area.y1
 			);
 
-		p = render_cache_entry (context, r, *i, p, end);
+		Gdk::Cairo::set_source_pixbuf (context, (*i)->pixbuf (), 0, 0);
+		context->paint ();
+
+		p = min (end, (*i)->end ());
 	}
-}
-
-frameoffset_t
-WaveView::render_cache_entry (Cairo::RefPtr<Cairo::Context> context, Rect const & area, CacheEntry* cache, frameoffset_t start, frameoffset_t end) const
-{
-	end = min (end, cache->end ());
-	
-	uint32_t const npeaks = ceil ((end - start) / _frames_per_pixel);
-
-	PeakData* peaks = cache->peaks ();
-
-	setup_outline_context (context);
-	context->move_to (area.x0, area.y0);
-	for (uint32_t i = 0; i < npeaks; ++i) {
-		context->line_to (area.x0 + i, position (peaks[i].max));
-	}
-	context->stroke ();
-
-	context->move_to (area.x0, area.y0);
-	for (uint32_t i = 0; i < npeaks; ++i) {
-		context->line_to (area.x0 + i, position (peaks[i].min));
-	}
-	context->stroke ();
-
-	set_source_rgba (context, _fill_color);
-	for (uint32_t i = 0; i < npeaks; ++i) {
-		context->move_to (area.x0 + i, position (peaks[i].max) - 1);
-		context->line_to (area.x0 + i, position (peaks[i].min) + 1);
-		context->stroke ();
-	}
-
-	return end;
 }
 
 void
@@ -222,6 +189,16 @@ gnome_canvas_waveview_cache_destroy (GnomeCanvasWaveViewCache* c)
 }
 #endif
 
+void
+WaveView::invalidate_cache ()
+{
+	for (list<CacheEntry*>::iterator i = _cache.begin(); i != _cache.end(); ++i) {
+		delete *i;
+	}
+
+	_cache.clear ();
+}
+
 /** Construct a new CacheEntry with peak data between two offsets
  *  in the source.
  */
@@ -244,12 +221,43 @@ WaveView::CacheEntry::~CacheEntry ()
 	delete[] _peaks;
 }
 
-void
-WaveView::invalidate_cache ()
+Glib::RefPtr<Gdk::Pixbuf>
+WaveView::CacheEntry::pixbuf ()
 {
-	for (list<CacheEntry*>::iterator i = _cache.begin(); i != _cache.end(); ++i) {
-		delete *i;
+	if (!_pixbuf) {
+		_pixbuf = Gdk::Pixbuf::create (Gdk::COLORSPACE_RGB, true, 8, _n_peaks, _wave_view->_height);
+		Cairo::RefPtr<Cairo::ImageSurface> surface = Cairo::ImageSurface::create (Cairo::FORMAT_ARGB32, _n_peaks, _wave_view->_height);
+		Cairo::RefPtr<Cairo::Context> context = Cairo::Context::create (surface);
+
+		_wave_view->setup_outline_context (context);
+		context->move_to (0, 0);
+		for (uint32_t i = 0; i < _n_peaks; ++i) {
+			context->line_to (i, position (_peaks[i].max));
+		}
+		context->stroke ();
+		
+		context->move_to (0, 0);
+		for (uint32_t i = 0; i < _n_peaks; ++i) {
+			context->line_to (i, position (_peaks[i].min));
+		}
+		context->stroke ();
+
+		set_source_rgba (context, _wave_view->_fill_color);
+		for (uint32_t i = 0; i < _n_peaks; ++i) {
+			context->move_to (i, position (_peaks[i].max) - 1);
+			context->line_to (i, position (_peaks[i].min) + 1);
+			context->stroke ();
+		}
+
+		Gtkmm2ext::convert_bgra_to_rgba (surface->get_data(), _pixbuf->get_pixels(), _n_peaks, _wave_view->_height);
 	}
 
-	_cache.clear ();
+	return _pixbuf;
+}
+
+
+Coord
+WaveView::CacheEntry::position (float s) const
+{
+	return (s + 1) * _wave_view->_height / 2;
 }

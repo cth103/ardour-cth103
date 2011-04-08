@@ -1,4 +1,6 @@
+#include <gtkmm/main.h>
 #include "pbd/textreceiver.h"
+#include "gtkmm2ext/utils.h"
 #include "midi++/manager.h"
 #include "ardour/session.h"
 #include "ardour/audioengine.h"
@@ -26,7 +28,11 @@ WaveViewTest::setUp ()
 	_canvas = new ImageCanvas (Duple (256, 256));
 
 	init (false, true);
+	Gtkmm2ext::init ();
 	SessionEvent::create_per_thread_pool ("test", 512);
+
+	Gtk::Main kit ();
+	Gtk::Main::init_gtkmm_internals ();
 
 	text_receiver.listen_to (error);
 	text_receiver.listen_to (info);

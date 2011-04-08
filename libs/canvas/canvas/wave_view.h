@@ -83,8 +83,6 @@ private:
 	ARDOUR::framepos_t _foo_framepos;
 #endif
 
-	Coord position (float) const;
-
 	class CacheEntry
 	{
 	public:
@@ -103,12 +101,17 @@ private:
 			return _peaks;
 		}
 
+		Glib::RefPtr<Gdk::Pixbuf> pixbuf ();
+
 	private:
+		Coord position (float) const;
+		
 		WaveView const * _wave_view;
 		ARDOUR::frameoffset_t _start;
 		ARDOUR::frameoffset_t _end;
 		uint32_t _n_peaks;
 		ARDOUR::PeakData* _peaks;
+		Glib::RefPtr<Gdk::Pixbuf> _pixbuf;
 	};
 
 	friend class CacheEntry;
@@ -116,9 +119,6 @@ private:
 
 	void invalidate_cache ();
 	std::list<CacheEntry*> make_render_list (Rect const &, ARDOUR::frameoffset_t &, ARDOUR::frameoffset_t &) const;
-	ARDOUR::frameoffset_t render_cache_entry (
-		Cairo::RefPtr<Cairo::Context>, Rect const &, CacheEntry *, ARDOUR::frameoffset_t, ARDOUR::frameoffset_t
-		) const;
 
 	boost::shared_ptr<ARDOUR::AudioRegion> _region;
 	int _channel;

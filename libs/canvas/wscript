@@ -63,7 +63,7 @@ def build(bld):
 	obj.export_incdirs = ['.']
 	obj.includes     = ['.']
 	obj.uselib       = 'SIGCPP CAIROMM GTKMM'
-	obj.uselib_local = 'libevoral libardour'
+	obj.uselib_local = 'libevoral libardour libgtkmm2ext'
 	obj.name         = 'libcanvas'
 	obj.target       = 'canvas'
 	obj.vnum         = CANVAS_LIB_VERSION
@@ -91,7 +91,7 @@ def build(bld):
 			manual_testobj.source = t
 			manual_testobj.includes = obj.includes + ['test', '../pbd']
 			manual_testobj.uselib       = 'CPPUNIT SIGCPP CAIROMM GTKMM'
-			manual_testobj.uselib_local = 'libcanvas libevoral libardour'
+			manual_testobj.uselib_local = 'libcanvas libevoral libardour libgtkmm2ext'
 			manual_testobj.name         = 'libcanvas-manual-test-%s' % name
 			manual_testobj.target       = target
 			manual_testobj.install_path = ''
@@ -111,7 +111,7 @@ def build(bld):
 		'''.split()
 		unit_testobj.includes     = obj.includes + ['test', '../pbd']
 		unit_testobj.uselib       = 'CPPUNIT SIGCPP CAIROMM GTKMM'
-		unit_testobj.uselib_local = 'libcanvas libevoral libardour'
+		unit_testobj.uselib_local = 'libcanvas libevoral libardour libgtkmm2ext'
 		unit_testobj.name         = 'libcanvas-unit-tests'
 		unit_testobj.target       = 'run-tests'
 		unit_testobj.install_path = ''
@@ -133,7 +133,7 @@ def build(bld):
 			manual_testobj.source = [ t, 'benchmark/benchmark.cc' ]
 			manual_testobj.includes = obj.includes + ['test', '../pbd']
 			manual_testobj.uselib       = 'CPPUNIT SIGCPP CAIROMM GTKMM'
-			manual_testobj.uselib_local = 'libcanvas libevoral libardour'
+			manual_testobj.uselib_local = 'libcanvas libevoral libardour libgtkmm2ext'
 			manual_testobj.name         = 'libcanvas-benchmark-%s' % name
 			manual_testobj.target       = target
 			manual_testobj.install_path = ''
