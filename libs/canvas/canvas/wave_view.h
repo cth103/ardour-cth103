@@ -87,6 +87,7 @@ private:
 		}
 
 		Glib::RefPtr<Gdk::Pixbuf> pixbuf ();
+		void clear_pixbuf ();
 
 	private:
 		Coord position (float) const;
@@ -102,7 +103,8 @@ private:
 	friend class CacheEntry;
 	friend class ::WaveViewTest;
 
-	void invalidate_cache ();
+	void invalidate_whole_cache ();
+	void invalidate_pixbuf_cache ();
 
 	boost::shared_ptr<ARDOUR::AudioRegion> _region;
 	int _channel;

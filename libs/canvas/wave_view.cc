@@ -33,7 +33,7 @@ WaveView::set_frames_per_pixel (double frames_per_pixel)
 	_bounding_box_dirty = true;
 	end_change ();
 
-	invalidate_cache ();
+	invalidate_whole_cache ();
 }
 
 void
@@ -159,6 +159,8 @@ WaveView::set_height (Distance height)
 
 	_bounding_box_dirty = true;
 	end_change ();
+
+	invalidate_pixbuf_cache ();
 }
 
 void
@@ -171,17 +173,25 @@ WaveView::set_channel (int channel)
 	_bounding_box_dirty = true;
 	end_change ();
 
-	invalidate_cache ();
+	invalidate_whole_cache ();
 }
 
 void
-WaveView::invalidate_cache ()
+WaveView::invalidate_whole_cache ()
 {
 	for (list<CacheEntry*>::iterator i = _cache.begin(); i != _cache.end(); ++i) {
 		delete *i;
 	}
 
 	_cache.clear ();
+}
+
+void
+WaveView::invalidate_pixbuf_cache ()
+{
+	for (list<CacheEntry*>::iterator i = _cache.begin(); i != _cache.end(); ++i) {
+		(*i)->clear_pixbuf ();
+	}
 }
 
 void
@@ -252,3 +262,12 @@ WaveView::CacheEntry::position (float s) const
 {
 	return (s + 1) * _wave_view->_height / 2;
 }
+
+void
+WaveView::CacheEntry::clear_pixbuf ()
+{
+	_pixbuf.reset ();
+}
+
+
+		

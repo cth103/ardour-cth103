@@ -120,7 +120,7 @@ WaveViewTest::cache ()
 	
 	/* Whole of the render area needs caching from scratch */
 	
-	_wave_view->invalidate_cache ();
+	_wave_view->invalidate_whole_cache ();
 	
 	Rect whole (0, 0, 256, 256);
 	_canvas->render_to_image (whole);
@@ -129,7 +129,7 @@ WaveViewTest::cache ()
 	CPPUNIT_ASSERT (_wave_view->_cache.front()->start() == 0);
 	CPPUNIT_ASSERT (_wave_view->_cache.front()->end() == 256 * _wave_view->_frames_per_pixel);
 
-	_wave_view->invalidate_cache ();
+	_wave_view->invalidate_whole_cache ();
 	
 	/* Render a bit in the middle */
 
