@@ -66,11 +66,17 @@ void
 Editor::initialize_canvas ()
 {
 	/* XXX */
+	
 	_track_canvas_hadj = new Adjustment (0, 0, 1e16);
 	_track_canvas_vadj = new Adjustment (0, 0, 1e16);
 	_track_canvas_viewport = new ArdourCanvas::GtkCanvasViewport (*_track_canvas_hadj, *_track_canvas_vadj);
 	_track_canvas = _track_canvas_viewport->canvas ();
 
+	_time_bars_canvas_hadj = new Adjustment (0, 0, 1e16);
+	_time_bars_canvas_vadj = new Adjustment (0, 0, 1e16);
+	_time_bars_canvas_viewport = new ArdourCanvas::GtkCanvasViewport (*_time_bars_canvas_hadj, *_time_bars_canvas_vadj);
+	_time_bars_canvas = _time_bars_canvas_viewport->canvas ();
+	
 	/* stuff for the verbose canvas cursor */
 
 	Pango::FontDescription* font = get_font_for_style (N_("VerboseCanvasCursor"));
@@ -118,40 +124,37 @@ Editor::initialize_canvas ()
 	_trackview_group = new ArdourCanvas::Group (_master_group);
 	_region_motion_group = new ArdourCanvas::Group (_trackview_group);
 
-	_time_bars_group = new ArdourCanvas::Group (_track_canvas->root ());
-
-	meter_bar_group = new ArdourCanvas::Group (_time_bars_group);
+	meter_bar_group = new ArdourCanvas::Group (_time_bars_canvas->root ());
 	meter_bar = new ArdourCanvas::Rectangle (meter_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
 	meter_bar->set_outline_width (1);
 	meter_bar->set_outline_what (0x8);
 
-	tempo_bar_group = new ArdourCanvas::Group (_time_bars_group);
+	tempo_bar_group = new ArdourCanvas::Group (_time_bars_canvas->root ());
 	tempo_bar = new ArdourCanvas::Rectangle (tempo_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
 	tempo_bar->set_outline_width (1);
 	tempo_bar->set_outline_what (0x8);
 
-	range_marker_bar_group = new ArdourCanvas::Group (_time_bars_group);
+	range_marker_bar_group = new ArdourCanvas::Group (_time_bars_canvas->root ());
 	range_marker_bar = new ArdourCanvas::Rectangle (range_marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
 	range_marker_bar->set_outline_width (1);
 	range_marker_bar->set_outline_what (0x8);
 
-	transport_marker_bar_group = new ArdourCanvas::Group (_time_bars_group);
+	transport_marker_bar_group = new ArdourCanvas::Group (_time_bars_canvas->root ());
 	transport_marker_bar = new ArdourCanvas::Rectangle (transport_marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
 	transport_marker_bar->set_outline_width (1);
 	transport_marker_bar->set_outline_what (0x8);
 
-	marker_bar_group = new ArdourCanvas::Group (_time_bars_group);
+	marker_bar_group = new ArdourCanvas::Group (_time_bars_canvas->root ());
 	marker_bar = new ArdourCanvas::Rectangle (marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
 	marker_bar->set_outline_width (1);
 	marker_bar->set_outline_what (0x8);
 
-	cd_marker_bar_group = new ArdourCanvas::Group (_time_bars_group);
+	cd_marker_bar_group = new ArdourCanvas::Group (_time_bars_canvas->root ());
 	cd_marker_bar = new ArdourCanvas::Rectangle (cd_marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
 	cd_marker_bar->set_outline_width (1);
  	cd_marker_bar->set_outline_what (0x8);
 
-	_time_markers_group =  new ArdourCanvas::Group (_track_canvas->root());
-	cursor_group = new ArdourCanvas::Group (_track_canvas->root());
+	_time_markers_group = new ArdourCanvas::Group (_time_bars_canvas->root());
 
 	meter_group = new ArdourCanvas::Group (_time_markers_group, ArdourCanvas::Duple (0.0, timebar_height * 5.0));
 	tempo_group = new ArdourCanvas::Group (_time_markers_group, ArdourCanvas::Duple (0.0, timebar_height * 4.0));
@@ -272,9 +275,6 @@ Editor::track_canvas_viewport_size_allocated ()
 	}
 
 	if (height_changed) {
-		if (playhead_cursor) {
-			playhead_cursor->set_length (_visible_canvas_height);
-		}
 
 		for (LocationMarkerMap::iterator i = location_markers.begin(); i != location_markers.end(); ++i) {
 			i->second->canvas_height_set (_visible_canvas_height);
@@ -451,7 +451,7 @@ Editor::maybe_autoscroll (bool allow_horiz, bool allow_vert)
 
 	autoscroll_y = 0;
 	autoscroll_x = 0;
-	if (ty < canvas_timebars_vsize && allow_vert) {
+	if (ty < 0 && allow_vert) {
 		autoscroll_y = -1;
 		startit = true;
 	} else if (ty > _visible_canvas_height && allow_vert) {
@@ -663,9 +663,7 @@ void
 Editor::tie_vertical_scrolling ()
 {
 	_track_canvas_vadj->set_value (vertical_adjustment.get_value ());
-	_time_markers_group->set_position (ArdourCanvas::Duple (0, vertical_adjustment.get_value ()));
-	_time_bars_group->set_position (ArdourCanvas::Duple (0, vertical_adjustment.get_value ()));
-	cursor_group->set_position (ArdourCanvas::Duple (0, vertical_adjustment.get_value ()));
+//	cursor_group->set_position (ArdourCanvas::Duple (0, vertical_adjustment.get_value ()));
 
 	for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {
 		(*i)->clip_to_viewport ();
@@ -713,7 +711,7 @@ Editor::set_horizontal_position (double p)
 void
 Editor::color_handler()
 {
-	playhead_cursor->canvas_item.set_color (ARDOUR_UI::config()->canvasvar_PlayHead.get());
+	playhead_cursor->set_color (ARDOUR_UI::config()->canvasvar_PlayHead.get());
 	verbose_canvas_cursor->set_color (ARDOUR_UI::config()->canvasvar_VerboseCanvasCursor.get());
 
 	meter_bar->set_fill_color (ARDOUR_UI::config()->canvasvar_MeterBar.get());

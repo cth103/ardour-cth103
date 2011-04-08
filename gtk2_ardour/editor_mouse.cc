@@ -311,7 +311,7 @@ Editor::set_canvas_cursor ()
 	/* up-down cursor as a cue that automation can be dragged up and down when in join object/range mode */
 	if (join_object_range_button.get_active() && last_item_entered) {
 		if (last_item_entered->parent() && last_item_entered->parent()->get_data (X_("timeselection"))) {
-			pair<TimeAxisView*, int> tvp = trackview_by_y_position (_last_motion_y + vertical_adjustment.get_value() - canvas_timebars_vsize);
+			pair<TimeAxisView*, int> tvp = trackview_by_y_position (_last_motion_y + vertical_adjustment.get_value());
 			if (dynamic_cast<AutomationTimeAxisView*> (tvp.first)) {
 				current_canvas_cursor = _cursors->up_down;
 			}
@@ -619,7 +619,7 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 	case TempoBarItem:
 	case MeterBarItem:
 		if (!Keyboard::modifier_state_equals (event->button.state, Keyboard::PrimaryModifier)) {
-			_drags->set (new CursorDrag (this, &playhead_cursor->canvas_item, false), event);
+			_drags->set (new CursorDrag (this, &playhead_cursor->track_canvas_item (), false), event);
 		}
 		return true;
 		break;
@@ -627,7 +627,7 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 
 	case RangeMarkerBarItem:
 		if (!Keyboard::modifier_state_equals (event->button.state, Keyboard::PrimaryModifier)) {
-			_drags->set (new CursorDrag (this, &playhead_cursor->canvas_item, false), event);
+			_drags->set (new CursorDrag (this, &playhead_cursor->track_canvas_item (), false), event);
 		} else {
 			_drags->set (new RangeMarkerBarDrag (this, item, RangeMarkerBarDrag::CreateRangeMarker), event);
 		}
@@ -636,7 +636,7 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 
 	case CdMarkerBarItem:
 		if (!Keyboard::modifier_state_equals (event->button.state, Keyboard::PrimaryModifier)) {
-			_drags->set (new CursorDrag (this, &playhead_cursor->canvas_item, false), event);
+			_drags->set (new CursorDrag (this, &playhead_cursor->track_canvas_item (), false), event);
 		} else {
 			_drags->set (new RangeMarkerBarDrag (this, item, RangeMarkerBarDrag::CreateCDMarker), event);
 		}
@@ -645,7 +645,7 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 
 	case TransportMarkerBarItem:
 		if (!Keyboard::modifier_state_equals (event->button.state, Keyboard::PrimaryModifier)) {
-			_drags->set (new CursorDrag (this, &playhead_cursor->canvas_item, false), event);
+			_drags->set (new CursorDrag (this, &playhead_cursor->track_canvas_item (), false), event);
 		} else {
 			_drags->set (new RangeMarkerBarDrag (this, item, RangeMarkerBarDrag::CreateTransportMarker), event);
 		}
@@ -698,7 +698,7 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 				/* grab selection for moving */
 				_drags->set (new SelectionDrag (this, item, SelectionDrag::SelectionMove), event);
 			} else {
-				double const y = event->button.y + vertical_adjustment.get_value() - canvas_timebars_vsize;
+				double const y = event->button.y + vertical_adjustment.get_value();
 				pair<TimeAxisView*, int> tvp = trackview_by_y_position (y);
 				if (tvp.first) {
 					AutomationTimeAxisView* atv = dynamic_cast<AutomationTimeAxisView*> (tvp.first);
@@ -896,7 +896,7 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 			{
 				if (join_object_range_button.get_active()) {
 					/* we're in "smart" joined mode, and we've clicked on a Selection */
-					double const y = event->button.y + vertical_adjustment.get_value() - canvas_timebars_vsize;
+					double const y = event->button.y + vertical_adjustment.get_value();
 					pair<TimeAxisView*, int> tvp = trackview_by_y_position (y);
 					if (tvp.first) {
 						/* if we're over an automation track, start a drag of its data */
@@ -2233,7 +2233,7 @@ Editor::show_verbose_time_cursor (framepos_t frame, double offset, double xpos, 
 	if (xpos >= 0 && ypos >=0) {
 		set_verbose_canvas_cursor (buf, xpos + offset, ypos + offset);
 	} else {
-		set_verbose_canvas_cursor (buf, _drags->current_pointer_x() + offset - horizontal_position(), _drags->current_pointer_y() + offset - vertical_adjustment.get_value() + canvas_timebars_vsize);
+		set_verbose_canvas_cursor (buf, _drags->current_pointer_x() + offset - horizontal_position(), _drags->current_pointer_y() + offset - vertical_adjustment.get_value());
 	}
 	show_verbose_canvas_cursor ();
 }
@@ -2707,7 +2707,7 @@ Editor::update_join_object_range_location (double x, double y)
 	}
 
 	/* XXX: maybe we should make entered_track work in all cases, rather than resorting to this */
-	pair<TimeAxisView*, int> tvp = trackview_by_y_position (y + vertical_adjustment.get_value() - canvas_timebars_vsize);
+	pair<TimeAxisView*, int> tvp = trackview_by_y_position (y + vertical_adjustment.get_value());
 	
 	if (tvp.first) {
 
@@ -2751,6 +2751,8 @@ Editor::remove_midi_note (ArdourCanvas::Item* item, GdkEvent *)
 void
 Editor::set_canvas_cursor_for_region_view (double x, RegionView* rv)
 {
+	assert (rv);
+	
 	ArdourCanvas::Group* g = rv->get_canvas_group ();
 	ArdourCanvas::Group* p = g->parent ();
 

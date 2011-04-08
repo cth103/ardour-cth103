@@ -695,6 +695,11 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	Gtk::Adjustment* _track_canvas_hadj;
 	Gtk::Adjustment* _track_canvas_vadj;
 
+	ArdourCanvas::GtkCanvas* _time_bars_canvas;
+	ArdourCanvas::GtkCanvasViewport* _time_bars_canvas_viewport;
+	Gtk::Adjustment* _time_bars_canvas_hadj;
+	Gtk::Adjustment* _time_bars_canvas_vadj;
+	
 	ArdourCanvas::Text* verbose_canvas_cursor;
 	bool                 verbose_cursor_visible;
 
@@ -710,7 +715,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	Gtk::EventBox             time_canvas_event_box;
 	Gtk::EventBox             track_canvas_event_box;
-	Gtk::EventBox             time_button_event_box;
+	Gtk::EventBox             time_bars_event_box;
 	Gtk::EventBox             ruler_label_event_box;
 
 	ArdourCanvas::Group      *minsec_group;
@@ -725,8 +730,6 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	ArdourCanvas::Group      *transport_marker_group;
 	ArdourCanvas::Group*      cd_marker_group;
 
-	/* parent for groups which themselves contain time bars */	
-	ArdourCanvas::Group*     _time_bars_group;
 	/* parent for groups which themselves contain time markers */
 	ArdourCanvas::Group*     _time_markers_group;
 
@@ -875,8 +878,6 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	static const double timebar_height;
 	guint32 visible_timebars;
-	gdouble canvas_timebars_vsize;
-	gdouble get_canvas_timebars_vsize () const { return canvas_timebars_vsize; }
 	Gtk::Menu          *editor_ruler_menu;
 
 	ArdourCanvas::Rectangle* tempo_bar;
@@ -897,13 +898,11 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	Gtk::Label  transport_mark_label;
 	Gtk::Label  cd_mark_label;
 
-	Gtk::VBox          time_button_vbox;
-	Gtk::HBox          time_button_hbox;
+	Gtk::VBox          time_bars_vbox;
 
 	friend class EditorCursor;
 
 	EditorCursor*        playhead_cursor;
-	ArdourCanvas::Group* cursor_group;
 
 	framepos_t get_region_boundary (framepos_t pos, int32_t dir, bool with_selection, bool only_onscreen);
 
@@ -982,7 +981,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	bool deferred_control_scroll (framepos_t);
 	sigc::connection control_scroll_connection;
 
-	gdouble get_trackview_group_vertical_offset () const { return vertical_adjustment.get_value () - canvas_timebars_vsize;}
+	gdouble get_trackview_group_vertical_offset () const { return vertical_adjustment.get_value (); }
 
 	ArdourCanvas::Group* get_background_group () const { return _background_group; }
 	ArdourCanvas::Group* get_trackview_group () const { return _trackview_group; }
@@ -1820,6 +1819,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	int pitch_shift (RegionSelection&, float cents);
 	void pitch_shift_region ();
 	int time_fx (RegionSelection&, float val, bool pitching);
+
+	void transpose_region ();
 
 	/* editor-mixer strip */
 

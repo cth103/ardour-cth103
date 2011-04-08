@@ -483,8 +483,8 @@ GtkCanvasViewport::GtkCanvasViewport (Gtk::Adjustment& hadj, Gtk::Adjustment& va
 void
 GtkCanvasViewport::on_size_request (Gtk::Requisition* req)
 {
-	req->width = 128;
-	req->height = 128;
+	req->width = 16;
+	req->height = 16;
 }
 
 /** Convert window coordinates to canvas coordinates by taking into account

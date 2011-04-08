@@ -89,6 +89,7 @@
 #include "editor_cursors.h"
 #include "mouse_cursors.h"
 #include "patch_change_dialog.h"
+#include "transpose_dialog.h"
 
 #include "i18n.h"
 
@@ -393,8 +394,8 @@ Editor::nudge_forward (bool next, bool force_playhead)
 		commit_reversible_command ();
 
 	} else {
-		distance = get_nudge_distance (playhead_cursor->current_frame, next_distance);
-		_session->request_locate (playhead_cursor->current_frame + distance);
+		distance = get_nudge_distance (playhead_cursor->current_frame (), next_distance);
+		_session->request_locate (playhead_cursor->current_frame () + distance);
 	}
 }
 
@@ -482,10 +483,10 @@ Editor::nudge_backward (bool next, bool force_playhead)
 
 	} else {
 
-		distance = get_nudge_distance (playhead_cursor->current_frame, next_distance);
+		distance = get_nudge_distance (playhead_cursor->current_frame (), next_distance);
 
-		if (playhead_cursor->current_frame > distance) {
-			_session->request_locate (playhead_cursor->current_frame - distance);
+		if (playhead_cursor->current_frame () > distance) {
+			_session->request_locate (playhead_cursor->current_frame () - distance);
 		} else {
 			_session->goto_start();
 		}
@@ -808,7 +809,7 @@ Editor::get_region_boundary (framepos_t pos, int32_t dir, bool with_selection, b
 void
 Editor::cursor_to_region_boundary (bool with_selection, int32_t dir)
 {
-	framepos_t pos = playhead_cursor->current_frame;
+	framepos_t pos = playhead_cursor->current_frame ();
 	framepos_t target;
 
 	if (!_session) {
@@ -843,7 +844,7 @@ void
 Editor::cursor_to_region_point (EditorCursor* cursor, RegionPoint point, int32_t dir)
 {
 	boost::shared_ptr<Region> r;
-	framepos_t pos = cursor->current_frame;
+	framepos_t pos = cursor->current_frame ();
 
 	if (!_session) {
 		return;
@@ -1179,7 +1180,7 @@ Editor::selected_marker_to_selection_end ()
 void
 Editor::scroll_playhead (bool forward)
 {
-	framepos_t pos = playhead_cursor->current_frame;
+	framepos_t pos = playhead_cursor->current_frame ();
 	framecnt_t delta = (framecnt_t) floor (current_page_frames() / 0.8);
 
 	if (forward) {
@@ -1233,10 +1234,10 @@ Editor::cursor_align (bool playhead_to_edit)
 			Location* loc = find_location_from_marker (*i, ignored);
 
 			if (loc->is_mark()) {
-				loc->set_start (playhead_cursor->current_frame);
+				loc->set_start (playhead_cursor->current_frame ());
 			} else {
-				loc->set (playhead_cursor->current_frame,
-					  playhead_cursor->current_frame + loc->length());
+				loc->set (playhead_cursor->current_frame (),
+					  playhead_cursor->current_frame () + loc->length());
 			}
 		}
 	}
@@ -1396,7 +1397,7 @@ Editor::temporal_zoom (double fpp)
 
 	case ZoomFocusPlayhead:
 		/* centre playhead */
-		l = playhead_cursor->current_frame - (new_page_size * 0.5);
+		l = playhead_cursor->current_frame () - (new_page_size * 0.5);
 
 		if (l < 0) {
 			leftmost_after_zoom = 0;
@@ -1412,7 +1413,7 @@ Editor::temporal_zoom (double fpp)
 
 		if (!mouse_frame (where, in_track_canvas)) {
 			/* use playhead instead */
-			where = playhead_cursor->current_frame;
+			where = playhead_cursor->current_frame ();
 
 			if (where < half_page_size) {
 				leftmost_after_zoom = 0;
@@ -1532,7 +1533,7 @@ Editor::temporal_zoom_region (bool both_axes)
 	temporal_zoom_by_frame (start, end, "zoom to region");
 
 	if (both_axes) {
-		uint32_t per_track_height = (uint32_t) floor ((_visible_canvas_height - canvas_timebars_vsize - 10.0) / tracks.size());
+		uint32_t per_track_height = (uint32_t) floor ((_visible_canvas_height - 10.0) / tracks.size());
 
 		/* set visible track heights appropriately */
 
@@ -1818,7 +1819,7 @@ Editor::jump_forward_to_mark ()
 		return;
 	}
 
-	Location *location = _session->locations()->first_location_after (playhead_cursor->current_frame);
+	Location *location = _session->locations()->first_location_after (playhead_cursor->current_frame ());
 
 	if (location) {
 		_session->request_locate (location->start(), _session->transport_rolling());
@@ -1834,7 +1835,7 @@ Editor::jump_backward_to_mark ()
 		return;
 	}
 
-	Location *location = _session->locations()->first_location_before (playhead_cursor->current_frame);
+	Location *location = _session->locations()->first_location_before (playhead_cursor->current_frame ());
 
 	if (location) {
 		_session->request_locate (location->start(), _session->transport_rolling());
@@ -4077,7 +4078,7 @@ void
 Editor::center_playhead ()
 {
 	float const page = _visible_canvas_width * frames_per_pixel;
-	center_screen_internal (playhead_cursor->current_frame, page);
+	center_screen_internal (playhead_cursor->current_frame (), page);
 }
 
 void
@@ -5192,7 +5193,7 @@ Editor::ensure_track_visible(TimeAxisView *track)
 		return;
 
 	double const current_view_min_y = vertical_adjustment.get_value();
-	double const current_view_max_y = vertical_adjustment.get_value() + vertical_adjustment.get_page_size() - canvas_timebars_vsize;
+	double const current_view_max_y = vertical_adjustment.get_value() + vertical_adjustment.get_page_size();
 
 	double const track_min_y = track->y_position ();
 	double const track_max_y = track->y_position () + track->effective_height ();
@@ -5209,7 +5210,7 @@ Editor::ensure_track_visible(TimeAxisView *track)
 		new_value = track_min_y;
 	} else {
 		// Track is below the current view
-		new_value = track->y_position () + track->effective_height() + canvas_timebars_vsize - vertical_adjustment.get_page_size();
+		new_value = track->y_position () + track->effective_height() - vertical_adjustment.get_page_size();
 	}
 
 	vertical_adjustment.set_value(new_value);
@@ -5343,11 +5344,42 @@ Editor::pitch_shift_region ()
 {
 	RegionSelection rs = get_regions_from_selection_and_entered ();
 
-	if (rs.empty()) {
+	RegionSelection audio_rs;
+	for (RegionSelection::iterator i = rs.begin(); i != rs.end(); ++i) {
+		if (dynamic_cast<AudioRegionView*> (*i)) {
+			audio_rs.push_back (*i);
+		}
+	}
+
+	if (audio_rs.empty()) {
 		return;
 	}
 
-	pitch_shift (rs, 1.2);
+	pitch_shift (audio_rs, 1.2);
+}
+
+void
+Editor::transpose_region ()
+{
+	RegionSelection rs = get_regions_from_selection_and_entered ();
+
+	list<MidiRegionView*> midi_region_views;
+	for (RegionSelection::iterator i = rs.begin(); i != rs.end(); ++i) {
+		MidiRegionView* mrv = dynamic_cast<MidiRegionView*> (*i);
+		if (mrv) {
+			midi_region_views.push_back (mrv);
+		}
+	}
+
+	TransposeDialog d;
+	int const r = d.run ();
+	if (r != RESPONSE_ACCEPT) {
+		return;
+	}
+
+	for (list<MidiRegionView*>::iterator i = midi_region_views.begin(); i != midi_region_views.end(); ++i) {
+		(*i)->midi_region()->transpose (d.semitones ());
+	}
 }
 
 void
@@ -5903,8 +5935,11 @@ Editor::tab_to_transient (bool forward)
 void
 Editor::playhead_forward_to_grid ()
 {
-	if (!_session) return;
-	framepos_t pos = playhead_cursor->current_frame;
+	if (!_session) {
+		return;
+	}
+	
+	framepos_t pos = playhead_cursor->current_frame ();
 	if (pos < max_framepos - 1) {
 		pos += 2;
 		snap_to_internal (pos, 1, false);
@@ -5916,8 +5951,11 @@ Editor::playhead_forward_to_grid ()
 void
 Editor::playhead_backward_to_grid ()
 {
-	if (!_session) return;
-	framepos_t pos = playhead_cursor->current_frame;
+	if (!_session) {
+		return;
+	}
+	
+	framepos_t pos = playhead_cursor->current_frame ();
 	if (pos > 2) {
 		pos -= 2;
 		snap_to_internal (pos, -1, false);
@@ -6242,7 +6280,7 @@ Editor::fit_tracks (TrackViewList & tracks)
 		++visible_tracks;
 	}
 
-	uint32_t h = (uint32_t) floor ((_visible_canvas_height - child_heights - canvas_timebars_vsize) / visible_tracks);
+	uint32_t h = (uint32_t) floor ((_visible_canvas_height - child_heights) / visible_tracks);
 	double first_y_pos = DBL_MAX;
 
 	if (h < TimeAxisView::preset_height (HeightSmall)) {
@@ -6303,7 +6341,7 @@ Editor::fit_tracks (TrackViewList & tracks)
 	   request signal handler will cause the vertical adjustment setting to fail
 	*/
 
-	controls_layout.property_height () = _full_canvas_height - canvas_timebars_vsize;
+	controls_layout.property_height () = _full_canvas_height;
 	vertical_adjustment.set_value (first_y_pos);
 
 	redo_visual_stack.push_back (current_visual_state());

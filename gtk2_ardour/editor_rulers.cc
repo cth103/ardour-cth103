@@ -122,7 +122,7 @@ Editor::initialize_rulers ()
 	using namespace Box_Helpers;
 	BoxList & ruler_lab_children =  ruler_label_vbox.children();
 	BoxList & ruler_children =  time_canvas_vbox.children();
-	BoxList & lab_children =  time_button_vbox.children();
+	BoxList & lab_children =  time_bars_vbox.children();
 
 	BoxList::iterator canvaspos = ruler_children.begin();
 
@@ -168,7 +168,6 @@ Editor::initialize_rulers ()
 	minsec_ruler->signal_scroll_event().connect (sigc::mem_fun(*this, &Editor::ruler_scroll));
 
 	visible_timebars = 0; /*this will be changed below */
-	canvas_timebars_vsize = 0;
 }
 
 bool
@@ -252,7 +251,7 @@ Editor::ruler_button_press (GdkEventButton* ev)
 		}
 
 		/* playhead cursor */
-		_drags->set (new CursorDrag (this, &playhead_cursor->canvas_item, false), reinterpret_cast<GdkEvent *> (ev));
+		_drags->set (new CursorDrag (this, &playhead_cursor->track_canvas_item (), false), reinterpret_cast<GdkEvent *> (ev));
 		_dragging_playhead = true;
 	}
 
@@ -737,26 +736,6 @@ Editor::update_ruler_visibility ()
 		marker_bar_group->hide();
 		marker_group->hide();
 		mark_label.hide();
-	}
-
-	gdouble old_canvas_timebars_vsize = canvas_timebars_vsize;
-	canvas_timebars_vsize = (timebar_height * visible_timebars) - 1;
-	gdouble vertical_pos_delta = canvas_timebars_vsize - old_canvas_timebars_vsize;
-	vertical_adjustment.set_upper(vertical_adjustment.get_upper() + vertical_pos_delta);
-	_full_canvas_height += vertical_pos_delta;
-
-	if (vertical_adjustment.get_value() != 0 && (vertical_adjustment.get_value() + _visible_canvas_height >= _full_canvas_height)) {
-		/* if we're at the bottom of the canvas, don't move the _trackview_group */
-		vertical_adjustment.set_value (_full_canvas_height - _visible_canvas_height + 1);
-	} else {
-		_trackview_group->set_y_position (- get_trackview_group_vertical_offset ());
-		_background_group->set_y_position (- get_trackview_group_vertical_offset ());
-	}
-
-	gdouble bottom_track_pos = vertical_adjustment.get_value() + _visible_canvas_height - canvas_timebars_vsize;
-	std::pair<TimeAxisView*, int> const p = trackview_by_y_position (bottom_track_pos);
-	if (p.first) {
-		p.first->clip_to_viewport ();
 	}
 
 	ruler_label_vbox.set_size_request (-1, (int)(timebar_height * visible_rulers));

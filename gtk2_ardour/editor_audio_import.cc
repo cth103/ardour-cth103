@@ -169,7 +169,7 @@ Editor::external_audio_dialog ()
 				where = -1;
 				break;
 			case ImportAtPlayhead:
-				where = playhead_cursor->current_frame;
+				where = playhead_cursor->current_frame ();
 				break;
 			case ImportAtStart:
 				where = _session->current_start_frame();
@@ -907,7 +907,6 @@ Editor::finish_bringing_in_material (boost::shared_ptr<Region> region, uint32_t 
 			existing_track->set_name (region->name());
 		}
 
-
 		boost::shared_ptr<Playlist> playlist = existing_track->playlist();
 		boost::shared_ptr<Region> copy (RegionFactory::create (region));
 		begin_reversible_command (Operations::insert_file);
@@ -917,7 +916,6 @@ Editor::finish_bringing_in_material (boost::shared_ptr<Region> region, uint32_t 
 		commit_reversible_command ();
 		break;
 	}
-
 
 	case ImportAsTapeTrack:
 	{

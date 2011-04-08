@@ -4,11 +4,20 @@
 class WaveViewTest : public CppUnit::TestFixture
 {
 	CPPUNIT_TEST_SUITE (WaveViewTest);
-	CPPUNIT_TEST (basics);
+	CPPUNIT_TEST (all);
 	CPPUNIT_TEST_SUITE_END ();
 
 public:
+	void setUp ();
+	void all ();
+
+private:
 	void basics ();
+	void cache ();
+	
+	ArdourCanvas::ImageCanvas* _canvas;
+	ArdourCanvas::WaveView* _wave_view;
+	boost::shared_ptr<ARDOUR::Region> _region;
 };
 
 

@@ -486,13 +486,13 @@ RegionMotionDrag::compute_x_delta (GdkEvent const * event, framepos_t* pending_r
 
 	if ((*pending_region_position != _last_frame_position) && x_move_allowed) {
 
-		/* x movement since last time */
+		/* x movement since last time (in pixels) */
 		dx = (static_cast<double> (*pending_region_position) - _last_frame_position) / _editor->frames_per_pixel;
 
 		/* total x movement */
 		framecnt_t total_dx = *pending_region_position;
 		if (regions_came_from_canvas()) {
-			total_dx = total_dx - grab_frame () + _pointer_frame_offset;
+			total_dx = total_dx - grab_frame ();
 		}
 
 		/* check that no regions have gone off the start of the session */
@@ -687,10 +687,6 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 
 	_total_x_delta += x_delta;
 	
-	if (first_move) {
-		_editor->cursor_group->raise_to_top();
-	}
-
 	if (x_delta != 0 && !_brushing) {
 		_editor->show_verbose_time_cursor (_last_frame_position, 10);
 	}
@@ -2026,7 +2022,7 @@ CursorDrag::fake_locate (framepos_t t)
 	
 	Session* s = _editor->session ();
 	if (s->timecode_transmission_suspended ()) {
-		framepos_t const f = _editor->playhead_cursor->current_frame;
+		framepos_t const f = _editor->playhead_cursor->current_frame ();
 		s->send_mmc_locate (f);
 		s->send_full_time_code (f);
 	}
@@ -2094,7 +2090,7 @@ CursorDrag::finished (GdkEvent* event, bool movement_occurred)
 
 	Session* s = _editor->session ();
 	if (s) {
-		s->request_locate (_editor->playhead_cursor->current_frame, _was_rolling);
+		s->request_locate (_editor->playhead_cursor->current_frame (), _was_rolling);
 		_editor->_pending_locate_request = true;
 		s->request_resume_timecode_transmission ();
 	}

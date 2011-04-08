@@ -1072,6 +1072,7 @@ Editor::sensitize_the_right_region_actions ()
 		_region_actions->get_action("show-region-list-editor")->set_sensitive (false);
 		_region_actions->get_action("quantize-region")->set_sensitive (false);
 		_region_actions->get_action("fork-region")->set_sensitive (false);
+		_region_actions->get_action("transpose-region")->set_sensitive (false);
 	}
 
 	if (_edit_point == EditAtMouse) {
@@ -1102,6 +1103,7 @@ Editor::sensitize_the_right_region_actions ()
 		_region_actions->get_action("reset-region-gain-envelopes")->set_sensitive (false);
 		_region_actions->get_action("toggle-region-gain-envelope-visible")->set_sensitive (false);
 		_region_actions->get_action("toggle-region-gain-envelope-active")->set_sensitive (false);
+		_region_actions->get_action("pitch-shift-region")->set_sensitive (false);
 		
 	}
 
@@ -1498,13 +1500,13 @@ Editor::select_all_selectables_using_cursor (EditorCursor *cursor, bool after)
 
 	if (after) {
 		begin_reversible_command (_("select all after cursor"));
-		start = cursor->current_frame;
+		start = cursor->current_frame ();
 		end = _session->current_end_frame();
 	} else {
-		if (cursor->current_frame > 0) {
+		if (cursor->current_frame () > 0) {
 			begin_reversible_command (_("select all before cursor"));
 			start = 0;
-			end = cursor->current_frame - 1;
+			end = cursor->current_frame () - 1;
 		} else {
 			return;
 		}

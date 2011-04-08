@@ -8,6 +8,8 @@ namespace ARDOUR {
 	class AudioRegion;
 }
 
+class WaveViewTest;
+
 #ifdef CANVAS_COMPATIBILITY	
 class GnomeCanvasWaveViewCache {
 
@@ -83,11 +85,48 @@ private:
 
 	Coord position (float) const;
 
+	class CacheEntry
+	{
+	public:
+		CacheEntry (WaveView const *, ARDOUR::frameoffset_t, ARDOUR::frameoffset_t);
+		~CacheEntry ();
+
+		ARDOUR::frameoffset_t start () const {
+			return _start;
+		}
+
+		ARDOUR::frameoffset_t end () const {
+			return _end;
+		}
+
+		ARDOUR::PeakData* peaks () const {
+			return _peaks;
+		}
+
+	private:
+		WaveView const * _wave_view;
+		ARDOUR::frameoffset_t _start;
+		ARDOUR::frameoffset_t _end;
+		uint32_t _n_peaks;
+		ARDOUR::PeakData* _peaks;
+	};
+
+	friend class CacheEntry;
+	friend class ::WaveViewTest;
+
+	void invalidate_cache ();
+	std::list<CacheEntry*> make_render_list (Rect const &, ARDOUR::frameoffset_t &, ARDOUR::frameoffset_t &) const;
+	ARDOUR::frameoffset_t render_cache_entry (
+		Cairo::RefPtr<Cairo::Context>, Rect const &, CacheEntry *, ARDOUR::frameoffset_t, ARDOUR::frameoffset_t
+		) const;
+
 	boost::shared_ptr<ARDOUR::AudioRegion> _region;
 	int _channel;
 	double _frames_per_pixel;
 	Coord _height;
 	Color _wave_color;
+
+	mutable std::list<CacheEntry*> _cache;
 };
 
 }
