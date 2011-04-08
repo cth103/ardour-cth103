@@ -90,8 +90,8 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 
 			CacheEntry* c = new CacheEntry (this, p, (*cache)->start());
 			cache = _cache.insert (cache, c);
-			render = c;
 			++cache;
+			render = c;
 
 		} else {
 
