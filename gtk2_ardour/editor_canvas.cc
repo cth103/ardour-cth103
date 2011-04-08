@@ -663,7 +663,6 @@ void
 Editor::tie_vertical_scrolling ()
 {
 	_track_canvas_vadj->set_value (vertical_adjustment.get_value ());
-//	cursor_group->set_position (ArdourCanvas::Duple (0, vertical_adjustment.get_value ()));
 
 	for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {
 		(*i)->clip_to_viewport ();
@@ -686,6 +685,7 @@ void
 Editor::set_horizontal_position (double p)
 {
 	_track_canvas_hadj->set_value (p);
+	_time_bars_canvas_hadj->set_value (p);
 
 	leftmost_frame = (framepos_t) floor (p * frames_per_pixel);
 
