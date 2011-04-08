@@ -71,14 +71,14 @@ private:
 	class CacheEntry
 	{
 	public:
-		CacheEntry (WaveView const *, ARDOUR::frameoffset_t, ARDOUR::frameoffset_t);
+		CacheEntry (WaveView const *, int, int);
 		~CacheEntry ();
 
-		ARDOUR::frameoffset_t start () const {
+		int start () const {
 			return _start;
 		}
 
-		ARDOUR::frameoffset_t end () const {
+		int end () const {
 			return _end;
 		}
 
@@ -93,9 +93,9 @@ private:
 		Coord position (float) const;
 		
 		WaveView const * _wave_view;
-		ARDOUR::frameoffset_t _start;
-		ARDOUR::frameoffset_t _end;
-		uint32_t _n_peaks;
+		int _start;
+		int _end;
+		int _n_peaks;
 		ARDOUR::PeakData* _peaks;
 		Glib::RefPtr<Gdk::Pixbuf> _pixbuf;
 	};

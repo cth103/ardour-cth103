@@ -45,18 +45,14 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 		return;
 	}
 
-	cout << "Render: CAIRO " << area << "\n";
-
 	/* p, start and end are offsets from the start of the source.
 	   area is relative to the position of the region.
 	 */
 	
-	frameoffset_t const start = floor (area.x0 * _frames_per_pixel) + _region->start ();
-	frameoffset_t const end   = ceil  (area.x1 * _frames_per_pixel) + _region->start ();
+	int const start = rint (area.x0 + _region->start() / _frames_per_pixel);
+	int const end   = rint (area.x1 + _region->start() / _frames_per_pixel);
 
-	cout << "FRAMES: " << start << " to " << end << "\n";
-
-	frameoffset_t p = start;
+	int p = start;
 	list<CacheEntry*>::iterator cache = _cache.begin ();
 
 	while (p < end) {
@@ -108,10 +104,10 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 
 		}
 
-		frameoffset_t const this_end = min (end, render->end ());
+		int const this_end = min (end, render->end ());
 		
-		Coord const left = (p - _region->start()) / _frames_per_pixel;
-		Coord const right = (this_end - _region->start()) / _frames_per_pixel;
+		Coord const left  =        p - _region->start() / _frames_per_pixel;
+		Coord const right = this_end - _region->start() / _frames_per_pixel;
 		
 		context->save ();
 		
@@ -120,8 +116,7 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 		
 		context->translate (left, 0);
 
-		cout << "Render at CAIRO " << left << "\n";
-		Gdk::Cairo::set_source_pixbuf (context, render->pixbuf (), (render->start() - p) / _frames_per_pixel, 0);
+		Gdk::Cairo::set_source_pixbuf (context, render->pixbuf (), render->start() - p, 0);
 		context->paint ();
 		
 		context->restore ();
@@ -210,17 +205,24 @@ WaveView::region_resized ()
  */
 WaveView::CacheEntry::CacheEntry (
 	WaveView const * wave_view,
-	frameoffset_t start,
-	frameoffset_t end
+	int start,
+	int end
 	)
 	: _wave_view (wave_view)
 	, _start (start)
 	, _end (end)
 {
-	_n_peaks = ceil ((_end - _start) / _wave_view->_frames_per_pixel);
-	cout << "Cache: FRAMES " << start << " to " << end << " peaks " << _n_peaks << "\n";
+	_n_peaks = _end - _start;
 	_peaks = new PeakData[_n_peaks];
-	_wave_view->_region->read_peaks (_peaks, _n_peaks, _start, _end - _start, _wave_view->_channel, _wave_view->_frames_per_pixel);
+
+	_wave_view->_region->read_peaks (
+		_peaks,
+		_n_peaks,
+		_start * _wave_view->_frames_per_pixel,
+		(_end - _start) * _wave_view->_frames_per_pixel,
+		_wave_view->_channel,
+		_wave_view->_frames_per_pixel
+		);
 }
 
 WaveView::CacheEntry::~CacheEntry ()
@@ -237,22 +239,22 @@ WaveView::CacheEntry::pixbuf ()
 		Cairo::RefPtr<Cairo::Context> context = Cairo::Context::create (surface);
 
 		_wave_view->setup_outline_context (context);
-		context->move_to (0, 0);
-		for (uint32_t i = 0; i < _n_peaks; ++i) {
-			context->line_to (i, position (_peaks[i].max));
+		context->move_to (0.5, position (_peaks[0].min));
+		for (int i = 1; i < _n_peaks; ++i) {
+			context->line_to (i + 0.5, position (_peaks[i].max));
 		}
 		context->stroke ();
 		
-		context->move_to (0, 0);
-		for (uint32_t i = 0; i < _n_peaks; ++i) {
-			context->line_to (i, position (_peaks[i].min));
+		context->move_to (0.5, position (_peaks[0].min));
+		for (int i = 1; i < _n_peaks; ++i) {
+			context->line_to (i + 0.5, position (_peaks[i].min));
 		}
 		context->stroke ();
 
 		set_source_rgba (context, _wave_view->_fill_color);
-		for (uint32_t i = 0; i < _n_peaks; ++i) {
-			context->move_to (i, position (_peaks[i].max) - 1);
-			context->line_to (i, position (_peaks[i].min) + 1);
+		for (int i = 0; i < _n_peaks; ++i) {
+			context->move_to (i + 0.5, position (_peaks[i].max) - 1);
+		 	context->line_to (i + 0.5, position (_peaks[i].min) + 1);
 			context->stroke ();
 		}
 

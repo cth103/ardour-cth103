@@ -129,7 +129,7 @@ WaveViewTest::cache ()
 
 	CPPUNIT_ASSERT (_wave_view->_cache.size() == 1);
 	CPPUNIT_ASSERT (_wave_view->_cache.front()->start() == 0);
-	CPPUNIT_ASSERT (_wave_view->_cache.front()->end() == 256 * _wave_view->_frames_per_pixel);
+	CPPUNIT_ASSERT (_wave_view->_cache.front()->end() == 256);
 
 	_wave_view->invalidate_whole_cache ();
 	
@@ -139,8 +139,8 @@ WaveViewTest::cache ()
 	_canvas->render_to_image (part1);
 
 	CPPUNIT_ASSERT (_wave_view->_cache.size() == 1);
-	CPPUNIT_ASSERT (_wave_view->_cache.front()->start() == 128 * _wave_view->_frames_per_pixel);
-	CPPUNIT_ASSERT (_wave_view->_cache.front()->end() == ceil (196 * _wave_view->_frames_per_pixel));
+	CPPUNIT_ASSERT (_wave_view->_cache.front()->start() == 128);
+	CPPUNIT_ASSERT (_wave_view->_cache.front()->end() == 196);
 
 	/* Now render the whole thing and check that the cache sorts itself out */
 
@@ -151,14 +151,14 @@ WaveViewTest::cache ()
 	list<WaveView::CacheEntry*>::iterator i = _wave_view->_cache.begin ();
 	
 	CPPUNIT_ASSERT ((*i)->start() == 0);
-	CPPUNIT_ASSERT ((*i)->end() == ceil (128 * _wave_view->_frames_per_pixel));
+	CPPUNIT_ASSERT ((*i)->end() == 128);
 	++i;
 
-	CPPUNIT_ASSERT ((*i)->start() == ceil (128 * _wave_view->_frames_per_pixel));
-	CPPUNIT_ASSERT ((*i)->end() == ceil (196 * _wave_view->_frames_per_pixel));
+	CPPUNIT_ASSERT ((*i)->start() == 128);
+	CPPUNIT_ASSERT ((*i)->end() == 196);
 	++i;
 
-	CPPUNIT_ASSERT ((*i)->start() == ceil (196 * _wave_view->_frames_per_pixel));
-	CPPUNIT_ASSERT ((*i)->end() == ceil (256 * _wave_view->_frames_per_pixel));
+	CPPUNIT_ASSERT ((*i)->start() == 196);
+	CPPUNIT_ASSERT ((*i)->end() == 256);
 	++i;
 }
