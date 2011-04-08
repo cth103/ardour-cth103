@@ -74,6 +74,7 @@ WaveViewTest::make_canvas ()
 	_canvas = new ImageCanvas (Duple (256, 256));
 	_wave_view = new WaveView (_canvas->root(), _audio_region);
 	_wave_view->set_frames_per_pixel ((double) (44100 / 1000) / 64);
+	_wave_view->set_height (64);
 }
 
 void
@@ -122,9 +123,7 @@ WaveViewTest::cache ()
 	_wave_view->invalidate_cache ();
 	
 	Rect whole (0, 0, 256, 256);
-	frameoffset_t start;
-	frameoffset_t end;
-	list<WaveView::CacheEntry*> render_list = _wave_view->make_render_list (whole, start, end);
+	_canvas->render_to_image (whole);
 
 	CPPUNIT_ASSERT (_wave_view->_cache.size() == 1);
 	CPPUNIT_ASSERT (_wave_view->_cache.front()->start() == 0);
@@ -135,7 +134,7 @@ WaveViewTest::cache ()
 	/* Render a bit in the middle */
 
 	Rect part1 (128, 0, 196, 256);
-	render_list = _wave_view->make_render_list (part1, start, end);
+	_canvas->render_to_image (part1);
 
 	CPPUNIT_ASSERT (_wave_view->_cache.size() == 1);
 	CPPUNIT_ASSERT (_wave_view->_cache.front()->start() == 128 * _wave_view->_frames_per_pixel);
@@ -143,7 +142,7 @@ WaveViewTest::cache ()
 
 	/* Now render the whole thing and check that the cache sorts itself out */
 
-	render_list = _wave_view->make_render_list (whole, start, end);
+	_canvas->render_to_image (whole);
 	
 	CPPUNIT_ASSERT (_wave_view->_cache.size() == 3);
 

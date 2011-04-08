@@ -36,23 +36,24 @@ WaveView::set_frames_per_pixel (double frames_per_pixel)
 	invalidate_cache ();
 }
 
-list<WaveView::CacheEntry*>
-WaveView::make_render_list (Rect const & area, frameoffset_t& start, frameoffset_t& end) const
+void
+WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
 	assert (_frames_per_pixel != 0);
 
-	list<CacheEntry*> render_list;
-
 	if (!_region) {
-		return render_list;
+		return;
 	}
 
-	start = floor (area.x0 * _frames_per_pixel) + _region->start ();
-	end   = ceil  (area.x1 * _frames_per_pixel) + _region->start ();
+	/* p, start and end are offsets from the start of the source.
+	   area is relative to the position of the region.
+	 */
+	
+	frameoffset_t const start = floor (area.x0 * _frames_per_pixel) + _region->start ();
+	frameoffset_t const end   = ceil  (area.x1 * _frames_per_pixel) + _region->start ();
 
+	frameoffset_t p = start;
 	list<CacheEntry*>::iterator cache = _cache.begin ();
-
-	framepos_t p = start;
 
 	while (p < end) {
 
@@ -69,6 +70,8 @@ WaveView::make_render_list (Rect const & area, frameoffset_t& start, frameoffset
 		   Set up a pointer to the cache entry that we will use on this iteration.
 		*/
 
+		CacheEntry* render = 0;
+
 		if (cache == _cache.end ()) {
 
 			/* Case 1: we have run out of cache entries, so make a new one for
@@ -77,8 +80,7 @@ WaveView::make_render_list (Rect const & area, frameoffset_t& start, frameoffset
 			
 			CacheEntry* c = new CacheEntry (this, p, end);
 			_cache.push_back (c);
-			render_list.push_back (c);
-			p = end;
+			render = c;
 
 		} else if ((*cache)->start() > p) {
 
@@ -88,9 +90,8 @@ WaveView::make_render_list (Rect const & area, frameoffset_t& start, frameoffset
 
 			CacheEntry* c = new CacheEntry (this, p, (*cache)->start());
 			cache = _cache.insert (cache, c);
-			render_list.push_back (c);
+			render = c;
 			++cache;
-			p = (*cache)->start ();
 
 		} else {
 
@@ -98,50 +99,29 @@ WaveView::make_render_list (Rect const & area, frameoffset_t& start, frameoffset
 			   we have left, so render it.
 			*/
 
-			render_list.push_back (*cache);
-			p = min (end, (*cache)->end ());
+			render = *cache;
 			++cache;
 
 		}
-	}
 
-	return render_list;
-}
-
-void
-WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
-{
-	frameoffset_t start;
-	frameoffset_t end;
-
-	list<CacheEntry*> render_list = make_render_list (area, start, end);
-
-	/* p, start and end are offsets from the start of the source.
-	   area is relative to the start of the region.
-	 */
-	
-	frameoffset_t p = start;
-
-	for (list<CacheEntry*>::iterator i = render_list.begin(); i != render_list.end(); ++i) {
-
-		frameoffset_t const this_end = min (end, (*i)->end ());
-
-		Coord const left = (p - _region->start()) / _frames_per_pixel;
-		Coord const right = (this_end - _region->start()) / _frames_per_pixel;
-
+		frameoffset_t const this_end = min (end, render->end ());
+		
+		Coord const left = floor ((p - _region->start()) / _frames_per_pixel);
+		Coord const right = ceil ((this_end - _region->start()) / _frames_per_pixel);
+		
 		context->save ();
 		
 		context->rectangle (left, area.y0, right, area.height());
 		context->clip ();
-
+		
 		context->translate (left, 0);
-
-		Gdk::Cairo::set_source_pixbuf (context, (*i)->pixbuf (), ((*i)->start() - p) / _frames_per_pixel, 0);
+		
+		Gdk::Cairo::set_source_pixbuf (context, render->pixbuf (), (render->start() - p) / _frames_per_pixel, 0);
 		context->paint ();
-
+		
 		context->restore ();
 
-		p = min (end, (*i)->end ());
+		p = min (end, render->end ());
 	}
 }
 
@@ -149,7 +129,7 @@ void
 WaveView::compute_bounding_box () const
 {
 	if (_region) {
-		_bounding_box = Rect (0, 0, _region->length() / _frames_per_pixel, _height);
+		_bounding_box = Rect (0, 0, ceil (_region->length() / _frames_per_pixel), _height);
 	} else {
 		_bounding_box = boost::optional<Rect> ();
 	}

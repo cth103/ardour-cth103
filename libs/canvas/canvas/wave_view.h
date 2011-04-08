@@ -103,7 +103,6 @@ private:
 	friend class ::WaveViewTest;
 
 	void invalidate_cache ();
-	std::list<CacheEntry*> make_render_list (Rect const &, ARDOUR::frameoffset_t &, ARDOUR::frameoffset_t &) const;
 
 	boost::shared_ptr<ARDOUR::AudioRegion> _region;
 	int _channel;
