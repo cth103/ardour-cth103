@@ -35,6 +35,7 @@ using namespace ArdourCanvas;
 /** Construct a new Canvas */
 Canvas::Canvas ()
 	: _root (this)
+	, _log_renders (true)
 {
 
 }
@@ -44,9 +45,24 @@ Canvas::Canvas ()
  */
 Canvas::Canvas (XMLTree const * tree)
 	: _root (this)
+	, _log_renders (true)
 {
 	/* XXX: little bit hacky */
 	_root.set_state (tree->root()->child ("Group"));
+
+	XMLNodeList const & children = tree->root()->children ();
+	for (XMLNodeList::const_iterator i = children.begin(); i != children.end(); ++i) {
+		if ((*i)->name() == ("Render")) {
+			_renders.push_back (
+				Rect (
+					atof ((*i)->property ("x0")->value().c_str()),
+					atof ((*i)->property ("y0")->value().c_str()),
+					atof ((*i)->property ("x1")->value().c_str()),
+					atof ((*i)->property ("x1")->value().c_str())
+					)
+				);
+		}
+	}
 }
 
 /** Render an area of the canvas.
@@ -75,6 +91,10 @@ Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context
 		   area, so render it.
 		*/
 		_root.render (*draw, context);
+	}
+
+	if (_log_renders) {
+		_renders.push_back (area);
 	}
 
 	context->restore ();
@@ -147,11 +167,20 @@ Canvas::queue_draw_item_area (Item* item, Rect area)
 
 /** @return An XML description of the canvas and its objects */
 XMLTree *
-Canvas::get_state ()
+Canvas::get_state () const
 {
 	XMLTree* tree = new XMLTree ();
 	XMLNode* node = new XMLNode ("Canvas");
 	node->add_child_nocopy (*_root.get_state ());
+
+	for (list<Rect>::const_iterator i = _renders.begin(); i != _renders.end(); ++i) {
+		XMLNode* render = new XMLNode ("Render");
+		render->add_property ("x0", string_compose ("%1", i->x0));
+		render->add_property ("y0", string_compose ("%1", i->y0));
+		render->add_property ("x1", string_compose ("%1", i->x1));
+		render->add_property ("y1", string_compose ("%1", i->y1));
+		node->add_child_nocopy (*render);
+	}
 
 	tree->set_root (node);
 	return tree;

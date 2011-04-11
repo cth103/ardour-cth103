@@ -80,15 +80,26 @@ public:
 	void item_changed (Item *, boost::optional<Rect>);
 	void item_moved (Item *, boost::optional<Rect>);
 
-	XMLTree* get_state ();
+	XMLTree* get_state () const;
 
 	virtual Cairo::RefPtr<Cairo::Context> context () = 0;
+
+	std::list<Rect> const & renders () const {
+		return _renders;
+	}
+
+	void set_log_renders (bool log) {
+		_log_renders = log;
+	}
 
 protected:
 	void queue_draw_item_area (Item *, Rect);
 	
 	/** our root group */
 	RootGroup _root;
+
+	mutable std::list<Rect> _renders;
+	bool _log_renders;
 };
 
 /** A Canvas which renders onto an in-memory pixbuf.  In Ardour's context,
@@ -158,7 +169,7 @@ private:
 	Item const * _grabbed_item;
 };
 
-/** A GTK viewport with a GtkCanvas inside it.  This provides a GtkCanvas
+/** A GTK::Viewport with a GtkCanvas inside it.  This provides a GtkCanvas
  *  that can be scrolled.
  */
 class GtkCanvasViewport : public Gtk::Viewport
