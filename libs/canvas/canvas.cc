@@ -23,9 +23,12 @@
  */
 
 #include <cassert>
+#include <fcntl.h>
+#include <unistd.h>
 #include <gtkmm/adjustment.h>
 #include "pbd/xml++.h"
 #include "pbd/compose.h"
+#include "pbd/pthread_utils.h"
 #include "canvas/canvas.h"
 #include "canvas/debug.h"
 
@@ -66,6 +69,8 @@ Canvas::Canvas ()
 	, _tile_size (64)
 {
 	set_epoch ();
+
+	start_rendering_thread ();
 }
 
 /** Construct a new Canvas from an XML tree
@@ -94,24 +99,67 @@ Canvas::Canvas (XMLTree const * tree)
 				);
 		}
 	}
+
+	start_rendering_thread ();
+}
+
+static void *
+_thread_work (void* arg)
+{
+	return reinterpret_cast<Canvas*>(arg)->rendering_thread ();
+}
+
+void *
+Canvas::rendering_thread ()
+{
+	while (1) {
+		int t[2];
+		read (_fds[0], t, 2 * sizeof (int));
+
+		boost::shared_ptr<Tile> tile;
+
+		{
+			Glib::Mutex::Lock lm (_tiles_mutex);
+			tile = _tiles[t[0]][t[1]];
+		}
+
+		{
+			cout << "Worker renders " << t[0] << " " << t[1] << "\n";
+			Glib::Mutex::Lock lm (tile->mutex());
+			tile->render ();
+			request_redraw (Rect (t[0] * _tile_size, t[1] * _tile_size, (t[0] + 1) * _tile_size, (t[1] + 1) * _tile_size));
+		}
+	}
+
+	return 0;
+}
+
+void
+Canvas::start_rendering_thread ()
+{
+	int r = pipe (_fds);
+	assert (r == 0);
+
+	r = fcntl (_fds[1], F_SETFL, O_NONBLOCK);
+	assert (r == 0);
+	
+	pthread_create_and_store ("canvas", &_rendering_thread, _thread_work, (void *) this);
 }
 
 void
 Canvas::ensure_tile (int tx, int ty) const
 {
-	while (int (_tiles.size()) <= tx) {
-		_tiles.push_back (vector<Tile*> ());
-	}
-
-	while (int (_tiles[tx].size()) < ty) {
-		_tiles[tx].push_back (0);
+	if (int (_tiles.size()) <= tx) {
+		_tiles.resize (tx + 1);
 	}
 
 	if (int (_tiles[tx].size()) <= ty) {
-		_tiles[tx].push_back (new Tile (this, tx, ty, _tile_size));
+		_tiles[tx].resize (ty + 1);
 	}
 
-	_tiles[tx][ty]->render ();
+	if (_tiles[tx][ty] == 0) {
+		_tiles[tx][ty].reset (new Tile (this, tx, ty, _tile_size));
+	}
 }
 
 void
@@ -139,8 +187,26 @@ Canvas::render_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> cons
 	for (int x = tx0; x <= tx1; ++x) {
 		for (int y = ty0; y <= ty1; ++y) {
 			ensure_tile (x, y);
-			context->set_source (_tiles[x][y]->surface (), x * _tile_size, y * _tile_size);
-			context->paint ();
+
+			boost::shared_ptr<Tile> tile;
+			{
+				Glib::Mutex::Lock lm (_tiles_mutex);
+				tile = _tiles[x][y];
+			}
+			
+			{
+				Glib::Mutex::Lock lm (tile->mutex (), Glib::TRY_LOCK);
+				if (lm.locked ()) {
+					if (tile->dirty ()) {
+						cout << "Request " << x << " " << y << "\n";
+						int t[2] = { x, y };
+						write (_fds[1], t, 2 * sizeof (int));
+					} else {
+						context->set_source (tile->surface (), x * _tile_size, y * _tile_size);
+						context->paint ();
+					}
+				}
+			}
 		}
 	}
 	context->restore ();
