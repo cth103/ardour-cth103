@@ -37,6 +37,8 @@ Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) con
 	plot.x1 = min (plot.x1, CAIRO_MAX);
 	plot.y1 = min (plot.y1, CAIRO_MAX);
 
+	cout << "RECT RENDER.\n";
+
 	if (_fill) {
 		setup_fill_context (context);
 		context->rectangle (plot.x0, plot.y0, plot.width(), plot.height());

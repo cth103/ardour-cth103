@@ -39,7 +39,28 @@ namespace ArdourCanvas
 {
 
 class Rect;
-class Group;	
+class Group;
+
+class Tile
+{
+public:
+	Tile (Canvas const *, int, int, int);
+
+	void render ();
+	Cairo::RefPtr<Cairo::Surface> surface () {
+		return _surface;
+	}
+	
+private:
+	Canvas const * _canvas;
+	int _tx;
+	int _ty;
+	int _size;
+	bool _dirty;
+	
+	Cairo::RefPtr<Cairo::ImageSurface> _surface;
+	Cairo::RefPtr<Cairo::Context> _context;
+};
 
 /** The base class for our different types of canvas.
  *
@@ -67,7 +88,8 @@ public:
 	/** called to ask the canvas' host to `ungrab' any grabbed item */
 	virtual void ungrab () = 0;
 
-	void render (Rect const &, Cairo::RefPtr<Cairo::Context> const &) const;
+	void render_from_tiles (Rect const &, Cairo::RefPtr<Cairo::Context> const &) const;
+	void render_to_tile (Cairo::RefPtr<Cairo::Context>, int, int) const;
 
 	/** @return root group */
 	Group* root () {
@@ -98,8 +120,15 @@ protected:
 	/** our root group */
 	RootGroup _root;
 
+	mutable std::vector<std::vector<Tile*> > _tiles;
+
 	mutable std::list<Rect> _renders;
 	bool _log_renders;
+
+private:
+	
+	void ensure_tile (int, int) const;
+	int _tile_size;
 };
 
 /** A Canvas which renders onto an in-memory pixbuf.  In Ardour's context,

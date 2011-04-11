@@ -32,10 +32,38 @@
 using namespace std;
 using namespace ArdourCanvas;
 
+Tile::Tile (Canvas const * canvas, int tx, int ty, int size)
+	: _canvas (canvas)
+	, _tx (tx)
+	, _ty (ty)
+	, _size (size)
+	, _dirty (true)
+{
+	_surface = Cairo::ImageSurface::create (Cairo::FORMAT_ARGB32, size, size);
+	_context = Cairo::Context::create (_surface);
+}
+
+void
+Tile::render ()
+{
+	if (!_dirty) {
+		return;
+	}
+
+	cout << "Tile render " << _tx << " " << _ty << "\n";
+	
+	_canvas->render_to_tile (_context, _tx, _ty);
+	stringstream s;
+	s << "tile-" << _tx << "x" << _ty << ".png";
+	_surface->write_to_png (s.str ());
+	_dirty = false;
+}
+
 /** Construct a new Canvas */
 Canvas::Canvas ()
 	: _root (this)
 	, _log_renders (true)
+	, _tile_size (64)
 {
 	set_epoch ();
 }
@@ -46,6 +74,7 @@ Canvas::Canvas ()
 Canvas::Canvas (XMLTree const * tree)
 	: _root (this)
 	, _log_renders (true)
+	, _tile_size (64)
 {
 	set_epoch ();
 	
@@ -67,45 +96,84 @@ Canvas::Canvas (XMLTree const * tree)
 	}
 }
 
-/** Render an area of the canvas.
- *  @param area Area in canvas coordinates.
- *  @param context Cairo context to render to.
- */
 void
-Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
+Canvas::ensure_tile (int tx, int ty) const
 {
-	checkpoint ("render", "-> render");
-	render_count = 0;
-	
+	while (int (_tiles.size()) <= tx) {
+		_tiles.push_back (vector<Tile*> ());
+	}
+
+	while (int (_tiles[tx].size()) < ty) {
+		_tiles[tx].push_back (0);
+	}
+
+	if (int (_tiles[tx].size()) <= ty) {
+		_tiles[tx].push_back (new Tile (this, tx, ty, _tile_size));
+	}
+
+	_tiles[tx][ty]->render ();
+}
+
+void
+Canvas::render_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
+{
+//	checkpoint ("render", "-> render");
+
+	cout << "Render " << area << "\n";
+
+	/* Work out the required tiles */
+	int const tx0 = area.x0 / _tile_size;
+	int const tx1 = (area.x1 + (_tile_size / 2)) / _tile_size;
+	int const ty0 = area.y0 / _tile_size;
+	int const ty1 = (area.y1 + (_tile_size / 2)) / _tile_size;
+
+	cout << "Render tiles x: " << tx0 << " to " << tx1 << ", y: " << ty0 << " to " << ty1 << "\n";
+
 	context->save ();
 
-	/* clip to the requested area */
+	/* Clip to the requested area */
 	context->rectangle (area.x0, area.y0, area.width(), area.height());
 	context->clip ();
 
-	boost::optional<Rect> root_bbox = _root.bounding_box();
+	/* Build and plot the tiles */
+	for (int x = tx0; x <= tx1; ++x) {
+		for (int y = ty0; y <= ty1; ++y) {
+			ensure_tile (x, y);
+			context->set_source (_tiles[x][y]->surface (), x * _tile_size, y * _tile_size);
+			context->paint ();
+		}
+	}
+	context->restore ();
+
+//	checkpoint ("render", "<- render");
+}
+
+void
+Canvas::render_to_tile (Cairo::RefPtr<Cairo::Context> context, int tx, int ty) const
+{
+	cout << "Render to tile " << tx << " " << ty << "\n";
+	
+	boost::optional<Rect> root_bbox = _root.bounding_box ();
 	if (!root_bbox) {
-		/* the root has no bounding box, so there's nothing to render */
-		context->restore ();
 		return;
 	}
 
+	Rect area (tx * _tile_size, ty * _tile_size, (tx + 1) * _tile_size, (ty + 1) * _tile_size);
+	cout << "area " << area << "\n";
 	boost::optional<Rect> draw = root_bbox.get().intersection (area);
-	if (draw) {
-		/* there's a common area between the root and the requested
-		   area, so render it.
-		*/
-		_root.render (*draw, context);
+
+	if (!draw) {
+		return;
 	}
 
-	if (_log_renders) {
-		_renders.push_back (area);
-	}
+	cout << "doing it\n";
 
+	context->save ();
+	context->rectangle (0, 0, _tile_size, _tile_size);
+	context->clip ();
+	context->translate (-area.x0, -area.y0);
+	_root.render (*draw, context);
 	context->restore ();
-
-	cout << "Rendered " << render_count << "\n";
-	checkpoint ("render", "<- render");
 }
 
 /** Called when an item has been shown or hidden.
@@ -378,7 +446,7 @@ ImageCanvas::ImageCanvas (XMLTree const * tree, Duple size)
 void
 ImageCanvas::render_to_image (Rect const & area) const
 {
-	render (area, _context);
+	render_from_tiles (area, _context);
 }
 
 /** Write our pixbuf to a PNG file.
@@ -406,7 +474,7 @@ bool
 GtkCanvas::on_expose_event (GdkEventExpose* ev)
 {
 	Cairo::RefPtr<Cairo::Context> c = get_window()->create_cairo_context ();
-	render (Rect (ev->area.x, ev->area.y, ev->area.x + ev->area.width, ev->area.y + ev->area.height), c);
+	render_from_tiles (Rect (ev->area.x, ev->area.y, ev->area.x + ev->area.width, ev->area.y + ev->area.height), c);
 	return true;
 }
 
