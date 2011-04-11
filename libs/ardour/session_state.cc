@@ -130,6 +130,7 @@ using namespace std;
 using namespace ARDOUR;
 using namespace PBD;
 
+
 void
 Session::first_stage_init (string fullpath, string snapshot_name)
 {
@@ -149,12 +150,6 @@ Session::first_stage_init (string fullpath, string snapshot_name)
 
 	if (_path[_path.length()-1] != G_DIR_SEPARATOR) {
 		_path += G_DIR_SEPARATOR;
-	}
-
-	if (Glib::file_test (_path, Glib::FILE_TEST_EXISTS) && ::access (_path.c_str(), W_OK)) {
-		_writable = false;
-	} else {
-		_writable = true;
 	}
 
 	/* these two are just provisional settings. set_state()
@@ -517,6 +512,8 @@ Session::create (const string& mix_template, BusProfile* bus_profile)
 	if (ensure_subdirs ()) {
 		return -1;
 	}
+
+	_writable = exists_and_writable (sys::path (_path));
 
 	if (!mix_template.empty()) {
 		std::string in_path = mix_template;
@@ -898,14 +895,7 @@ Session::load_state (string snapshot_name)
 
 	set_dirty();
 
-	/* writable() really reflects the whole folder, but if for any
-	   reason the session state file can't be written to, still
-	   make us unwritable.
-	*/
-
-	if (::access (xmlpath.to_string().c_str(), W_OK) != 0) {
-		_writable = false;
-	}
+	_writable = exists_and_writable (xmlpath);
 
 	if (!state_tree->read (xmlpath.to_string())) {
 		error << string_compose(_("Could not understand ardour file %1"), xmlpath.to_string()) << endmsg;
