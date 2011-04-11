@@ -72,7 +72,6 @@ Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 			context->save ();
 			context->translate ((*i)->position().x, (*i)->position().y);
 			(*i)->render (r.get(), context);
-			++render_count;
 			context->restore ();
 		}
 	}
