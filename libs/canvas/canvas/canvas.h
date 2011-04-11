@@ -19,7 +19,7 @@
 */
 
 /** @file  canvas/canvas.h
- *  @brief Declaration of the main canvas classes.Arrow canvas object.
+ *  @brief Declaration of the main canvas classes.
  */
 
 #ifndef __CANVAS_CANVAS_H__

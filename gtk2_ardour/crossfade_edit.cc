@@ -1172,10 +1172,11 @@ CrossfadeEditor::make_waves (boost::shared_ptr<AudioRegion> region, WhichFade wh
 			waveview->set_outline_color (color);
 			waveview->set_fill_color (color);
 
-			if (which==In)
-				waveview->property_region_start() = region->start();
-			else
-				waveview->property_region_start() = region->start()+region->length()-xfade->length();
+			if (which == In) {
+				waveview->set_region_start (region->start());
+			} else {
+				waveview->set_region_start (region->start() + region->length() - xfade->length());
+			}
 
 			waveview->lower_to_bottom();
 			fade[which].waves.push_back (waveview);

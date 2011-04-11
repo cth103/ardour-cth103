@@ -1,4 +1,5 @@
 #include <sys/time.h>
+#include <pangomm/init.h>
 #include "pbd/compose.h"
 #include "pbd/xml++.h"
 #include "canvas/group.h"
@@ -39,6 +40,8 @@ int main (int argc, char* argv[])
 		cerr << "Syntax: render_parts <session>\n";
 		exit (EXIT_FAILURE);
 	}
+
+	Pango::init ();
 
 	RenderParts render_parts (argv[1]);
 

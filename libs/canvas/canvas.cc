@@ -57,7 +57,7 @@ void
 Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
 {
 	context->save ();
-	
+
 	/* clip to the requested area */
 	context->rectangle (area.x0, area.y0, area.width(), area.height());
 	context->clip ();
@@ -76,7 +76,7 @@ Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context
 		*/
 		_root.render (*draw, context);
 	}
-	
+
 	context->restore ();
 }
 

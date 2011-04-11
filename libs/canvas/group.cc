@@ -66,12 +66,13 @@ Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 
 		/* intersect the child's render area with the child's bounding box */
 		boost::optional<Rect> r = item_bbox.get().intersection (item_area);
-		
+
 		if (r) {
 			/* render the intersection */
 			context->save ();
 			context->translate ((*i)->position().x, (*i)->position().y);
 			(*i)->render (r.get(), context);
+			++render_count;
 			context->restore ();
 		}
 	}

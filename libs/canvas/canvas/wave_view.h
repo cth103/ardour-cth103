@@ -27,7 +27,8 @@ public:
 	void set_frames_per_pixel (double);
 	void set_height (Distance);
 	void set_channel (int);
-
+	void set_region_start (ARDOUR::frameoffset_t);
+	
 	void region_resized ();
 
 	/* XXX */
@@ -46,9 +47,6 @@ public:
 	bool& property_logscaled () {
 		return _foo_bool;
 	}
-	ARDOUR::framepos_t& property_region_start () {
-		return _foo_framepos;
-	}
 	double& property_amplitude_above_axis () {
 		return _foo_double;
 	}
@@ -65,7 +63,6 @@ private:
 	int _foo_int;
 	Color _foo_uint;
 	double _foo_double;
-	ARDOUR::framepos_t _foo_framepos;
 #endif
 
 	class CacheEntry
@@ -111,7 +108,11 @@ private:
 	double _frames_per_pixel;
 	Coord _height;
 	Color _wave_color;
-
+	/** The `start' value to use for the region; we can't use the region's
+	 *  value as the crossfade editor needs to alter it.
+	 */
+	ARDOUR::frameoffset_t _region_start;
+	
 	mutable std::list<CacheEntry*> _cache;
 };
 

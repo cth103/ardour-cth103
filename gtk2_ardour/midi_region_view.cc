@@ -600,7 +600,7 @@ MidiRegionView::motion (GdkEventMotion* ev)
 
                         _mouse_state = AddDragging;
 
-			if (_ghost_note){
+			if (_ghost_note) {
 		
 				delete _ghost_note;
 				_ghost_note = 0;

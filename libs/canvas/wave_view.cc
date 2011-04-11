@@ -19,6 +19,8 @@ WaveView::WaveView (Group* parent, boost::shared_ptr<ARDOUR::AudioRegion> region
 	, _channel (0)
 	, _frames_per_pixel (0)
 	, _height (64)
+	, _wave_color (0xffffffff)
+	, _region_start (0)
 {
 	
 }
@@ -49,8 +51,8 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 	   area is relative to the position of the region.
 	 */
 	
-	int const start = rint (area.x0 + _region->start() / _frames_per_pixel);
-	int const end   = rint (area.x1 + _region->start() / _frames_per_pixel);
+	int const start = rint (area.x0 + _region_start / _frames_per_pixel);
+	int const end   = rint (area.x1 + _region_start / _frames_per_pixel);
 
 	int p = start;
 	list<CacheEntry*>::iterator cache = _cache.begin ();
@@ -106,8 +108,8 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 
 		int const this_end = min (end, render->end ());
 		
-		Coord const left  =        p - _region->start() / _frames_per_pixel;
-		Coord const right = this_end - _region->start() / _frames_per_pixel;
+		Coord const left  =        p - _region_start / _frames_per_pixel;
+		Coord const right = this_end - _region_start / _frames_per_pixel;
 		
 		context->save ();
 		
@@ -197,6 +199,13 @@ WaveView::invalidate_pixbuf_cache ()
 void
 WaveView::region_resized ()
 {
+	_bounding_box_dirty = true;
+}
+
+void
+WaveView::set_region_start (frameoffset_t start)
+{
+	_region_start = start;
 	_bounding_box_dirty = true;
 }
 

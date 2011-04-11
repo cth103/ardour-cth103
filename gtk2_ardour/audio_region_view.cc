@@ -394,6 +394,7 @@ AudioRegionView::region_resized (const PropertyChange& what_changed)
 
 		for (uint32_t n = 0; n < waves.size(); ++n) {
 			waves[n]->region_resized ();
+			waves[n]->set_region_start (region()->start ());
 		}
 
 		for (vector<GhostRegion*>::iterator i = ghosts.begin(); i != ghosts.end(); ++i) {
@@ -401,6 +402,7 @@ AudioRegionView::region_resized (const PropertyChange& what_changed)
 
 				for (vector<WaveView*>::iterator w = agr->waves.begin(); w != agr->waves.end(); ++w) {
 					(*w)->region_resized ();
+					(*w)->set_region_start (region()->start ());
 				}
 			}
 		}
@@ -941,7 +943,7 @@ AudioRegionView::create_one_wave (uint32_t which, bool /*direct*/)
 
 	wave->property_clip_color() = ARDOUR_UI::config()->canvasvar_WaveFormClip.get();
 	wave->property_zero_color() = ARDOUR_UI::config()->canvasvar_ZeroLine.get();
-	wave->property_region_start() = _region->start();
+	wave->set_region_start (_region->start());
 	wave->property_rectified() = (bool) (_flags & WaveformRectified);
 	wave->property_logscaled() = (bool) (_flags & WaveformLogScaled);
 
@@ -1169,8 +1171,7 @@ AudioRegionView::add_ghost (TimeAxisView& tv)
 		wave->set_x_position (0);
 		wave->set_frames_per_pixel (frames_per_pixel);
 		wave->property_amplitude_above_axis() =  _amplitude_above_axis;
-
-		wave->property_region_start() = _region->start();
+		wave->set_region_start (_region->start());
 
 		ghost->waves.push_back(wave);
 	}
