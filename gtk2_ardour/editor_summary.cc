@@ -18,6 +18,7 @@
 */
 
 #include "ardour/session.h"
+#include "canvas/debug.h"
 #include "time_axis_view.h"
 #include "streamview.h"
 #include "editor_summary.h"
@@ -346,6 +347,8 @@ EditorSummary::on_button_press_event (GdkEventButton* ev)
 			_editor->_dragging_playhead = true;
 			_old_follow_playhead = _editor->follow_playhead ();
 			_editor->set_follow_playhead (false);
+
+			ArdourCanvas::checkpoint ("sum", "------------------ summary move drag starts.\n");
 		}
 	}
 
@@ -529,6 +532,7 @@ EditorSummary::on_button_release_event (GdkEventButton*)
 	_zoom_dragging = false;
 	_editor->_dragging_playhead = false;
 	_editor->set_follow_playhead (_old_follow_playhead, false);
+	ArdourCanvas::checkpoint ("sum", "------------------ summary move drag ends.\n");
 	
 	return true;
 }
@@ -589,7 +593,8 @@ EditorSummary::on_scroll_event (GdkEventScroll* ev)
 void
 EditorSummary::set_editor (pair<double,double> const & x, double const y)
 {
-	if (_editor->pending_visual_change.idle_handler_id >= 0) {
+	ArdourCanvas::checkpoint ("editor", "-> set editor");
+	if (_editor->pending_visual_change.idle_handler_id >= 0 && _editor->pending_visual_change.executing == true) {
 
 		/* As a side-effect, the Editor's visual change idle handler processes
 		   pending GTK events.  Hence this motion notify handler can be called
@@ -602,11 +607,13 @@ EditorSummary::set_editor (pair<double,double> const & x, double const y)
 		   is merely pending but not executing.  But c'est la vie.
 		*/
 
+		ArdourCanvas::checkpoint ("editor", "<- set editor (aborted)");
 		return;
 	}
 	
 	set_editor_x (x);
 	set_editor_y (y);
+	ArdourCanvas::checkpoint ("editor", "<- set editor");
 }
 
 /** Set the editor to display given x and y ranges.  x zoom and track heights are
@@ -640,6 +647,7 @@ EditorSummary::set_editor_x (pair<double, double> const & x)
 		);
 	
 	if (nx != _editor->get_current_zoom ()) {
+		cout << "reset zoom from " << _editor->get_current_zoom() << " to " << nx << "\n";
 		_editor->reset_zoom (nx);
 	}	
 }

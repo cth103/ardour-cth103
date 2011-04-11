@@ -1002,6 +1002,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 		double y_origin;
 
 		int idle_handler_id;
+		bool executing;
 
 		VisualChange() : pending ((VisualChange::Type) 0), time_origin (0), frames_per_pixel (0), idle_handler_id (-1) {}
 		void add (Type t) {

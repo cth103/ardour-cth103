@@ -37,7 +37,7 @@ Canvas::Canvas ()
 	: _root (this)
 	, _log_renders (true)
 {
-
+	set_epoch ();
 }
 
 /** Construct a new Canvas from an XML tree
@@ -47,6 +47,8 @@ Canvas::Canvas (XMLTree const * tree)
 	: _root (this)
 	, _log_renders (true)
 {
+	set_epoch ();
+	
 	/* XXX: little bit hacky */
 	_root.set_state (tree->root()->child ("Group"));
 
@@ -72,6 +74,9 @@ Canvas::Canvas (XMLTree const * tree)
 void
 Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
 {
+	checkpoint ("render", "-> render");
+	render_count = 0;
+	
 	context->save ();
 
 	/* clip to the requested area */
@@ -98,6 +103,9 @@ Canvas::render (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context
 	}
 
 	context->restore ();
+
+	cout << "Rendered " << render_count << "\n";
+	checkpoint ("render", "<- render");
 }
 
 /** Called when an item has been shown or hidden.

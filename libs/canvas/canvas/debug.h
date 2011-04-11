@@ -1,6 +1,8 @@
 #ifndef __CANVAS_DEBUG_H__
 #define __CANVAS_DEBUG_H__
 
+#include <sys/time.h>
+#include <map>
 #include "pbd/debug.h"
 
 namespace PBD {
@@ -16,5 +18,13 @@ namespace PBD {
 #else
 #define CANVAS_DEBUG(i, n) /* empty */
 #endif
+
+namespace ArdourCanvas {
+	extern struct timeval epoch;
+	extern std::map<std::string, struct timeval> last_time;
+	extern void checkpoint (std::string, std::string);
+	extern void set_epoch ();
+	extern int render_count;
+}
 
 #endif

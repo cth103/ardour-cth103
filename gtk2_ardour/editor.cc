@@ -4356,6 +4356,7 @@ Editor::queue_visual_change (framepos_t where)
 void
 Editor::queue_visual_change (double fpu)
 {
+	cout << "QVC zoom " << fpu << "\n";
 	pending_visual_change.add (VisualChange::ZoomLevel);
 	pending_visual_change.frames_per_pixel = fpu;
 
@@ -4376,6 +4377,7 @@ Editor::ensure_visual_change_idle_handler ()
 {
 	if (pending_visual_change.idle_handler_id < 0) {
 		pending_visual_change.idle_handler_id = g_idle_add (_idle_visual_changer, this);
+		pending_visual_change.executing = false;
 	}
 }
 
@@ -4388,6 +4390,9 @@ Editor::_idle_visual_changer (void* arg)
 int
 Editor::idle_visual_changer ()
 {
+	ArdourCanvas::checkpoint ("ivc", "-> idle_visual_changer");
+	pending_visual_change.executing = true;
+	
 	VisualChange::Type p = pending_visual_change.pending;
 	pending_visual_change.pending = (VisualChange::Type) 0;
 
@@ -4406,18 +4411,25 @@ Editor::idle_visual_changer ()
 	}
 
 	if (p & VisualChange::ZoomLevel) {
+		ArdourCanvas::checkpoint ("ivc", "=> zoom");
+
 		set_frames_per_pixel (pending_visual_change.frames_per_pixel);
 
 		compute_fixed_ruler_scale ();
 		compute_current_bbt_points(pending_visual_change.time_origin, pending_visual_change.time_origin + current_page_frames());
 		compute_bbt_ruler_scale (pending_visual_change.time_origin, pending_visual_change.time_origin + current_page_frames());
 		update_tempo_based_rulers ();
+		ArdourCanvas::checkpoint ("ivc", "<= zoom");
 	}
 	if (p & VisualChange::TimeOrigin) {
+		ArdourCanvas::checkpoint ("ivc", "=> IVC set horizontal position");
 		set_horizontal_position (pending_visual_change.time_origin / frames_per_pixel);
+		ArdourCanvas::checkpoint ("ivc", "<= IVC set horizontal position");
 	}
 	if (p & VisualChange::YOrigin) {
+		ArdourCanvas::checkpoint ("ivc", "=> IVC set vertical position");
 		vertical_adjustment.set_value (pending_visual_change.y_origin);
+		ArdourCanvas::checkpoint ("ivc", "<= IVC set vertical position");
 	}
 
 	if (last_time_origin == horizontal_position ()) {
@@ -4429,6 +4441,8 @@ Editor::idle_visual_changer ()
 	_summary->set_overlays_dirty ();
 
 	pending_visual_change.idle_handler_id = -1;
+	pending_visual_change.executing = false;
+	ArdourCanvas::checkpoint ("ivc", "<- idle_visual_changer");
 	return 0; /* this is always a one-shot call */
 }
 
