@@ -105,6 +105,9 @@ private:
 	std::pair<double, double> _view_rectangle_x;
 	std::pair<double, double> _view_rectangle_y;
 
+	std::pair<double, double> _pending_rectangle_x;
+	std::pair<double, double> _pending_rectangle_y;
+	
 	bool _zoom_dragging;
 	Position _zoom_position;
 

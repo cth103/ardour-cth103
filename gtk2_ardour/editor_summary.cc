@@ -102,6 +102,9 @@ EditorSummary::on_expose_event (GdkEventExpose* event)
 
 	if (_editor->pending_visual_change.idle_handler_id < 0) {
 		get_editor (&_view_rectangle_x, &_view_rectangle_y);
+	} else {
+		_view_rectangle_x = _pending_rectangle_x;
+		_view_rectangle_y = _pending_rectangle_y;
 	}
 
 	cairo_move_to (cr, _view_rectangle_x.first, _view_rectangle_y.first);
@@ -490,6 +493,7 @@ EditorSummary::on_motion_notify_event (GdkEventMotion* ev)
 
 		set_editor (x, y);
 		set_cursor (_start_position);
+		set_overlays_dirty ();
 
 	} else if (_zoom_dragging) {
 
@@ -650,6 +654,8 @@ void
 EditorSummary::set_editor_x (double const x)
 {
 	_editor->reset_x_origin (x / _x_scale + _start);
+	_pending_rectangle_x.first = x;
+	_pending_rectangle_x.second = x + _view_rectangle_x.second - _view_rectangle_x.first;
 }
 
 /** Set the x range visible in the editor.
@@ -694,6 +700,9 @@ EditorSummary::set_editor_y (double const y)
 	}
 
 	_editor->reset_y_origin (y1);
+
+	_pending_rectangle_y.first = editor_y_to_summary (y1);
+	_pending_rectangle_y.second = editor_y_to_summary (y2);
 }
 
 /** Set the y range visible in the editor.  This is achieved by scaling track heights,
