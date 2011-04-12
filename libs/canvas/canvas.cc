@@ -43,7 +43,6 @@ Tile::Tile (Canvas const * canvas, int tx, int ty, int size)
 	_context = Cairo::Context::create (_surface);
 }
 
-/* Must be called with the tile's lock held */
 void
 Tile::render ()
 {
