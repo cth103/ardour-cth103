@@ -231,8 +231,6 @@ Canvas::item_moved (Item* item, boost::optional<Rect> pre_change_parent_bounding
 void
 Canvas::mark_item_area_dirty (Item* item, Rect area)
 {
-	return;
-	
 	int tx0, ty0, tx1, ty1;
 	area_to_tiles (area, tx0, ty0, tx1, ty1);
 	for (int x = tx0; x <= tx1; ++x) {
