@@ -23,12 +23,9 @@
  */
 
 #include <cassert>
-#include <fcntl.h>
-#include <unistd.h>
 #include <gtkmm/adjustment.h>
 #include "pbd/xml++.h"
 #include "pbd/compose.h"
-#include "pbd/pthread_utils.h"
 #include "canvas/canvas.h"
 #include "canvas/debug.h"
 
@@ -54,8 +51,6 @@ Tile::render ()
 		return;
 	}
 
-	cout << "Tile render " << _tx << " " << _ty << "\n";
-
 	_canvas->render_to_tile (_context, _tx, _ty);
 	_dirty = false;
 }
@@ -67,8 +62,6 @@ Canvas::Canvas ()
 	, _tile_size (64)
 {
 	set_epoch ();
-
-	start_rendering_thread ();
 }
 
 /** Construct a new Canvas from an XML tree
@@ -97,54 +90,6 @@ Canvas::Canvas (XMLTree const * tree)
 				);
 		}
 	}
-
-	start_rendering_thread ();
-}
-
-static void *
-_thread_work (void* arg)
-{
-	return reinterpret_cast<Canvas*>(arg)->rendering_thread ();
-}
-
-void *
-Canvas::rendering_thread ()
-{
-	while (1) {
-		int t[2];
-		read (_fds[0], t, 2 * sizeof (int));
-
-		boost::shared_ptr<Tile> tile;
-
-		{
-			Glib::Mutex::Lock lm (_tiles_mutex);
-			tile = _tiles[t[0]][t[1]];
-		}
-
-		{
-			cout << "Worker renders " << t[0] << " " << t[1] << "\n";
-			Glib::Mutex::Lock lm (tile->mutex());
-			tile->render ();
-		}
-
-		gdk_threads_enter ();
-		request_redraw (Rect (t[0] * _tile_size, t[1] * _tile_size, (t[0] + 1) * _tile_size, (t[1] + 1) * _tile_size));
-		gdk_threads_leave ();
-	}
-
-	return 0;
-}
-
-void
-Canvas::start_rendering_thread ()
-{
-	int r = pipe (_fds);
-	assert (r == 0);
-
-	r = fcntl (_fds[1], F_SETFL, O_NONBLOCK);
-	assert (r == 0);
-	
-	pthread_create_and_store ("canvas", &_rendering_thread, _thread_work, (void *) this);
 }
 
 void
@@ -177,12 +122,8 @@ Canvas::render_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> cons
 {
 //	checkpoint ("render", "-> render");
 
-	cout << "Render " << area << "\n";
-
 	int tx0, ty0, tx1, ty1;
 	area_to_tiles (area, tx0, ty0, tx1, ty1);
-
-	cout << "Render tiles x: " << tx0 << " to " << tx1 << ", y: " << ty0 << " to " << ty1 << "\n";
 
 	context->save ();
 
@@ -193,31 +134,13 @@ Canvas::render_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> cons
 	/* Build and plot the tiles */
 	for (int x = tx0; x <= tx1; ++x) {
 		for (int y = ty0; y <= ty1; ++y) {
-
-			boost::shared_ptr<Tile> tile;
-			
-			{
-				Glib::Mutex::Lock lm (_tiles_mutex);
-				ensure_tile (x, y);
-				tile = _tiles[x][y];
-			}
-			
-			{
-				Glib::Mutex::Lock lm (tile->mutex (), Glib::TRY_LOCK);
-				if (lm.locked ()) {
-					if (tile->dirty ()) {
-						cout << "Request " << x << " " << y << "\n";
-						int t[2] = { x, y };
-						write (_fds[1], t, 2 * sizeof (int));
-					} else {
-//					tile->render ();
-						context->set_source (tile->surface (), x * _tile_size, y * _tile_size);
-						context->paint ();
-					}
-				}
-			}
+			ensure_tile (x, y);
+			_tiles[x][y]->render ();
+			context->set_source (_tiles[x][y]->surface (), x * _tile_size, y * _tile_size);
+			context->paint ();
 		}
 	}
+	
 	context->restore ();
 
 //	checkpoint ("render", "<- render");
@@ -226,8 +149,6 @@ Canvas::render_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> cons
 void
 Canvas::render_to_tile (Cairo::RefPtr<Cairo::Context> context, int tx, int ty) const
 {
-	cout << "Render to tile " << tx << " " << ty << "\n";
-	
 	boost::optional<Rect> root_bbox = _root.bounding_box ();
 	if (!root_bbox) {
 		return;
@@ -312,13 +233,11 @@ Canvas::mark_item_area_dirty (Item* item, Rect area)
 {
 	return;
 	
-	Glib::Mutex::Lock tiles_lm (_tiles_mutex);
 	int tx0, ty0, tx1, ty1;
 	area_to_tiles (area, tx0, ty0, tx1, ty1);
 	for (int x = tx0; x <= tx1; ++x) {
 		for (int y = ty0; y <= ty1; ++y) {
 			if (int (_tiles.size()) > x && int (_tiles[x].size()) > y && _tiles[x][y]) {
-				Glib::Mutex::Lock lm (_tiles[x][y]->mutex ());
 				_tiles[x][y]->set_dirty ();
 			}
 		}

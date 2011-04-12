@@ -51,10 +51,6 @@ public:
 		return _surface;
 	}
 
-	Glib::Mutex & mutex () {
-		return _mutex;
-	}
-
 	bool dirty () const {
 		return _dirty;
 	}
@@ -69,8 +65,6 @@ private:
 	int _ty;
 	int _size;
 	bool _dirty;
-
-	Glib::Mutex _mutex;
 	
 	Cairo::RefPtr<Cairo::ImageSurface> _surface;
 	Cairo::RefPtr<Cairo::Context> _context;
@@ -128,16 +122,13 @@ public:
 		_log_renders = log;
 	}
 
-	void* rendering_thread ();
-	
-//protected:
+protected:
 	void mark_item_area_dirty (Item *, Rect);
 	void area_to_tiles (Rect const &, int &, int &, int &, int &) const;
 	
 	/** our root group */
 	RootGroup _root;
 
-	mutable Glib::Mutex _tiles_mutex;
 	mutable std::vector<std::vector<boost::shared_ptr<Tile> > > _tiles;
 
 	mutable std::list<Rect> _renders;
@@ -145,12 +136,8 @@ public:
 
 private:
 
-	void start_rendering_thread ();
-	
 	void ensure_tile (int, int) const;
 	int _tile_size;
-	pthread_t _rendering_thread;
-	int _fds[2];
 };
 
 /** A Canvas which renders onto an in-memory pixbuf.  In Ardour's context,
