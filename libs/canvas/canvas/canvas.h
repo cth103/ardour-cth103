@@ -41,32 +41,47 @@ namespace ArdourCanvas
 class Rect;
 class Group;
 
+/** A square buffer of pixels that is used as a cache for the contents
+ *  of the canvas.  Implemented as just a Cairo ImageSurface which knows
+ *  when it needs to be updated, and can ask the Canvas to draw onto it.
+ */
 class Tile
 {
 public:
 	Tile (Canvas const *, int, int, int);
 
 	void render ();
+
+	/** @return our surface */
 	Cairo::RefPtr<Cairo::Surface> surface () {
 		return _surface;
 	}
 
+	/** @return true if this tile needs redrawing,
+	 *  otherwise false.
+	 */
 	bool dirty () const {
 		return _dirty;
 	}
 
+	/** Mark this tile as being in need of a repaint */
 	void set_dirty () {
 		_dirty = true;
 	}
 	
 private:
+	/** the canvas that we are being used for */
 	Canvas const * _canvas;
+	/** x index of the tile within the canvas */
 	int _tx;
+	/** y index of the tile within the canvas */
 	int _ty;
-	int _size;
+	/** true if this tile is in need of a repaint */
 	bool _dirty;
-	
+
+	/** our surface */
 	Cairo::RefPtr<Cairo::ImageSurface> _surface;
+	/** context for our surface */
 	Cairo::RefPtr<Cairo::Context> _context;
 };
 
@@ -78,6 +93,10 @@ private:
  *  The canvas has an arbitrarily large area, and is addressed in coordinates
  *  of screen pixels, with an origin of (0, 0) at the top left.  x increases
  *  rightwards and y increases downwards.
+ *
+ *  The canvas redraw speed is improved by dividing it up into `tiles', which
+ *  are bitmapped squares.  These are blitted to the screen on expose events,
+ *  and created/drawn as required.
  */
 	
 class Canvas
@@ -114,13 +133,22 @@ public:
 
 	virtual Cairo::RefPtr<Cairo::Context> context () = 0;
 
+#ifdef CANVAS_DEBUG	
+	/** @return a list of rectangles which have been rendered since
+	 *  the canvas was created (for profiling / debugging purposes).
+	 */
 	std::list<Rect> const & renders () const {
 		return _renders;
 	}
 
+	/** Set whether or not this canvas logs the renders that are
+	 *  requested of it.
+	 *  @param log true to log, otherwise false.
+	 */
 	void set_log_renders (bool log) {
 		_log_renders = log;
 	}
+#endif	
 
 protected:
 	void mark_item_area_dirty (Item *, Rect);
@@ -131,12 +159,19 @@ protected:
 
 	mutable std::vector<std::vector<boost::shared_ptr<Tile> > > _tiles;
 
+#ifdef CANVAS_DEBUG	
+	/** a list of rectangles which have been rendered since this canvas
+	 *  was created (if _log_renders is true).
+	 */
 	mutable std::list<Rect> _renders;
+	/** true to keep _renders up to date */
 	bool _log_renders;
+#endif
 
 private:
-
 	void ensure_tile (int, int) const;
+
+	/** the width and height of the tiles used to cache our image */
 	int _tile_size;
 };
 

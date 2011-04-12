@@ -32,17 +32,26 @@
 using namespace std;
 using namespace ArdourCanvas;
 
+/** Construct a Tile.  This creates the blank bitmap and marks
+ *  it dirty, so that it is redrawn when required.
+ *  @param canvas Our parent canvas.
+ *  @param tx The x index of this tile within the canvas.
+ *  @param ty The y index of this tile within the canvas.
+ *  @param size The width and height of this tile, in pixels.
+ */
 Tile::Tile (Canvas const * canvas, int tx, int ty, int size)
 	: _canvas (canvas)
 	, _tx (tx)
 	, _ty (ty)
-	, _size (size)
 	, _dirty (true)
 {
 	_surface = Cairo::ImageSurface::create (Cairo::FORMAT_ARGB32, size, size);
 	_context = Cairo::Context::create (_surface);
 }
 
+/** If we are marked as `dirty', ask the canvas to redraw this tile
+ *  onto our bitmap.
+ */
 void
 Tile::render ()
 {
@@ -57,25 +66,34 @@ Tile::render ()
 /** Construct a new Canvas */
 Canvas::Canvas ()
 	: _root (this)
+#ifdef CANVAS_DEBUG	  
 	, _log_renders (true)
+#endif	  
 	, _tile_size (64)
 {
+#ifdef CANVAS_DEBUG	
 	set_epoch ();
+#endif	
 }
 
-/** Construct a new Canvas from an XML tree
+/** Construct a new Canvas from an XML tree.
  *  @param tree XML Tree.
  */
 Canvas::Canvas (XMLTree const * tree)
 	: _root (this)
+#ifdef CANVAS_DEBUG	  
 	, _log_renders (true)
+#endif	  
 	, _tile_size (64)
 {
+#ifdef CANVAS_DEBUG	  
 	set_epoch ();
+#endif	
 	
 	/* XXX: little bit hacky */
 	_root.set_state (tree->root()->child ("Group"));
 
+	/* Load renders list from the XML */
 	XMLNodeList const & children = tree->root()->children ();
 	for (XMLNodeList::const_iterator i = children.begin(); i != children.end(); ++i) {
 		if ((*i)->name() == ("Render")) {
@@ -91,9 +109,15 @@ Canvas::Canvas (XMLTree const * tree)
 	}
 }
 
+/** Ensure that a tile exists at a given pair of indices.
+ *  @param tx Tile x index.
+ *  @param ty Tile y index.
+ */
 void
 Canvas::ensure_tile (int tx, int ty) const
 {
+	/* Grow the array */
+	
 	if (int (_tiles.size()) <= tx) {
 		_tiles.resize (tx + 1);
 	}
@@ -102,25 +126,35 @@ Canvas::ensure_tile (int tx, int ty) const
 		_tiles[tx].resize (ty + 1);
 	}
 
+	/* Create a tile if we don't already have one */
+	
 	if (_tiles[tx][ty] == 0) {
 		_tiles[tx][ty].reset (new Tile (this, tx, ty, _tile_size));
 	}
 }
 
+/** Convert an area to a range of tiles that are required to completely cover it.
+ *  @param area Area in canvas coordinates.
+ *  @param tx0 Set to the lower x tile index (inclusive).
+ *  @param ty0 Set to the lower y tile index (inclusive).
+ *  @param tx1 Set to the upper x tile index (inclusive).
+ *  @param ty1 Set to the upper y tile index (inclusive).
+ */
 void
 Canvas::area_to_tiles (Rect const & area, int& tx0, int& ty0, int& tx1, int& ty1) const
 {
 	tx0 = area.x0 / _tile_size;
+	/* round up */
 	tx1 = (area.x1 + (_tile_size / 2)) / _tile_size;
 	ty0 = area.y0 / _tile_size;
+	/* round up */
 	ty1 = (area.y1 + (_tile_size / 2)) / _tile_size;
 }
-	
+
+/** Render an area of the canvas using our tiles, creating and updating tiles as we go */
 void
 Canvas::render_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
 {
-//	checkpoint ("render", "-> render");
-
 	int tx0, ty0, tx1, ty1;
 	area_to_tiles (area, tx0, ty0, tx1, ty1);
 
@@ -141,10 +175,13 @@ Canvas::render_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> cons
 	}
 	
 	context->restore ();
-
-//	checkpoint ("render", "<- render");
 }
 
+/** Render an area of the canvas to a tile, by drawing the required items.
+ *  @param context Tile's context to draw onto.
+ *  @param tx Tile's x index.
+ *  @param ty Tile's y index.
+ */
 void
 Canvas::render_to_tile (Cairo::RefPtr<Cairo::Context> context, int tx, int ty) const
 {
@@ -153,6 +190,9 @@ Canvas::render_to_tile (Cairo::RefPtr<Cairo::Context> context, int tx, int ty) c
 		return;
 	}
 
+	/* Work out what we need to draw by intersecting the canvas root bounding box
+	 * with the requested tile's area.
+	 */
 	Rect area (tx * _tile_size, ty * _tile_size, (tx + 1) * _tile_size, (ty + 1) * _tile_size);
 	boost::optional<Rect> draw = root_bbox.get().intersection (area);
 
@@ -161,8 +201,10 @@ Canvas::render_to_tile (Cairo::RefPtr<Cairo::Context> context, int tx, int ty) c
 	}
 
 	context->save ();
+	/* clip to the tile */
 	context->rectangle (0, 0, _tile_size, _tile_size);
 	context->clip ();
+	/* translate the context so that the required canvas area starts at (0, 0) on the tile */
 	context->translate (-area.x0, -area.y0);
 	_root.render (*draw, context);
 	context->restore ();
@@ -230,6 +272,7 @@ Canvas::item_moved (Item* item, boost::optional<Rect> pre_change_parent_bounding
 void
 Canvas::mark_item_area_dirty (Item* item, Rect area)
 {
+	/* Mark the appropriate tiles dirty */
 	int tx0, ty0, tx1, ty1;
 	area_to_tiles (area, tx0, ty0, tx1, ty1);
 	for (int x = tx0; x <= tx1; ++x) {
@@ -239,7 +282,8 @@ Canvas::mark_item_area_dirty (Item* item, Rect area)
 			}
 		}
 	}
-	
+
+	/* Request a redraw of the canvas, which will re-render the tiles too */
 	request_redraw (item->item_to_canvas (area));
 }
 
