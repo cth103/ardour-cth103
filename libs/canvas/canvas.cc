@@ -46,6 +46,7 @@ Tile::Tile (Canvas const * canvas, int tx, int ty, int size)
 	_context = Cairo::Context::create (_surface);
 }
 
+/* Must be called with the tile's lock held */
 void
 Tile::render ()
 {
@@ -54,11 +55,8 @@ Tile::render ()
 	}
 
 	cout << "Tile render " << _tx << " " << _ty << "\n";
-	
+
 	_canvas->render_to_tile (_context, _tx, _ty);
-	stringstream s;
-	s << "tile-" << _tx << "x" << _ty << ".png";
-	_surface->write_to_png (s.str ());
 	_dirty = false;
 }
 
@@ -127,8 +125,11 @@ Canvas::rendering_thread ()
 			cout << "Worker renders " << t[0] << " " << t[1] << "\n";
 			Glib::Mutex::Lock lm (tile->mutex());
 			tile->render ();
-			request_redraw (Rect (t[0] * _tile_size, t[1] * _tile_size, (t[0] + 1) * _tile_size, (t[1] + 1) * _tile_size));
 		}
+
+		gdk_threads_enter ();
+		request_redraw (Rect (t[0] * _tile_size, t[1] * _tile_size, (t[0] + 1) * _tile_size, (t[1] + 1) * _tile_size));
+		gdk_threads_leave ();
 	}
 
 	return 0;
@@ -163,17 +164,23 @@ Canvas::ensure_tile (int tx, int ty) const
 }
 
 void
+Canvas::area_to_tiles (Rect const & area, int& tx0, int& ty0, int& tx1, int& ty1) const
+{
+	tx0 = area.x0 / _tile_size;
+	tx1 = (area.x1 + (_tile_size / 2)) / _tile_size;
+	ty0 = area.y0 / _tile_size;
+	ty1 = (area.y1 + (_tile_size / 2)) / _tile_size;
+}
+	
+void
 Canvas::render_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
 {
 //	checkpoint ("render", "-> render");
 
 	cout << "Render " << area << "\n";
 
-	/* Work out the required tiles */
-	int const tx0 = area.x0 / _tile_size;
-	int const tx1 = (area.x1 + (_tile_size / 2)) / _tile_size;
-	int const ty0 = area.y0 / _tile_size;
-	int const ty1 = (area.y1 + (_tile_size / 2)) / _tile_size;
+	int tx0, ty0, tx1, ty1;
+	area_to_tiles (area, tx0, ty0, tx1, ty1);
 
 	cout << "Render tiles x: " << tx0 << " to " << tx1 << ", y: " << ty0 << " to " << ty1 << "\n";
 
@@ -186,11 +193,12 @@ Canvas::render_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> cons
 	/* Build and plot the tiles */
 	for (int x = tx0; x <= tx1; ++x) {
 		for (int y = ty0; y <= ty1; ++y) {
-			ensure_tile (x, y);
 
 			boost::shared_ptr<Tile> tile;
+			
 			{
 				Glib::Mutex::Lock lm (_tiles_mutex);
+				ensure_tile (x, y);
 				tile = _tiles[x][y];
 			}
 			
@@ -202,6 +210,7 @@ Canvas::render_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> cons
 						int t[2] = { x, y };
 						write (_fds[1], t, 2 * sizeof (int));
 					} else {
+//					tile->render ();
 						context->set_source (tile->surface (), x * _tile_size, y * _tile_size);
 						context->paint ();
 					}
@@ -225,14 +234,11 @@ Canvas::render_to_tile (Cairo::RefPtr<Cairo::Context> context, int tx, int ty) c
 	}
 
 	Rect area (tx * _tile_size, ty * _tile_size, (tx + 1) * _tile_size, (ty + 1) * _tile_size);
-	cout << "area " << area << "\n";
 	boost::optional<Rect> draw = root_bbox.get().intersection (area);
 
 	if (!draw) {
 		return;
 	}
-
-	cout << "doing it\n";
 
 	context->save ();
 	context->rectangle (0, 0, _tile_size, _tile_size);
@@ -250,7 +256,7 @@ Canvas::item_shown_or_hidden (Item* item)
 {
 	boost::optional<Rect> bbox = item->bounding_box ();
 	if (bbox) {
-		queue_draw_item_area (item, bbox.get ());
+		mark_item_area_dirty (item, bbox.get ());
 	}
 }
 
@@ -264,13 +270,13 @@ Canvas::item_changed (Item* item, boost::optional<Rect> pre_change_bounding_box)
 {
 	if (pre_change_bounding_box) {
 		/* request a redraw of the item's old bounding box */
-		queue_draw_item_area (item, pre_change_bounding_box.get ());
+		mark_item_area_dirty (item, pre_change_bounding_box.get ());
 	}
 
 	boost::optional<Rect> post_change_bounding_box = item->bounding_box ();
 	if (post_change_bounding_box) {
 		/* request a redraw of the item's new bounding box */
-		queue_draw_item_area (item, post_change_bounding_box.get ());
+		mark_item_area_dirty (item, post_change_bounding_box.get ());
 	}
 }
 
@@ -287,13 +293,13 @@ Canvas::item_moved (Item* item, boost::optional<Rect> pre_change_parent_bounding
 		   parent's coordinates here as item bounding boxes do not change
 		   when the item moves.
 		*/
-		queue_draw_item_area (item->parent(), pre_change_parent_bounding_box.get ());
+		mark_item_area_dirty (item->parent(), pre_change_parent_bounding_box.get ());
 	}
 
 	boost::optional<Rect> post_change_bounding_box = item->bounding_box ();
 	if (post_change_bounding_box) {
 		/* request a redraw of where the item now is */
-		queue_draw_item_area (item, post_change_bounding_box.get ());
+		mark_item_area_dirty (item, post_change_bounding_box.get ());
 	}
 }
 
@@ -302,8 +308,22 @@ Canvas::item_moved (Item* item, boost::optional<Rect> pre_change_parent_bounding
  *  @param area Area to redraw in the item's coordinates.
  */
 void
-Canvas::queue_draw_item_area (Item* item, Rect area)
+Canvas::mark_item_area_dirty (Item* item, Rect area)
 {
+	return;
+	
+	Glib::Mutex::Lock tiles_lm (_tiles_mutex);
+	int tx0, ty0, tx1, ty1;
+	area_to_tiles (area, tx0, ty0, tx1, ty1);
+	for (int x = tx0; x <= tx1; ++x) {
+		for (int y = ty0; y <= ty1; ++y) {
+			if (int (_tiles.size()) > x && int (_tiles[x].size()) > y && _tiles[x][y]) {
+				Glib::Mutex::Lock lm (_tiles[x][y]->mutex ());
+				_tiles[x][y]->set_dirty ();
+			}
+		}
+	}
+	
 	request_redraw (item->item_to_canvas (area));
 }
 
@@ -474,7 +494,7 @@ void
 GtkCanvas::item_going_away (Item* item, boost::optional<Rect> bounding_box)
 {
 	if (bounding_box) {
-		queue_draw_item_area (item, bounding_box.get ());
+		mark_item_area_dirty (item, bounding_box.get ());
 	}
 	
 	if (_current_item == item) {

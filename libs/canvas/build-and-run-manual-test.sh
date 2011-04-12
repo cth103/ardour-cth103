@@ -6,11 +6,16 @@ if [ ! -f './canvas.cc' ]; then
     exit 1;
 fi
 
+debug=0
+valgrind=0
+
 if [ "$1" == "--debug" ]; then
     debug=1
     name=$2
+elif [ "$1" == "--valgrind" ]; then
+    valgrind=1
+    name=$2
 else
-    debug=0
     name=$1
 fi
 
@@ -28,6 +33,8 @@ export LD_LIBRARY_PATH=$libs/audiographer:$libs/vamp-sdk:$libs/surfaces:$libs/su
 
 if [ "$debug" == "1" ]; then
     gdb ./libs/canvas/test/$name
+elif [ "$valgrind" == "1" ]; then
+    valgrind --tool="helgrind" ./libs/canvas/test/$name
 else
     ./libs/canvas/test/$name
 fi

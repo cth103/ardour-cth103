@@ -15,6 +15,23 @@ foo (GdkEvent* ev)
 	return true;
 }
 
+Rectangle* a = 0;
+GtkCanvas* canvas = 0;
+
+gboolean timer (void *)
+{
+	static bool foo = false;
+	if (foo) {
+		a->hide ();
+		foo = true;
+	} else {
+		a->show ();
+		foo = false;
+	}
+
+	return true;
+}
+
 int main (int argc, char* argv[])
 {
 	Gtk::Main kit (argc, argv);
@@ -28,13 +45,13 @@ int main (int argc, char* argv[])
 	Gtk::VScrollbar v_scroll;
 	
 	GtkCanvasViewport viewport (*h_scroll.get_adjustment(), *v_scroll.get_adjustment());
-	GtkCanvas* canvas = viewport.canvas ();
+	canvas = viewport.canvas ();
 
 	overall_vbox.pack_start (viewport, true, true);
 	overall_vbox.pack_start (h_scroll, false, false);
 
-	Rectangle a (canvas->root(), Rect (64, 64, 128, 128));
-	a.set_outline_color (0xff0000aa);
+	a = new Rectangle (canvas->root(), Rect (64, 64, 128, 128));
+	a->set_outline_color (0xff0000aa);
 	Rectangle b (canvas->root(), Rect (64, 64, 128, 128));
 	b.set_position (Duple (256, 256));
 	b.set_outline_width (4);
@@ -60,7 +77,10 @@ int main (int argc, char* argv[])
 	window.add (overall_vbox);
 	canvas->show ();
 	window.show_all ();
+
+	g_timeout_add (33, (GSourceFunc) timer, 0);	
 	
 	Gtk::Main::run (window);
 	return 0;
 }
+

@@ -58,6 +58,10 @@ public:
 	bool dirty () const {
 		return _dirty;
 	}
+
+	void set_dirty () {
+		_dirty = true;
+	}
 	
 private:
 	Canvas const * _canvas;
@@ -126,8 +130,9 @@ public:
 
 	void* rendering_thread ();
 	
-protected:
-	void queue_draw_item_area (Item *, Rect);
+//protected:
+	void mark_item_area_dirty (Item *, Rect);
+	void area_to_tiles (Rect const &, int &, int &, int &, int &) const;
 	
 	/** our root group */
 	RootGroup _root;
