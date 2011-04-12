@@ -26,6 +26,7 @@
 #include <gtkmm/adjustment.h>
 #include "pbd/xml++.h"
 #include "pbd/compose.h"
+#include "pbd/stacktrace.h"
 #include "canvas/canvas.h"
 #include "canvas/debug.h"
 
@@ -59,6 +60,12 @@ Tile::render ()
 		return;
 	}
 
+	/* blank the tile */
+	_context->set_source_rgba (0, 0, 0, 1);
+	_context->rectangle (0, 0, _surface->get_width(), _surface->get_height());
+	_context->fill ();
+
+	/* ask the canvas to draw onto it */
 	_canvas->render_to_tile (_context, _tx, _ty);
 	_dirty = false;
 }
@@ -66,6 +73,7 @@ Tile::render ()
 /** Construct a new Canvas */
 Canvas::Canvas ()
 	: _root (this)
+	, _updates_suspended (false)
 #ifdef CANVAS_DEBUG	  
 	, _log_renders (true)
 #endif	  
@@ -81,6 +89,7 @@ Canvas::Canvas ()
  */
 Canvas::Canvas (XMLTree const * tree)
 	: _root (this)
+	, _updates_suspended (false)
 #ifdef CANVAS_DEBUG	  
 	, _log_renders (true)
 #endif	  
@@ -122,8 +131,10 @@ Canvas::ensure_tile (int tx, int ty) const
 		_tiles.resize (tx + 1);
 	}
 
-	if (int (_tiles[tx].size()) <= ty) {
-		_tiles[tx].resize (ty + 1);
+	for (vector<vector<boost::shared_ptr<Tile> > >::iterator i = _tiles.begin(); i != _tiles.end(); ++i) {
+		if (int (i->size()) <= ty) {
+			i->resize (ty + 1);
+		}
 	}
 
 	/* Create a tile if we don't already have one */
@@ -143,12 +154,31 @@ Canvas::ensure_tile (int tx, int ty) const
 void
 Canvas::area_to_tiles (Rect const & area, int& tx0, int& ty0, int& tx1, int& ty1) const
 {
-	tx0 = area.x0 / _tile_size;
-	/* round up */
-	tx1 = (area.x1 + (_tile_size / 2)) / _tile_size;
-	ty0 = area.y0 / _tile_size;
-	/* round up */
-	ty1 = (area.y1 + (_tile_size / 2)) / _tile_size;
+	if (area.x0 == COORD_MAX) {
+		tx0 = INT_MAX;
+	} else {
+		tx0 = area.x0 / _tile_size;
+	}
+
+	if (area.x1 == COORD_MAX) {
+		tx1 = INT_MAX;
+	} else {
+		/* round up */
+		tx1 = (area.x1 + (_tile_size / 2)) / _tile_size;
+	}
+
+	if (area.y0 == COORD_MAX) {
+		ty0 = INT_MAX;
+	} else {
+		ty0 = area.y0 / _tile_size;
+	}
+
+	if (area.y1 == COORD_MAX) {
+		ty1 = INT_MAX;
+	} else {
+		/* round up */
+		ty1 = (area.y1 + (_tile_size / 2)) / _tile_size;
+	}
 }
 
 /** Render an area of the canvas using our tiles, creating and updating tiles as we go */
@@ -216,6 +246,10 @@ Canvas::render_to_tile (Cairo::RefPtr<Cairo::Context> context, int tx, int ty) c
 void
 Canvas::item_shown_or_hidden (Item* item)
 {
+	if (_updates_suspended) {
+		return;
+	}
+	
 	boost::optional<Rect> bbox = item->bounding_box ();
 	if (bbox) {
 		mark_item_area_dirty (item, bbox.get ());
@@ -230,6 +264,10 @@ Canvas::item_shown_or_hidden (Item* item)
 void
 Canvas::item_changed (Item* item, boost::optional<Rect> pre_change_bounding_box)
 {
+	if (_updates_suspended) {
+		return;
+	}
+
 	if (pre_change_bounding_box) {
 		/* request a redraw of the item's old bounding box */
 		mark_item_area_dirty (item, pre_change_bounding_box.get ());
@@ -250,6 +288,10 @@ Canvas::item_changed (Item* item, boost::optional<Rect> pre_change_bounding_box)
 void
 Canvas::item_moved (Item* item, boost::optional<Rect> pre_change_parent_bounding_box)
 {
+	if (_updates_suspended) {
+		return;
+	}
+
 	if (pre_change_parent_bounding_box) {
 		/* request a redraw of where the item used to be; we have to use the
 		   parent's coordinates here as item bounding boxes do not change
@@ -272,19 +314,61 @@ Canvas::item_moved (Item* item, boost::optional<Rect> pre_change_parent_bounding
 void
 Canvas::mark_item_area_dirty (Item* item, Rect area)
 {
+	if (_tiles.empty ()) {
+		return;
+	}
+	
+	Rect const canvas_area = item->item_to_canvas (area);
+	
 	/* Mark the appropriate tiles dirty */
 	int tx0, ty0, tx1, ty1;
-	area_to_tiles (area, tx0, ty0, tx1, ty1);
+	area_to_tiles (canvas_area, tx0, ty0, tx1, ty1);
+
+	tx0 = min (tx0, int (_tiles.size() - 1));
+	tx1 = min (tx1, int (_tiles.size() - 1));
+
 	for (int x = tx0; x <= tx1; ++x) {
+
 		for (int y = ty0; y <= ty1; ++y) {
-			if (int (_tiles.size()) > x && int (_tiles[x].size()) > y && _tiles[x][y]) {
+
+			if (y >= int (_tiles[x].size())) {
+				break;
+			}
+			
+			if (_tiles[x][y]) {
 				_tiles[x][y]->set_dirty ();
 			}
 		}
 	}
 
 	/* Request a redraw of the canvas, which will re-render the tiles too */
-	request_redraw (item->item_to_canvas (area));
+	request_redraw (canvas_area);
+}
+
+/** Suspend all updates to the canvas */
+void
+Canvas::suspend_updates ()
+{
+	_updates_suspended = true;
+}
+
+/** Resume updates and redraw the whole visible canvas area */
+void
+Canvas::resume_updates ()
+{
+	_updates_suspended = false;
+	for (vector<vector<boost::shared_ptr<Tile> > >::iterator i = _tiles.begin(); i != _tiles.end(); ++i) {
+		for (vector<boost::shared_ptr<Tile> >::iterator j = i->begin(); j != i->end(); ++j) {
+			if (*j) {
+				(*j)->set_dirty ();
+			}
+		}
+	}
+
+	boost::optional<Rect> bbox = _root.bounding_box ();
+	if (bbox) {
+		request_redraw (_root.item_to_canvas (bbox.get()));
+	}
 }
 
 /** @return An XML description of the canvas and its objects */
@@ -453,7 +537,7 @@ GtkCanvas::deliver_event (Duple point, GdkEvent* event)
 void
 GtkCanvas::item_going_away (Item* item, boost::optional<Rect> bounding_box)
 {
-	if (bounding_box) {
+	if (bounding_box && !_updates_suspended) {
 		mark_item_area_dirty (item, bounding_box.get ());
 	}
 	

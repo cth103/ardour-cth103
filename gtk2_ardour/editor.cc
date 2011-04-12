@@ -1089,6 +1089,9 @@ Editor::set_session (Session *t)
 		return;
 	}
 
+	_track_canvas->suspend_updates ();
+	_time_bars_canvas->suspend_updates ();
+
 	zoom_range_clock.set_session (_session);
 	_playlist_selector->set_session (_session);
 	nudge_clock.set_session (_session);
@@ -1226,6 +1229,9 @@ Editor::set_session (Session *t)
 	ActionManager::ui_manager->signal_pre_activate().connect (sigc::mem_fun (*this, &Editor::action_pre_activated));
 
 	start_updating_meters ();
+
+	_track_canvas->resume_updates ();
+	_time_bars_canvas->resume_updates ();
 }
 
 void
@@ -4413,12 +4419,19 @@ Editor::idle_visual_changer ()
 	if (p & VisualChange::ZoomLevel) {
 		ArdourCanvas::checkpoint ("ivc", "=> zoom");
 
+		_track_canvas->suspend_updates ();
+		_time_bars_canvas->suspend_updates ();
+
 		set_frames_per_pixel (pending_visual_change.frames_per_pixel);
 
 		compute_fixed_ruler_scale ();
 		compute_current_bbt_points(pending_visual_change.time_origin, pending_visual_change.time_origin + current_page_frames());
 		compute_bbt_ruler_scale (pending_visual_change.time_origin, pending_visual_change.time_origin + current_page_frames());
 		update_tempo_based_rulers ();
+
+		_track_canvas->resume_updates ();
+		_time_bars_canvas->resume_updates ();
+		
 		ArdourCanvas::checkpoint ("ivc", "<= zoom");
 	}
 	if (p & VisualChange::TimeOrigin) {
@@ -4792,6 +4805,9 @@ Editor::first_idle ()
 {
 	MessageDialog* dialog = 0;
 
+	_track_canvas->suspend_updates ();
+	_time_bars_canvas->suspend_updates ();
+
 	if (track_views.size() > 1) {
 		dialog = new MessageDialog (*this,
 					    string_compose (_("Please wait while %1 loads visual data"), PROGRAM_NAME),
@@ -4811,6 +4827,9 @@ Editor::first_idle ()
 
 	delete dialog;
 
+	_track_canvas->resume_updates ();
+	_time_bars_canvas->resume_updates ();
+	
 	_have_idled = true;
 }
 

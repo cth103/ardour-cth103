@@ -133,6 +133,9 @@ public:
 
 	virtual Cairo::RefPtr<Cairo::Context> context () = 0;
 
+	void suspend_updates ();
+	void resume_updates ();
+
 #ifdef CANVAS_DEBUG	
 	/** @return a list of rectangles which have been rendered since
 	 *  the canvas was created (for profiling / debugging purposes).
@@ -159,6 +162,9 @@ protected:
 
 	mutable std::vector<std::vector<boost::shared_ptr<Tile> > > _tiles;
 
+	/** true if all updates are suspended, otherwise false */
+	bool _updates_suspended;
+	
 #ifdef CANVAS_DEBUG	
 	/** a list of rectangles which have been rendered since this canvas
 	 *  was created (if _log_renders is true).
