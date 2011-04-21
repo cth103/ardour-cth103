@@ -514,11 +514,7 @@ MidiRegionView::motion (GdkEventMotion* ev)
         group->canvas_to_item(event_x, event_y);
 
         // convert event_x to global frame
-        event_frame = trackview.editor().pixel_to_frame(event_x) + _region->position();
-        trackview.editor().snap_to(event_frame);
-        
-	// convert event_frame back to local coordinates relative to position
-        event_frame -= _region->position();
+        event_frame = snap_pixel_to_frame (event_x);
 
         if (!_ghost_note && trackview.editor().current_mouse_mode() != MouseRange 
 			&& Keyboard::modifier_state_contains (ev->state, Keyboard::insert_note_modifier())  
@@ -802,7 +798,7 @@ MidiRegionView::create_note_at(double x, double y, double length, bool sh)
 	assert(note <= 127.0);
 
 	// Start of note in frames relative to region start
-	framepos_t const start_frames = snap_frame_to_frame(trackview.editor().pixel_to_frame(x));
+	framepos_t const start_frames = snap_pixel_to_frame (x);
 	assert(start_frames >= 0);
 
 	// Snap length
@@ -2222,21 +2218,34 @@ MidiRegionView::note_dropped(NoteBase *, frameoffset_t dt, int8_t dnote)
 framepos_t
 MidiRegionView::snap_pixel_to_frame(double x)
 {
-	PublicEditor& editor = trackview.editor();
-	// x is region relative, convert it to global absolute frames
-	framepos_t frame = editor.pixel_to_frame(x) + _region->position();
-	editor.snap_to(frame);
-	return frame - _region->position(); // convert back to region relative
+	PublicEditor& editor (trackview.editor());
+	return snap_frame_to_frame (editor.pixel_to_frame (x));
 }
 
-framepos_t
-MidiRegionView::snap_frame_to_frame(framepos_t x)
+/** Snap a frame offset within our region using the current snap settings.
+ *  @param x Frame offset from this region's position.
+ *  @return Snapped frame offset from this region's position.
+ */
+frameoffset_t
+MidiRegionView::snap_frame_to_frame (frameoffset_t x)
 {
 	PublicEditor& editor = trackview.editor();
-	// x is region relative, convert it to global absolute frames
-	framepos_t frame = x + _region->position();
-	editor.snap_to(frame);
-	return frame - _region->position(); // convert back to region relative
+
+	/* x is region relative, convert it to global absolute frames */
+	framepos_t const session_frame = x + _region->position();
+
+	/* try a snap in either direction */
+	framepos_t frame = session_frame;
+	editor.snap_to (frame, 0);
+
+	/* if we went off the beginning of the region, snap forwards */
+	if (frame < _region->position ()) {
+		frame = session_frame;
+		editor.snap_to (frame, 1);
+	}
+
+	/* back to region relative */
+	return frame - _region->position();
 }
 
 double
@@ -3134,9 +3143,7 @@ MidiRegionView::update_ghost_note (double x, double y)
 	_last_ghost_y = y;
 	
 	_note_group->canvas_to_item (x, y);
-	framepos_t f = trackview.editor().pixel_to_frame (x) + _region->position ();
-	trackview.editor().snap_to (f);
-	f -= _region->position ();
+	framepos_t const f = snap_pixel_to_frame (x);
 
 	bool success;
 	Evoral::MusicalTime beats = trackview.editor().get_grid_type_as_beats (success, f);
@@ -3190,9 +3197,10 @@ void
 MidiRegionView::show_verbose_canvas_cursor (boost::shared_ptr<NoteType> n) const
 {
 	char buf[24];
-	snprintf (buf, sizeof (buf), "%s (%d)\nVel %d", 
+	snprintf (buf, sizeof (buf), "%s (%d) Chn %d\nVel %d", 
                   Evoral::midi_note_name (n->note()).c_str(), 
                   (int) n->note (),
+		  (int) n->channel() + 1,
                   (int) n->velocity());
 	trackview.editor().show_verbose_canvas_cursor_with (buf, 10, 20);
 }

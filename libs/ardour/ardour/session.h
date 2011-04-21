@@ -274,7 +274,15 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 
 	/* Transport mechanism signals */
 
-	PBD::Signal0<void> TransportStateChange; /* generic */
+	/** Emitted on the following changes in transport state:
+	 *  - stop (from the butler thread)
+	 *  - change in whether or not we are looping (from the process thread)
+	 *  - change in the play range (from the process thread)
+	 *  - start (from the process thread)
+	 *  - engine halted
+	*/
+	PBD::Signal0<void> TransportStateChange;
+	
 	PBD::Signal1<void,framepos_t> PositionChanged; /* sent after any non-sequential motion */
 	PBD::Signal1<void,framepos_t> Xrun;
 	PBD::Signal0<void> TransportLooped;
@@ -398,12 +406,14 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 
 	void add_route_group (RouteGroup *);
 	void remove_route_group (RouteGroup&);
+	void reorder_route_groups (std::list<RouteGroup*>);
 
 	RouteGroup* route_group_by_name (std::string);
 	RouteGroup& all_route_group() const;
 
 	PBD::Signal1<void,RouteGroup*> route_group_added;
 	PBD::Signal0<void>             route_group_removed;
+	PBD::Signal0<void>             route_groups_reordered;
 
 	void foreach_route_group (boost::function<void(RouteGroup*)> f) {
 		for (std::list<RouteGroup *>::iterator i = _route_groups.begin(); i != _route_groups.end(); ++i) {

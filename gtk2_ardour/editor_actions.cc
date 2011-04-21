@@ -67,7 +67,7 @@ toggle_reg_sens (RefPtr<ActionGroup> group, char const * name, char const * labe
 }
 
 static void
-radio_reg_sens (RefPtr<ActionGroup> action_group, RadioAction::Group radio_group, char const * name, char const * label, sigc::slot<void> slot)
+radio_reg_sens (RefPtr<ActionGroup> action_group, RadioAction::Group& radio_group, char const * name, char const * label, sigc::slot<void> slot)
 {
 	RefPtr<Action> act = ActionManager::register_radio_action (action_group, radio_group, name, label, slot);
 	ActionManager::session_sensitive_actions.push_back (act);
@@ -299,8 +299,6 @@ Editor::register_actions ()
 	
 	reg_sens (editor_actions, "editor-cut", _("Cut"), sigc::mem_fun(*this, &Editor::cut));
 	
-	/* Note: for now, editor-delete does the exact same thing as editor-cut */
-	reg_sens (editor_actions, "editor-delete", _("Delete"), sigc::mem_fun(*this, &Editor::cut));
 	reg_sens (editor_actions, "editor-copy", _("Copy"), sigc::mem_fun(*this, &Editor::copy));
 	reg_sens (editor_actions, "editor-paste", _("Paste"), sigc::mem_fun(*this, &Editor::keyboard_paste));
 
@@ -318,9 +316,34 @@ Editor::register_actions ()
 	reg_sens (editor_actions, "finish-range", _("Finish Range"), sigc::bind (sigc::mem_fun(*this, &Editor::keyboard_selection_finish), false));
 	reg_sens (editor_actions, "finish-add-range", _("Finish Add Range"), sigc::bind (sigc::mem_fun(*this, &Editor::keyboard_selection_finish), true));
 
-	reg_sens (editor_actions, "extend-range-to-end-of-region", _("Extend Range to End of Region"), sigc::bind (sigc::mem_fun(*this, &Editor::extend_selection_to_end_of_region), false));
-	reg_sens (editor_actions, "extend-range-to-start-of-region", _("Extend Range to Start of Region"), sigc::bind (sigc::mem_fun(*this, &Editor::extend_selection_to_start_of_region), false));
-
+	reg_sens (
+		editor_actions,
+		"move-range-start-to-previous-region-boundary",
+		_("Move Range Start to Previous Region Boundary"),
+		sigc::bind (sigc::mem_fun (*this, &Editor::move_range_selection_start_or_end_to_region_boundary), false, false)
+		);
+	
+	reg_sens (
+		editor_actions,
+		"move-range-start-to-next-region-boundary",
+		_("Move Range Start to Next Region Boundary"),
+		sigc::bind (sigc::mem_fun (*this, &Editor::move_range_selection_start_or_end_to_region_boundary), false, true)
+		);
+	
+	reg_sens (
+		editor_actions,
+		"move-range-end-to-previous-region-boundary",
+		_("Move Range End to Previous Region Boundary"),
+		sigc::bind (sigc::mem_fun (*this, &Editor::move_range_selection_start_or_end_to_region_boundary), true, false)
+		);
+	
+	reg_sens (
+		editor_actions,
+		"move-range-end-to-next-region-boundary",
+		_("Move Range End to Next Region Boundary"),
+		sigc::bind (sigc::mem_fun (*this, &Editor::move_range_selection_start_or_end_to_region_boundary), true, true)
+		);
+	
 	toggle_reg_sens (editor_actions, "toggle-follow-playhead", _("Follow Playhead"), (sigc::mem_fun(*this, &Editor::toggle_follow_playhead)));
 	act = reg_sens (editor_actions, "remove-last-capture", _("Remove Last Capture"), (sigc::mem_fun(*this, &Editor::remove_last_capture)));
 
