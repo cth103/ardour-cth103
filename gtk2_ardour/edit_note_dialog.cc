@@ -23,6 +23,7 @@
 #include "edit_note_dialog.h"
 #include "midi_region_view.h"
 #include "note_base.h"
+#include "i18n.h"
 
 using namespace Gtk;
 
