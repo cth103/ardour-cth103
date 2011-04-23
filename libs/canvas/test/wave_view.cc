@@ -1,5 +1,6 @@
 #include <gtkmm/main.h>
 #include "pbd/textreceiver.h"
+#include "pbd/compose.h"
 #include "gtkmm2ext/utils.h"
 #include "midi++/manager.h"
 #include "ardour/session.h"
