@@ -1,4 +1,5 @@
 #include <boost/shared_ptr.hpp>
+#include <gdkmm/pixbuf.h>
 #include "pbd/properties.h"
 #include "ardour/types.h"
 #include "canvas/item.h"

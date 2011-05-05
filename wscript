@@ -332,6 +332,9 @@ def set_compiler_flags (conf,opt):
     conf.env.append_value('CXXFLAGS', '-D__STDC_LIMIT_MACROS')
     conf.env.append_value('CXXFLAGS', '-D__STDC_FORMAT_MACROS')
 
+    conf.env.append_value('CXXFLAGS', '-DCANVAS_DEBUG')
+    conf.env.append_value('CXXFLAGS', '-DCANVAS_COMPATIBILITY')
+
     if opt.nls:
         conf.env.append_value('CXXFLAGS', '-DENABLE_NLS')
         conf.env.append_value('CCFLAGS', '-DENABLE_NLS')

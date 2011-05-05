@@ -1,4 +1,4 @@
-#include <gdkmm/general.h>
+#include <gdkmm.h>
 #include "gtkmm2ext/utils.h"
 #include "pbd/compose.h"
 #include "pbd/signals.h"

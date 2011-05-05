@@ -78,10 +78,6 @@ Editor::initialize_canvas ()
 	_time_bars_canvas_viewport = new ArdourCanvas::GtkCanvasViewport (*_time_bars_canvas_hadj, *_time_bars_canvas_vadj);
 	_time_bars_canvas = _time_bars_canvas_viewport->canvas ();
 	
-	/* stuff for the verbose canvas cursor */
-
-	Pango::FontDescription* font = get_font_for_style (N_("VerboseCanvasCursor"));
-
 	_verbose_cursor = new VerboseCursor (this);
 	
 	/* on the bottom, an image */

@@ -1,3 +1,4 @@
+#include <gdkmm/pixbuf.h>
 #include "canvas/item.h"
 
 namespace ArdourCanvas {

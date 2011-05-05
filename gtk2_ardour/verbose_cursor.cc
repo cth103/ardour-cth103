@@ -21,6 +21,8 @@
 #include <gtkmm/enums.h>
 #include "pbd/stacktrace.h"
 #include "ardour/profile.h"
+#include "canvas/text.h"
+#include "canvas/canvas.h"
 #include "editor.h"
 #include "ardour_ui.h"
 #include "verbose_cursor.h"
@@ -40,9 +42,9 @@ VerboseCursor::VerboseCursor (Editor* editor)
 {
 	Pango::FontDescription* font = get_font_for_style (N_("VerboseCanvasCursor"));
 
-	_canvas_item = new ArdourCanvas::NoEventText (*_editor->track_canvas->root());
-	_canvas_item->property_font_desc() = *font;
-	_canvas_item->property_anchor() = Gtk::ANCHOR_NW;
+	_canvas_item = new ArdourCanvas::Text (_editor->_track_canvas->root());
+	_canvas_item->set_ignore_events (true);
+	_canvas_item->set_font_description (font);
 
 	delete font;
 }
@@ -63,7 +65,7 @@ VerboseCursor::set (string const & text, double x, double y)
 void
 VerboseCursor::set_text (string const & text)
 {
-	_canvas_item->property_text() = text.c_str();
+	_canvas_item->set (text);
 }
 
 /** @param xoffset x offset to be applied on top of any set_position() call
@@ -98,7 +100,7 @@ VerboseCursor::clamp_x (double x)
 	if (x < 0) {
 		x = 0;
 	} else {
-		x = min (_editor->_canvas_width - 200.0, x);
+		x = min (_editor->_visible_canvas_width - 200.0, x);
 	}
 	return x;
 }
@@ -106,10 +108,10 @@ VerboseCursor::clamp_x (double x)
 double
 VerboseCursor::clamp_y (double y)
 {
-	if (y < _editor->canvas_timebars_vsize) {
-		y = _editor->canvas_timebars_vsize;
+	if (y < 0) {
+		y = 0;
 	} else {
-		y = min (_editor->_canvas_height - 50, y);
+		y = min (_editor->_visible_canvas_height - 50, y);
 	}
 	return y;
 }
@@ -255,7 +257,7 @@ VerboseCursor::set_duration (framepos_t start, framepos_t end, double x, double 
 void
 VerboseCursor::set_color (uint32_t color)
 {
-	_canvas_item->property_fill_color_rgba() = color;
+	_canvas_item->set_color (color);
 }
 
 /** Set the position of the verbose cursor.  Any x/y offsets
@@ -265,8 +267,7 @@ VerboseCursor::set_color (uint32_t color)
 void
 VerboseCursor::set_position (double x, double y)
 {
-	_canvas_item->property_x() = clamp_x (x + _xoffset);
-	_canvas_item->property_y() = clamp_y (y + _yoffset);
+	_canvas_item->set_position (ArdourCanvas::Duple (clamp_x (x + _xoffset), clamp_y (y + _yoffset)));
 }
 
 bool

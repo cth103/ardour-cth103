@@ -3,9 +3,7 @@
 
 #include <stdint.h>
 #include <cairomm/context.h>
-#ifdef CANVAS_COMPATIBILITY
-#include <gdkmm/cursor.h>
-#endif
+#include <gdk/gdkevents.h>
 #include "pbd/signals.h"
 #include "canvas/types.h"
 

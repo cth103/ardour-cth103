@@ -1,3 +1,5 @@
+#include <pangomm/fontdescription.h>
+#include <pangomm/layout.h>
 #include "canvas/item.h"
 
 namespace ArdourCanvas {
