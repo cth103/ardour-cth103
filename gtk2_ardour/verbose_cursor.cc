@@ -45,8 +45,6 @@ VerboseCursor::VerboseCursor (Editor* editor)
 	_canvas_item = new ArdourCanvas::Text (_editor->_track_canvas->root());
 	_canvas_item->set_ignore_events (true);
 	_canvas_item->set_font_description (font);
-
-	delete font;
 }
 
 ArdourCanvas::Item *
