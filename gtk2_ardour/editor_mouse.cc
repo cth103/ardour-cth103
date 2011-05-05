@@ -62,6 +62,7 @@
 #include "mouse_cursors.h"
 #include "editor_cursors.h"
 #include "note.h"
+#include "verbose_cursor.h"
 
 #include "ardour/types.h"
 #include "ardour/profile.h"
@@ -1582,8 +1583,8 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 			        set_canvas_cursor (_cursors->fader);
 			}
 
-			set_verbose_canvas_cursor (cp->line().get_verbose_cursor_string (fraction), at_x, at_y);
-			show_verbose_canvas_cursor ();
+			_verbose_cursor->set (cp->line().get_verbose_cursor_string (fraction), at_x, at_y);
+			_verbose_cursor->show ();
 		}
 		break;
 
@@ -1801,7 +1802,7 @@ Editor::leave_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 			set_canvas_cursor (current_canvas_cursor);
 		}
 
-		hide_verbose_canvas_cursor ();
+		_verbose_cursor->hide ();
 		break;
 
 	case RegionViewNameHighlight:
@@ -2182,6 +2183,7 @@ Editor::region_view_item_click (AudioRegionView& rv, GdkEventButton* event)
 }
 
 void
+<<<<<<< HEAD
 Editor::show_verbose_time_cursor (framepos_t frame, double offset, double xpos, double ypos)
 {
 	char buf[128];
@@ -2322,6 +2324,8 @@ Editor::show_verbose_duration_cursor (framepos_t start, framepos_t end, double o
 }
 
 void
+=======
+>>>>>>> origin/master
 Editor::collect_new_region_view (RegionView* rv)
 {
 	latest_regionviews.push_back (rv);
@@ -2786,4 +2790,13 @@ Editor::set_canvas_cursor_for_region_view (double x, RegionView* rv)
 			set_canvas_cursor (_cursors->right_side_trim_left_only);
 		}
 	}
+}
+
+/** Obtain the pointer position in world coordinates */
+void
+Editor::get_pointer_position (double& x, double& y) const
+{
+	int px, py;
+	track_canvas->get_pointer (px, py);
+	track_canvas->window_to_world (px, py, x, y);
 }

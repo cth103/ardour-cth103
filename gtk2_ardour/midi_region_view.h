@@ -332,6 +332,9 @@ class MidiRegionView : public RegionView
 
 	uint8_t get_channel_for_add () const;
 
+	void show_verbose_cursor (std::string const &, double, double) const;
+	void show_verbose_cursor (boost::shared_ptr<NoteType>) const;
+
 	int8_t   _force_channel;
 	uint16_t _last_channel_selection;
 	uint8_t  _current_range_min;
@@ -414,8 +417,6 @@ class MidiRegionView : public RegionView
 
 	void snap_changed ();
 	PBD::ScopedConnection snap_changed_connection;
-
-	void show_verbose_canvas_cursor (boost::shared_ptr<NoteType>) const;
 
         bool motion (GdkEventMotion*);
         bool scroll (GdkEventScroll*);

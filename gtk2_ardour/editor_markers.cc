@@ -515,9 +515,10 @@ Editor::refresh_location_display_internal (Locations::LocationList& locations)
 			if (i->second->end) {
 				remove_sorted_marker (i->second->end);
 			}
-			
-			delete i->second;
+
+			LocationMarkers* m = i->second;
 			location_markers.erase (i);
+			delete m;
 		}
 
 		i = tmp;
@@ -718,10 +719,10 @@ Editor::location_gone (Location *location)
 			if (i->second->end) {
 				remove_sorted_marker (i->second->end);
 			}
-			
-			
-			delete i->second;
+
+			LocationMarkers* m = i->second;
 			location_markers.erase (i);
+			delete m;
 			break;
 		}
 	}

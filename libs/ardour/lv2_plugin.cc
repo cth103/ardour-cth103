@@ -210,23 +210,26 @@ LV2Plugin::init(LV2World& world, SLV2Plugin plugin, framecnt_t rate)
 #if defined(HAVE_NEW_SLV2) and defined(HAVE_SUIL)
 		// Look for embeddable UI
 		SLV2Value ui_type = NULL;
-		SLV2_FOREACH(u, uis) {
-			SLV2UI this_ui = slv2_uis_get(uis, u);
+		SLV2_FOREACH(uis, u, uis) {
+			SLV2UI    this_ui      = slv2_uis_get(uis, u);
+			SLV2Value this_ui_type = NULL;
 			if (slv2_ui_is_supported(this_ui,
 			                         suil_ui_supported,
 			                         _world.gtk_gui,
-			                         &_ui_type)) {
+			                         &this_ui_type)) {
 				// TODO: Multiple UI support
-				_ui = this_ui;
+				_ui      = this_ui;
+				_ui_type = this_ui_type;
 				break;
-			}
+			} 
 		}
 #else
 		// Look for Gtk native UI
 		for (unsigned i = 0; i < slv2_uis_size(uis); ++i) {
 			SLV2UI ui = slv2_uis_get_at(uis, i);
 			if (slv2_ui_is_a(ui, _world.gtk_gui)) {
-				_ui = ui;
+				_ui      = ui;
+				_ui_type = _world.gtk_gui;
 				break;
 			}
 		}
@@ -238,6 +241,7 @@ LV2Plugin::init(LV2World& world, SLV2Plugin plugin, framecnt_t rate)
 				SLV2UI ui = slv2_uis_get_at(uis, i);
 				if (slv2_ui_is_a(ui, _world.external_gui)) {
 					_ui = ui;
+					_ui_type = _world.external_gui;
 					break;
 				}
 			}
@@ -257,8 +261,11 @@ LV2Plugin::~LV2Plugin ()
 	slv2_instance_free(_instance);
 	slv2_value_free(_name);
 	slv2_value_free(_author);
+#if defined(HAVE_NEW_SLV2) and defined(HAVE_SUIL)
 	slv2_value_free(_ui_type);
-
+#else
+	/* _ui_type points to a global, so leave it alone */
+#endif
 	delete [] _control_data;
 	delete [] _shadow_data;
 }
@@ -266,6 +273,9 @@ LV2Plugin::~LV2Plugin ()
 bool
 LV2Plugin::is_external_ui() const
 {
+	if (!_ui) {
+		return false;
+	}
 	return slv2_ui_is_a(_ui, _world.external_gui);
 }
 

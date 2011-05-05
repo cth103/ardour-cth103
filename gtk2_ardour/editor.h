@@ -130,6 +130,7 @@ class RegionLayeringOrderEditor;
 class ProgressReporter;
 class EditorCursor;
 class MouseCursors;
+class VerboseCursor;
 
 /* <CMT Additions> */
 class ImageFrameView;
@@ -415,9 +416,6 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void get_regions_corresponding_to (boost::shared_ptr<ARDOUR::Region> region, std::vector<RegionView*>& regions);
 
-	void show_verbose_canvas_cursor_with (const std::string& txt, int32_t xoffset = 0, int32_t yoffset = 0);
-	void hide_verbose_canvas_cursor();
-
 	void center_screen (framepos_t);
 
 	TrackViewList axis_views_from_routes (boost::shared_ptr<ARDOUR::RouteList>) const;
@@ -449,6 +447,12 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void save_canvas_state ();
 	
+	VerboseCursor* verbose_cursor () const {
+		return _verbose_cursor;
+	}
+
+	void get_pointer_position (double &, double &) const;
+
   protected:
 	void map_transport_state ();
 	void map_position_change (framepos_t);
@@ -695,6 +699,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	Gtk::Adjustment* _track_canvas_hadj;
 	Gtk::Adjustment* _track_canvas_vadj;
 
+<<<<<<< HEAD
 	ArdourCanvas::GtkCanvas* _time_bars_canvas;
 	ArdourCanvas::GtkCanvasViewport* _time_bars_canvas_viewport;
 	Gtk::Adjustment* _time_bars_canvas_hadj;
@@ -702,16 +707,14 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	
 	ArdourCanvas::Text* verbose_canvas_cursor;
 	bool                 verbose_cursor_visible;
+=======
+	friend class VerboseCursor;
+	VerboseCursor* _verbose_cursor;
+>>>>>>> origin/master
 
 	void parameter_changed (std::string);
 
 	bool track_canvas_motion (GdkEvent*);
-
-	void set_verbose_canvas_cursor (const std::string &, double x, double y);
-	void set_verbose_canvas_cursor_text (const std::string &);
-	void show_verbose_canvas_cursor();
-
-	bool verbose_cursor_on; // so far unused
 
 	Gtk::EventBox             time_canvas_event_box;
 	Gtk::EventBox             track_canvas_event_box;
@@ -1337,11 +1340,6 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void remove_control_point (ArdourCanvas::Item*, GdkEvent*);
 
 	void mouse_brush_insert_region (RegionView*, framepos_t pos);
-
-	void show_verbose_time_cursor (framepos_t frame, double offset = 0, double xpos=-1, double ypos=-1);
-	void show_verbose_duration_cursor (framepos_t start, framepos_t end, double offset = 0, double xpos=-1, double ypos=-1);
-	double clamp_verbose_cursor_x (double);
-	double clamp_verbose_cursor_y (double);
 
 	/* Canvas event handlers */
 

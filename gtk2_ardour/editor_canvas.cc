@@ -47,6 +47,7 @@
 #include "keyboard.h"
 #include "editor_cursors.h"
 #include "mouse_cursors.h"
+#include "verbose_cursor.h"
 
 #include "i18n.h"
 
@@ -81,15 +82,8 @@ Editor::initialize_canvas ()
 
 	Pango::FontDescription* font = get_font_for_style (N_("VerboseCanvasCursor"));
 
-	verbose_canvas_cursor = new ArdourCanvas::Text (_track_canvas->root());
-#ifdef CANVAS_DEBUG
-	verbose_canvas_cursor->name = "verbose_canvas_cursor";
-#endif	
-	verbose_canvas_cursor->set_ignore_events (true);
-	verbose_canvas_cursor->set_font_description (font);
-
-	verbose_cursor_visible = false;
-
+	_verbose_cursor = new VerboseCursor (this);
+	
 	/* on the bottom, an image */
 
 	if (Profile->get_sae()) {
@@ -712,7 +706,7 @@ void
 Editor::color_handler()
 {
 	playhead_cursor->set_color (ARDOUR_UI::config()->canvasvar_PlayHead.get());
-	verbose_canvas_cursor->set_color (ARDOUR_UI::config()->canvasvar_VerboseCanvasCursor.get());
+	_verbose_cursor->set_color (ARDOUR_UI::config()->canvasvar_VerboseCanvasCursor.get());
 
 	meter_bar->set_fill_color (ARDOUR_UI::config()->canvasvar_MeterBar.get());
 	meter_bar->set_outline_color (ARDOUR_UI::config()->canvasvar_MarkerBarSeparator.get());

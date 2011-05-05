@@ -879,6 +879,8 @@ TimeAxisViewItem::reset_width_dependent_items (double pixel_width)
 			frame_handle_end->show();
 			frame_handle_end->set_x1 (pixel_width);
 		}
+
+		wide_enough_for_name = true;
 	}
 
         update_name_pixbuf_visibility ();

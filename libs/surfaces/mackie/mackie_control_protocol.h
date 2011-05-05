@@ -87,6 +87,10 @@ class MackieControlProtocol
 
 	std::list<boost::shared_ptr<ARDOUR::Bundle> > bundles ();
 
+	bool has_editor () const { return true; }
+	void* get_gui () const;
+	void tear_down_gui ();
+	
 	// control events
 	void handle_control_event(Mackie::SurfacePort & port, Mackie::Control & control, const Mackie::ControlState & state);
 
@@ -266,7 +270,7 @@ class MackieControlProtocol
 	   Handle a button press for the control and return whether
 	   the corresponding light should be on or off.
 	*/
-	bool handle_strip_button(Mackie::Control &, Mackie::ButtonState, boost::shared_ptr<ARDOUR::Route>);
+	bool handle_strip_button (Mackie::SurfacePort &, Mackie::Control &, Mackie::ButtonState, boost::shared_ptr<ARDOUR::Route>);
 
 	void add_port (MIDI::Port &, MIDI::Port &, int number);
 
@@ -344,6 +348,9 @@ class MackieControlProtocol
 	boost::shared_ptr<ARDOUR::Bundle> _input_bundle;
 	// Bundle to represent our output ports
 	boost::shared_ptr<ARDOUR::Bundle> _output_bundle;
+
+	void build_gui ();
+	void* _gui;
 };
 
 #endif // ardour_mackie_control_protocol_h

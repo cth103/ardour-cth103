@@ -82,10 +82,11 @@ class LV2PluginUI : public PlugUIBase, public Gtk::VBox
 	static void on_external_ui_closed(void* controller);
 
 #if defined(HAVE_NEW_SLV2) && defined(HAVE_SUIL)
-	static SuilHost   ui_host;
-	static SLV2Value  ui_GtkUI;
+	static SuilHost* ui_host;
+	static SLV2Value ui_GtkUI;
+	static SLV2Value ui_external;
 
-	SuilInstance _inst;
+	SuilInstance* _inst;
 #else
 	SLV2UIInstance _inst;
 #endif

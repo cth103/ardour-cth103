@@ -2303,74 +2303,6 @@ ARDOUR_UI::fontconfig_dialog ()
 #endif
 }
 
-void
-ARDOUR_UI::parse_cmdline_path (const std::string& cmdline_path, std::string& session_name, std::string& session_path, bool& existing_session)
-{
-	existing_session = false;
-
-	if (Glib::file_test (cmdline_path, Glib::FILE_TEST_IS_DIR)) {
-		session_path = cmdline_path;
-		existing_session = true;
-	} else if (Glib::file_test (cmdline_path, Glib::FILE_TEST_IS_REGULAR)) {
-		session_path = Glib::path_get_dirname (string (cmdline_path));
-		existing_session = true;
-	} else {
-		/* it doesn't exist, assume the best */
-		session_path = Glib::path_get_dirname (string (cmdline_path));
-	}
-
-	session_name = basename_nosuffix (string (cmdline_path));
-}
-
-int
-ARDOUR_UI::load_cmdline_session (const std::string& session_name, const std::string& session_path, bool& existing_session)
-{
-	/* when this is called, the backend audio system must be running */
-
-	/* the main idea here is to deal with the fact that a cmdline argument for the session
-	   can be interpreted in different ways - it could be a directory or a file, and before
-	   we load, we need to know both the session directory and the snapshot (statefile) within it
-	   that we are supposed to use.
-	*/
-
-	if (session_name.length() == 0 || session_path.length() == 0) {
-		return false;
-	}
-
-	if (Glib::file_test (session_path, Glib::FILE_TEST_IS_DIR)) {
-
-		std::string predicted_session_file;
-
-		predicted_session_file = session_path;
-		predicted_session_file += '/';
-		predicted_session_file += session_name;
-		predicted_session_file += ARDOUR::statefile_suffix;
-
-		if (Glib::file_test (predicted_session_file, Glib::FILE_TEST_EXISTS)) {
-			existing_session = true;
-		}
-
-	} else if (Glib::file_test (session_path, Glib::FILE_TEST_EXISTS)) {
-
-		if (session_path.find (ARDOUR::statefile_suffix) == session_path.length() - 7) {
-			/* existing .ardour file */
-			existing_session = true;
-		}
-
-	} else {
-		existing_session = false;
-	}
-
-	/* lets just try to load it */
-
-	if (create_engine ()) {
-		backend_audio_error (false, _startup);
-		return -1;
-	}
-
-	return load_session (session_path, session_name);
-}
-
 bool
 ARDOUR_UI::ask_about_loading_existing_session (const std::string& session_path)
 {
@@ -2508,7 +2440,7 @@ ARDOUR_UI::get_session_parameters (bool quit_on_cancel, bool should_be_new, stri
 	int ret = -1;
 	bool likely_new = false;
 
-	if (! load_template.empty()) {
+	if (!load_template.empty()) {
 		should_be_new = true;
 		template_name = load_template;
 	}
@@ -2522,13 +2454,16 @@ ARDOUR_UI::get_session_parameters (bool quit_on_cancel, bool should_be_new, stri
 			   to find the session.
 			*/
 
-			if (ARDOUR_COMMAND_LINE::session_name.find (statefile_suffix) != string::npos) {
+			string::size_type suffix = ARDOUR_COMMAND_LINE::session_name.find (statefile_suffix);
+
+			if (suffix != string::npos) {
 				session_path = Glib::path_get_dirname (ARDOUR_COMMAND_LINE::session_name);
+				session_name = ARDOUR_COMMAND_LINE::session_name.substr (0, suffix);
+				session_name = Glib::path_get_basename (session_name);
 			} else {
 				session_path = ARDOUR_COMMAND_LINE::session_name;
+				session_name = Glib::path_get_basename (ARDOUR_COMMAND_LINE::session_name);
 			}
-
-			session_name = Glib::path_get_basename (ARDOUR_COMMAND_LINE::session_name);
 
 		} else {
 
@@ -2685,7 +2620,9 @@ ARDOUR_UI::close_session()
 	goto_editor_window ();
 }
 
-/** @return -2 if the load failed because we are not connected to the AudioEngine */
+/** @param snap_name Snapshot name (without .ardour suffix).
+ *  @return -2 if the load failed because we are not connected to the AudioEngine.
+ */
 int
 ARDOUR_UI::load_session (const std::string& path, const std::string& snap_name, std::string mix_template)
 {
@@ -2953,10 +2890,11 @@ ARDOUR_UI::display_cleanup_results (ARDOUR::CleanupReport& rep, const gchar* lis
 
 	if (removed == 0) {
 		MessageDialog msgd (*editor,
-				    _("No files were ready for cleanup"),
+				    _("No files were ready for clean-up"),
 				    true,
 				    Gtk::MESSAGE_INFO,
 				    (Gtk::ButtonsType)(Gtk::BUTTONS_OK)  );
+		msgd.set_title (_("Clean-up"));
 		msgd.set_secondary_text (_("If this seems suprising, \n\
 check for any existing snapshots.\n\
 These may still include regions that\n\
@@ -3078,17 +3016,19 @@ ARDOUR_UI::cleanup ()
 	}
 
 
-	MessageDialog  checker (_("Are you sure you want to cleanup?"),
+	MessageDialog checker (_("Are you sure you want to clean-up?"),
 				true,
 				Gtk::MESSAGE_QUESTION,
 				(Gtk::ButtonsType)(Gtk::BUTTONS_NONE));
 
-	checker.set_secondary_text(_("Cleanup is a destructive operation.\n\
-ALL undo/redo information will be lost if you cleanup.\n\
-Cleanup will move all unused files to a \"dead\" location."));
+	checker.set_title (_("Clean-up"));
+	
+	checker.set_secondary_text(_("Clean-up is a destructive operation.\n\
+ALL undo/redo information will be lost if you clean-up.\n\
+Clean-up will move all unused files to a \"dead\" location."));
 
 	checker.add_button (Stock::CANCEL, RESPONSE_CANCEL);
-	checker.add_button (_("Clean Up"), RESPONSE_ACCEPT);
+	checker.add_button (_("Clean-up"), RESPONSE_ACCEPT);
 	checker.set_default_response (RESPONSE_CANCEL);
 
 	checker.set_name (_("CleanupDialog"));
@@ -3122,21 +3062,21 @@ Cleanup will move all unused files to a \"dead\" location."));
 
 	checker.hide();
 	display_cleanup_results (rep,
-				 _("cleaned files"),
+				 _("Cleaned Files"),
 				 _("\
 The following %1 files were not in use and \n\
 have been moved to:\n\n\
 %2\n\n\
 After a restart of Ardour,\n\n\
-Session -> Cleanup -> Flush Wastebasket\n\n\
+Session -> Clean-up -> Flush Wastebasket\n\n\
 will release an additional\n\
 %3 %4bytes of disk space.\n"),
 				 _("\
-The following file was not in use and \n	\
+The following file was not in use and \n\
 has been moved to:\n				\
 %2\n\n\
 After a restart of Ardour,\n\n\
-Session -> Cleanup -> Flush Wastebasket\n\n\
+Session -> Clean-up -> Flush Wastebasket\n\n\
 will release an additional\n\
 %3 %4bytes of disk space.\n"
 					 ));

@@ -331,7 +331,6 @@ Editor::Editor ()
 	current_interthread_info = 0;
 	_show_measures = true;
 	show_gain_after_trim = false;
-	verbose_cursor_on = true;
 	last_item_entered = 0;
 
 	have_pending_keyboard_selection = false;
@@ -3287,76 +3286,6 @@ Editor::duplicate_dialog (bool with_dialog)
 }
 
 void
-Editor::show_verbose_canvas_cursor ()
-{
-	verbose_canvas_cursor->raise_to_top();
-	verbose_canvas_cursor->show();
-	verbose_cursor_visible = true;
-}
-
-void
-Editor::hide_verbose_canvas_cursor ()
-{
-	verbose_canvas_cursor->hide();
-	verbose_cursor_visible = false;
-}
-
-double
-Editor::clamp_verbose_cursor_x (double x)
-{
-	if (x < 0) {
-		x = 0;
-	} else {
-		x = min (_visible_canvas_width - 200.0, x);
-	}
-	return x;
-}
-
-double
-Editor::clamp_verbose_cursor_y (double y)
-{
-	y = max (0.0, y);
-	y = min (_visible_canvas_height - 50, y);
-	return y;
-}
-
-void
-Editor::show_verbose_canvas_cursor_with (const string & txt, int32_t xoffset, int32_t yoffset)
-{
-	verbose_canvas_cursor->set (txt);
-
-	int x, y;
-	double wx, wy;
-
-	_track_canvas->get_pointer (x, y);
-	_track_canvas_viewport->window_to_canvas (x, y, wx, wy);
-
-	wx += xoffset;
-	wy += yoffset;
-
-	/* don't get too close to the edge */
-	verbose_canvas_cursor->set_x_position (clamp_verbose_cursor_x (wx));
-	verbose_canvas_cursor->set_y_position (clamp_verbose_cursor_y (wy));
-
-	show_verbose_canvas_cursor ();
-}
-
-void
-Editor::set_verbose_canvas_cursor (const string & txt, double x, double y)
-{
-	verbose_canvas_cursor->set (txt);
-	/* don't get too close to the edge */
-	verbose_canvas_cursor->set_x_position (clamp_verbose_cursor_x (x));
-	verbose_canvas_cursor->set_y_position (clamp_verbose_cursor_y (y));
-}
-
-void
-Editor::set_verbose_canvas_cursor_text (const string & txt)
-{
-	verbose_canvas_cursor->set (txt);
-}
-
-void
 Editor::set_edit_mode (EditMode m)
 {
 	Config->set_edit_mode (m);
@@ -3913,8 +3842,8 @@ Editor::playlist_deletion_dialog (boost::shared_ptr<Playlist> pl)
 {
 	ArdourDialog dialog (_("Playlist Deletion"));
 	Label  label (string_compose (_("Playlist %1 is currently unused.\n"
-					"If left alone, no audio files used by it will be cleaned.\n"
-					"If deleted, audio files used by it alone by will cleaned."),
+					"If it is kept, its audio files will not be cleaned.\n"
+					"If it is deleted, audio files used by it alone will be cleaned."),
 				      pl->name()));
 
 	dialog.set_position (WIN_POS_CENTER);
@@ -3922,8 +3851,8 @@ Editor::playlist_deletion_dialog (boost::shared_ptr<Playlist> pl)
 
 	label.show ();
 
-	dialog.add_button (_("Delete playlist"), RESPONSE_ACCEPT);
-	dialog.add_button (_("Keep playlist"), RESPONSE_REJECT);
+	dialog.add_button (_("Delete Playlist"), RESPONSE_ACCEPT);
+	dialog.add_button (_("Keep Playlist"), RESPONSE_REJECT);
 	dialog.add_button (_("Cancel"), RESPONSE_CANCEL);
 
 	switch (dialog.run ()) {

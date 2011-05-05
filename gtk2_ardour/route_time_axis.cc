@@ -232,6 +232,9 @@ RouteTimeAxisView::RouteTimeAxisView (PublicEditor& ed, Session* sess, boost::sh
 
 	gm.get_gain_slider().signal_scroll_event().connect(sigc::mem_fun(*this, &RouteTimeAxisView::controls_ebox_scroll), false);
 	gm.get_gain_slider().set_name ("TrackGainFader");
+
+	show_name_entry ();
+	hide_name_label ();
 }
 
 RouteTimeAxisView::~RouteTimeAxisView ()
@@ -853,9 +856,10 @@ RouteTimeAxisView::set_height (uint32_t h)
 	xml_node->add_property ("height", buf);
 
 	if (height >= preset_height (HeightNormal)) {
+		
+		_controls_padding_table.set_row_spacings (2);
+		
 		reset_meter();
-		show_name_entry ();
-		hide_name_label ();
 
 		gm.get_gain_slider().show();
 		mute_button->show();
@@ -876,9 +880,9 @@ RouteTimeAxisView::set_height (uint32_t h)
 
 	} else if (height >= preset_height (HeightSmaller)) {
 
+		_controls_padding_table.set_row_spacings (2);
+
 		reset_meter();
-		show_name_entry ();
-		hide_name_label ();
 
 		gm.get_gain_slider().hide();
 		mute_button->show();
@@ -899,31 +903,8 @@ RouteTimeAxisView::set_height (uint32_t h)
 
 	} else {
 
-
-		/* don't allow name_entry to be hidden while
-		   it has focus, otherwise the GUI becomes unusable.
-		*/
-
-		if (name_entry.has_focus()) {
-			if (name_entry.get_text() != _route->name()) {
-				name_entry_changed ();
-			}
-			controls_ebox.grab_focus ();
-		}
-
-		hide_name_entry ();
-		show_name_label ();
-
-		gm.get_gain_slider().hide();
-		mute_button->hide();
-		solo_button->hide();
-		if (rec_enable_button)
-			rec_enable_button->hide();
-
-		route_group_button.hide ();
-		automation_button.hide ();
-		playlist_button.hide ();
-		name_label.set_text (_route->name());
+		_controls_padding_table.set_row_spacings (0);
+	
 	}
 
 	if (height_changed && !no_redraw) {
