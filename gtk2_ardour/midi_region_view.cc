@@ -1186,8 +1186,8 @@ MidiRegionView::region_resized (const PropertyChange& what_changed)
 {
 	RegionView::region_resized(what_changed);
 
-	if (what_changed.contains (ARDOUR::Properties::position)) {
-		set_duration(_region->length(), 0);
+	if (what_changed.contains (ARDOUR::Properties::length) || what_changed.contains (ARDOUR::Properties::start)) {
+		set_duration (_region->length(), 0);
 		if (_enable_display) {
 			redisplay_model();
 		}

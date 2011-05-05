@@ -342,6 +342,10 @@ TimeAxisViewItem::set_duration (framepos_t dur, void* src)
 		group->hide();
 	}
 
+	if (dur == item_duration) {
+		return true;
+	}
+
 	item_duration = dur;
 
 	reset_width_dependent_items (trackview.editor().frame_to_pixel (dur));
