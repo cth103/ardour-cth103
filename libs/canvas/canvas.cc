@@ -61,9 +61,11 @@ Tile::render ()
 	}
 
 	/* blank the tile */
-	_context->set_source_rgba (0, 0, 0, 0);
+	_context->save ();
+	_context->set_operator (Cairo::OPERATOR_CLEAR);
 	_context->rectangle (0, 0, _surface->get_width(), _surface->get_height());
 	_context->fill ();
+	_context->restore ();
 
 	/* ask the canvas to draw onto it */
 	_canvas->render_to_tile (_context, _tx, _ty);
