@@ -70,8 +70,6 @@ Item::item_to_parent (Rect const & r) const
 void
 Item::set_position (Duple p)
 {
-	cout << "Item position -> " << p << "\n";
-	
 	boost::optional<Rect> bbox = bounding_box ();
 	boost::optional<Rect> pre_change_parent_bounding_box;
 	if (bbox) {

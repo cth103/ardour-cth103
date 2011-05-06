@@ -668,7 +668,6 @@ GtkCanvas::on_motion_notify_event (GdkEventMotion* ev)
 void
 GtkCanvas::request_redraw (Rect const & area)
 {
-	cout << "QDA " << area << "\n";
 	queue_draw_area (floor (area.x0), floor (area.y0), ceil (area.x1) - floor (area.x0), ceil (area.y1) - floor (area.y0));
 }
 
