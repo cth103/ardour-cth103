@@ -598,7 +598,6 @@ Region::set_position (framepos_t pos, void* /*src*/)
 	   a GUI that has moved its representation already.
 	*/
 	send_change (Properties::position);
-	
 }
 
 void

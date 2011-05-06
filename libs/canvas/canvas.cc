@@ -61,7 +61,7 @@ Tile::render ()
 	}
 
 	/* blank the tile */
-	_context->set_source_rgba (0, 0, 0, 1);
+	_context->set_source_rgba (0, 0, 0, 0);
 	_context->rectangle (0, 0, _surface->get_width(), _surface->get_height());
 	_context->fill ();
 
@@ -603,6 +603,7 @@ ImageCanvas::context ()
 bool
 GtkCanvas::on_expose_event (GdkEventExpose* ev)
 {
+	cout << "EXPOSE\n";
 	Cairo::RefPtr<Cairo::Context> c = get_window()->create_cairo_context ();
 	render_from_tiles (Rect (ev->area.x, ev->area.y, ev->area.x + ev->area.width, ev->area.y + ev->area.height), c);
 	return true;
@@ -665,6 +666,7 @@ GtkCanvas::on_motion_notify_event (GdkEventMotion* ev)
 void
 GtkCanvas::request_redraw (Rect const & area)
 {
+	cout << "QDA " << area << "\n";
 	queue_draw_area (floor (area.x0), floor (area.y0), ceil (area.x1) - floor (area.x0), ceil (area.y1) - floor (area.y0));
 }
 

@@ -80,8 +80,8 @@ VerboseCursor::show (double xoffset, double yoffset)
 		return;
 	}
 	
-	_canvas_item->raise_to_top ();
-	_canvas_item->show ();
+//	_canvas_item->raise_to_top ();
+//	_canvas_item->show ();
 	_visible = true;
 }
 
@@ -265,7 +265,7 @@ VerboseCursor::set_color (uint32_t color)
 void
 VerboseCursor::set_position (double x, double y)
 {
-	_canvas_item->set_position (ArdourCanvas::Duple (clamp_x (x + _xoffset), clamp_y (y + _yoffset)));
+//	_canvas_item->set_position (ArdourCanvas::Duple (clamp_x (x + _xoffset), clamp_y (y + _yoffset)));
 }
 
 bool
