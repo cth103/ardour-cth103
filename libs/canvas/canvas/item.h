@@ -154,8 +154,8 @@ protected:
 	Duple _position;
 	/** true if this item is visible (ie to be drawn), otherwise false */
 	bool _visible;
-	/** our bounding box before any change that is currently in progress */
-	boost::optional<Rect> _pre_bbox;
+	/** our bounding box before any change that is currently in progress, in the parent's coordinate */
+	boost::optional<Rect> _pre_parent_bbox;
 
 	/** our bounding box; may be out of date if _bbox_dirty is true */
 	mutable boost::optional<Rect> _bbox;

@@ -125,9 +125,7 @@ public:
 
 	/** Called when an item is being destroyed */
 	virtual void item_going_away (Item *, boost::optional<Rect>) {}
-	void item_shown_or_hidden (Item *);
 	void item_changed (Item *, boost::optional<Rect>);
-	void item_moved (Item *, boost::optional<Rect>);
 
 	XMLTree* get_state () const;
 

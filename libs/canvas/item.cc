@@ -70,19 +70,11 @@ Item::item_to_parent (Rect const & r) const
 void
 Item::set_position (Duple p)
 {
-	boost::optional<Rect> our_bbox = bbox ();
-	boost::optional<Rect> pre_parent_bbox;
-	if (our_bbox) {
-		pre_parent_bbox = item_to_parent (our_bbox.get());
-	}
+	begin_change ();
 	
 	_position = p;
 
-	_canvas->item_moved (this, pre_parent_bbox);
-
-	if (_parent) {
-		_parent->child_changed ();
-	}
+	end_change ();
 }
 
 void
@@ -121,15 +113,21 @@ Item::lower_to_bottom ()
 void
 Item::hide ()
 {
+	begin_change ();
+	
 	_visible = false;
-	_canvas->item_shown_or_hidden (this);
+
+	end_change ();
 }
 
 void
 Item::show ()
 {
+	begin_change ();
+	
 	_visible = true;
-	_canvas->item_shown_or_hidden (this);
+
+	end_change ();
 }
 
 Duple
@@ -189,17 +187,20 @@ Item::bbox () const
 	return _bbox;
 }
 
-/* XXX may be called even if bbox is not changing ... bit grotty */
 void
 Item::begin_change ()
 {
-	_pre_bbox = bbox ();
+	if (bbox ()) {
+		_pre_parent_bbox = item_to_parent (bbox().get ());
+	} else {
+		_pre_parent_bbox.reset ();
+	}
 }
 
 void
 Item::end_change ()
 {
-	_canvas->item_changed (this, _pre_bbox);
+	_canvas->item_changed (this, _pre_parent_bbox);
 	
 	if (_parent) {
 		_parent->child_changed ();

@@ -77,6 +77,8 @@ struct Rect
 	Distance height () const {
 		return y1 - y0;
 	}
+
+	bool operator!= (Rect const &) const;
 };
 
 extern std::ostream & operator<< (std::ostream &, Rect const &);

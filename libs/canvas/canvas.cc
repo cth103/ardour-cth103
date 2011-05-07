@@ -242,70 +242,37 @@ Canvas::render_to_tile (Cairo::RefPtr<Cairo::Context> context, int tx, int ty) c
 	context->restore ();
 }
 
-/** Called when an item has been shown or hidden.
- *  @param item Item that has been shown or hidden.
- */
-void
-Canvas::item_shown_or_hidden (Item* item)
-{
-	if (_updates_suspended) {
-		return;
-	}
-	
-	boost::optional<Rect> bbox = item->bbox ();
-	if (bbox) {
-		mark_item_area_dirty (item, bbox.get ());
-	}
-}
-
-/** Called when an item has changed, but not moved.
+/** Called when an item has changed.
  *  @param item Item that has changed.
- *  @param pre_bbox The bounding box of item before the change,
- *  in the item's coordinates.
+ *  @param pre_parent_bbox The bounding box of item before the change,
+ *  in the parent's coordinates.
  */
 void
-Canvas::item_changed (Item* item, boost::optional<Rect> pre_bbox)
+Canvas::item_changed (Item* item, boost::optional<Rect> pre_parent_bbox)
 {
 	if (_updates_suspended) {
 		return;
 	}
 
-	if (pre_bbox) {
-		/* request a redraw of the item's old bounding box */
-		mark_item_area_dirty (item, pre_bbox.get ());
-	}
-
-	boost::optional<Rect> post_change_bbox = item->bbox ();
-	if (post_change_bbox) {
-		/* request a redraw of the item's new bounding box */
-		mark_item_area_dirty (item, post_change_bbox.get ());
-	}
-}
-
-/** Called when an item has moved.
- *  @param item Item that has moved.
- *  @param pre_parent_bbox The bounding box of the item before
- *  the move, in its parent's coordinates.
- */
-void
-Canvas::item_moved (Item* item, boost::optional<Rect> pre_parent_bbox)
-{
-	if (_updates_suspended) {
-		return;
+	/* get the item's bbox in its parents coordinates */
+	boost::optional<Rect> parent_bbox;
+	if (item->bbox ()) {
+		parent_bbox = item->item_to_parent (item->bbox().get ());
 	}
 
 	if (pre_parent_bbox) {
-		/* request a redraw of where the item used to be; we have to use the
-		   parent's coordinates here as item bounding boxes do not change
-		   when the item moves.
-		*/
-		mark_item_area_dirty (item->parent(), pre_parent_bbox.get ());
+
+		/* there was a pre-change bbox */
+		
+		if (!parent_bbox || parent_bbox.get() != pre_parent_bbox.get()) {
+			/* the pre-change bbox is different to the post-change one; mark it dirty */
+			mark_item_area_dirty (item->parent (), pre_parent_bbox.get ());
+		}
 	}
 
-	boost::optional<Rect> post_change_bbox = item->bbox ();
-	if (post_change_bbox) {
-		/* request a redraw of where the item now is */
-		mark_item_area_dirty (item, post_change_bbox.get ());
+	if (parent_bbox) {
+		/* there is a post-change bbox; mark it dirty */
+		mark_item_area_dirty (item->parent (), parent_bbox.get ());
 	}
 }
 
