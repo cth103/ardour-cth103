@@ -605,7 +605,6 @@ ImageCanvas::context ()
 bool
 GtkCanvas::on_expose_event (GdkEventExpose* ev)
 {
-	cout << "EXPOSE\n";
 	Cairo::RefPtr<Cairo::Context> c = get_window()->create_cairo_context ();
 	render_from_tiles (Rect (ev->area.x, ev->area.y, ev->area.x + ev->area.width, ev->area.y + ev->area.height), c);
 	return true;

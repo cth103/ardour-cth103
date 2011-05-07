@@ -629,14 +629,8 @@ Editor::update_ruler_visibility ()
 	}
 
 	if (ruler_tempo_action->get_active()) {
-		old_unit_pos = tempo_group->position().y;
-		if (tbpos != old_unit_pos) {
-			tempo_group->move (ArdourCanvas::Duple (0.0, tbpos - old_unit_pos));
-		}
-		old_unit_pos = tempo_bar_group->position().y;
-		if (tbgpos != old_unit_pos) {
-			tempo_bar_group->move (ArdourCanvas::Duple (0.0, tbgpos - old_unit_pos));
-		}
+		tempo_group->set_y_position (tbpos);
+		tempo_bar_group->set_y_position (tbgpos);
 		tempo_bar_group->show();
 		tempo_group->show();
 		tempo_label.show();
@@ -650,14 +644,8 @@ Editor::update_ruler_visibility ()
 	}
 
 	if (!Profile->get_sae() && ruler_range_action->get_active()) {
-		old_unit_pos = range_marker_group->position().y;
-		if (tbpos != old_unit_pos) {
-			range_marker_group->move (ArdourCanvas::Duple (0.0, tbpos - old_unit_pos));
-		}
-		old_unit_pos = range_marker_bar_group->position().y;
-		if (tbgpos != old_unit_pos) {
-			range_marker_bar_group->move (ArdourCanvas::Duple (0.0, tbgpos - old_unit_pos));
-		}
+		range_marker_group->set_y_position (tbpos);
+		range_marker_bar_group->set_y_position (tbgpos);
 		range_marker_bar_group->show();
 		range_marker_group->show();
 		range_mark_label.show();
@@ -672,14 +660,8 @@ Editor::update_ruler_visibility ()
 	}
 
 	if (ruler_loop_punch_action->get_active()) {
-		old_unit_pos = transport_marker_group->position().y;
-		if (tbpos != old_unit_pos) {
-			transport_marker_group->move (ArdourCanvas::Duple (0.0, tbpos - old_unit_pos));
-		}
-		old_unit_pos = transport_marker_bar_group->position().y;
-		if (tbgpos != old_unit_pos) {
-			transport_marker_bar_group->move (ArdourCanvas::Duple (0.0, tbgpos - old_unit_pos));
-		}
+		transport_marker_group->set_y_position (tbpos);
+		transport_marker_bar_group->set_y_position (tbgpos);
 		transport_marker_bar_group->show();
 		transport_marker_group->show();
 		transport_mark_label.show();
@@ -693,14 +675,8 @@ Editor::update_ruler_visibility ()
 	}
 
 	if (ruler_cd_marker_action->get_active()) {
-		old_unit_pos = cd_marker_group->position().y;
-		if (tbpos != old_unit_pos) {
-			cd_marker_group->move (ArdourCanvas::Duple (0.0, tbpos - old_unit_pos));
-		}
-		old_unit_pos = cd_marker_bar_group->position().y;
-		if (tbgpos != old_unit_pos) {
-			cd_marker_bar_group->move (ArdourCanvas::Duple (0.0, tbgpos - old_unit_pos));
-		}
+		cd_marker_group->set_y_position (tbpos);
+		cd_marker_bar_group->set_y_position (tbgpos);
 		cd_marker_bar_group->show();
 		cd_marker_group->show();
 		cd_mark_label.show();
@@ -718,14 +694,8 @@ Editor::update_ruler_visibility ()
 	}
 
 	if (ruler_marker_action->get_active()) {
-		old_unit_pos = marker_group->position().y;
-		if (tbpos != old_unit_pos) {
-			marker_group->move (ArdourCanvas::Duple (0.0, tbpos - old_unit_pos));
-		}
-		old_unit_pos = marker_bar_group->position().y;
-		if (tbgpos != old_unit_pos) {
-			marker_bar_group->move (ArdourCanvas::Duple (0.0, tbgpos - old_unit_pos));
-		}
+		marker_group->set_y_position (tbpos);
+		marker_bar_group->set_y_position (tbgpos);
 		marker_bar_group->show();
 		marker_group->show();
 		mark_label.show();

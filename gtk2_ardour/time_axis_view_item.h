@@ -142,7 +142,6 @@ class TimeAxisViewItem : public Selectable, public PBD::ScopedConnectionList
 		HideFrameLeft = 0x10,
 		HideFrameRight = 0x20,
 		HideFrameTB = 0x40,
-		FullWidthNameHighlight = 0x80
 	};
 	
   protected:

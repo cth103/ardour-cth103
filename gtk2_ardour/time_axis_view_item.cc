@@ -54,7 +54,7 @@ using namespace ARDOUR;
 using namespace Gtkmm2ext;
 
 Pango::FontDescription* TimeAxisViewItem::NAME_FONT = 0;
-const double TimeAxisViewItem::NAME_X_OFFSET = 15.0;
+const double TimeAxisViewItem::NAME_X_OFFSET = 14.5;
 const double TimeAxisViewItem::GRAB_HANDLE_LENGTH = 6;
 
 int    TimeAxisViewItem::NAME_HEIGHT;
@@ -79,7 +79,7 @@ TimeAxisViewItem::set_constant_heights ()
         Gtkmm2ext::get_ink_pixel_size (layout, width, height);
         
         NAME_HEIGHT = height;
-        NAME_Y_OFFSET = height + 3;
+        NAME_Y_OFFSET = height + 3.5;
         NAME_HIGHLIGHT_SIZE = height + 2;
         NAME_HIGHLIGHT_THRESH = NAME_HIGHLIGHT_SIZE * 3;
 }
@@ -167,7 +167,7 @@ TimeAxisViewItem::init (
 		warning << "Time Axis Item Duration == 0" << endl;
 	}
 
-	vestigial_frame = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, 1.0, 2.0, trackview.current_height()));
+	vestigial_frame = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0, 1, 2, trackview.current_height()));
 	CANVAS_DEBUG_NAME (vestigial_frame, "TAVI vestigial frame");
 	vestigial_frame->hide ();
 	vestigial_frame->set_outline_what (0xf);
@@ -175,7 +175,7 @@ TimeAxisViewItem::init (
 	vestigial_frame->set_fill_color (ARDOUR_UI::config()->canvasvar_VestigialFrame.get());
 
 	if (visibility & ShowFrame) {
-		frame = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, 1.0, trackview.editor().frame_to_pixel(duration), trackview.current_height()));
+		frame = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0, 1, trackview.editor().frame_to_pixel(duration), trackview.current_height()));
 		CANVAS_DEBUG_NAME (frame, "TAVI frame");
 		
 		frame->set_outline_width (1);
@@ -186,8 +186,6 @@ TimeAxisViewItem::init (
 		} else {
 			frame->set_outline_color (ARDOUR_UI::config()->canvasvar_TimeAxisFrame.get());
 		}
-		
-		frame->set_outline_what (0xf);
 
 	} else {
 		frame = 0;
@@ -195,13 +193,8 @@ TimeAxisViewItem::init (
 
 	if (visibility & ShowNameHighlight) {
 		
-		if (visibility & FullWidthNameHighlight) {
-			name_highlight = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, trackview.editor().frame_to_pixel(item_duration), trackview.current_height() - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE, trackview.current_height()));
-			CANVAS_DEBUG_NAME (name_highlight, "TAVI name highlight");
-		} else {
-			name_highlight = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (1.0, trackview.editor().frame_to_pixel(item_duration) - 1, trackview.current_height() - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE, trackview.current_height()));
-			CANVAS_DEBUG_NAME (name_highlight, "TAVI name highlight");
-		}
+		name_highlight = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, trackview.editor().frame_to_pixel(item_duration), trackview.current_height() - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE, trackview.current_height()));
+		CANVAS_DEBUG_NAME (name_highlight, "TAVI name highlight");
 		
 		name_highlight->set_data ("timeaxisviewitem", this);
                 name_highlight->set_outline_what (0x4);
@@ -287,26 +280,15 @@ TimeAxisViewItem::set_position(framepos_t pos, void* src, double* delta)
 
 	frame_position = pos;
 
-	/*  This sucks. The GnomeCanvas version I am using
-	    doesn't correctly implement gnome_canvas_group_set_arg(),
-	    so that simply setting the "x" arg of the group
-	    fails to move the group. Instead, we have to
-	    use gnome_canvas_item_move(), which does the right
-	    thing. I see that in GNOME CVS, the current (Sept 2001)
-	    version of GNOME Canvas rectifies this issue cleanly.
-	*/
+	ArdourCanvas::Coord const old_pixel_pos = group->position().x;
+	ArdourCanvas::Coord const new_pixel_pos = rint (pos / frames_per_pixel);
 
-	double old_unit_pos;
-	double new_unit_pos = pos / frames_per_pixel;
-
-	old_unit_pos = group->position().x;
-
-	if (new_unit_pos != old_unit_pos) {
-		group->set_x_position (new_unit_pos);
+	if (new_pixel_pos != old_pixel_pos) {
+		group->set_x_position (new_pixel_pos);
 	}
 
 	if (delta) {
-		(*delta) = new_unit_pos - old_unit_pos;
+		(*delta) = new_pixel_pos - old_pixel_pos;
 	}
 
 	PositionChanged (frame_position, src); /* EMIT_SIGNAL */
@@ -563,14 +545,14 @@ TimeAxisViewItem::set_height (double height)
 	}
 
 	if (frame) {
-		frame->set_y1 (height - 1);
+		frame->set_y1 (rint (height));
 		if (frame_handle_start) {
 			frame_handle_start->set_y1 (height - 1);
 			frame_handle_end->set_y1 (height - 1);
 		}
 	}
 
-	vestigial_frame->set_y1 (height - 1);
+	vestigial_frame->set_y1 (rint (height));
 
 	update_name_pixbuf_visibility ();
 	set_colors ();
@@ -865,12 +847,12 @@ TimeAxisViewItem::reset_width_dependent_items (double pixel_width)
 				high_enough_for_name = true;
 			}
                         
-			name_highlight->set_x1 (pixel_width);
+			name_highlight->set_x1 (rint (pixel_width));
 		}
 
 		if (frame) {
 			frame->show();
-			frame->set_x1 (pixel_width);
+			frame->set_x1 (rint (pixel_width));
 		}
 
 		if (frame_handle_start) {
@@ -879,9 +861,9 @@ TimeAxisViewItem::reset_width_dependent_items (double pixel_width)
 				frame_handle_end->hide();
 			}
 			frame_handle_start->show();
-			frame_handle_end->set_x0 (pixel_width - (TimeAxisViewItem::GRAB_HANDLE_LENGTH));
+			frame_handle_end->set_x0 (rint (pixel_width - (TimeAxisViewItem::GRAB_HANDLE_LENGTH)));
 			frame_handle_end->show();
-			frame_handle_end->set_x1 (pixel_width);
+			frame_handle_end->set_x1 (rint (pixel_width));
 		}
 
 		wide_enough_for_name = true;
@@ -951,7 +933,7 @@ TimeAxisViewItem::idle_remove_this_item(TimeAxisViewItem* item, void* src)
 void
 TimeAxisViewItem::set_y (double y)
 {
-	group->set_y_position (y);
+	group->set_y_position (rint (y));
 }
 
 void

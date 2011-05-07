@@ -84,8 +84,9 @@ RenderTest::basics ()
 	Group overlap_group (canvas.root ());
 	overlap_group.set_position (Duple (0, 128));
 	Rectangle overlap_rect1 (&overlap_group);
-	overlap_rect1.set (Rect (0, 0, 32, 32));
-	overlap_rect1.set_fill_color (0xff0000ff);
+	overlap_rect1.set (Rect (0.5, 0.5, 31.5, 31.5));
+	overlap_rect1.set_outline_width (1);
+	overlap_rect1.set_outline_color (0x0000ffff);
 	Rectangle overlap_rect2 (&overlap_group);
 	overlap_rect2.set (Rect (16, 16, 48, 48));
 	overlap_rect2.set_fill_color (0x00ff00ff);

@@ -664,7 +664,7 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 			  parent groups have different coordinates.
 			*/
 			
-			rv->get_canvas_group()->set_y_position (iy1 - 1);
+			rv->get_canvas_group()->set_y_position (iy1 - 1.5);
 			rv->get_canvas_group()->reparent (_editor->_region_motion_group);
 			
 			rv->fake_set_opaque (true);

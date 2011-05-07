@@ -109,38 +109,40 @@ Editor::initialize_canvas ()
 	transport_punch_range_rect->hide();
 
 	_background_group = new ArdourCanvas::Group (_track_canvas->root());
+	_background_group->set_position (ArdourCanvas::Duple (0.5, 0.5));
 	_master_group = new ArdourCanvas::Group (_track_canvas->root());
+	_master_group->set_position (ArdourCanvas::Duple (0.5, 0.5));
 
 	_trackview_group = new ArdourCanvas::Group (_master_group);
 	_region_motion_group = new ArdourCanvas::Group (_trackview_group);
 
 	meter_bar_group = new ArdourCanvas::Group (_time_bars_canvas->root ());
-	meter_bar = new ArdourCanvas::Rectangle (meter_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
+	meter_bar = new ArdourCanvas::Rectangle (meter_bar_group, ArdourCanvas::Rect (0.5, 0.5, ArdourCanvas::COORD_MAX, timebar_height + 0.5));
 	meter_bar->set_outline_width (1);
 	meter_bar->set_outline_what (0x8);
 
 	tempo_bar_group = new ArdourCanvas::Group (_time_bars_canvas->root ());
-	tempo_bar = new ArdourCanvas::Rectangle (tempo_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
+	tempo_bar = new ArdourCanvas::Rectangle (tempo_bar_group, ArdourCanvas::Rect (0.5, 0.5, ArdourCanvas::COORD_MAX, timebar_height + 0.5));
 	tempo_bar->set_outline_width (1);
 	tempo_bar->set_outline_what (0x8);
 
 	range_marker_bar_group = new ArdourCanvas::Group (_time_bars_canvas->root ());
-	range_marker_bar = new ArdourCanvas::Rectangle (range_marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
+	range_marker_bar = new ArdourCanvas::Rectangle (range_marker_bar_group, ArdourCanvas::Rect (0.5, 0.5, ArdourCanvas::COORD_MAX, timebar_height + 0.5));
 	range_marker_bar->set_outline_width (1);
 	range_marker_bar->set_outline_what (0x8);
 
 	transport_marker_bar_group = new ArdourCanvas::Group (_time_bars_canvas->root ());
-	transport_marker_bar = new ArdourCanvas::Rectangle (transport_marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
+	transport_marker_bar = new ArdourCanvas::Rectangle (transport_marker_bar_group, ArdourCanvas::Rect (0.5, 0.5, ArdourCanvas::COORD_MAX, timebar_height + 0.5));
 	transport_marker_bar->set_outline_width (1);
 	transport_marker_bar->set_outline_what (0x8);
 
 	marker_bar_group = new ArdourCanvas::Group (_time_bars_canvas->root ());
-	marker_bar = new ArdourCanvas::Rectangle (marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
+	marker_bar = new ArdourCanvas::Rectangle (marker_bar_group, ArdourCanvas::Rect (0.5, 0.5, ArdourCanvas::COORD_MAX, timebar_height + 0.5));
 	marker_bar->set_outline_width (1);
 	marker_bar->set_outline_what (0x8);
 
 	cd_marker_bar_group = new ArdourCanvas::Group (_time_bars_canvas->root ());
-	cd_marker_bar = new ArdourCanvas::Rectangle (cd_marker_bar_group, ArdourCanvas::Rect (0.0, 0.0, ArdourCanvas::COORD_MAX, timebar_height - 1));
+	cd_marker_bar = new ArdourCanvas::Rectangle (cd_marker_bar_group, ArdourCanvas::Rect (0.5, 0.5, ArdourCanvas::COORD_MAX, timebar_height + 0.5));
 	cd_marker_bar->set_outline_width (1);
  	cd_marker_bar->set_outline_what (0x8);
 
