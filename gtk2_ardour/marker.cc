@@ -501,7 +501,7 @@ TempoMarker::TempoMarker (PublicEditor& editor, ArdourCanvas::Group& parent, gui
 	  _tempo (temp)
 {
 	set_position (_tempo.frame());
-	group->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_tempo_marker_event), mark, this));
+	group->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_tempo_marker_event), group, this));
 }
 
 TempoMarker::~TempoMarker ()
@@ -516,7 +516,7 @@ MeterMarker::MeterMarker (PublicEditor& editor, ArdourCanvas::Group& parent, gui
 	  _meter (m)
 {
 	set_position (_meter.frame());
-	group->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_meter_marker_event), mark, this));
+	group->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_meter_marker_event), group, this));
 }
 
 MeterMarker::~MeterMarker ()
