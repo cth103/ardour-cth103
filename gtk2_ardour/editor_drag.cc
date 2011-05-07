@@ -650,10 +650,7 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 			
 			rv->get_canvas_frame()->item_to_canvas (ix1, iy1);
 			
-			/* compensate for the ruler section and the vertical scrollbar position */
-			iy1 += _editor->get_trackview_group_vertical_offset ();
-			
-			// hide any dependent views
+			/* hide any dependent views */
 			
 			rv->get_time_axis_view().hide_dependent_views (*rv);
 			
