@@ -1,8 +1,7 @@
 Check set of duration during drags...
 
-
+Maybe do LUT-like stuff using tiles.
 XXX_NEW_CANVAS
-LUT could optimise for bboxes with non-zero top-lefts
 Canvas is-a group?
 unparent needed?  can we not just reparent?
 change handling is a little grubby.  Unify perhaps.
@@ -17,13 +16,10 @@ pixbufs for text?!
 Memory management
 AudioSource::available_peaks
 Use Canvas::context() always (ie don't pass into render) ?
-Names of stuff in LookupTable; get vs. items_at_point
 Is track_canvas_event_box still needed?
 frame_to_unit -> frame_to_pixel
 Cache single-res peakfiles from disk & resample on demand? Or resample and cache again?
 
 bugs
 
-Vert scroll with summary doesn't work
-Dragging regions around is a bit odd
 Autoscroll broken
