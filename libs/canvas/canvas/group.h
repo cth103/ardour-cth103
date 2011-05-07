@@ -5,7 +5,6 @@
 #include <vector>
 #include "canvas/item.h"
 #include "canvas/types.h"
-#include "canvas/lookup_table.h"
 
 namespace ArdourCanvas {
 
@@ -23,7 +22,7 @@ public:
 
 	void add (Item *);
 	void remove (Item *);
-	std::list<Item*> const & items () const {
+	std::vector<Item*> const & items () const {
 		return _items;
 	}
 
@@ -41,16 +40,10 @@ protected:
 	explicit Group (Canvas *);
 	
 private:
-	friend class ::OptimizingLookupTableTest;
-	
 	Group (Group const &);
-	void ensure_lut () const;
-	void invalidate_lut () const;
 
 	/* our items, from lowest to highest in the stack */
-	std::list<Item*> _items;
-
-	mutable LookupTable* _lut;
+	std::vector<Item*> _items;
 };
 
 }

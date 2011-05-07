@@ -29,7 +29,6 @@ canvas_sources = [
 	'item_factory.cc',
 	'line.cc',
         'line_set.cc',
-	'lookup_table.cc',
 	'outline.cc',
 	'pixbuf.cc',
 	'poly_item.cc',
@@ -100,7 +99,6 @@ def build(bld):
 		unit_testobj.source       = '''
 			test/group.cc
 			test/arrow.cc
-			test/optimizing_lookup_table.cc
 			test/polygon.cc
 			test/types.cc
 			test/render.cc
