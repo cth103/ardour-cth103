@@ -12,7 +12,7 @@ private:
 	
 	RootGroup (Canvas *);
 
-	void compute_bounding_box () const;
+	void compute_bbox () const;
 	void child_changed ();
 };
 

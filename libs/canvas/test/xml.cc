@@ -42,10 +42,10 @@ XMLTest::set ()
 	XMLTree* tree = new XMLTree ("../../libs/canvas/test/test.xml");
 	ImageCanvas canvas (tree);
 
-	list<Item*> root_items = canvas.root()->items ();
+	vector<Item*> root_items = canvas.root()->items ();
 	CPPUNIT_ASSERT (root_items.size() == 2);
 
-	list<Item*>::iterator i = root_items.begin();
+	vector<Item*>::iterator i = root_items.begin();
 	Rectangle* r = dynamic_cast<Rectangle*> (*i++);
 	CPPUNIT_ASSERT (r);
 	CPPUNIT_ASSERT (r->outline_color() == 0x12345678);

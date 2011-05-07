@@ -18,7 +18,7 @@ Line::Line (Group* parent)
 }
 
 void
-Line::compute_bounding_box () const
+Line::compute_bbox () const
 {
 	Rect bbox;
 	
@@ -29,8 +29,8 @@ Line::compute_bounding_box () const
 
 	bbox = bbox.expand (_outline_width / 2);
 
-	_bounding_box = bbox;
-	_bounding_box_dirty = false;
+	_bbox = bbox;
+	_bbox_dirty = false;
 }
 
 void
@@ -56,7 +56,7 @@ Line::set (Duple a, Duple b)
 	_points[0] = a;
 	_points[1] = b;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: line change\n");
@@ -69,7 +69,7 @@ Line::set_x0 (Coord x0)
 	
 	_points[0].x = x0;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: line change\n");
@@ -82,7 +82,7 @@ Line::set_y0 (Coord y0)
 
 	_points[0].y = y0;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: line change\n");
@@ -95,7 +95,7 @@ Line::set_x1 (Coord x1)
 
 	_points[1].x = x1;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: line change\n");
@@ -108,7 +108,7 @@ Line::set_y1 (Coord y1)
 
 	_points[1].y = y1;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: line change\n");
@@ -144,5 +144,5 @@ Line::set_state (XMLNode const * node)
 	set_item_state (node);
 	set_outline_state (node);
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 }

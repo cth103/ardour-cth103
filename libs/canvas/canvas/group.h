@@ -16,7 +16,7 @@ public:
 	~Group ();
 
 	void render (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
-	virtual void compute_bounding_box () const;
+	virtual void compute_bbox () const;
 	XMLNode* get_state () const;
 	void set_state (XMLNode const *);
 

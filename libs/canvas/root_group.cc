@@ -13,11 +13,11 @@ RootGroup::RootGroup (Canvas* canvas)
 }
 
 void
-RootGroup::compute_bounding_box () const
+RootGroup::compute_bbox () const
 {
-	Group::compute_bounding_box ();
+	Group::compute_bbox ();
 
-	if (_bounding_box) {
-		_canvas->request_size (Duple (_bounding_box.get().width (), _bounding_box.get().height ()));
+	if (_bbox) {
+		_canvas->request_size (Duple (_bbox.get().width (), _bbox.get().height ()));
 	}
 }

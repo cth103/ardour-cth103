@@ -29,16 +29,16 @@ LineSet::get_state () const
 }
 
 void
-LineSet::compute_bounding_box () const
+LineSet::compute_bbox () const
 {
 	if (_lines.empty ()) {
-		_bounding_box = boost::optional<Rect> ();
-		_bounding_box_dirty = false;
+		_bbox = boost::optional<Rect> ();
+		_bbox_dirty = false;
 		return;
 	}
 	
-	_bounding_box = Rect (0, _lines.front().y, COORD_MAX, min (_height, _lines.back().y));
-	_bounding_box_dirty = false;
+	_bbox = Rect (0, _lines.front().y, COORD_MAX, min (_height, _lines.back().y));
+	_bbox_dirty = false;
 }
 
 void
@@ -48,7 +48,7 @@ LineSet::set_height (Distance height)
 
 	_height = height;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 }
 
@@ -76,7 +76,7 @@ LineSet::add (Coord y, Distance width, Color color)
 	_lines.push_back (Line (y, width, color));
 	_lines.sort (LineSorter ());
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 }
 
@@ -85,6 +85,6 @@ LineSet::clear ()
 {
 	begin_change ();
 	_lines.clear ();
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 }

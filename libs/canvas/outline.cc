@@ -34,7 +34,7 @@ Outline::set_outline_width (Distance width)
 	
 	_outline_width = width;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: outline width change\n");	
@@ -47,7 +47,7 @@ Outline::set_outline (bool outline)
 
 	_outline = outline;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 }
 
@@ -73,5 +73,5 @@ Outline::set_outline_state (XMLNode const * node)
 	_outline = string_is_affirmative (node->property("outline")->value().c_str());
 	_outline_width = atof (node->property("outline-width")->value().c_str());
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 }

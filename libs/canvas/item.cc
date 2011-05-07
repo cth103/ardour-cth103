@@ -41,7 +41,7 @@ void
 Item::init ()
 {
 	_visible = true;
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	_ignore_events = false;
 	
 	if (_parent) {
@@ -53,7 +53,7 @@ Item::init ()
 
 Item::~Item ()
 {
-	_canvas->item_going_away (this, _bounding_box);
+	_canvas->item_going_away (this, _bbox);
 	
 	if (_parent) {
 		_parent->remove (this);
@@ -70,15 +70,15 @@ Item::item_to_parent (Rect const & r) const
 void
 Item::set_position (Duple p)
 {
-	boost::optional<Rect> bbox = bounding_box ();
-	boost::optional<Rect> pre_change_parent_bounding_box;
-	if (bbox) {
-		pre_change_parent_bounding_box = item_to_parent (bbox.get());
+	boost::optional<Rect> our_bbox = bbox ();
+	boost::optional<Rect> pre_parent_bbox;
+	if (our_bbox) {
+		pre_parent_bbox = item_to_parent (our_bbox.get());
 	}
 	
 	_position = p;
 
-	_canvas->item_moved (this, pre_change_parent_bounding_box);
+	_canvas->item_moved (this, pre_parent_bbox);
 
 	if (_parent) {
 		_parent->child_changed ();
@@ -179,27 +179,27 @@ Item::grab_focus ()
 
 /** @return Bounding box in this item's coordinates */
 boost::optional<Rect>
-Item::bounding_box () const
+Item::bbox () const
 {
-	if (_bounding_box_dirty) {
-		compute_bounding_box ();
+	if (_bbox_dirty) {
+		compute_bbox ();
 	}
 
-	assert (!_bounding_box_dirty);
-	return _bounding_box;
+	assert (!_bbox_dirty);
+	return _bbox;
 }
 
 /* XXX may be called even if bbox is not changing ... bit grotty */
 void
 Item::begin_change ()
 {
-	_pre_change_bounding_box = bounding_box ();
+	_pre_bbox = bbox ();
 }
 
 void
 Item::end_change ()
 {
-	_canvas->item_changed (this, _pre_change_bounding_box);
+	_canvas->item_changed (this, _pre_bbox);
 	
 	if (_parent) {
 		_parent->child_changed ();

@@ -2985,7 +2985,7 @@ FeatureLineDrag::motion (GdkEvent*, bool)
 		cx = 0;
 	}
 	
-	boost::optional<Rect> bbox = _line->bounding_box ();
+	boost::optional<Rect> bbox = _line->bbox ();
 	assert (bbox);
 	
 	_line->set (

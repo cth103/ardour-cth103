@@ -217,7 +217,7 @@ Canvas::render_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> cons
 void
 Canvas::render_to_tile (Cairo::RefPtr<Cairo::Context> context, int tx, int ty) const
 {
-	boost::optional<Rect> root_bbox = _root.bounding_box ();
+	boost::optional<Rect> root_bbox = _root.bbox ();
 	if (!root_bbox) {
 		return;
 	}
@@ -252,7 +252,7 @@ Canvas::item_shown_or_hidden (Item* item)
 		return;
 	}
 	
-	boost::optional<Rect> bbox = item->bounding_box ();
+	boost::optional<Rect> bbox = item->bbox ();
 	if (bbox) {
 		mark_item_area_dirty (item, bbox.get ());
 	}
@@ -260,52 +260,52 @@ Canvas::item_shown_or_hidden (Item* item)
 
 /** Called when an item has changed, but not moved.
  *  @param item Item that has changed.
- *  @param pre_change_bounding_box The bounding box of item before the change,
+ *  @param pre_bbox The bounding box of item before the change,
  *  in the item's coordinates.
  */
 void
-Canvas::item_changed (Item* item, boost::optional<Rect> pre_change_bounding_box)
+Canvas::item_changed (Item* item, boost::optional<Rect> pre_bbox)
 {
 	if (_updates_suspended) {
 		return;
 	}
 
-	if (pre_change_bounding_box) {
+	if (pre_bbox) {
 		/* request a redraw of the item's old bounding box */
-		mark_item_area_dirty (item, pre_change_bounding_box.get ());
+		mark_item_area_dirty (item, pre_bbox.get ());
 	}
 
-	boost::optional<Rect> post_change_bounding_box = item->bounding_box ();
-	if (post_change_bounding_box) {
+	boost::optional<Rect> post_change_bbox = item->bbox ();
+	if (post_change_bbox) {
 		/* request a redraw of the item's new bounding box */
-		mark_item_area_dirty (item, post_change_bounding_box.get ());
+		mark_item_area_dirty (item, post_change_bbox.get ());
 	}
 }
 
 /** Called when an item has moved.
  *  @param item Item that has moved.
- *  @param pre_change_parent_bounding_box The bounding box of the item before
+ *  @param pre_parent_bbox The bounding box of the item before
  *  the move, in its parent's coordinates.
  */
 void
-Canvas::item_moved (Item* item, boost::optional<Rect> pre_change_parent_bounding_box)
+Canvas::item_moved (Item* item, boost::optional<Rect> pre_parent_bbox)
 {
 	if (_updates_suspended) {
 		return;
 	}
 
-	if (pre_change_parent_bounding_box) {
+	if (pre_parent_bbox) {
 		/* request a redraw of where the item used to be; we have to use the
 		   parent's coordinates here as item bounding boxes do not change
 		   when the item moves.
 		*/
-		mark_item_area_dirty (item->parent(), pre_change_parent_bounding_box.get ());
+		mark_item_area_dirty (item->parent(), pre_parent_bbox.get ());
 	}
 
-	boost::optional<Rect> post_change_bounding_box = item->bounding_box ();
-	if (post_change_bounding_box) {
+	boost::optional<Rect> post_change_bbox = item->bbox ();
+	if (post_change_bbox) {
 		/* request a redraw of where the item now is */
-		mark_item_area_dirty (item, post_change_bounding_box.get ());
+		mark_item_area_dirty (item, post_change_bbox.get ());
 	}
 }
 
@@ -367,7 +367,7 @@ Canvas::resume_updates ()
 		}
 	}
 
-	boost::optional<Rect> bbox = _root.bounding_box ();
+	boost::optional<Rect> bbox = _root.bbox ();
 	if (bbox) {
 		request_redraw (_root.item_to_canvas (bbox.get()));
 	}
@@ -534,13 +534,13 @@ GtkCanvas::deliver_event (Duple point, GdkEvent* event)
 
 /** Called when an item is being destroyed.
  *  @param item Item being destroyed.
- *  @param bounding_box Last known bounding box of the item.
+ *  @param bbox Last known bounding box of the item.
  */
 void
-GtkCanvas::item_going_away (Item* item, boost::optional<Rect> bounding_box)
+GtkCanvas::item_going_away (Item* item, boost::optional<Rect> bbox)
 {
-	if (bounding_box && !_updates_suspended) {
-		mark_item_area_dirty (item, bounding_box.get ());
+	if (bbox && !_updates_suspended) {
+		mark_item_area_dirty (item, bbox.get ());
 	}
 	
 	if (_current_item == item) {

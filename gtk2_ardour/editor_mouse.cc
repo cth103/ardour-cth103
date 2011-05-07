@@ -2626,7 +2626,7 @@ Editor::set_canvas_cursor_for_region_view (double x, RegionView* rv)
 	double dy = 0;
 	p->canvas_to_item (x, dy);
 
-	boost::optional<ArdourCanvas::Rect> item_bbox = g->bounding_box ();
+	boost::optional<ArdourCanvas::Rect> item_bbox = g->bbox ();
 	assert (item_bbox);
 	ArdourCanvas::Rect parent_bbox = g->item_to_parent (item_bbox.get ());
 

@@ -64,7 +64,7 @@ Arrow::set_show_head (int which, bool show)
 	_heads[which].show = show;
 
 	setup_polygon (which);
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 }
 
@@ -84,7 +84,7 @@ Arrow::set_head_outward (int which, bool outward)
 	_heads[which].outward = outward;
 
 	setup_polygon (which);
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 }
 
@@ -102,7 +102,7 @@ Arrow::set_head_height (int which, Distance height)
 	_heads[which].height = height;
 
 	setup_polygon (which);
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 }
 
@@ -120,7 +120,7 @@ Arrow::set_head_width (int which, Distance width)
 	_heads[which].width = width;
 
 	setup_polygon (which);
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 }
 

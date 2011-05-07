@@ -44,8 +44,8 @@ public:
 		items.push_back (this);
 	}
 
-	/** Update _bounding_box and _bounding_box_dirty */
-	virtual void compute_bounding_box () const = 0;
+	/** Update _bbox and _bbox_dirty */
+	virtual void compute_bbox () const = 0;
 
 	virtual XMLNode* get_state () const = 0;
 	virtual void set_state (XMLNode const *) = 0;
@@ -74,7 +74,7 @@ public:
 		return _position;
 	}
 
-	boost::optional<Rect> bounding_box () const;
+	boost::optional<Rect> bbox () const;
 	
 	Duple item_to_parent (Duple const &) const;
 	Rect item_to_parent (Rect const &) const;
@@ -155,12 +155,12 @@ protected:
 	/** true if this item is visible (ie to be drawn), otherwise false */
 	bool _visible;
 	/** our bounding box before any change that is currently in progress */
-	boost::optional<Rect> _pre_change_bounding_box;
+	boost::optional<Rect> _pre_bbox;
 
-	/** our bounding box; may be out of date if _bounding_box_dirty is true */
-	mutable boost::optional<Rect> _bounding_box;
-	/** true if _bounding_box might be out of date, false if its definitely not */
-	mutable bool _bounding_box_dirty;
+	/** our bounding box; may be out of date if _bbox_dirty is true */
+	mutable boost::optional<Rect> _bbox;
+	/** true if _bbox might be out of date, false if its definitely not */
+	mutable bool _bbox_dirty;
 
 	/* XXX: this is a bit grubby */
 	std::map<std::string, void *> _data;

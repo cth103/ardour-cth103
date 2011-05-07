@@ -54,5 +54,5 @@ Fill::set_fill_state (XMLNode const * node)
 	_fill_color = atoll (node->property("fill-color")->value().c_str());
 	_fill = string_is_affirmative (node->property("fill")->value ().c_str());
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 }

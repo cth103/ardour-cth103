@@ -23,29 +23,29 @@ Text::set (string const & text)
 	
 	_text = text;
 	
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 }
 
 void
-Text::compute_bounding_box () const
+Text::compute_bbox () const
 {
 	if (!_canvas || !_canvas->context ()) {
-		_bounding_box = boost::optional<Rect> ();
-		_bounding_box_dirty = false;
+		_bbox = boost::optional<Rect> ();
+		_bbox_dirty = false;
 		return;
 	}
 	
 	Pango::Rectangle const r = layout (_canvas->context())->get_ink_extents ();
 	
-	_bounding_box = Rect (
+	_bbox = Rect (
 		r.get_x() / Pango::SCALE,
 		r.get_y() / Pango::SCALE,
 		(r.get_x() + r.get_width()) / Pango::SCALE,
 		(r.get_y() + r.get_height()) / Pango::SCALE
 		);
 	
-	_bounding_box_dirty = false;
+	_bbox_dirty = false;
 }
 
 Glib::RefPtr<Pango::Layout>
@@ -92,7 +92,7 @@ Text::set_alignment (Pango::Alignment alignment)
 	
 	_alignment = alignment;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 }
 
@@ -103,7 +103,7 @@ Text::set_font_description (Pango::FontDescription* font_description)
 	
 	_font_description = font_description;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 }
 

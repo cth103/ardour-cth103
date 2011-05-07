@@ -14,7 +14,7 @@ PolyItem::PolyItem (Group* parent)
 }
 
 void
-PolyItem::compute_bounding_box () const
+PolyItem::compute_bbox () const
 {
 	bool have_one = false;
 
@@ -34,12 +34,12 @@ PolyItem::compute_bounding_box () const
 	}
 
 	if (!have_one) {
-		_bounding_box = boost::optional<Rect> ();
+		_bbox = boost::optional<Rect> ();
 	} else {
-		_bounding_box = bbox.expand (_outline_width / 2);
+		_bbox = bbox.expand (_outline_width / 2);
 	}
 	
-	_bounding_box_dirty = false;
+	_bbox_dirty = false;
 }
 
 void
@@ -63,7 +63,7 @@ PolyItem::set (Points const & points)
 	
 	_points = points;
 	
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 }
 
@@ -97,5 +97,5 @@ PolyItem::set_poly_item_state (XMLNode const * node)
 		_points.push_back (p);
 	}
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 }

@@ -50,7 +50,7 @@ Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 			continue;
 		}
 		
-		boost::optional<Rect> item_bbox = (*i)->bounding_box ();
+		boost::optional<Rect> item_bbox = (*i)->bbox ();
 		if (!item_bbox) {
 			continue;
 		}
@@ -73,13 +73,13 @@ Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 }
 
 void
-Group::compute_bounding_box () const
+Group::compute_bbox () const
 {
 	Rect bbox;
 	bool have_one = false;
 
 	for (vector<Item*>::const_iterator i = _items.begin(); i != _items.end(); ++i) {
-		boost::optional<Rect> item_bbox = (*i)->bounding_box ();
+		boost::optional<Rect> item_bbox = (*i)->bbox ();
 		if (!item_bbox) {
 			continue;
 		}
@@ -94,19 +94,19 @@ Group::compute_bounding_box () const
 	}
 
 	if (!have_one) {
-		_bounding_box = boost::optional<Rect> ();
+		_bbox = boost::optional<Rect> ();
 	} else {
-		_bounding_box = bbox;
+		_bbox = bbox;
 	}
 
-	_bounding_box_dirty = false;
+	_bbox_dirty = false;
 }
 
 void
 Group::add (Item* i)
 {
 	_items.push_back (i);
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: group add\n");
 }
@@ -118,7 +118,7 @@ Group::remove (Item* i)
 	assert (j != _items.end ());
 	_items.erase (j);
 	
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: group remove\n");
 }
@@ -165,7 +165,7 @@ Group::lower_child_to_bottom (Item* i)
 void
 Group::child_changed ()
 {
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 
 	if (_parent) {
 		_parent->child_changed ();
@@ -175,8 +175,8 @@ Group::child_changed ()
 void
 Group::add_items_at_point (Duple const point, vector<Item const *>& items) const
 {
-	boost::optional<Rect> const bbox = bounding_box ();
-	if (!bbox || !bbox.get().contains (point)) {
+	boost::optional<Rect> const group_bbox = bbox ();
+	if (!group_bbox || !group_bbox.get().contains (point)) {
 		return;
 	}
 
@@ -185,7 +185,7 @@ Group::add_items_at_point (Duple const point, vector<Item const *>& items) const
 	vector<Item*> our_items;
 	
 	for (vector<Item*>::const_iterator i = _items.begin(); i != _items.end(); ++i) {
-		boost::optional<Rect> item_bbox = (*i)->bounding_box ();
+		boost::optional<Rect> item_bbox = (*i)->bbox ();
 		if (item_bbox) {
 			Rect parent_bbox = (*i)->item_to_parent (item_bbox.get ());
 			if (parent_bbox.contains (point)) {

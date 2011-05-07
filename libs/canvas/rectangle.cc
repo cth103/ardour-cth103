@@ -70,12 +70,12 @@ Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) con
 }
 
 void
-Rectangle::compute_bounding_box () const
+Rectangle::compute_bbox () const
 {
 	Rect r = _rect.fix ();
-	_bounding_box = boost::optional<Rect> (r.expand (_outline_width / 2));
+	_bbox = boost::optional<Rect> (r.expand (_outline_width / 2));
 	
-	_bounding_box_dirty = false;
+	_bbox_dirty = false;
 }
 
 void
@@ -89,7 +89,7 @@ Rectangle::set (Rect const & r)
 	
 	_rect = r;
 	
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: rectangle change (set)\n");
@@ -102,7 +102,7 @@ Rectangle::set_x0 (Coord x0)
 
 	_rect.x0 = x0;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: rectangle change (x0)\n");
@@ -115,7 +115,7 @@ Rectangle::set_y0 (Coord y0)
 	
 	_rect.y0 = y0;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change();
 
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: rectangle change (y0)\n");
@@ -128,7 +128,7 @@ Rectangle::set_x1 (Coord x1)
 	
 	_rect.x1 = x1;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: rectangle change (x1)\n");
@@ -141,7 +141,7 @@ Rectangle::set_y1 (Coord y1)
 
 	_rect.y1 = y1;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: rectangle change (y1)\n");
@@ -197,5 +197,5 @@ Rectangle::set_state (XMLNode const * node)
 	set_outline_state (node);
 	set_fill_state (node);
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 }

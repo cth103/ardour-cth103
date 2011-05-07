@@ -32,7 +32,7 @@ WaveView::set_frames_per_pixel (double frames_per_pixel)
 	
 	_frames_per_pixel = frames_per_pixel;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 
 	invalidate_whole_cache ();
@@ -128,15 +128,15 @@ WaveView::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 }
 
 void
-WaveView::compute_bounding_box () const
+WaveView::compute_bbox () const
 {
 	if (_region) {
-		_bounding_box = Rect (0, 0, _region->length() / _frames_per_pixel, _height);
+		_bbox = Rect (0, 0, _region->length() / _frames_per_pixel, _height);
 	} else {
-		_bounding_box = boost::optional<Rect> ();
+		_bbox = boost::optional<Rect> ();
 	}
 	
-	_bounding_box_dirty = false;
+	_bbox_dirty = false;
 }
 	
 XMLNode *
@@ -159,7 +159,7 @@ WaveView::set_height (Distance height)
 
 	_height = height;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 
 	invalidate_pixbuf_cache ();
@@ -172,7 +172,7 @@ WaveView::set_channel (int channel)
 	
 	_channel = channel;
 
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 	end_change ();
 
 	invalidate_whole_cache ();
@@ -199,14 +199,14 @@ WaveView::invalidate_pixbuf_cache ()
 void
 WaveView::region_resized ()
 {
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 }
 
 void
 WaveView::set_region_start (frameoffset_t start)
 {
 	_region_start = start;
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 }
 
 /** Construct a new CacheEntry with peak data between two offsets

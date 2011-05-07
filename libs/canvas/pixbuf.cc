@@ -19,15 +19,15 @@ Pixbuf::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 }
 	
 void
-Pixbuf::compute_bounding_box () const
+Pixbuf::compute_bbox () const
 {
 	if (_pixbuf) {
-		_bounding_box = boost::optional<Rect> (Rect (0, 0, _pixbuf->get_width(), _pixbuf->get_height()));
+		_bbox = boost::optional<Rect> (Rect (0, 0, _pixbuf->get_width(), _pixbuf->get_height()));
 	} else {
-		_bounding_box = boost::optional<Rect> ();
+		_bbox = boost::optional<Rect> ();
 	}
 
-	_bounding_box_dirty = false;
+	_bbox_dirty = false;
 }
 
 void
@@ -36,7 +36,7 @@ Pixbuf::set (Glib::RefPtr<Gdk::Pixbuf> pixbuf)
 	begin_change ();
 	
 	_pixbuf = pixbuf;
-	_bounding_box_dirty = true;
+	_bbox_dirty = true;
 
 	end_change ();
 }

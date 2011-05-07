@@ -10,7 +10,7 @@ using namespace ArdourCanvas;
 CPPUNIT_TEST_SUITE_REGISTRATION (ArrowTest);
 
 void
-ArrowTest::bounding_box ()
+ArrowTest::bbox ()
 {
 	ImageCanvas canvas;
 	Arrow arrow (canvas.root ());
@@ -27,7 +27,7 @@ ArrowTest::bounding_box ()
 
 	arrow.set_outline_width (0);
 
-	boost::optional<Rect> bbox = arrow.bounding_box ();
+	boost::optional<Rect> bbox = arrow.bbox ();
 	
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == -6);

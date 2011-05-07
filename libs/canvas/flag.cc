@@ -33,7 +33,7 @@ void
 Flag::set_text (string const & text)
 {
 	_text->set (text);
-	boost::optional<Rect> bbox = _text->bounding_box ();
+	boost::optional<Rect> bbox = _text->bbox ();
 	assert (bbox);
 
 	Duple flag_size (bbox.get().width() + 10, bbox.get().height() + 3);

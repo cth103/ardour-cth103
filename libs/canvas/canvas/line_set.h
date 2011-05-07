@@ -12,7 +12,7 @@ public:
 
 	LineSet (Group *);
 
-	void compute_bounding_box () const;
+	void compute_bbox () const;
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const;
 	XMLNode* get_state () const;
 	void set_state (XMLNode const *) {}

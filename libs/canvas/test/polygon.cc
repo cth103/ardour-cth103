@@ -10,14 +10,14 @@ using namespace ArdourCanvas;
 CPPUNIT_TEST_SUITE_REGISTRATION (PolygonTest);
 
 void
-PolygonTest::bounding_box ()
+PolygonTest::bbox ()
 {
 	ImageCanvas canvas;
 	Group group (canvas.root ());
 	Polygon polygon (&group);
 
 	/* should have no initial bounding box */
-	CPPUNIT_ASSERT (!polygon.bounding_box().is_initialized());
+	CPPUNIT_ASSERT (!polygon.bbox().is_initialized());
 
 	Points points;
 	points.push_back (Duple (-6, -6));
@@ -29,7 +29,7 @@ PolygonTest::bounding_box ()
 	/* should now have a bounding box around those points,
 	   taking into account default line width
 	*/
-	boost::optional<Rect> bbox = polygon.bounding_box ();
+	boost::optional<Rect> bbox = polygon.bbox ();
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == -6.25);
 	CPPUNIT_ASSERT (bbox.get().x1 ==  6.25);
@@ -40,7 +40,7 @@ PolygonTest::bounding_box ()
 	   its bounding box
 	*/
 
-	bbox = group.bounding_box ();
+	bbox = group.bbox ();
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == -6.25);
 	CPPUNIT_ASSERT (bbox.get().x1 ==  6.25);

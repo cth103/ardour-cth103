@@ -20,7 +20,7 @@ public:
 	WaveView (Group *, boost::shared_ptr<ARDOUR::AudioRegion>);
 
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const;
-	void compute_bounding_box () const;
+	void compute_bbox () const;
 
 	XMLNode* get_state () const;
 	void set_state (XMLNode const *);

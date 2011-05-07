@@ -11,7 +11,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION (GroupTest);
 
 /* Do some basic checks on the group's computation of its bounding box */
 void
-GroupTest::bounding_box ()
+GroupTest::bbox ()
 {
 	/* a group with 4 rectangles in it */
 	ImageCanvas canvas;
@@ -23,7 +23,7 @@ GroupTest::bounding_box ()
 	c.set_outline_width (0);
 	Rectangle d (canvas.root(), Rect (33, 33, 64, 64));
 	d.set_outline_width (0);
-	boost::optional<Rect> bbox = canvas.root()->bounding_box ();
+	boost::optional<Rect> bbox = canvas.root()->bbox ();
 
 	/* check the bounding box */
 	CPPUNIT_ASSERT (bbox.is_initialized ());
@@ -34,7 +34,7 @@ GroupTest::bounding_box ()
 
 	/* check that adding an item resets the bbox */
 	Rectangle e (canvas.root(), Rect (64, 64, 128, 128));
-	bbox = canvas.root()->bounding_box ();
+	bbox = canvas.root()->bbox ();
 
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == 0);
@@ -45,13 +45,13 @@ GroupTest::bounding_box ()
 
 /* Check that a group containing only items with no bounding box itself has no bounding box */
 void
-GroupTest::null_bounding_box ()
+GroupTest::null_bbox ()
 {
 	ImageCanvas canvas;
 
 	Group empty (canvas.root());
 
-	boost::optional<Rect> bbox = empty.bounding_box ();
+	boost::optional<Rect> bbox = empty.bbox ();
 	CPPUNIT_ASSERT (!bbox.is_initialized ());
 }
 
@@ -71,7 +71,7 @@ GroupTest::layers ()
 	/* Put a on top and check */
 	a.raise_to_top ();
 
-	list<Item*>::const_iterator i = canvas.root()->items().begin();
+	vector<Item*>::const_iterator i = canvas.root()->items().begin();
 	CPPUNIT_ASSERT (*i++ == &b);
 	CPPUNIT_ASSERT (*i++ == &c);
 	CPPUNIT_ASSERT (*i++ == &d);
@@ -116,7 +116,7 @@ GroupTest::children_changing ()
 	a.set_outline_width (0);
 
 	/* Check that initial bbox */
-	boost::optional<Rect> bbox = canvas.root()->bounding_box ();
+	boost::optional<Rect> bbox = canvas.root()->bbox ();
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == 0);
 	CPPUNIT_ASSERT (bbox.get().y0 == 0);
@@ -125,7 +125,7 @@ GroupTest::children_changing ()
 
 	/* Change the rectangle's size and check the parent */
 	a.set (Rect (0, 0, 48, 48));
-	bbox = canvas.root()->bounding_box ();
+	bbox = canvas.root()->bbox ();
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == 0);
 	CPPUNIT_ASSERT (bbox.get().y0 == 0);
@@ -134,7 +134,7 @@ GroupTest::children_changing ()
 
 	/* Change the rectangle's line width and check the parent */
 	a.set_outline_width (1);
-	bbox = canvas.root()->bounding_box ();
+	bbox = canvas.root()->bbox ();
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == -0.5);
 	CPPUNIT_ASSERT (bbox.get().y0 == -0.5);
@@ -156,14 +156,14 @@ GroupTest::grandchildren_changing ()
 	a.set_outline_width (0);
 
 	/* Check the initial bboxes */
-	boost::optional<Rect> bbox = canvas.root()->bounding_box ();
+	boost::optional<Rect> bbox = canvas.root()->bbox ();
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == 0);
 	CPPUNIT_ASSERT (bbox.get().y0 == 0);
 	CPPUNIT_ASSERT (bbox.get().x1 == 32);
 	CPPUNIT_ASSERT (bbox.get().y1 == 32);
 
-	bbox = B.bounding_box ();
+	bbox = B.bbox ();
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == 0);
 	CPPUNIT_ASSERT (bbox.get().y0 == 0);
@@ -173,14 +173,14 @@ GroupTest::grandchildren_changing ()
 	/* Change the grandchild and check its parent and grandparent */
 	a.set (Rect (0, 0, 48, 48));
 
-	bbox = canvas.root()->bounding_box ();	
+	bbox = canvas.root()->bbox ();	
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == 0);
 	CPPUNIT_ASSERT (bbox.get().y0 == 0);
 	CPPUNIT_ASSERT (bbox.get().x1 == 48);
 	CPPUNIT_ASSERT (bbox.get().y1 == 48);
 
-	bbox = B.bounding_box ();
+	bbox = B.bbox ();
 	CPPUNIT_ASSERT (bbox.is_initialized ());
 	CPPUNIT_ASSERT (bbox.get().x0 == 0);
 	CPPUNIT_ASSERT (bbox.get().y0 == 0);
@@ -271,12 +271,12 @@ GroupTest::torture_add_items_at_point ()
 
 		/* work it out ourselves */
 		vector<Item*> items_B;
-		if (canvas.root()->bounding_box() && canvas.root()->bounding_box().get().contains (test)) {
+		if (canvas.root()->bbox() && canvas.root()->bbox().get().contains (test)) {
 			items_B.push_back (canvas.root());
 		}
 		
 		for (list<Item*>::iterator j = rectangles.begin(); j != rectangles.end(); ++j) {
-			boost::optional<Rect> bbox = (*j)->bounding_box ();
+			boost::optional<Rect> bbox = (*j)->bbox ();
 			assert (bbox);
 			if (bbox.get().contains (test)) {
 				items_B.push_back (*j);

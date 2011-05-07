@@ -11,7 +11,7 @@ class PolyItem : virtual public Item, public Outline
 public:
 	PolyItem (Group *);
 
-	void compute_bounding_box () const;
+	void compute_bbox () const;
 
 	void add_poly_item_state (XMLNode *) const;
 	void set_poly_item_state (XMLNode const *);
