@@ -348,7 +348,6 @@ EditorSummary::on_button_press_event (GdkEventButton* ev)
 			_old_follow_playhead = _editor->follow_playhead ();
 			_editor->set_follow_playhead (false);
 
-			ArdourCanvas::checkpoint ("sum", "------------------ summary move drag starts.\n");
 		}
 	}
 
@@ -532,7 +531,6 @@ EditorSummary::on_button_release_event (GdkEventButton*)
 	_zoom_dragging = false;
 	_editor->_dragging_playhead = false;
 	_editor->set_follow_playhead (_old_follow_playhead, false);
-	ArdourCanvas::checkpoint ("sum", "------------------ summary move drag ends.\n");
 	
 	return true;
 }
@@ -591,7 +589,6 @@ EditorSummary::on_scroll_event (GdkEventScroll* ev)
 void
 EditorSummary::set_editor (double const x, double const y)
 {
-	ArdourCanvas::checkpoint ("editor", "-> set editor");
 	if (_editor->pending_visual_change.idle_handler_id >= 0 && _editor->pending_visual_change.executing == true) {
 
 		/* As a side-effect, the Editor's visual change idle handler processes
@@ -605,13 +602,11 @@ EditorSummary::set_editor (double const x, double const y)
 		   is merely pending but not executing.  But c'est la vie.
 		*/
 
-		ArdourCanvas::checkpoint ("editor", "<- set editor (aborted)");
 		return;
 	}
 	
 	set_editor_x (x);
 	set_editor_y (y);
-	ArdourCanvas::checkpoint ("editor", "<- set editor");
 }
 
 /** Set the editor to display a given x range and a y range with the top at a given position.

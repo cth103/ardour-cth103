@@ -77,7 +77,7 @@ Canvas::Canvas ()
 	: _root (this)
 	, _updates_suspended (false)
 #ifdef CANVAS_DEBUG	  
-	, _log_renders (true)
+	, _log_renders (false)
 #endif	  
 	, _tile_size (64)
 {
@@ -93,7 +93,7 @@ Canvas::Canvas (XMLTree const * tree)
 	: _root (this)
 	, _updates_suspended (false)
 #ifdef CANVAS_DEBUG	  
-	, _log_renders (true)
+	, _log_renders (false)
 #endif	  
 	, _tile_size (64)
 {
@@ -187,6 +187,13 @@ Canvas::area_to_tiles (Rect const & area, int& tx0, int& ty0, int& tx1, int& ty1
 void
 Canvas::render_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
 {
+	cout << "
+#ifdef CANVAS_DEBUG	
+	if (_log_renders) {
+		_renders.push_back (area);
+	}
+#endif	
+	
 	int tx0, ty0, tx1, ty1;
 	area_to_tiles (area, tx0, ty0, tx1, ty1);
 
