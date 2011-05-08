@@ -296,6 +296,9 @@ class MidiRegionView : public RegionView
 
 	friend class EditNoteDialog;
 
+	void redisplay_model_notes ();
+	void redisplay_model_other ();
+	
 	/** Play the NoteOn event of the given note immediately
 	 * and schedule the playback of the corresponding NoteOff event.
 	 */

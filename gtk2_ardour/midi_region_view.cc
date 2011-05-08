@@ -994,6 +994,13 @@ MidiRegionView::get_events (Events& e, Evoral::Sequence<Evoral::MusicalTime>::No
 void
 MidiRegionView::redisplay_model()
 {
+	redisplay_model_notes ();
+	redisplay_model_other ();
+}
+
+void
+MidiRegionView::redisplay_model_notes ()
+{
 	// Don't redisplay the model if we're currently recording and displaying that
 	if (_active_notes) {
 		return;
@@ -1053,7 +1060,6 @@ MidiRegionView::redisplay_model()
 		}
 	}
 
-
 	/* remove note items that are no longer valid */
 
 	for (Events::iterator i = _events.begin(); i != _events.end(); ) {
@@ -1065,21 +1071,34 @@ MidiRegionView::redisplay_model()
 		}
 	}
 
-	_patch_changes.clear();
-	_sys_exes.clear();
-	
-	display_sysexes();
-	display_patch_changes ();
-
-	_marked_for_selection.clear ();
-	_marked_for_velocity.clear ();
-
 	/* we may have caused _events to contain things out of order (e.g. if a note
 	   moved earlier or later). we don't generally need them in time order, but
 	   make a note that a sort is required for those cases that require it.
 	*/
 
 	_sort_needed = true;
+
+	_marked_for_selection.clear ();
+	_marked_for_velocity.clear ();
+}
+
+void
+MidiRegionView::redisplay_model_other ()
+{
+	// Don't redisplay the model if we're currently recording and displaying that
+	if (_active_notes) {
+		return;
+	}
+
+	if (!_model) {
+		return;
+	}
+
+	_patch_changes.clear();
+	_sys_exes.clear();
+	
+	display_sysexes();
+	display_patch_changes ();
 }
 
 void
@@ -1201,12 +1220,15 @@ MidiRegionView::reset_width_dependent_items (double pixel_width)
 	RegionView::reset_width_dependent_items(pixel_width);
 	assert(_pixel_width == pixel_width);
 
-//	if (_enable_display) {
-//		redisplay_model();
-//	}
+	if (_enable_display) {
+		/* Just redisplay sys-ex / patch changes.  Note width is handled by the
+		   canvas transform.
+		*/
+		redisplay_model_other ();
+	}
 
+	/* Set up the canvas transform for the notes */
 	_note_group->set_transform (_note_transform_index, Transform (Duple (pixel_width / _region->length(), 1), Duple (0, 0)));
-	cout << "Set tx for " << _note_group << "\n";
         
         move_step_edit_cursor (_step_edit_cursor_position);
         set_step_edit_cursor_width (_step_edit_cursor_width);

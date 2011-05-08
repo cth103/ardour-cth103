@@ -64,6 +64,7 @@ PatchChange::PatchChange(
 
 PatchChange::~PatchChange()
 {
+	delete _flag;
 }
 
 void
