@@ -406,7 +406,7 @@ GtkCanvas::GtkCanvas (XMLTree const * tree)
 bool
 GtkCanvas::button_handler (GdkEventButton* ev)
 {
-	DEBUG_TRACE (PBD::DEBUG::CanvasEvents, string_compose ("canvas button press %1 %1\n", ev->x, ev->y));
+	DEBUG_TRACE (PBD::DEBUG::CanvasEvents, string_compose ("canvas button press %1 %2\n", ev->x, ev->y));
 	/* The Duple that we are passing in here is in canvas coordinates */
 	return deliver_event (Duple (ev->x, ev->y), reinterpret_cast<GdkEvent*> (ev));
 }
@@ -439,6 +439,10 @@ GtkCanvas::motion_notify_handler (GdkEventMotion* ev)
 
 	/* Deliver enter events */
 	for (vector<Item const *>::iterator i = entered_items.begin(); i != entered_items.end(); ++i) {
+		if ((*i)->ignore_events ()) {
+			continue;
+		}
+		
 		GdkEventCrossing enter_event;
 		enter_event.type = GDK_ENTER_NOTIFY;
 		enter_event.x = ev->x;
@@ -452,6 +456,10 @@ GtkCanvas::motion_notify_handler (GdkEventMotion* ev)
 
 	/* Deliver leave events */
 	for (vector<Item const *>::iterator i = left_items.begin(); i != left_items.end(); ++i) {
+		if ((*i)->ignore_events ()) {
+			continue;
+		}
+		
 		GdkEventCrossing leave_event;
 		leave_event.type = GDK_LEAVE_NOTIFY;
 		leave_event.x = ev->x;
@@ -653,6 +661,27 @@ GtkCanvas::on_motion_notify_event (GdkEventMotion* ev)
 	   for scroll if this GtkCanvas is in a GtkCanvasViewport.
 	*/
 	return motion_notify_handler (ev);
+}
+
+bool
+GtkCanvas::on_leave_notify_event (GdkEventCrossing* ev)
+{
+	/* Deliver leave events */
+	for (vector<Item const *>::iterator i = _current_items.begin(); i != _current_items.end(); ++i) {
+		if ((*i)->ignore_events ()) {
+			continue;
+		}
+		
+		GdkEventCrossing leave_event;
+		leave_event.type = GDK_LEAVE_NOTIFY;
+		leave_event.x = ev->x;
+		leave_event.y = ev->y;
+		(*i)->Event (reinterpret_cast<GdkEvent*> (&leave_event));
+	}
+
+	_current_items.clear ();
+
+	return true;
 }
 
 /** Called to request a redraw of our canvas.

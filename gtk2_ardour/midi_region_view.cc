@@ -312,7 +312,6 @@ MidiRegionView::canvas_event(GdkEvent* ev)
                 return key_release (&ev->key);
 
 	case GDK_BUTTON_PRESS:
-		cout << "MRV BP.\n";
                 return button_press (&ev->button);
 
 	case GDK_2BUTTON_PRESS:

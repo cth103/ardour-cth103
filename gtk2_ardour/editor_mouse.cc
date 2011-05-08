@@ -760,9 +760,10 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 		default:
 			if (!internal_editing()) {
 				_drags->set (new SelectionDrag (this, item, SelectionDrag::CreateSelection), event);
+				return true;
 			}
+			break;
 		}
-		return true;
 		break;
 
 	case MouseObject:
@@ -1506,7 +1507,6 @@ Editor::button_release_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 
                 /* do any (de)selection operations that should occur on button release */
                 button_selection (item, event, item_type);
-		return true;
 		break;
 
 
