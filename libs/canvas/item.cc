@@ -78,6 +78,10 @@ Item::~Item ()
 void
 Item::set_position (Duple p)
 {
+	if (_position == p) {
+		return;
+	}
+	
 	begin_change ();
 	
 	_position = p;
@@ -121,6 +125,10 @@ Item::lower_to_bottom ()
 void
 Item::hide ()
 {
+	if (!_visible) {
+		return;
+	}
+	
 	begin_change ();
 	
 	_visible = false;
@@ -131,6 +139,10 @@ Item::hide ()
 void
 Item::show ()
 {
+	if (_visible) {
+		return;
+	}
+	
 	begin_change ();
 	
 	_visible = true;

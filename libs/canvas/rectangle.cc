@@ -104,6 +104,10 @@ Rectangle::compute_bbox () const
 void
 Rectangle::set (Rect const & r)
 {
+	if (_rect == r) {
+		return;
+	}
+	
 	/* We don't update the bounding box here; it's just
 	   as cheap to do it when asked.
 	*/
@@ -121,6 +125,10 @@ Rectangle::set (Rect const & r)
 void
 Rectangle::set_x0 (Coord x0)
 {
+	if (_rect.x0 == x0) {
+		return;
+	}
+	
 	begin_change ();
 
 	_rect.x0 = x0;
@@ -134,6 +142,10 @@ Rectangle::set_x0 (Coord x0)
 void
 Rectangle::set_y0 (Coord y0)
 {
+	if (_rect.y0 == y0) {
+		return;
+	}
+	
 	begin_change ();
 	
 	_rect.y0 = y0;
@@ -147,6 +159,10 @@ Rectangle::set_y0 (Coord y0)
 void
 Rectangle::set_x1 (Coord x1)
 {
+	if (_rect.x1 == x1) {
+		return;
+	}
+	
 	begin_change ();
 	
 	_rect.x1 = x1;
@@ -160,6 +176,10 @@ Rectangle::set_x1 (Coord x1)
 void
 Rectangle::set_y1 (Coord y1)
 {
+	if (_rect.y1 == y1) {
+		return;
+	}
+	
 	begin_change ();
 
 	_rect.y1 = y1;
@@ -173,6 +193,10 @@ Rectangle::set_y1 (Coord y1)
 void
 Rectangle::set_outline_what (What what)
 {
+	if (_outline_what == what) {
+		return;
+	}
+	
 	begin_change ();
 	
 	_outline_what = what;

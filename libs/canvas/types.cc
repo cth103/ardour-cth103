@@ -44,6 +44,12 @@ Duple::scale (Duple s) const
 	return d;
 }
 
+bool
+Duple::operator== (Duple const & d) const
+{
+	return (x == d.x && y == d.y);
+}
+
 boost::optional<Rect>
 Rect::intersection (Rect const & o) const
 {
@@ -125,6 +131,12 @@ Rect::fix () const
 	r.y1 = max (y0, y1);
 
 	return r;
+}
+
+bool
+Rect::operator== (Rect const & other) const
+{
+	return (x0 == other.x0 && x1 == other.x1 && y0 == other.y0 && y1 == other.y1);
 }
 
 bool

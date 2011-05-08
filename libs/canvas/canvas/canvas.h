@@ -64,10 +64,7 @@ public:
 		return _dirty;
 	}
 
-	/** Mark this tile as being in need of a repaint */
-	void set_dirty () {
-		_dirty = true;
-	}
+	void set_dirty ();
 	
 private:
 	/** the canvas that we are being used for */
@@ -149,6 +146,9 @@ public:
 	void set_log_renders (bool log) {
 		_log_renders = log;
 	}
+
+	mutable int tile_render_count;
+
 #endif	
 
 protected:

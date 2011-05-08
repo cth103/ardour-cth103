@@ -70,6 +70,18 @@ Tile::render ()
 	/* ask the canvas to draw onto it */
 	_canvas->render_to_tile (_context, _tx, _ty);
 	_dirty = false;
+
+//	cout << "R: " << _tx << " " << _ty << "\n";
+	_canvas->tile_render_count++;
+}
+
+/** Mark this tile as being in need of a repaint */
+void
+Tile::set_dirty ()
+{
+//	cout << "D: " << _tx << " " << _ty << "\n";
+	_dirty = true;
+//	PBD::stacktrace (cout, 8);
 }
 
 /** Construct a new Canvas */
@@ -187,7 +199,8 @@ Canvas::area_to_tiles (Rect const & area, int& tx0, int& ty0, int& tx1, int& ty1
 void
 Canvas::render_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
 {
-	cout << "
+	tile_render_count = 0;
+	
 #ifdef CANVAS_DEBUG	
 	if (_log_renders) {
 		_renders.push_back (area);
@@ -214,6 +227,8 @@ Canvas::render_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> cons
 	}
 	
 	context->restore ();
+
+	cout << "Rendered " << tile_render_count << " tiles.\n";
 }
 
 /** Render an area of the canvas to a tile, by drawing the required items.

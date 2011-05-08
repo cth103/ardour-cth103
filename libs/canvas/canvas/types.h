@@ -36,6 +36,8 @@ struct Duple
 
 	Duple translate (Duple) const;
 	Duple scale (Duple) const;
+
+	bool operator== (Duple const &) const;
 };
 
 
@@ -83,6 +85,7 @@ struct Rect
 		return y1 - y0;
 	}
 
+	bool operator== (Rect const &) const;
 	bool operator!= (Rect const &) const;
 };
 
