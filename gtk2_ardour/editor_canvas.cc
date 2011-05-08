@@ -439,7 +439,7 @@ Editor::maybe_autoscroll (bool allow_horiz, bool allow_vert)
 	framepos_t rightmost_frame = leftmost_frame + current_page_frames();
 	bool startit = false;
 
-	double const ty = _drags->current_pointer_y() - get_trackview_group_vertical_offset ();
+	double const ty = _drags->current_pointer_y();
 
 	autoscroll_y = 0;
 	autoscroll_x = 0;
