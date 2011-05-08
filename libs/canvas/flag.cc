@@ -36,9 +36,9 @@ Flag::set_text (string const & text)
 	boost::optional<Rect> bbox = _text->bbox ();
 	assert (bbox);
 
-	Duple flag_size (bbox.get().width() + 10, bbox.get().height() + 3);
+	Duple const flag_size (bbox.get().width() + 10, bbox.get().height() + 3);
 	
-	_text->set_position (flag_size / 2);
+	_text->set_position (Duple (5, 0));
 	_rectangle->set (Rect (0, 0, flag_size.x, flag_size.y));
 }
 
