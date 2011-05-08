@@ -307,7 +307,7 @@ Canvas::mark_item_area_dirty (Item* item, Rect area)
 	}
 	
 	Rect const canvas_area = item->item_to_canvas (area);
-	
+
 	/* Mark the appropriate tiles dirty */
 	int tx0, ty0, tx1, ty1;
 	area_to_tiles (canvas_area, tx0, ty0, tx1, ty1);
@@ -653,7 +653,12 @@ GtkCanvas::on_motion_notify_event (GdkEventMotion* ev)
 void
 GtkCanvas::request_redraw (Rect const & area)
 {
-	queue_draw_area (floor (area.x0), floor (area.y0), ceil (area.x1) - floor (area.x0), ceil (area.y1) - floor (area.y0));
+	Gtk::Allocation const a = get_allocation ();
+
+	double const cx1 = min (area.x1, double (a.get_width ()));
+	double const cy1 = min (area.y1, double (a.get_height ()));
+
+	queue_draw_area (floor (area.x0), floor (area.y0), ceil (cx1) - floor (area.x0), ceil (cy1) - floor (area.y0));
 }
 
 /** Called to request that we try to get a particular size for ourselves.
