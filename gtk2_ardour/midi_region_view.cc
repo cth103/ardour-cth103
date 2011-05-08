@@ -259,6 +259,8 @@ MidiRegionView::init (Gdk::Color const & basic_color, bool wfd)
 	}
 
 	group->raise_to_top();
+	group->name = "MRV group";
+	
 	group->Event.connect (sigc::mem_fun (this, &MidiRegionView::canvas_event));
 
 	midi_view()->signal_channel_mode_changed().connect(
@@ -310,6 +312,7 @@ MidiRegionView::canvas_event(GdkEvent* ev)
                 return key_release (&ev->key);
 
 	case GDK_BUTTON_PRESS:
+		cout << "MRV BP.\n";
                 return button_press (&ev->button);
 
 	case GDK_2BUTTON_PRESS:
@@ -1482,7 +1485,7 @@ MidiRegionView::update_note (Note* ev, bool update_ghost_regions)
 	} else {
 		ev->set_x1 (_region->length ());
 	}
-	
+
 	ev->set_y1 (y0 + floor(midi_stream_view()->note_height()));
 
 	if (note->length() == 0) {

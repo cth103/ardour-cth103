@@ -23,6 +23,7 @@
  */
 
 #include <cassert>
+#include <algorithm>
 #include <gtkmm/adjustment.h>
 #include "pbd/xml++.h"
 #include "pbd/compose.h"
@@ -382,8 +383,7 @@ Canvas::get_state () const
 
 /** Construct a GtkCanvas */
 GtkCanvas::GtkCanvas ()
-	: _current_item (0)
-	, _grabbed_item (0)
+	: _grabbed_item (0)
 {
 	/* these are the events we want to know about */
 	add_events (Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK | Gdk::POINTER_MOTION_MASK);
@@ -394,7 +394,6 @@ GtkCanvas::GtkCanvas ()
  */
 GtkCanvas::GtkCanvas (XMLTree const * tree)
 	: Canvas (tree)
-	, _current_item (0)
 	, _grabbed_item (0)
 {
 	/* these are the events we want to know about */
@@ -429,31 +428,38 @@ GtkCanvas::motion_notify_handler (GdkEventMotion* ev)
 	/* This is in canvas coordinates */
 	Duple point (ev->x, ev->y);
 
-	/* find the items at the new mouse position */
+	/* Find the items under the cursor */
 	vector<Item const *> items;
 	_root.add_items_at_point (point, items);
+	sort (items.begin(), items.end());
 
-	Item const * new_item = items.empty() ? 0 : items.back ();
+	/* Items that are now under the cursor but weren't last time */
+	vector<Item const *> entered_items;
+	set_difference (items.begin(), items.end(), _current_items.begin(), _current_items.end(), back_inserter (entered_items));
 
-	if (_current_item && _current_item != new_item) {
-		/* leave event */
-		GdkEventCrossing leave_event;
-		leave_event.type = GDK_LEAVE_NOTIFY;
-		leave_event.x = ev->x;
-		leave_event.y = ev->y;
-		_current_item->Event (reinterpret_cast<GdkEvent*> (&leave_event));
-	}
-
-	if (new_item && _current_item != new_item) {
-		/* enter event */
+	/* Deliver enter events */
+	for (vector<Item const *>::iterator i = entered_items.begin(); i != entered_items.end(); ++i) {
 		GdkEventCrossing enter_event;
 		enter_event.type = GDK_ENTER_NOTIFY;
 		enter_event.x = ev->x;
 		enter_event.y = ev->y;
-		new_item->Event (reinterpret_cast<GdkEvent*> (&enter_event));
+		(*i)->Event (reinterpret_cast<GdkEvent*> (&enter_event));
 	}
 
-	_current_item = new_item;
+	/* Items that were under the cursor but aren't now */
+	vector<Item const *> left_items;
+	set_difference (_current_items.begin(), _current_items.end(), items.begin(), items.end(), back_inserter (left_items));
+
+	/* Deliver leave events */
+	for (vector<Item const *>::iterator i = left_items.begin(); i != left_items.end(); ++i) {
+		GdkEventCrossing leave_event;
+		leave_event.type = GDK_LEAVE_NOTIFY;
+		leave_event.x = ev->x;
+		leave_event.y = ev->y;
+		(*i)->Event (reinterpret_cast<GdkEvent*> (&leave_event));
+	}
+
+	_current_items = items;
 
 	/* Now deliver the motion event.  It may seem a little inefficient
 	   to recompute the items under the event, but the enter notify/leave
@@ -467,6 +473,7 @@ GtkCanvas::motion_notify_handler (GdkEventMotion* ev)
  *  one of the items underneath the event.
  *  @param point Position that the event has occurred at, in canvas coordinates.
  *  @param event The event.
+ *  @return true if the event was handled, otherwise false.
  */
 bool
 GtkCanvas::deliver_event (Duple point, GdkEvent* event)
@@ -488,7 +495,7 @@ GtkCanvas::deliver_event (Duple point, GdkEvent* event)
 			++i;
 			continue;
 		}
-		
+
 		if ((*i)->Event (event)) {
 			/* this item has just handled the event */
 			DEBUG_TRACE (
@@ -528,9 +535,10 @@ GtkCanvas::item_going_away (Item* item, boost::optional<Rect> bbox)
 	if (bbox && !_updates_suspended) {
 		mark_item_area_dirty (item, bbox.get ());
 	}
-	
-	if (_current_item == item) {
-		_current_item = 0;
+
+	vector<const Item *>::iterator i = find (_current_items.begin(), _current_items.end(), item);
+	if (i != _current_items.end ()) {
+		_current_items.erase (i);
 	}
 
 	if (_grabbed_item == item) {

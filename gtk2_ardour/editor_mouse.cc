@@ -1602,11 +1602,9 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 
 	case AutomationLineItem:
 		if (mouse_mode == MouseGain || mouse_mode == MouseObject) {
-			{
-				ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
-				if (line) {
-					line->set_outline_color (ARDOUR_UI::config()->canvasvar_EnteredAutomationLine.get());
-				}
+			ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
+			if (line) {
+				line->set_outline_color (ARDOUR_UI::config()->canvasvar_EnteredAutomationLine.get());
 			}
 			if (is_drawable()) {
 				set_canvas_cursor (_cursors->fader);

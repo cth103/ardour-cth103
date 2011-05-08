@@ -189,7 +189,7 @@ Editor::track_canvas_motion (GdkEvent *ev)
 bool
 Editor::typed_event (ArdourCanvas::Item* item, GdkEvent *event, ItemType type)
 {
-	gint ret = FALSE;
+	bool ret = false;
 
 	switch (event->type) {
 	case GDK_BUTTON_PRESS:

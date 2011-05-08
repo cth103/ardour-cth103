@@ -240,8 +240,8 @@ private:
 	void item_going_away (Item *, boost::optional<Rect>);
 	bool send_leave_event (Item const *, double, double) const;
 
-	/** the item that the mouse is currently over, or 0 */
-	Item const * _current_item;
+	/** the items that the mouse is currently over */
+	std::vector<Item const *> _current_items;
 	/** the item that is currently grabbed, or 0 */
 	Item const * _grabbed_item;
 };
