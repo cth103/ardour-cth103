@@ -62,7 +62,7 @@ public:
 	void set_outline_color (uint32_t);
 	void set_fill_color (uint32_t);
 
-	void move_event (double, double);
+	void move_event (ARDOUR::frameoffset_t, double);
 
 private:
 	ArdourCanvas::Polygon* _polygon;

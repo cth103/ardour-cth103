@@ -3889,7 +3889,7 @@ NoteDrag::motion (GdkEvent *, bool)
 	int8_t const dy = -total_dy ();
 
 	/* Now work out what we have to do to the note canvas items to set this new drag delta */
-	double const tdx = _editor->frame_to_unit (dx) - _cumulative_dx;
+	frameoffset_t const tdx = dx - _cumulative_dx;
 	double const tdy = dy * _note_height - _cumulative_dy;
 
 	if (tdx || tdy) {
@@ -4178,9 +4178,8 @@ PatchChangeDrag::motion (GdkEvent* ev, bool)
 	f = min (f, r->last_frame ());
 	
 	framecnt_t const dxf = f - grab_frame();
-	double const dxu = _editor->frame_to_unit (dxf);
-	_patch_change->move (ArdourCanvas::Duple (dxu - _cumulative_dx, 0));
-	_cumulative_dx = dxu;
+	_patch_change->move (ArdourCanvas::Duple (dxf - _cumulative_dx, 0));
+	_cumulative_dx = dxf;
 }
 
 void

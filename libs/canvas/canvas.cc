@@ -307,7 +307,12 @@ Canvas::mark_item_area_dirty (Item* item, Rect area)
 		return;
 	}
 	
-	Rect const canvas_area = item->item_to_canvas (area);
+	Rect canvas_area = item->item_to_canvas (area);
+
+	canvas_area.x0 = max (0.0, canvas_area.x0);
+	canvas_area.y0 = max (0.0, canvas_area.y0);
+	canvas_area.x1 = max (0.0, canvas_area.x1);
+	canvas_area.y1 = max (0.0, canvas_area.y1);
 
 	/* Mark the appropriate tiles dirty */
 	int tx0, ty0, tx1, ty1;

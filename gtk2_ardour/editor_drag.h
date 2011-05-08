@@ -444,7 +444,7 @@ class NoteDrag : public Drag
 	
 	MidiRegionView* _region;
 	NoteBase* _primary;
-	double _cumulative_dx;
+	ARDOUR::frameoffset_t _cumulative_dx;
 	double _cumulative_dy;
 	bool _was_selected;
 	double _note_height;

@@ -67,7 +67,7 @@ public:
 
 	void set_ignore_events (bool);
 
-	void move_event (double dx, double dy);
+	void move_event (ARDOUR::frameoffset_t dx, double dy);
 
 private:
 	ArdourCanvas::Rectangle* _rectangle;

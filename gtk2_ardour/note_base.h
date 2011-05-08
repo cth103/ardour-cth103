@@ -78,7 +78,7 @@ public:
 	bool selected() const { return _selected; }
 	void set_selected(bool yn);
 
-	virtual void move_event(double dx, double dy) = 0;
+	virtual void move_event (ARDOUR::frameoffset_t dx, double dy) = 0;
 
 	uint32_t base_color();
 

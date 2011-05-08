@@ -2130,8 +2130,9 @@ MidiRegionView::add_to_selection (NoteBase* ev)
 	}
 }
 
+/** @param dx x delta in frames */
 void
-MidiRegionView::move_selection(double dx, double dy, double cumulative_dy)
+MidiRegionView::move_selection (frameoffset_t dx, double dy, double cumulative_dy)
 {
         typedef vector<boost::shared_ptr<NoteType> > PossibleChord;
         PossibleChord to_play;

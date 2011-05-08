@@ -60,10 +60,17 @@ Note::~Note ()
 	delete _rectangle;
 }
 
+/** @param dx x delta in frames */
 void
-Note::move_event (double dx, double dy)
+Note::move_event (frameoffset_t dx, double dy)
 {
-	_rectangle->move (Duple (dx, dy));
+	/* XXX: bit hacky; this is because the note sets the rectangle
+	   to include the offset from the region start, rather than
+	   using the position of the item.
+	*/
+	   
+	Rect const & r = _rectangle->get ();
+	_rectangle->set (Rect (r.x0 + dx, r.y0 + dy, r.x1 + dx, r.y1 + dy));
 
 	/* XXX */
 	// if (_text) {

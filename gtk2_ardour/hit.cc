@@ -53,7 +53,7 @@ Hit::Hit (
 }
 
 void
-Hit::move_event (double dx, double dy)
+Hit::move_event (frameoffset_t dx, double dy)
 {
 	_polygon->move (Duple (dx, dy));
 }
