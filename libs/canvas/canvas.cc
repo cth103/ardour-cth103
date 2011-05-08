@@ -72,7 +72,9 @@ Tile::render ()
 	_canvas->render_to_tile (_context, _tx, _ty);
 	_dirty = false;
 
+#ifdef CANVAS_DEBUG	
 	_canvas->tile_render_count++;
+#endif	
 }
 
 /** Mark this tile as being in need of a repaint */
@@ -195,11 +197,11 @@ Canvas::area_to_tiles (Rect const & area, int& tx0, int& ty0, int& tx1, int& ty1
 
 /** Render an area of the canvas using our tiles, creating and updating tiles as we go */
 void
-Canvas::render_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
+Canvas::paint_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
 {
+#ifdef CANVAS_DEBUG	
 	tile_render_count = 0;
 	
-#ifdef CANVAS_DEBUG	
 	if (_log_renders) {
 		_renders.push_back (area);
 	}
@@ -226,7 +228,9 @@ Canvas::render_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> cons
 	
 	context->restore ();
 
-//	cout << "Rendered " << tile_render_count << " tiles.\n";
+#ifdef CANVAS_DEBUG	
+	cout << "Rendered " << tile_render_count << " tiles.\n";
+#endif	
 }
 
 /** Render an area of the canvas to a tile, by drawing the required items.
@@ -585,7 +589,7 @@ ImageCanvas::ImageCanvas (XMLTree const * tree, Duple size)
 void
 ImageCanvas::render_to_image (Rect const & area) const
 {
-	render_from_tiles (area, _context);
+	paint_from_tiles (area, _context);
 }
 
 /** Write our pixbuf to a PNG file.
@@ -613,7 +617,7 @@ bool
 GtkCanvas::on_expose_event (GdkEventExpose* ev)
 {
 	Cairo::RefPtr<Cairo::Context> c = get_window()->create_cairo_context ();
-	render_from_tiles (Rect (ev->area.x, ev->area.y, ev->area.x + ev->area.width, ev->area.y + ev->area.height), c);
+	paint_from_tiles (Rect (ev->area.x, ev->area.y, ev->area.x + ev->area.width, ev->area.y + ev->area.height), c);
 	return true;
 }
 
@@ -697,6 +701,7 @@ GtkCanvas::request_redraw (Rect const & area)
 {
 	Gtk::Allocation const a = get_allocation ();
 
+	/* clip the draw request in case of very large x1 or y1 values */
 	double const cx1 = min (area.x1, double (a.get_width ()));
 	double const cy1 = min (area.y1, double (a.get_height ()));
 

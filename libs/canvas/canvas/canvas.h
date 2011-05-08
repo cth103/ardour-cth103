@@ -112,7 +112,7 @@ public:
 	/** called to ask the canvas' host to `ungrab' any grabbed item */
 	virtual void ungrab () = 0;
 
-	void render_from_tiles (Rect const &, Cairo::RefPtr<Cairo::Context> const &) const;
+	void paint_from_tiles (Rect const &, Cairo::RefPtr<Cairo::Context> const &) const;
 	void render_to_tile (Cairo::RefPtr<Cairo::Context>, int, int) const;
 
 	/** @return root group */
