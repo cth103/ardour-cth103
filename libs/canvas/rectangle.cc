@@ -53,12 +53,11 @@ Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) con
 {
 	Rect plot = _rect;
 
-//	plot.x1 = min (plot.x1, CAIRO_MAX);
-//	plot.y1 = min (plot.y1, CAIRO_MAX);
-
-	if (name == "note") {
-//		cout << "Plot " << plot << "\n";
-	}
+	/* clip x1 and y1 ourselves in case they are are very large values which
+	   may confuse cairo.
+	*/
+	plot.x1 = min (plot.x1, area.x1 + 1);
+	plot.y1 = min (plot.y1, area.y1 + 1);
 
 	if (_fill) {
 		setup_fill_context (context);

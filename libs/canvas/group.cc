@@ -73,7 +73,6 @@ Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 			}
 
 			context->translate ((*i)->position().x, (*i)->position().y);
-			
 			(*i)->render (r.get(), context);
 			context->restore ();
 			++render_count;
@@ -257,7 +256,7 @@ Group::set_transform (TransformIndex index, Transform const & transform)
 Transform const &
 Group::transform (TransformIndex index) const
 {
-	assert (index >= 0 && index < _transforms.size());
+	assert (index >= 0 && index < int (_transforms.size()));
 	
 	return _transforms[index];
 }
