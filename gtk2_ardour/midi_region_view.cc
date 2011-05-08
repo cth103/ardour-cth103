@@ -3459,7 +3459,7 @@ MidiRegionView::show_verbose_cursor (boost::shared_ptr<NoteType> n) const
                   (int) n->note (),
 		  (int) n->channel() + 1,
                   (int) n->velocity());
-	
+
 	show_verbose_cursor (buf, 10, 20);
 }
 
