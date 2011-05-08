@@ -1,3 +1,23 @@
+/*
+    Copyright (C) 2011 Paul Davis
+    Author: Carl Hetherington <cth@carlh.net>
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+*/
+
 #ifndef __CANVAS_ITEM_H__
 #define __CANVAS_ITEM_H__
 
@@ -25,6 +45,9 @@ class Rect;
  *
  *  Any item that is being displayed on a canvas has a pointer to that canvas,
  *  and all except the `root group' have a pointer to their parent group.
+ *
+ *  An item can be transformed using one of its parent group's Transforms,
+ *  in which case the item's coordinates are transformed before being plotted.
  */
 	
 class Item
@@ -41,6 +64,10 @@ public:
 	 */
 	virtual void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const = 0;
 
+	/** Add the items at a given point to a vector of Items.  This is a stub; if it
+	 *  gets called, we assume that the caller has already checked that this item
+	 *  covers the point in question.
+	 */
 	virtual void add_items_at_point (Duple, std::vector<Item const *>& items) const {
 		items.push_back (this);
 	}
@@ -48,8 +75,15 @@ public:
 	/** Update _bbox and _bbox_dirty */
 	virtual void compute_bbox () const = 0;
 
+	/** Get the state of this item as XML.
+	 *  @return State.
+	 */
 	virtual XMLNode* get_state () const = 0;
-	virtual void set_state (XMLNode const *) = 0;
+
+	/** Set the state of this item from some XML.
+	 *  @param node XML Node.
+	 */
+	virtual void set_state (XMLNode const * node) = 0;
 
 	void grab ();
 	void ungrab ();
@@ -115,12 +149,20 @@ public:
 	void set_data (std::string const &, void *);
 	void* get_data (std::string const &) const;
 
+	/** @return The transform index of the parent's transform which is
+	 *  applied to this item, or IDENTITY for the identity transform.
+	 */
 	TransformIndex transform_index () const {
 		return _transform_index;
 	}
 	
 	/* XXX: maybe this should be a PBD::Signal */
 
+	/** An accumulator for the Event signal below.  Each handler that
+	 *  is attached to the signal is called in turn, until one returns
+	 *  true, at which point the calls stop.  The accumulator then returns
+	 *  true if any handler handled the signal, or false if not.
+	 */
 	template <class T>
 	struct EventAccumulator {
 		typedef T result_type;
@@ -128,6 +170,7 @@ public:
 		result_type operator () (U first, U last) {
 			while (first != last) {
 				if (*first) {
+					/* this handler handled the signal, so we're done */
 					return true;
 				}
 				++first;
@@ -135,10 +178,12 @@ public:
 			return false;
 		}
 	};
-	
+
+	/** Emitted on any event that happens to this item */
 	sigc::signal<bool, GdkEvent*>::accumulated<EventAccumulator<bool> > Event;
 
 #ifdef CANVAS_DEBUG
+	/** A name for this item (for debugging purposes) */
 	std::string name;
 #endif
 	
@@ -152,6 +197,7 @@ protected:
 	void begin_change ();
 	void end_change ();
 
+	/** our canvas */
 	Canvas* _canvas;
 	/** parent group; may be 0 if we are the root group or if we have been unparent()ed */
 	Group* _parent;
@@ -166,15 +212,18 @@ protected:
 	mutable boost::optional<Rect> _bbox;
 	/** true if _bbox might be out of date, false if its definitely not */
 	mutable bool _bbox_dirty;
-
+	/** index of the parent's transform to apply to this item, or IDENTITY */
 	TransformIndex _transform_index;
 
-	/* XXX: this is a bit grubby */
+	/** Arbitrary map of data attached to this item.
+	 *  XXX: this is a bit grubby.
+	 */
 	std::map<std::string, void *> _data;
 
 private:
 	void init ();
 
+	/** true if this item should ignore all events, otherwise false */
 	bool _ignore_events;
 };
 
