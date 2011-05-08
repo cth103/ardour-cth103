@@ -112,6 +112,7 @@ MidiRegionView::MidiRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView &
         , pre_enter_cursor (0)
 {
 	_note_group->raise_to_top();
+	_note_transform_index = _note_group->add_transform (Transform (Duple (1, 1), Duple (0, 0)));
         PublicEditor::DropDownKeys.connect (sigc::mem_fun (*this, &MidiRegionView::drop_down_keys));
 
 	connect_to_diskstream ();
@@ -1200,9 +1201,12 @@ MidiRegionView::reset_width_dependent_items (double pixel_width)
 	RegionView::reset_width_dependent_items(pixel_width);
 	assert(_pixel_width == pixel_width);
 
-	if (_enable_display) {
-		redisplay_model();
-	}
+//	if (_enable_display) {
+//		redisplay_model();
+//	}
+
+	_note_group->set_transform (_note_transform_index, Transform (Duple (pixel_width / _region->length(), 1), Duple (0, 0)));
+	cout << "Set tx for " << _note_group << "\n";
         
         move_step_edit_cursor (_step_edit_cursor_position);
         set_step_edit_cursor_width (_step_edit_cursor_width);
@@ -1444,17 +1448,17 @@ MidiRegionView::update_note (Note* ev, bool update_ghost_regions)
 	/* trim note display to not overlap the end of its region */
 	const framepos_t note_end_frames = min (beats_to_frames (note->end_time()), _region->start() + _region->length());
 
-	const double x = trackview.editor().frame_to_pixel(note_start_frames - _region->start());
+	const framepos_t x = note_start_frames - _region->start();
 	const double y0 = midi_stream_view()->note_to_y(note->note());
-	const double note_endpixel = trackview.editor().frame_to_pixel(note_end_frames - _region->start());
+	const framepos_t note_end = note_end_frames - _region->start();
 
 	ev->set_x0 (x);
 	ev->set_y0 (y0);
 	
 	if (note->length() > 0) {
-		ev->set_x1 (note_endpixel);
+		ev->set_x1 (note_end);
 	} else {
-		ev->set_x1 (trackview.editor().frame_to_pixel(_region->length()));
+		ev->set_x1 (_region->length ());
 	}
 	
 	ev->set_y1 (y0 + floor(midi_stream_view()->note_height()));
@@ -1522,7 +1526,7 @@ MidiRegionView::add_note(const boost::shared_ptr<NoteType> note, bool visible)
 
 	if (midi_view()->note_mode() == Sustained) {
 
-		Note* ev_rect = new Note (*this, _note_group, note);
+		Note* ev_rect = new Note (*this, _note_group, _note_transform_index, note);
 
 		update_note (ev_rect);
 
@@ -1540,7 +1544,7 @@ MidiRegionView::add_note(const boost::shared_ptr<NoteType> note, bool visible)
 
 		const double diamond_size = midi_stream_view()->note_height() / 2.0;
 
-		Hit* ev_diamond = new Hit (*this, _note_group, diamond_size, note);
+		Hit* ev_diamond = new Hit (*this, _note_group, _note_transform_index, diamond_size, note);
 
 		update_hit (ev_diamond);
 
@@ -2296,7 +2300,7 @@ MidiRegionView::begin_resizing (bool /*at_front*/)
 
 			// create a new Rectangle from the note which will be the resize preview
 			Rectangle *resize_rect = new Rectangle(
-				_note_group, ArdourCanvas::Rect (note->x0(), note->y0(), note->x1(), note->y1()));
+				_note_group, _note_transform_index, ArdourCanvas::Rect (note->x0(), note->y0(), note->x1(), note->y1()));
 
 			// calculate the colors: get the color settings
 			uint32_t fill_color = UINT_RGBA_CHANGE_A(
@@ -3172,7 +3176,7 @@ MidiRegionView::create_ghost_note (double x, double y)
 	_ghost_note = 0;
 
 	boost::shared_ptr<NoteType> g (new NoteType);
-	_ghost_note = new Note (*this, _note_group, g);
+	_ghost_note = new Note (*this, _note_group, _note_transform_index, g);
 	_ghost_note->set_ignore_events (true);
 	_ghost_note->set_outline_color (0x000000aa);
 	update_ghost_note (x, y);

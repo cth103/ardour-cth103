@@ -9,6 +9,7 @@ using namespace ArdourCanvas;
 Coord const ArdourCanvas::COORD_MAX = DBL_MAX;
 /* XXX: empirically arrived at */
 Coord const ArdourCanvas::CAIRO_MAX = 65536;
+TransformIndex const ArdourCanvas::IDENTITY = -1;
 
 Coord
 ArdourCanvas::safe_add (Coord a, Coord b)
@@ -28,6 +29,18 @@ Duple::translate (Duple t) const
 	d.x = safe_add (x, t.x);
 	d.y = safe_add (y, t.y);
 	
+	return d;
+}
+
+Duple
+Duple::scale (Duple s) const
+{
+	Duple d;
+
+	/* XXX: may overflow */
+	d.x = d.x * s.x;
+	d.y = d.y * s.y;
+
 	return d;
 }
 
@@ -57,6 +70,19 @@ Rect::translate (Duple t) const
 	r.y0 = safe_add (y0, t.y);
 	r.x1 = safe_add (x1, t.x);
 	r.y1 = safe_add (y1, t.y);
+	return r;
+}
+
+Rect
+Rect::scale (Duple s) const
+{
+	Rect r;
+
+	/* XXX: may overflow */
+	r.x0 = x0 * s.x;
+	r.y0 = y0 * s.y;
+	r.x1 = x1 * s.x;
+	r.y1 = y1 * s.y;
 	return r;
 }
 
@@ -129,6 +155,12 @@ Duple
 ArdourCanvas::operator/ (Duple const & a, double b)
 {
 	return Duple (a.x / b, a.y / b);
+}
+
+Duple
+ArdourCanvas::operator/ (Duple const & a, Duple const & b)
+{
+	return Duple (a.x / b.x, a.y / b.y);
 }
 
 ostream &

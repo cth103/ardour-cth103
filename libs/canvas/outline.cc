@@ -17,6 +17,15 @@ Outline::Outline (Group* parent)
 
 }
 
+Outline::Outline (Group* parent, TransformIndex transform_index)
+	: Item (parent, transform_index)
+	, _outline_color (0x000000ff)
+	, _outline_width (0.5)
+	, _outline (true)
+{
+
+}
+
 void
 Outline::set_outline_color (Color color)
 {

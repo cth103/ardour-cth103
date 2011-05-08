@@ -10,6 +10,7 @@ class Fill : virtual public Item
 {
 public:
 	Fill (Group *);
+	Fill (Group *, TransformIndex);
 
 	void add_fill_state (XMLNode *) const;
 	void set_fill_state (XMLNode const *);

@@ -40,6 +40,21 @@ Note::Note (
 	set_item (_rectangle);
 }
 
+Note::Note (
+	MidiRegionView&                   region,
+	Group*                            group,
+	TransformIndex                    transform_index,
+	const boost::shared_ptr<NoteType> note,
+	bool with_events
+	)
+	: NoteBase (region, with_events, note)
+{
+	_rectangle = new Rectangle (group, transform_index);
+	_rectangle->name = "note";
+	set_item (_rectangle);
+}
+
+
 Note::~Note ()
 {
 	delete _rectangle;

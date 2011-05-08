@@ -15,6 +15,14 @@ Fill::Fill (Group* parent)
 
 }
 
+Fill::Fill (Group* parent, TransformIndex transform_index)
+	: Item (parent, transform_index)
+	, _fill_color (0x000000ff)
+	, _fill (true)
+{
+
+}
+
 void
 Fill::set_fill_color (Color color)
 {

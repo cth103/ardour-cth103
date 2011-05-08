@@ -33,6 +33,7 @@ public:
 	Item (Canvas *);
 	Item (Group *);
 	Item (Group *, Duple);
+	Item (Group *, TransformIndex);
 	virtual ~Item ();
 
 	/** Render this item to a Cairo context.
@@ -113,6 +114,10 @@ public:
 
 	void set_data (std::string const &, void *);
 	void* get_data (std::string const &) const;
+
+	TransformIndex transform_index () const {
+		return _transform_index;
+	}
 	
 	/* XXX: maybe this should be a PBD::Signal */
 
@@ -161,6 +166,8 @@ protected:
 	mutable boost::optional<Rect> _bbox;
 	/** true if _bbox might be out of date, false if its definitely not */
 	mutable bool _bbox_dirty;
+
+	TransformIndex _transform_index;
 
 	/* XXX: this is a bit grubby */
 	std::map<std::string, void *> _data;

@@ -14,6 +14,8 @@ typedef double Distance;
 typedef uint32_t Color;
 extern Coord const COORD_MAX;
 extern Coord const CAIRO_MAX;
+typedef int TransformIndex;
+extern TransformIndex const IDENTITY;
 
 extern Coord safe_add (Coord, Coord);
 
@@ -33,6 +35,7 @@ struct Duple
 	Coord y;
 
 	Duple translate (Duple) const;
+	Duple scale (Duple) const;
 };
 
 
@@ -40,6 +43,7 @@ extern Duple operator- (Duple const &);
 extern Duple operator+ (Duple const &, Duple const &);
 extern Duple operator- (Duple const &, Duple const &);
 extern Duple operator/ (Duple const &, double);
+extern Duple operator/ (Duple const &, Duple const &);
 extern std::ostream & operator<< (std::ostream &, Duple const &);
 
 struct Rect
@@ -66,6 +70,7 @@ struct Rect
 	boost::optional<Rect> intersection (Rect const &) const;
 	Rect extend (Rect const &) const;
 	Rect translate (Duple) const;
+	Rect scale (Duple) const;
 	Rect expand (Distance) const;
 	bool contains (Duple) const;
 	Rect fix () const;
@@ -84,6 +89,14 @@ struct Rect
 extern std::ostream & operator<< (std::ostream &, Rect const &);
 
 typedef std::vector<Duple> Points;
+
+struct Transform
+{
+	Transform (Duple scale_, Duple translation_) : scale (scale_), translation (translation_) {}
+	
+	Duple scale;
+	Duple translation;
+};
 
 }
 	

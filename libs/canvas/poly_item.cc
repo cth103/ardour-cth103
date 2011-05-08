@@ -13,6 +13,13 @@ PolyItem::PolyItem (Group* parent)
 
 }
 
+PolyItem::PolyItem (Group* parent, TransformIndex transform_index)
+	: Item (parent, transform_index)
+	, Outline (parent, transform_index)
+{
+
+}
+
 void
 PolyItem::compute_bbox () const
 {

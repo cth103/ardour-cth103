@@ -39,6 +39,14 @@ public:
 		const boost::shared_ptr<NoteType> note = boost::shared_ptr<NoteType>(),
 		bool with_events = true);
 
+	Hit (
+		MidiRegionView&                   region,
+		ArdourCanvas::Group*              group,
+		ArdourCanvas::TransformIndex,
+		double                            size,
+		const boost::shared_ptr<NoteType> note = boost::shared_ptr<NoteType>(),
+		bool with_events = true);
+	
 	void show ();
 	void hide ();
 

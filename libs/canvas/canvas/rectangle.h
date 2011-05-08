@@ -13,7 +13,9 @@ class Rectangle : virtual public Item, public Outline, public Fill
 {
 public:
 	Rectangle (Group *);
+	Rectangle (Group *, TransformIndex);
 	Rectangle (Group *, Rect const &);
+	Rectangle (Group *, TransformIndex, Rect const &);
 	
 	void render (Rect const &, Cairo::RefPtr<Cairo::Context>) const;
 	void compute_bbox () const;

@@ -19,10 +19,29 @@ Rectangle::Rectangle (Group* parent)
 
 }
 
+Rectangle::Rectangle (Group* parent, TransformIndex transform_index)
+	: Item (parent, transform_index)
+	, Outline (parent, transform_index)
+	, Fill (parent, transform_index)
+	, _outline_what ((What) (LEFT | RIGHT | TOP | BOTTOM))
+{
+
+}
+
 Rectangle::Rectangle (Group* parent, Rect const & rect)
 	: Item (parent)
 	, Outline (parent)
 	, Fill (parent)
+	, _rect (rect)
+	, _outline_what ((What) (LEFT | RIGHT | TOP | BOTTOM))
+{
+	
+}
+
+Rectangle::Rectangle (Group* parent, TransformIndex transform_index, Rect const & rect)
+	: Item (parent, transform_index)
+	, Outline (parent, transform_index)
+	, Fill (parent, transform_index)
 	, _rect (rect)
 	, _outline_what ((What) (LEFT | RIGHT | TOP | BOTTOM))
 {
@@ -34,8 +53,12 @@ Rectangle::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) con
 {
 	Rect plot = _rect;
 
-	plot.x1 = min (plot.x1, CAIRO_MAX);
-	plot.y1 = min (plot.y1, CAIRO_MAX);
+//	plot.x1 = min (plot.x1, CAIRO_MAX);
+//	plot.y1 = min (plot.y1, CAIRO_MAX);
+
+	if (name == "note") {
+//		cout << "Plot " << plot << "\n";
+	}
 
 	if (_fill) {
 		setup_fill_context (context);

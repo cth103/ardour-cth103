@@ -21,13 +21,13 @@ Group::Group (Canvas* canvas)
 Group::Group (Group* parent)
 	: Item (parent)
 {
-	
+
 }
 
 Group::Group (Group* parent, Duple position)
 	: Item (parent, position)
 {
-	
+
 }
 
 Group::~Group ()
@@ -46,6 +46,7 @@ void
 Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
 	for (vector<Item*>::const_iterator i = _items.begin(); i != _items.end(); ++i) {
+
 		if (!(*i)->visible ()) {
 			continue;
 		}
@@ -64,7 +65,15 @@ Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 		if (r) {
 			/* render the intersection */
 			context->save ();
+
+			if ((*i)->transform_index() != IDENTITY) {
+				Transform const & t = transform ((*i)->transform_index ());
+				context->scale (t.scale.x, t.scale.y);
+				context->translate (t.translation.x, t.translation.y);
+			}
+
 			context->translate ((*i)->position().x, (*i)->position().y);
+			
 			(*i)->render (r.get(), context);
 			context->restore ();
 			++render_count;
@@ -79,12 +88,14 @@ Group::compute_bbox () const
 	bool have_one = false;
 
 	for (vector<Item*>::const_iterator i = _items.begin(); i != _items.end(); ++i) {
+
 		boost::optional<Rect> item_bbox = (*i)->bbox ();
 		if (!item_bbox) {
 			continue;
 		}
 
 		Rect group_bbox = (*i)->item_to_parent (item_bbox.get ());
+
 		if (have_one) {
 			bbox = bbox.extend (group_bbox);
 		} else {
@@ -221,4 +232,32 @@ Group::set_state (XMLNode const * node)
 		/* this will create the item and add it to this group */
 		create_item (this, *i);
 	}
+}
+
+TransformIndex
+Group::add_transform (Transform const & transform)
+{
+	_transforms.push_back (transform);
+	return _transforms.size() - 1;
+}
+
+void
+Group::set_transform (TransformIndex index, Transform const & transform)
+{
+	assert (index >= 0 && index < int (_transforms.size()));
+
+	begin_change ();
+	
+	_transforms[index] = transform;
+	_bbox_dirty = true;
+
+	end_change ();
+}
+
+Transform const &
+Group::transform (TransformIndex index) const
+{
+	assert (index >= 0 && index < _transforms.size());
+	
+	return _transforms[index];
 }

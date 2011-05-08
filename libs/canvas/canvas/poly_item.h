@@ -10,6 +10,7 @@ class PolyItem : virtual public Item, public Outline
 {
 public:
 	PolyItem (Group *);
+	PolyItem (Group *, TransformIndex);
 
 	void compute_bbox () const;
 

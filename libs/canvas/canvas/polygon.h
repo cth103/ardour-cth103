@@ -11,6 +11,7 @@ class Polygon : public PolyItem, public Fill
 {
 public:
 	Polygon (Group *);
+	Polygon (Group *, TransformIndex);
 
 	void render (Rect const & area, Cairo::RefPtr<Cairo::Context>) const;
 	XMLNode* get_state () const;

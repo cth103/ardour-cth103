@@ -11,6 +11,7 @@ class Outline : virtual public Item
 {
 public:
 	Outline (Group *);
+	Outline (Group *, TransformIndex);
 	virtual ~Outline () {}
 
 	void add_outline_state (XMLNode *) const;

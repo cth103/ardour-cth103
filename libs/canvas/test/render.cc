@@ -80,7 +80,6 @@ RenderTest::basics ()
 	text.set ("Hello world!");
 
 	/* some overlapping stuff */
-
 	Group overlap_group (canvas.root ());
 	overlap_group.set_position (Duple (0, 128));
 	Rectangle overlap_rect1 (&overlap_group);
@@ -92,7 +91,6 @@ RenderTest::basics ()
 	overlap_rect2.set_fill_color (0x00ff00ff);
 
 	/* some overlapping stuff with transparency */
-
 	Group overlap_transparency_group (canvas.root ());
 	overlap_transparency_group.set_position (Duple (64, 128));
 	Rectangle overlap_transparency_rect1 (&overlap_transparency_group);
@@ -101,6 +99,14 @@ RenderTest::basics ()
 	Rectangle overlap_transparency_rect2 (&overlap_transparency_group);
 	overlap_transparency_rect2.set (Rect (16, 16, 48, 48));
 	overlap_transparency_rect2.set_fill_color (0x00ff00aa);
+
+	/* parent transformation */
+	Group tx_group (canvas.root ());
+	TransformIndex ti = tx_group.add_transform (Transform (Duple (2, 1), Duple (0, 0)));
+	tx_group.set_position (Duple (128, 128));
+	Rectangle tx_rect (&tx_group, ti);
+	tx_rect.set_fill_color (0xff0000ff);
+	tx_rect.set (Rect (0, 0, 32, 32));
 	
 	canvas.render_to_image (Rect (0, 0, 256, 256));
 	canvas.write_to_png ("render_basics.png");

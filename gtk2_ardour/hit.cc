@@ -39,6 +39,19 @@ Hit::Hit (
 	set_item (_polygon);
 }
 
+Hit::Hit (
+	MidiRegionView&                   region,
+	Group*                            group,
+	TransformIndex                    transform_index,
+	double                            size,
+	const boost::shared_ptr<NoteType> note,
+	bool with_events) 
+	: NoteBase (region, with_events, note)
+{
+	_polygon = new Polygon (group, transform_index);
+	set_item (_polygon);
+}
+
 void
 Hit::move_event (double dx, double dy)
 {

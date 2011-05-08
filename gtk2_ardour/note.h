@@ -39,6 +39,12 @@ public:
 	      const boost::shared_ptr<NoteType> note = boost::shared_ptr<NoteType>(),
 	      bool with_events = true);
 
+	Note (MidiRegionView&                   region,
+	      ArdourCanvas::Group*              group,
+	      ArdourCanvas::TransformIndex,
+	      const boost::shared_ptr<NoteType> note = boost::shared_ptr<NoteType>(),
+	      bool with_events = true);
+	
 	~Note ();
 
 	ArdourCanvas::Coord x0 () const;

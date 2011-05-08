@@ -31,6 +31,10 @@ public:
 	void lower_child_to_bottom (Item *);
 	void child_changed ();
 
+	TransformIndex add_transform (Transform const &);
+	void set_transform (TransformIndex, Transform const &);
+	Transform const & transform (TransformIndex) const;
+
 	void add_items_at_point (Duple, std::vector<Item const *> &) const;
 
 	static int default_items_per_cell;
@@ -44,6 +48,8 @@ private:
 
 	/* our items, from lowest to highest in the stack */
 	std::vector<Item*> _items;
+
+	std::vector<Transform> _transforms;
 };
 
 }

@@ -11,6 +11,15 @@ Polygon::Polygon (Group* parent)
 
 }
 
+Polygon::Polygon (Group* parent, TransformIndex transform_index)
+	: Item (parent, transform_index)
+	, PolyItem (parent, transform_index)
+	, Fill (parent, transform_index)
+{
+
+}
+
+
 void
 Polygon::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {

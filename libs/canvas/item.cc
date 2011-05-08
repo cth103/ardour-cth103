@@ -15,11 +15,24 @@ Item::Item (Canvas* canvas)
 	: _canvas (canvas)
 	, _parent (0)
 {
+	_transform_index = -1;
+	
 	init ();
 }
 
 Item::Item (Group* parent)
 	: _parent (parent)
+{
+	assert (parent);
+	_canvas = _parent->canvas ();
+	_transform_index = -1;
+	
+	init ();
+}
+
+Item::Item (Group* parent, TransformIndex transform_index)
+	: _parent (parent)
+	, _transform_index (transform_index)
 {
 	assert (parent);
 	_canvas = _parent->canvas ();
@@ -33,6 +46,7 @@ Item::Item (Group* parent, Duple position)
 {
 	assert (parent);
 	_canvas = _parent->canvas ();
+	_transform_index = -1;
 	
 	init ();
 }
@@ -58,12 +72,6 @@ Item::~Item ()
 	if (_parent) {
 		_parent->remove (this);
 	}
-}
-
-Rect
-Item::item_to_parent (Rect const & r) const
-{
-	return r.translate (_position);
 }
 
 /** Set the position of this item in the parent's coordinates */
@@ -133,19 +141,45 @@ Item::show ()
 Duple
 Item::item_to_parent (Duple const & d) const
 {
-	return d.translate (_position);
+	if (_transform_index == IDENTITY) {
+		return d.translate (_position);
+	}
+
+	Transform const & transform = _parent->transform (_transform_index);
+	return d.scale(transform.scale).translate (_position + transform.translation);
+}
+
+Rect
+Item::item_to_parent (Rect const & r) const
+{
+	if (_transform_index == IDENTITY) {
+		return r.translate (_position);
+	}
+
+	Transform const & transform = _parent->transform (_transform_index);
+	return r.scale(transform.scale).translate (_position + transform.translation);
 }
 
 Duple
 Item::parent_to_item (Duple const & d) const
 {
-	return d.translate (- _position);
+	if (_transform_index == IDENTITY) {
+		return d.translate (- _position);
+	}
+
+	Transform const & transform = _parent->transform (_transform_index);
+	return d.translate (- _position - transform.translation).scale (Duple (1, 1) / transform.scale);
 }
 
 Rect
-Item::parent_to_item (Rect const & d) const
+Item::parent_to_item (Rect const & r) const
 {
-	return d.translate (- _position);
+	if (_transform_index == IDENTITY) {
+		return r.translate (- _position);
+	}
+
+	Transform const & transform = _parent->transform (_transform_index);
+	return r.translate (- _position - transform.translation).scale (Duple (1, 1) / transform.scale);
 }
 
 void

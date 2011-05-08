@@ -356,6 +356,7 @@ class MidiRegionView : public RegionView
 	SysExes                              _sys_exes;
 	Note**                               _active_notes;
 	ArdourCanvas::Group*                 _note_group;
+	ArdourCanvas::TransformIndex         _note_transform_index;
 	ARDOUR::MidiModel::NoteDiffCommand*  _note_diff_command;
 	Note*                                _ghost_note;
 	double                               _last_ghost_x;
