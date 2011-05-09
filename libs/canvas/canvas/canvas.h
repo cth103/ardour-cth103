@@ -42,7 +42,7 @@ class Rect;
 class Group;
 
 /** A square buffer of pixels that is used as a cache for the contents
- *  of the canvas.  Implemented as just a Cairo ImageSurface which knows
+ *  of the canvas.  Implemented as a Cairo ImageSurface which knows
  *  when it needs to be updated, and can ask the Canvas to draw onto it.
  */
 class Tile
@@ -52,7 +52,7 @@ public:
 
 	void render ();
 
-	/** @return our surface */
+	/** @return Our surface */
 	Cairo::RefPtr<Cairo::Surface> surface () {
 		return _surface;
 	}
@@ -67,7 +67,7 @@ public:
 	void set_dirty ();
 	
 private:
-	/** the canvas that we are being used for */
+	/** The canvas that we are being used for */
 	Canvas const * _canvas;
 	/** x index of the tile within the canvas */
 	int _tx;
@@ -76,9 +76,9 @@ private:
 	/** true if this tile is in need of a repaint */
 	bool _dirty;
 
-	/** our surface */
+	/** Our surface */
 	Cairo::RefPtr<Cairo::ImageSurface> _surface;
-	/** context for our surface */
+	/** Context for our surface */
 	Cairo::RefPtr<Cairo::Context> _context;
 };
 
@@ -103,19 +103,19 @@ public:
 	Canvas (XMLTree const *);
 	virtual ~Canvas () {}
 
-	/** called to request a redraw of an area of the canvas */
+	/** Called to request a redraw of an area of the canvas */
 	virtual void request_redraw (Rect const &) = 0;
-	/** called to ask the canvas to request a particular size from its host */
+	/** Called to ask the canvas to request a particular size from its host */
 	virtual void request_size (Duple) = 0;
-	/** called to ask the canvas' host to `grab' an item */
+	/** Called to ask the canvas' host to `grab' an item */
 	virtual void grab (Item *) = 0;
-	/** called to ask the canvas' host to `ungrab' any grabbed item */
+	/** Called to ask the canvas' host to `ungrab' any grabbed item */
 	virtual void ungrab () = 0;
 
 	void paint_from_tiles (Rect const &, Cairo::RefPtr<Cairo::Context> const &) const;
 	void render_to_tile (Cairo::RefPtr<Cairo::Context>, int, int) const;
 
-	/** @return root group */
+	/** @return Root group */
 	Group* root () {
 		return &_root;
 	}
@@ -132,7 +132,7 @@ public:
 	void resume_updates ();
 
 #ifdef CANVAS_DEBUG	
-	/** @return a list of rectangles which have been rendered since
+	/** @return A list of rectangles which have been rendered since
 	 *  the canvas was created (for profiling / debugging purposes).
 	 */
 	std::list<Rect> const & renders () const {
@@ -155,7 +155,7 @@ protected:
 	void mark_item_area_dirty (Item *, Rect);
 	void area_to_tiles (Rect const &, int &, int &, int &, int &) const;
 	
-	/** our root group */
+	/** Our root group */
 	RootGroup _root;
 
 	mutable std::vector<std::vector<boost::shared_ptr<Tile> > > _tiles;
@@ -164,7 +164,7 @@ protected:
 	bool _updates_suspended;
 	
 #ifdef CANVAS_DEBUG	
-	/** a list of rectangles which have been rendered since this canvas
+	/** A list of rectangles which have been rendered since this canvas
 	 *  was created (if _log_renders is true).
 	 */
 	mutable std::list<Rect> _renders;
@@ -175,7 +175,7 @@ protected:
 private:
 	void ensure_tile (int, int) const;
 
-	/** the width and height of the tiles used to cache our image */
+	/** The width and height of the tiles used to cache our image */
 	int _tile_size;
 };
 
@@ -206,9 +206,9 @@ public:
 	Cairo::RefPtr<Cairo::Context> context ();
 
 private:
-	/** our Cairo surface */
+	/** Our Cairo surface */
 	Cairo::RefPtr<Cairo::Surface> _surface;
-	/** our Cairo context */
+	/** Our Cairo context */
 	Cairo::RefPtr<Cairo::Context> _context;
 };
 
@@ -241,9 +241,9 @@ private:
 	void item_going_away (Item *, boost::optional<Rect>);
 	bool send_leave_event (Item const *, double, double) const;
 
-	/** the items that the mouse is currently over */
+	/** The items that the mouse is currently over */
 	std::vector<Item const *> _current_items;
-	/** the item that is currently grabbed, or 0 */
+	/** The item that is currently grabbed, or 0 */
 	Item const * _grabbed_item;
 };
 

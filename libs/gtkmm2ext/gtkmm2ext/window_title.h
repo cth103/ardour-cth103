@@ -24,8 +24,9 @@
 
 namespace Gtkmm2ext {
 
-/**
- * \class The WindowTitle class can be used to maintain the 
+/** @class WindowTitle
+ *
+ * The WindowTitle class can be used to maintain the 
  * consistancy of window titles between windows and dialogs.
  *
  * Each string element that is added to the window title will
