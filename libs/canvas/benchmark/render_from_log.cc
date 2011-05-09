@@ -16,14 +16,8 @@ class RenderFromLog : public Benchmark
 public:
 	RenderFromLog (string const & session) : Benchmark (session) {}
 
-	void set_items_per_cell (int items)
-	{
-		_items_per_cell = items;
-	}
-	
 	void do_run (ImageCanvas& canvas)
 	{
-		Group::default_items_per_cell = _items_per_cell;
 		canvas.set_log_renders (false);
 
 		list<Rect> const & renders = canvas.renders ();
@@ -32,9 +26,6 @@ public:
 			canvas.render_to_image (*i);
 		}
 	}
-
-private:
-	int _items_per_cell;
 };
 
 int main (int argc, char* argv[])
@@ -47,14 +38,7 @@ int main (int argc, char* argv[])
 	Pango::init ();
 
 	RenderFromLog render_from_log (argv[1]);
-
-//	int tests[] = { 16, 32, 64, 128, 256, 512, 1024, 1e4, 1e5, 1e6 };
-	int tests[] = { 16 };
-
-	for (unsigned int i = 0; i < sizeof (tests) / sizeof (int); ++i) {
-		render_from_log.set_items_per_cell (tests[i]);
-		cout << tests[i] << " " << render_from_log.run () << "\n";
-	}
+	cout << render_from_log.run () << "\n";
 
 	return 0;
 }

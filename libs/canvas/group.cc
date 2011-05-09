@@ -1,3 +1,27 @@
+/*
+    Copyright (C) 2011 Paul Davis
+    Author: Carl Hetherington <cth@carlh.net>
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+*/
+
+/** @file  canvas/group.cc
+ *  @brief Code for a group of items.
+ */
+
 #include <iostream>
 #include <cairomm/context.h>
 #include "pbd/stacktrace.h"
@@ -10,26 +34,35 @@
 using namespace std;
 using namespace ArdourCanvas;
 
-int Group::default_items_per_cell = 64;
-
+/** Construct a Group with no parent.
+ *  @param canvas This group's canvas.
+ */
 Group::Group (Canvas* canvas)
 	: Item (canvas)
 {
 	
 }
 
+/** Construct a Group.
+ *  @param parent This group's parent group.
+ */
 Group::Group (Group* parent)
 	: Item (parent)
 {
 
 }
 
+/** Construct a Group, with a parent, at a given position.
+ *  @param parent This group's parent group.
+ *  @param position Position of the item group within the parent, in the parent's coordinates.
+ */
 Group::Group (Group* parent, Duple position)
 	: Item (parent, position)
 {
 
 }
 
+/** Group destructor */
 Group::~Group ()
 {
 	for (vector<Item*>::iterator i = _items.begin(); i != _items.end(); ++i) {
@@ -39,9 +72,6 @@ Group::~Group ()
 	_items.clear ();
 }
 
-/** @param area Area to draw in this group's coordinates.
- *  @param context Context, set up with its origin at this group's position.
- */
 void
 Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
@@ -75,7 +105,6 @@ Group::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 			context->translate ((*i)->position().x, (*i)->position().y);
 			(*i)->render (r.get(), context);
 			context->restore ();
-			++render_count;
 		}
 	}
 }
@@ -112,6 +141,9 @@ Group::compute_bbox () const
 	_bbox_dirty = false;
 }
 
+/** Add an item to the top of this Group's stack.
+ *  @param i Item to add.
+ */
 void
 Group::add (Item* i)
 {
@@ -121,6 +153,9 @@ Group::add (Item* i)
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: group add\n");
 }
 
+/** Remove an item from this Group's stack.
+ *  @param i Item to remove.
+ */
 void
 Group::remove (Item* i)
 {
@@ -133,6 +168,9 @@ Group::remove (Item* i)
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: group remove\n");
 }
 
+/** Raise one of this Group's items to the top of the stack.
+ *  @param i Item to raise; must be in the Group.
+ */
 void
 Group::raise_child_to_top (Item* i)
 {
@@ -143,6 +181,10 @@ Group::raise_child_to_top (Item* i)
 	_items.push_back (i);
 }
 
+/** Raise one of this Group's items up a certain number of levels in the stack.
+ *  @param i Item to raise; must be in the Group.
+ *  @param levels Number of levels by which to raise the item.
+ */
 void
 Group::raise_child (Item* i, int levels)
 {
@@ -162,6 +204,9 @@ Group::raise_child (Item* i, int levels)
 	_items.erase (j);
 }
 
+/** Lower one of this Group's items to the bottom of the stack.
+ *  @param i Item to lower; must be in the Group.
+ */
 void
 Group::lower_child_to_bottom (Item* i)
 {
@@ -172,6 +217,7 @@ Group::lower_child_to_bottom (Item* i)
 	_items.insert (_items.begin (), i);
 }
 
+/** Called when one of our children has changed in some way */
 void
 Group::child_changed ()
 {
@@ -182,6 +228,10 @@ Group::child_changed ()
 	}
 }
 
+/** Find the items in this Group which contain a certain point, and add them to a vector.
+ *  @param point Point to examine, in this Group's coordinates.
+ *  @param items Vector to add items to.
+ */
 void
 Group::add_items_at_point (Duple const point, vector<Item const *>& items) const
 {
@@ -190,10 +240,12 @@ Group::add_items_at_point (Duple const point, vector<Item const *>& items) const
 		return;
 	}
 
+	/* This group contains the point, so add it to the list */
 	Item::add_items_at_point (point, items);
 
 	vector<Item*> our_items;
-	
+
+	/* Find those items in our stack which contain the point */
 	for (vector<Item*>::const_iterator i = _items.begin(); i != _items.end(); ++i) {
 		boost::optional<Rect> item_bbox = (*i)->bbox ();
 		if (item_bbox) {
@@ -203,8 +255,10 @@ Group::add_items_at_point (Duple const point, vector<Item const *>& items) const
 			}
 		}
 	}
-	
+
+	/* Call down recursively to check those items */
 	for (vector<Item*>::iterator i = our_items.begin(); i != our_items.end(); ++i) {
+		/* XXX: shouldn't this be parent_to_item? */
 		(*i)->add_items_at_point (point - (*i)->position(), items);
 	}
 }
@@ -233,6 +287,11 @@ Group::set_state (XMLNode const * node)
 	}
 }
 
+/** Add a transform to this Group.  This will not affect the group itself, but
+ *  can subsequently be applied to any of the Group's direct children.
+ *  @param transform Transform to add.
+ *  @return Index of this transform for future reference.
+ */
 TransformIndex
 Group::add_transform (Transform const & transform)
 {
@@ -240,6 +299,12 @@ Group::add_transform (Transform const & transform)
 	return _transforms.size() - 1;
 }
 
+/** Set the details of a previously added transform.  This will effectively
+ *  change a transform that was previously added, updating any children that
+ *  are using it.
+ *  @param index Index of the transform to change.
+ *  @param transform New value of the transform.
+ */
 void
 Group::set_transform (TransformIndex index, Transform const & transform)
 {
@@ -253,6 +318,9 @@ Group::set_transform (TransformIndex index, Transform const & transform)
 	end_change ();
 }
 
+/** @param index Transform index.
+ *  @return The transform.
+ */
 Transform const &
 Group::transform (TransformIndex index) const
 {

@@ -18,6 +18,10 @@
 
 */
 
+/** @file  canvas/item.h
+ *  @brief Declaration of the item parent class.
+ */
+
 #ifndef __CANVAS_ITEM_H__
 #define __CANVAS_ITEM_H__
 
