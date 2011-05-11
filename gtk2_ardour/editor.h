@@ -66,6 +66,7 @@ namespace ArdourCanvas {
 	class GtkCanvas;
 	class GtkCanvasViewport;
 	class Text;
+	class BBTLines;
 }
 
 namespace Gtkmm2ext {
@@ -115,7 +116,6 @@ class RhythmFerret;
 class Selection;
 class SoundFileOmega;
 class StreamView;
-class TempoLines;
 class TimeAxisView;
 class TimeFXDialog;
 class TimeSelection;
@@ -1422,13 +1422,9 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	ARDOUR::TempoMap::BBTPointList *current_bbt_points;
 
-	TempoLines* tempo_lines;
+	ArdourCanvas::BBTLines* _bbt_lines;
 
 	ArdourCanvas::Group* time_line_group;
-
-	void hide_measures ();
-	void draw_measures ();
-	bool redraw_measures ();
 
 	void new_tempo_section ();
 
@@ -1494,7 +1490,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void compute_current_bbt_points (framepos_t left, framepos_t right);
 	void tempo_map_changed (const PBD::PropertyChange&);
-	void redisplay_tempo (bool immediate_redraw);
+	void redisplay_tempo ();
 
 	uint32_t bbt_beat_subdivision;
 

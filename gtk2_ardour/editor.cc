@@ -77,6 +77,7 @@
 
 #include "canvas/debug.h"
 #include "canvas/text.h"
+#include "canvas/bbt_lines.h"
 
 #include "control_protocol/control_protocol.h"
 
@@ -305,7 +306,6 @@ Editor::Editor ()
 	_drags = new DragManager (this);
 	current_mixer_strip = 0;
 	current_bbt_points = 0;
-	tempo_lines = 0;
 
 	snap_type_strings =  I18N (_snap_type_strings);
 	snap_mode_strings =  I18N (_snap_mode_strings);
@@ -1088,6 +1088,8 @@ Editor::set_session (Session *t)
 		return;
 	}
 
+	_bbt_lines->set_session (t);
+
 	_track_canvas->suspend_updates ();
 	_time_bars_canvas->suspend_updates ();
 
@@ -1205,6 +1207,8 @@ Editor::set_session (Session *t)
 	for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {
 		(static_cast<TimeAxisView*>(*i))->set_frames_per_pixel (frames_per_pixel);
 	}
+
+	_bbt_lines->set_frames_per_pixel (frames_per_pixel);
 
 	super_rapid_screen_update_connection = ARDOUR_UI::instance()->SuperRapidScreenUpdate.connect (
 		sigc::mem_fun (*this, &Editor::super_rapid_screen_update)
@@ -3635,16 +3639,17 @@ Editor::reattach_tearoff (Box* /*b*/, Window* /*w*/, int32_t /*n*/)
 void
 Editor::set_show_measures (bool yn)
 {
-	if (_show_measures != yn) {
-		hide_measures ();
-
-		if ((_show_measures = yn) == true) {
-			if (tempo_lines)
-				tempo_lines->show();
-			draw_measures ();
-		}
-		instant_save ();
+	if (_show_measures == yn) {
+		return;
 	}
+	
+	if (yn) {
+		_bbt_lines->show ();
+	} else {
+		_bbt_lines->hide ();
+	}
+
+	_show_measures = yn;
 }
 
 void
@@ -4250,9 +4255,6 @@ Editor::set_frames_per_pixel (double fpu)
 		return;
 	}
 
-	if (tempo_lines)
-		tempo_lines->tempo_map_changed();
-
 	frames_per_pixel = fpu;
 	post_zoom ();
 }
@@ -4284,6 +4286,7 @@ Editor::post_zoom ()
 
 	refresh_location_display();
 	_summary->set_overlays_dirty ();
+	_bbt_lines->set_frames_per_pixel (frames_per_pixel);
 
 	update_marker_labels ();
 
@@ -4380,7 +4383,7 @@ Editor::idle_visual_changer ()
 	if (last_time_origin == horizontal_position ()) {
 		/* changed signal not emitted */
 		update_fixed_rulers ();
-		redisplay_tempo (true);
+		redisplay_tempo ();
 	}
 
 	_summary->set_overlays_dirty ();
@@ -5386,7 +5389,7 @@ Editor::session_going_away ()
 
 	/* clear tempo/meter rulers */
 	remove_metric_marks ();
-	hide_measures ();
+	_bbt_lines->hide ();
 	clear_marker_display ();
 
 	delete current_bbt_points;

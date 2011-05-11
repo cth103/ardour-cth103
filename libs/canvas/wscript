@@ -20,6 +20,7 @@ VERSION = CANVAS_VERSION
 
 canvas_sources = [
 	'arrow.cc',
+        'bbt_lines.cc',
 	'canvas.cc',
 	'debug.cc',
 	'item.cc',

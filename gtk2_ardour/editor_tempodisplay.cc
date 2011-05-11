@@ -40,6 +40,7 @@
 
 #include "canvas/canvas.h"
 #include "canvas/item.h"
+#include "canvas/bbt_lines.h"
 
 #include "editor.h"
 #include "marker.h"
@@ -48,7 +49,6 @@
 #include "gui_thread.h"
 #include "time_axis_view.h"
 #include "ardour_ui.h"
-#include "tempo_lines.h"
 #include "utils.h"
 
 #include "i18n.h"
@@ -74,7 +74,6 @@ Editor::remove_metric_marks ()
 void
 Editor::draw_metric_marks (const Metrics& metrics)
 {
-
 	const MeterSection *ms;
 	const TempoSection *ts;
 	char buf[64];
@@ -94,7 +93,6 @@ Editor::draw_metric_marks (const Metrics& metrics)
 		}
 
 	}
-
 }
 
 void
@@ -106,35 +104,23 @@ Editor::tempo_map_changed (const PropertyChange& /*ignored*/)
 
 	ENSURE_GUI_THREAD (*this, &Editor::tempo_map_changed, ignored);
 
-	if (tempo_lines) {
-		tempo_lines->tempo_map_changed();
-	}
+	_bbt_lines->tempo_map_changed ();
 
 	compute_current_bbt_points(leftmost_frame, leftmost_frame + current_page_frames());
 	_session->tempo_map().apply_with_metrics (*this, &Editor::draw_metric_marks); // redraw metric markers
-	redraw_measures ();
 	update_tempo_based_rulers ();
 }
 
 void
-Editor::redisplay_tempo (bool immediate_redraw)
+Editor::redisplay_tempo ()
 {
 	if (!_session) {
 		return;
 	}
 
-	compute_current_bbt_points (leftmost_frame, leftmost_frame + current_page_frames()); // redraw rulers and measures
-
-	if (immediate_redraw) {
-		redraw_measures ();
-	} else {
-#ifdef GTKOSX
-		redraw_measures ();
-#else
-		Glib::signal_idle().connect (sigc::mem_fun (*this, &Editor::redraw_measures));
-#endif
-	}
-	update_tempo_based_rulers (); // redraw rulers and measures
+	compute_current_bbt_points (leftmost_frame, leftmost_frame + current_page_frames());
+	
+	update_tempo_based_rulers ();
 }
 
 void
@@ -169,36 +155,6 @@ Editor::compute_current_bbt_points (framepos_t leftmost, framepos_t rightmost)
 	current_bbt_points = 0;
 
 	current_bbt_points = _session->tempo_map().get_points (_session->tempo_map().frame_time (previous_beat), _session->tempo_map().frame_time (next_beat) + 1);
-}
-
-void
-Editor::hide_measures ()
-{
-	if (tempo_lines)
-		tempo_lines->hide();
-}
-
-bool
-Editor::redraw_measures ()
-{
-	draw_measures ();
-	return false;
-}
-
-void
-Editor::draw_measures ()
-{
-	if (_session == 0 || _show_measures == false ||
-	    !current_bbt_points || current_bbt_points->empty()) {
-		return;
-	}
-
-	if (tempo_lines == 0) {
-		tempo_lines = new TempoLines (*_track_canvas_viewport, time_line_group, physical_screen_height (get_window()));
-	}
-
-	/* XXX: CANVAS */
-//	tempo_lines->draw(*current_bbt_points, frames_per_unit);
 }
 
 void

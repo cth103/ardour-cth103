@@ -31,6 +31,7 @@
 #include "canvas/rectangle.h"
 #include "canvas/pixbuf.h"
 #include "canvas/text.h"
+#include "canvas/bbt_lines.h"
 
 #include "ardour_ui.h"
 #include "editor.h"
@@ -94,6 +95,11 @@ Editor::initialize_canvas ()
 
 	/* a group to hold time (measure) lines */
 	time_line_group = new ArdourCanvas::Group (_track_canvas->root());
+	_bbt_lines = new ArdourCanvas::BBTLines (
+		time_line_group,
+		ARDOUR_UI::config()->canvasvar_MeasureLineBar.get(),
+		ARDOUR_UI::config()->canvasvar_MeasureLineBeat.get()
+		);
 
 #ifdef GTKOSX
 	/*XXX please don't laugh. this actually improves canvas performance on osx */
@@ -283,7 +289,6 @@ Editor::track_canvas_viewport_size_allocated ()
 	}
 
 	update_fixed_rulers();
-	redisplay_tempo (false);
 	_summary->set_overlays_dirty ();
 
 	return false;
@@ -682,7 +687,7 @@ Editor::set_horizontal_position (double p)
 	leftmost_frame = (framepos_t) floor (p * frames_per_pixel);
 
 	update_fixed_rulers ();
-	redisplay_tempo (true);
+	redisplay_tempo ();
 
 	if (pending_visual_change.idle_handler_id < 0) {
 		_summary->set_overlays_dirty ();
@@ -755,12 +760,10 @@ Editor::color_handler()
 	location_punch_color = ARDOUR_UI::config()->canvasvar_LocationPunch.get();
 
 	refresh_location_display ();
-/*
-	redisplay_tempo (true);
 
-	if (_session)
+	if (_session) {
 	      _session->tempo_map().apply_with_metrics (*this, &Editor::draw_metric_marks); // redraw metric markers
-*/
+	}
 }
 
 void

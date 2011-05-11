@@ -1320,10 +1320,9 @@ TempoMap::round_to_type (framepos_t frame, int dir, BBTPointType type)
 TempoMap::BBTPointList *
 TempoMap::get_points (framepos_t lower, framepos_t upper) const
 {
-
 	Metrics::const_iterator i;
 	BBTPointList *points;
-	double current;
+	framepos_t current;
 	const MeterSection* meter;
 	const MeterSection* m;
 	const TempoSection* tempo;
@@ -1385,13 +1384,17 @@ TempoMap::get_points (framepos_t lower, framepos_t upper) const
 	   above to be on a beat.
 	*/
 
-	delta_bars = (lower-current) / frames_per_bar;
-	delta_beats = modf(delta_bars, &dummy) * beats_per_bar;
-	current += (floor(delta_bars) * frames_per_bar) +  (floor(delta_beats) * beat_frames);
+	delta_bars = (lower - current) / frames_per_bar;
+	delta_beats = modf (delta_bars, &dummy) * beats_per_bar;
+	current += (floor (delta_bars) * frames_per_bar) + (floor (delta_beats) * beat_frames);
 
 	// adjust bars and beats too
-	bar += (uint32_t) (floor(delta_bars));
-	beat += (uint32_t) (floor(delta_beats));
+	bar += (uint32_t) floor (delta_bars);
+	beat += (uint32_t) floor (delta_beats);
+	if (beat > beats_per_bar) {
+		++bar;
+		beat -= beats_per_bar;
+	}
 
 	points = new BBTPointList;
 
@@ -1399,9 +1402,7 @@ TempoMap::get_points (framepos_t lower, framepos_t upper) const
 
 		if (i == metrics->end()) {
 			limit = upper;
-			// cerr << "== limit set to end of request @ " << limit << endl;
 		} else {
-			// cerr << "== limit set to next metric @ " << (*i)->frame() << endl;
 			limit = (*i)->frame();
 		}
 

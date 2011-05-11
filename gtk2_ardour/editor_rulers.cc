@@ -712,8 +712,8 @@ Editor::update_ruler_visibility ()
 	time_canvas_vbox.set_size_request (-1,-1);
 
 	compute_fixed_ruler_scale ();
-	update_fixed_rulers();
-	redisplay_tempo (false);
+	update_fixed_rulers ();
+	redisplay_tempo ();
 
 	/* Changing ruler visibility means that any lines on markers might need updating */
 	for (LocationMarkerMap::iterator i = location_markers.begin(); i != location_markers.end(); ++i) {
