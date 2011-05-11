@@ -19,7 +19,7 @@
 */
 
 /** @file  canvas/group.cc
- *  @brief Code for a group of items.
+ *  @brief Implementation for a group of items.
  */
 
 #include <iostream>

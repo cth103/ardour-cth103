@@ -1,3 +1,27 @@
+/*
+    Copyright (C) 2011 Paul Davis
+    Author: Carl Hetherington <cth@carlh.net>
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+*/
+
+/** @file  canvas/text.cc
+ *  @brief Implementation of various basic types.
+ */
+
 #include <algorithm>
 #include <cfloat>
 #include <cassert>
@@ -9,6 +33,12 @@ using namespace ArdourCanvas;
 Coord const ArdourCanvas::COORD_MAX = DBL_MAX;
 TransformIndex const ArdourCanvas::IDENTITY = -1;
 
+/** A fairly dumb but effective add operator which avoids
+ *  overflow in some circumstances (namely if a or b are COORD_MAX).
+ *  @param a First operand.
+ *  @param b Second operand.
+ *  @return a + b (unless a == COORD_MAX or b == COORD_MAX, in which case the result is COORD_MAX).
+ */
 Coord
 ArdourCanvas::safe_add (Coord a, Coord b)
 {
@@ -19,6 +49,10 @@ ArdourCanvas::safe_add (Coord a, Coord b)
 	return a + b;
 }
 
+/** Translate a Duple.
+ *  @param t Translation.
+ *  @return Translated version of *this.
+ */
 Duple
 Duple::translate (Duple t) const
 {
@@ -30,6 +64,10 @@ Duple::translate (Duple t) const
 	return d;
 }
 
+/** Scale a Duple.
+ *  @param s Scale.
+ *  @return Scaled version of *this.
+ */
 Duple
 Duple::scale (Duple s) const
 {
@@ -42,12 +80,17 @@ Duple::scale (Duple s) const
 	return d;
 }
 
+/** operator== for Duples */
 bool
 Duple::operator== (Duple const & d) const
 {
 	return (x == d.x && y == d.y);
 }
 
+/** Compute the intersection of *this with another Rect.
+ *  @param o Other Rect.
+ *  @return Intersection of *this and o.
+ */
 boost::optional<Rect>
 Rect::intersection (Rect const & o) const
 {
@@ -65,6 +108,10 @@ Rect::intersection (Rect const & o) const
 	return boost::optional<Rect> (i);
 }
 
+/** Translate a Rect.
+ *  @param t Translation.
+ *  @return Translated version of *this.
+ */
 Rect
 Rect::translate (Duple t) const
 {
@@ -77,6 +124,10 @@ Rect::translate (Duple t) const
 	return r;
 }
 
+/** Scale a Rect.
+ *  @param s Scale.
+ *  @return Scaled version of *this.
+ */
 Rect
 Rect::scale (Duple s) const
 {
@@ -90,6 +141,10 @@ Rect::scale (Duple s) const
 	return r;
 }
 
+/** Extend *this so that it covers another Rect.
+ *  @param o Rect to expand to cover.
+ *  @return Extended Rect.
+ */
 Rect
 Rect::extend (Rect const & o) const
 {
@@ -101,6 +156,10 @@ Rect::extend (Rect const & o) const
 	return r;
 }
 
+/** Extend *this by a given amount in all directions.
+ *  @param amount Amount to extend by.
+ *  @return Extended Rect.
+ */
 Rect
 Rect::expand (Distance amount) const
 {
@@ -112,12 +171,18 @@ Rect::expand (Distance amount) const
 	return r;
 }
 
+/** @param point Test point.
+ *  @return true if *this contains point, otherwise false.
+ */
 bool
 Rect::contains (Duple point) const
 {
 	return point.x >= x0 && point.x <= x1 && point.y >= y0 && point.y <= y1;
 }
 
+/** `Fix' a Rect so that x0 <= x1 and y0 <= y1.
+ *  @return `Fixed' Rect.
+ */
 Rect
 Rect::fix () const
 {
@@ -131,48 +196,56 @@ Rect::fix () const
 	return r;
 }
 
+/** operator== for Rects */
 bool
 Rect::operator== (Rect const & other) const
 {
 	return (x0 == other.x0 && x1 == other.x1 && y0 == other.y0 && y1 == other.y1);
 }
 
+/** operator!= for Rects */
 bool
 Rect::operator!= (Rect const & other) const
 {
 	return (x0 != other.x0 || x1 != other.x1 || y0 != other.y0 || y1 != other.y1);
 }
 
+/** Unary operator- for Duples */
 Duple
 ArdourCanvas::operator- (Duple const & o)
 {
 	return Duple (-o.x, -o.y);
 }
 
+/** Binary operator+ for Duples */
 Duple
 ArdourCanvas::operator+ (Duple const & a, Duple const & b)
 {
 	return Duple (safe_add (a.x, b.x), safe_add (a.y, b.y));
 }
 
+/** Binary operator- for Duples */
 Duple
 ArdourCanvas::operator- (Duple const & a, Duple const & b)
 {
 	return Duple (a.x - b.x, a.y - b.y);
 }
 
+/** Binary operator/ for Duples with a double */
 Duple
 ArdourCanvas::operator/ (Duple const & a, double b)
 {
 	return Duple (a.x / b, a.y / b);
 }
 
+/** Binary operator/ for Duples */
 Duple
 ArdourCanvas::operator/ (Duple const & a, Duple const & b)
 {
 	return Duple (a.x / b.x, a.y / b.y);
 }
 
+/** operator<< for ostreams and Duples */
 ostream &
 ArdourCanvas::operator<< (ostream & s, Duple const & r)
 {
@@ -180,6 +253,7 @@ ArdourCanvas::operator<< (ostream & s, Duple const & r)
 	return s;
 }
 
+/** operator<< for ostreams and Rects */
 ostream &
 ArdourCanvas::operator<< (ostream & s, Rect const & r)
 {

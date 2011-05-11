@@ -102,7 +102,6 @@
 #include "gui_thread.h"
 #include "rhythm_ferret.h"
 #include "actions.h"
-#include "tempo_lines.h"
 #include "analysis_window.h"
 #include "bundle_manager.h"
 #include "global_port_matrix.h"

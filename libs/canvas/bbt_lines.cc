@@ -1,3 +1,27 @@
+/*
+    Copyright (C) 2011 Paul Davis
+    Author: Carl Hetherington <cth@carlh.net>
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+*/
+
+/** @file  canvas/bbt_lines.cc
+ *  @brief Implementation of an item to draw bar/beat lines.
+ */
+
 #include "ardour/session.h"
 #include "ardour/tempo.h"
 #include "canvas/bbt_lines.h"
@@ -6,6 +30,11 @@
 using namespace std;
 using namespace ArdourCanvas;
 
+/** Construct a BBTLines object.
+ *  @param parent Parent group.
+ *  @param bar_color Color to use for bar lines.
+ *  @param beat_color Color to use for beat lines.
+ */
 BBTLines::BBTLines (Group* parent, Color bar_color, Color beat_color)
 	: Item (parent)
 	, Outline (parent)
@@ -54,8 +83,6 @@ BBTLines::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 			continue;
 		}
 
-		Coord const x = rint (i->frame / _frames_per_pixel) + 0.5;
-		
 		if (i->beat == 1) {
 			set_source_rgba (context, _bar_color);
 		} else {
@@ -66,6 +93,7 @@ BBTLines::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 			}
 		}
 		
+		Coord const x = rint (i->frame / _frames_per_pixel) + 0.5;
 		context->move_to (x, area.y0);
 		context->line_to (x, area.y1);
 		context->stroke ();
@@ -91,6 +119,9 @@ BBTLines::set_state (XMLNode const * node)
 	/* XXX */
 }
 
+/** To be called to set the session that we operate on.
+ *  @param session Session.
+ */
 void
 BBTLines::set_session (ARDOUR::Session* session)
 {
@@ -99,6 +130,9 @@ BBTLines::set_session (ARDOUR::Session* session)
 	end_change ();
 }
 
+/** To be called to set the frames per pixel.
+ *  @param frames_per_pixel New frames per pixel value.
+ */
 void
 BBTLines::set_frames_per_pixel (double frames_per_pixel)
 {
@@ -107,9 +141,11 @@ BBTLines::set_frames_per_pixel (double frames_per_pixel)
 	end_change ();
 }
 
+/** To be called when the tempo map has changed */
 void
 BBTLines::tempo_map_changed ()
 {
+	/* Just register a general change so that we get redrawn */
 	begin_change ();
 	end_change ();
 }

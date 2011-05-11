@@ -19,7 +19,7 @@
 */
 
 /** @file  canvas/group.h
- *  @brief Code for a group of items.
+ *  @brief Declaration for a group of items.
  */
 
 #ifndef __CANVAS_GROUP_H__

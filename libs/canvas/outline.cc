@@ -1,3 +1,27 @@
+/*
+    Copyright (C) 2011 Paul Davis
+    Author: Carl Hetherington <cth@carlh.net>
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+*/
+
+/** @file  canvas/outline.cc
+ *  @brief Implementation of a mixin for items which have an outline.
+ */
+
 #include <cairomm/context.h>
 #include "pbd/xml++.h"
 #include "pbd/compose.h"
@@ -8,6 +32,9 @@
 
 using namespace ArdourCanvas;
 
+/** Construct an Outline object.
+ *  @param parent Parent group
+ */
 Outline::Outline (Group* parent)
 	: Item (parent)
 	, _outline_color (0x000000ff)
@@ -17,6 +44,10 @@ Outline::Outline (Group* parent)
 
 }
 
+/** Construct an Outline object.
+ *  @param parent Parent group
+ *  @param transform_index Index of the parent transform to apply to this item.
+ */
 Outline::Outline (Group* parent, TransformIndex transform_index)
 	: Item (parent, transform_index)
 	, _outline_color (0x000000ff)
@@ -26,6 +57,9 @@ Outline::Outline (Group* parent, TransformIndex transform_index)
 
 }
 
+/** Set the color to use for this item's outline.
+ *  @param color New color.
+ */
 void
 Outline::set_outline_color (Color color)
 {
@@ -36,6 +70,9 @@ Outline::set_outline_color (Color color)
 	end_change ();
 }
 
+/** Set the width of this item's outline in pixels.
+ *  @param width New width in pixels.
+ */
 void
 Outline::set_outline_width (Distance width)
 {
@@ -49,6 +86,9 @@ Outline::set_outline_width (Distance width)
 	DEBUG_TRACE (PBD::DEBUG::CanvasItemsDirtied, "canvas item dirty: outline width change\n");	
 }
 
+/** Set whether or not to outline this item.
+ *  @param outline true to outline, otherwise false.
+ */
 void
 Outline::set_outline (bool outline)
 {
@@ -60,6 +100,10 @@ Outline::set_outline (bool outline)
 	end_change ();
 }
 
+/** Set up a Cairo context to outline this item according
+ *  to its settings.
+ *  @param context Context to set up.
+ */
 void
 Outline::setup_outline_context (Cairo::RefPtr<Cairo::Context> context) const
 {
@@ -67,6 +111,9 @@ Outline::setup_outline_context (Cairo::RefPtr<Cairo::Context> context) const
 	context->set_line_width (_outline_width);
 }
 
+/** Add our state to an XML node.
+ *  @param node XML node to add to.
+ */
 void
 Outline::add_outline_state (XMLNode* node) const
 {
@@ -75,6 +122,9 @@ Outline::add_outline_state (XMLNode* node) const
 	node->add_property ("outline-width", string_compose ("%1", _outline_width));
 }
 
+/** Set our state from an XML node.
+ *  @param node XML node to get state from.
+ */
 void
 Outline::set_outline_state (XMLNode const * node)
 {

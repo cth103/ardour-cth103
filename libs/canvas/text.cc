@@ -1,3 +1,27 @@
+/*
+    Copyright (C) 2011 Paul Davis
+    Author: Carl Hetherington <cth@carlh.net>
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+*/
+
+/** @file  canvas/text.cc
+ *  @brief Implementation of a text item.
+ */
+
 #include <gtkmm/label.h>
 #include "pbd/xml++.h"
 #include "canvas/text.h"
@@ -7,6 +31,9 @@
 using namespace std;
 using namespace ArdourCanvas;
 
+/** Construct a Text item.
+ *  @param parent Parent group.
+ */
 Text::Text (Group* parent)
 	: Item (parent)
 	, _font_description (0)
@@ -16,6 +43,9 @@ Text::Text (Group* parent)
 
 }
 
+/** Set our text.
+ *  @param text New text.
+ */
 void
 Text::set (string const & text)
 {
@@ -48,6 +78,10 @@ Text::compute_bbox () const
 	_bbox_dirty = false;
 }
 
+/** Create a Pango layout according to our settings.
+ *  @param context Cairo context to plot to.
+ *  @return Pango layout.
+ */
 Glib::RefPtr<Pango::Layout>
 Text::layout (Cairo::RefPtr<Cairo::Context> context) const
 {
@@ -85,6 +119,9 @@ Text::set_state (XMLNode const * node)
 	/* XXX */
 }
 
+/** Set the alignment of our text.
+ *  @param alignment New alignment.
+ */
 void
 Text::set_alignment (Pango::Alignment alignment)
 {
@@ -96,6 +133,9 @@ Text::set_alignment (Pango::Alignment alignment)
 	end_change ();
 }
 
+/** Set the font description of our text.
+ *  @param font_description New font description.
+ */
 void
 Text::set_font_description (Pango::FontDescription* font_description)
 {
@@ -107,6 +147,9 @@ Text::set_font_description (Pango::FontDescription* font_description)
 	end_change ();
 }
 
+/** Set the color of our text.
+ *  @param color New color.
+ */
 void
 Text::set_color (Color color)
 {
