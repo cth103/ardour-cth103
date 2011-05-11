@@ -34,7 +34,7 @@ namespace ARDOUR {
 	class PeakData;
 };
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class WaveView;
 	class Line;
 	class Rectangle;
@@ -50,13 +50,13 @@ class RouteTimeAxisView;
 class AudioRegionView : public RegionView
 {
   public:
-	AudioRegionView (ArdourCanvas::Group *,
+	AudioRegionView (Canvas::Group *,
 			 RouteTimeAxisView&,
 			 boost::shared_ptr<ARDOUR::AudioRegion>,
 			 double initial_frames_per_pixel,
 			 Gdk::Color const & basic_color);
 
-	AudioRegionView (ArdourCanvas::Group *,
+	AudioRegionView (Canvas::Group *,
 			 RouteTimeAxisView&,
 			 boost::shared_ptr<ARDOUR::AudioRegion>,
 			 double frames_per_pixel,
@@ -93,8 +93,8 @@ class AudioRegionView : public RegionView
 	bool waveform_visible()   const { return _flags & WaveformVisible; }
 	bool envelope_visible()   const { return _flags & EnvelopeVisible; }
 
-	void add_gain_point_event (ArdourCanvas::Item *item, GdkEvent *event);
-	void remove_gain_point_event (ArdourCanvas::Item *item, GdkEvent *event);
+	void add_gain_point_event (Canvas::Item *item, GdkEvent *event);
+	void remove_gain_point_event (Canvas::Item *item, GdkEvent *event);
 
 	AudioRegionGainLine* get_gain_line() const { return gain_line; }
 
@@ -136,17 +136,17 @@ class AudioRegionView : public RegionView
 		WaveformLogScaled = 0x10,
 	};
 	
-	std::vector<ArdourCanvas::WaveView *> waves;
-	std::vector<ArdourCanvas::WaveView *> tmp_waves; ///< see ::create_waves()
+	std::vector<Canvas::WaveView *> waves;
+	std::vector<Canvas::WaveView *> tmp_waves; ///< see ::create_waves()
 
-	std::list<std::pair<framepos_t, ArdourCanvas::Line*> > feature_lines;
+	std::list<std::pair<framepos_t, Canvas::Line*> > feature_lines;
 	
-	ArdourCanvas::Polygon*           sync_mark; ///< polgyon for sync position
-	ArdourCanvas::Polygon*           fade_in_shape;
-	ArdourCanvas::Polygon*           fade_out_shape;
-	ArdourCanvas::Rectangle*         fade_in_handle; ///< fade in handle, or 0
-	ArdourCanvas::Rectangle*         fade_out_handle; ///< fade out handle, or 0
-	ArdourCanvas::Line*              fade_position_line;
+	Canvas::Polygon*           sync_mark; ///< polgyon for sync position
+	Canvas::Polygon*           fade_in_shape;
+	Canvas::Polygon*           fade_out_shape;
+	Canvas::Rectangle*         fade_in_handle; ///< fade in handle, or 0
+	Canvas::Rectangle*         fade_out_handle; ///< fade out handle, or 0
+	Canvas::Line*              fade_position_line;
 	
 	AudioRegionGainLine * gain_line;
 	

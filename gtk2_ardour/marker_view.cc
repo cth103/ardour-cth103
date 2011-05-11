@@ -44,7 +44,7 @@ PBD::Signal1<void,MarkerView*> MarkerView::CatchDeletion
  * @param start the start time of this item
  * @param duration the duration of this item
  */
-MarkerView::MarkerView(ArdourCanvas::Group *parent,
+MarkerView::MarkerView(Canvas::Group *parent,
 		       TimeAxisView* tv,
 		       ImageFrameView* marked,
 		       double spu,

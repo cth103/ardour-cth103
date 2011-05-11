@@ -25,7 +25,7 @@
 #include "note_base.h"
 #include "midi_util.h"
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class Group;
 }
 
@@ -35,27 +35,27 @@ public:
 	typedef Evoral::Note<Evoral::MusicalTime> NoteType;
 
 	Note (MidiRegionView&                   region,
-	      ArdourCanvas::Group*              group,
+	      Canvas::Group*              group,
 	      const boost::shared_ptr<NoteType> note = boost::shared_ptr<NoteType>(),
 	      bool with_events = true);
 
 	Note (MidiRegionView&                   region,
-	      ArdourCanvas::Group*              group,
-	      ArdourCanvas::TransformIndex,
+	      Canvas::Group*              group,
+	      Canvas::TransformIndex,
 	      const boost::shared_ptr<NoteType> note = boost::shared_ptr<NoteType>(),
 	      bool with_events = true);
 	
 	~Note ();
 
-	ArdourCanvas::Coord x0 () const;
-	ArdourCanvas::Coord y0 () const;
-	ArdourCanvas::Coord x1 () const;
-	ArdourCanvas::Coord y1 () const;
+	Canvas::Coord x0 () const;
+	Canvas::Coord y0 () const;
+	Canvas::Coord x1 () const;
+	Canvas::Coord y1 () const;
 
-	void set_x0 (ArdourCanvas::Coord);
-	void set_y0 (ArdourCanvas::Coord);
-	void set_x1 (ArdourCanvas::Coord);
-	void set_y1 (ArdourCanvas::Coord);
+	void set_x0 (Canvas::Coord);
+	void set_y0 (Canvas::Coord);
+	void set_x1 (Canvas::Coord);
+	void set_y1 (Canvas::Coord);
 
 	void set_outline_what (int);
 
@@ -70,7 +70,7 @@ public:
 	void move_event (ARDOUR::frameoffset_t dx, double dy);
 
 private:
-	ArdourCanvas::Rectangle* _rectangle;
+	Canvas::Rectangle* _rectangle;
 };
 
 #endif /* __gtk_ardour_note_h__ */

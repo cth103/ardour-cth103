@@ -11,10 +11,10 @@
 #include "canvas/line_set.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 Item*
-ArdourCanvas::create_item (Group* parent, XMLNode const * node)
+Canvas::create_item (Group* parent, XMLNode const * node)
 {
 	Item* item = 0;
 	if (node->name() == "Group") {

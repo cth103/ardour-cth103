@@ -70,7 +70,7 @@ class MarkerTimeAxisView : public sigc::trackable
 		/**
 		 *
 		 */
-		ArdourCanvas::Item *canvas_item() { return canvas_group; }
+		Canvas::Item *canvas_item() { return canvas_group; }
 
 
 		//---------------------------------------------------------------------------------------//
@@ -215,8 +215,8 @@ class MarkerTimeAxisView : public sigc::trackable
 		/* the TimeAxisView that this object is acting as the view helper for */
 		MarkerTimeAxis& _trackview ;
 
-		ArdourCanvas::Group *canvas_group ;
-		ArdourCanvas::Rectangle *canvas_rect; /* frame around the whole thing */
+		Canvas::Group *canvas_group ;
+		Canvas::Rectangle *canvas_rect; /* frame around the whole thing */
 
 		/** the current frames per pixel */
 		double _frames_per_pixel;

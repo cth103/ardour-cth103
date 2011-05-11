@@ -27,7 +27,7 @@
 
 #include "canvas/group.h"
 
-namespace ArdourCanvas {
+namespace Canvas {
 
 class Line;
 class Polygon;

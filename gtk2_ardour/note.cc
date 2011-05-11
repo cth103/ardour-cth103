@@ -25,7 +25,7 @@
 #include "public_editor.h"
 
 using namespace ARDOUR;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 Note::Note (
 	MidiRegionView&                   region,

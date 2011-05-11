@@ -55,7 +55,7 @@ using namespace std;
 using namespace ARDOUR;
 using namespace PBD;
 using namespace Gtk;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 using Gtkmm2ext::Keyboard;
 
@@ -187,7 +187,7 @@ Editor::track_canvas_motion (GdkEvent *ev)
 }
 
 bool
-Editor::typed_event (ArdourCanvas::Item* item, GdkEvent *event, ItemType type)
+Editor::typed_event (Canvas::Item* item, GdkEvent *event, ItemType type)
 {
 	bool ret = false;
 
@@ -219,7 +219,7 @@ Editor::typed_event (ArdourCanvas::Item* item, GdkEvent *event, ItemType type)
 }
 
 bool
-Editor::canvas_region_view_event (GdkEvent *event, ArdourCanvas::Item* item, RegionView *rv)
+Editor::canvas_region_view_event (GdkEvent *event, Canvas::Item* item, RegionView *rv)
 {
 	bool ret = false;
 
@@ -264,7 +264,7 @@ Editor::canvas_region_view_event (GdkEvent *event, ArdourCanvas::Item* item, Reg
 }
 
 bool
-Editor::canvas_stream_view_event (GdkEvent *event, ArdourCanvas::Item* item, RouteTimeAxisView *tv)
+Editor::canvas_stream_view_event (GdkEvent *event, Canvas::Item* item, RouteTimeAxisView *tv)
 {
 	bool ret = FALSE;
 
@@ -303,7 +303,7 @@ Editor::canvas_stream_view_event (GdkEvent *event, ArdourCanvas::Item* item, Rou
 }
 
 bool
-Editor::canvas_automation_track_event (GdkEvent *event, ArdourCanvas::Item* item, AutomationTimeAxisView *atv)
+Editor::canvas_automation_track_event (GdkEvent *event, Canvas::Item* item, AutomationTimeAxisView *atv)
 {
 	bool ret = false;
 
@@ -342,7 +342,7 @@ Editor::canvas_automation_track_event (GdkEvent *event, ArdourCanvas::Item* item
 }
 
 bool
-Editor::canvas_fade_in_event (GdkEvent *event, ArdourCanvas::Item* item, AudioRegionView *rv)
+Editor::canvas_fade_in_event (GdkEvent *event, Canvas::Item* item, AudioRegionView *rv)
 {
 	/* we handle only button 3 press/release events */
 
@@ -378,7 +378,7 @@ Editor::canvas_fade_in_event (GdkEvent *event, ArdourCanvas::Item* item, AudioRe
 }
 
 bool
-Editor::canvas_fade_in_handle_event (GdkEvent *event, ArdourCanvas::Item* item, AudioRegionView *rv)
+Editor::canvas_fade_in_handle_event (GdkEvent *event, Canvas::Item* item, AudioRegionView *rv)
 {
 	bool ret = false;
 
@@ -423,7 +423,7 @@ Editor::canvas_fade_in_handle_event (GdkEvent *event, ArdourCanvas::Item* item, 
 }
 
 bool
-Editor::canvas_fade_out_event (GdkEvent *event, ArdourCanvas::Item* item, AudioRegionView *rv)
+Editor::canvas_fade_out_event (GdkEvent *event, Canvas::Item* item, AudioRegionView *rv)
 {
 	/* we handle only button 3 press/release events */
 
@@ -459,7 +459,7 @@ Editor::canvas_fade_out_event (GdkEvent *event, ArdourCanvas::Item* item, AudioR
 }
 
 bool
-Editor::canvas_fade_out_handle_event (GdkEvent *event, ArdourCanvas::Item* item, AudioRegionView *rv)
+Editor::canvas_fade_out_handle_event (GdkEvent *event, Canvas::Item* item, AudioRegionView *rv)
 {
 	bool ret = false;
 
@@ -510,7 +510,7 @@ struct DescendingRegionLayerSorter {
 };
 
 bool
-Editor::canvas_crossfade_view_event (GdkEvent* event, ArdourCanvas::Item* item, CrossfadeView* xfv)
+Editor::canvas_crossfade_view_event (GdkEvent* event, Canvas::Item* item, CrossfadeView* xfv)
 {
 	/* we handle only button 3 press/release events */
 
@@ -617,7 +617,7 @@ Editor::canvas_crossfade_view_event (GdkEvent* event, ArdourCanvas::Item* item, 
 }
 
 bool
-Editor::canvas_control_point_event (GdkEvent *event, ArdourCanvas::Item* item, ControlPoint* cp)
+Editor::canvas_control_point_event (GdkEvent *event, Canvas::Item* item, ControlPoint* cp)
 {
 	switch (event->type) {
 	case GDK_BUTTON_PRESS:
@@ -643,7 +643,7 @@ Editor::canvas_control_point_event (GdkEvent *event, ArdourCanvas::Item* item, C
 }
 
 bool
-Editor::canvas_line_event (GdkEvent *event, ArdourCanvas::Item* item, AutomationLine* al)
+Editor::canvas_line_event (GdkEvent *event, Canvas::Item* item, AutomationLine* al)
 {
 	ItemType type;
 
@@ -657,7 +657,7 @@ Editor::canvas_line_event (GdkEvent *event, ArdourCanvas::Item* item, Automation
 }
 
 bool
-Editor::canvas_selection_rect_event (GdkEvent *event, ArdourCanvas::Item* item, SelectionRect* rect)
+Editor::canvas_selection_rect_event (GdkEvent *event, Canvas::Item* item, SelectionRect* rect)
 {
 	bool ret = false;
 
@@ -691,7 +691,7 @@ Editor::canvas_selection_rect_event (GdkEvent *event, ArdourCanvas::Item* item, 
 }
 
 bool
-Editor::canvas_selection_start_trim_event (GdkEvent *event, ArdourCanvas::Item* item, SelectionRect* rect)
+Editor::canvas_selection_start_trim_event (GdkEvent *event, Canvas::Item* item, SelectionRect* rect)
 {
 	bool ret = false;
 
@@ -724,7 +724,7 @@ Editor::canvas_selection_start_trim_event (GdkEvent *event, ArdourCanvas::Item* 
 }
 
 bool
-Editor::canvas_selection_end_trim_event (GdkEvent *event, ArdourCanvas::Item* item, SelectionRect* rect)
+Editor::canvas_selection_end_trim_event (GdkEvent *event, Canvas::Item* item, SelectionRect* rect)
 {
 	bool ret = false;
 
@@ -757,7 +757,7 @@ Editor::canvas_selection_end_trim_event (GdkEvent *event, ArdourCanvas::Item* it
 }
 
 bool
-Editor::canvas_frame_handle_event (GdkEvent* event, ArdourCanvas::Item* item, RegionView* rv)
+Editor::canvas_frame_handle_event (GdkEvent* event, Canvas::Item* item, RegionView* rv)
 {
 	bool ret = false;
 
@@ -816,7 +816,7 @@ Editor::canvas_frame_handle_event (GdkEvent* event, ArdourCanvas::Item* item, Re
 
 
 bool
-Editor::canvas_region_view_name_highlight_event (GdkEvent* event, ArdourCanvas::Item* item, RegionView* rv)
+Editor::canvas_region_view_name_highlight_event (GdkEvent* event, Canvas::Item* item, RegionView* rv)
 {
 	bool ret = false;
 
@@ -859,7 +859,7 @@ Editor::canvas_region_view_name_highlight_event (GdkEvent* event, ArdourCanvas::
 }
 
 bool
-Editor::canvas_region_view_name_event (GdkEvent *event, ArdourCanvas::Item* item, RegionView* rv)
+Editor::canvas_region_view_name_event (GdkEvent *event, Canvas::Item* item, RegionView* rv)
 {
 	bool ret = false;
 
@@ -901,7 +901,7 @@ Editor::canvas_region_view_name_event (GdkEvent *event, ArdourCanvas::Item* item
 }
 
 bool
-Editor::canvas_feature_line_event (GdkEvent *event, ArdourCanvas::Item* item, RegionView*)
+Editor::canvas_feature_line_event (GdkEvent *event, Canvas::Item* item, RegionView*)
 {
 	bool ret = false;
 
@@ -940,73 +940,73 @@ Editor::canvas_feature_line_event (GdkEvent *event, ArdourCanvas::Item* item, Re
 }
 
 bool
-Editor::canvas_marker_event (GdkEvent *event, ArdourCanvas::Item* item, Marker* /*marker*/)
+Editor::canvas_marker_event (GdkEvent *event, Canvas::Item* item, Marker* /*marker*/)
 {
 	return typed_event (item, event, MarkerItem);
 }
 
 bool
-Editor::canvas_marker_bar_event (GdkEvent *event, ArdourCanvas::Item* item)
+Editor::canvas_marker_bar_event (GdkEvent *event, Canvas::Item* item)
 {
 	return typed_event (item, event, MarkerBarItem);
 }
 
 bool
-Editor::canvas_range_marker_bar_event (GdkEvent *event, ArdourCanvas::Item* item)
+Editor::canvas_range_marker_bar_event (GdkEvent *event, Canvas::Item* item)
 {
 	return typed_event (item, event, RangeMarkerBarItem);
 }
 
 bool
-Editor::canvas_transport_marker_bar_event (GdkEvent *event, ArdourCanvas::Item* item)
+Editor::canvas_transport_marker_bar_event (GdkEvent *event, Canvas::Item* item)
 {
 	return typed_event (item, event, TransportMarkerBarItem);
 }
 
 bool
-Editor::canvas_cd_marker_bar_event (GdkEvent *event, ArdourCanvas::Item* item)
+Editor::canvas_cd_marker_bar_event (GdkEvent *event, Canvas::Item* item)
 {
 	return typed_event (item, event, CdMarkerBarItem);
 }
 
 bool
-Editor::canvas_tempo_marker_event (GdkEvent *event, ArdourCanvas::Item* item, TempoMarker* /*marker*/)
+Editor::canvas_tempo_marker_event (GdkEvent *event, Canvas::Item* item, TempoMarker* /*marker*/)
 {
 	return typed_event (item, event, TempoMarkerItem);
 }
 
 bool
-Editor::canvas_meter_marker_event (GdkEvent *event, ArdourCanvas::Item* item, MeterMarker* /*marker*/)
+Editor::canvas_meter_marker_event (GdkEvent *event, Canvas::Item* item, MeterMarker* /*marker*/)
 {
 	return typed_event (item, event, MeterMarkerItem);
 }
 
 bool
-Editor::canvas_tempo_bar_event (GdkEvent *event, ArdourCanvas::Item* item)
+Editor::canvas_tempo_bar_event (GdkEvent *event, Canvas::Item* item)
 {
 	return typed_event (item, event, TempoBarItem);
 }
 
 bool
-Editor::canvas_meter_bar_event (GdkEvent *event, ArdourCanvas::Item* item)
+Editor::canvas_meter_bar_event (GdkEvent *event, Canvas::Item* item)
 {
 	return typed_event (item, event, MeterBarItem);
 }
 
 bool
-Editor::canvas_playhead_cursor_event (GdkEvent *event, ArdourCanvas::Item* item)
+Editor::canvas_playhead_cursor_event (GdkEvent *event, Canvas::Item* item)
 {
 	return typed_event (item, event, PlayheadCursorItem);
 }
 
 bool
-Editor::canvas_zoom_rect_event (GdkEvent *event, ArdourCanvas::Item* item)
+Editor::canvas_zoom_rect_event (GdkEvent *event, Canvas::Item* item)
 {
 	return typed_event (item, event, NoItem);
 }
 
 bool
-Editor::canvas_note_event (GdkEvent *event, ArdourCanvas::Item* item)
+Editor::canvas_note_event (GdkEvent *event, Canvas::Item* item)
 {
 	if (!internal_editing()) {
 		return false;
@@ -1018,8 +1018,8 @@ Editor::canvas_note_event (GdkEvent *event, ArdourCanvas::Item* item)
 bool
 Editor::track_canvas_drag_motion (Glib::RefPtr<Gdk::DragContext> const & /*c*/, int x, int y, guint /*time*/)
 {
-	ArdourCanvas::Coord wx;
-	ArdourCanvas::Coord wy;
+	Canvas::Coord wx;
+	Canvas::Coord wy;
 	_track_canvas_viewport->window_to_canvas (x, y, wx, wy);
 
 	GdkEvent event;

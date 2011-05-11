@@ -47,7 +47,7 @@ using namespace Gtkmm2ext;
 
 PBD::Signal1<void,Marker*> Marker::CatchDeletion;
 
-Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, const string& annotation,
+Marker::Marker (PublicEditor& ed, Canvas::Group& parent, guint32 rgba, const string& annotation,
 		Type type, framepos_t frame, bool handle_events)
 
 	: editor (ed)
@@ -134,14 +134,14 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 
 	switch (type) {
 	case Mark:
-		points = new ArdourCanvas::Points ();
+		points = new Canvas::Points ();
 
-		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
-		points->push_back (ArdourCanvas::Duple (6.0, 0.0));
-		points->push_back (ArdourCanvas::Duple (6.0, 5.0));
-		points->push_back (ArdourCanvas::Duple (3.0, 13.0));
-		points->push_back (ArdourCanvas::Duple (0.0, 5.0));
-		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
+		points->push_back (Canvas::Duple (0.0, 0.0));
+		points->push_back (Canvas::Duple (6.0, 0.0));
+		points->push_back (Canvas::Duple (6.0, 5.0));
+		points->push_back (Canvas::Duple (3.0, 13.0));
+		points->push_back (Canvas::Duple (0.0, 5.0));
+		points->push_back (Canvas::Duple (0.0, 0.0));
 
 		_shift = 3;
 		_label_offset = 8.0;
@@ -150,13 +150,13 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 	case Tempo:
 	case Meter:
 
-		points = new ArdourCanvas::Points ();
-		points->push_back (ArdourCanvas::Duple (3.0, 0.0));
-		points->push_back (ArdourCanvas::Duple (6.0, 5.0));
-		points->push_back (ArdourCanvas::Duple (6.0, 10.0));
-		points->push_back (ArdourCanvas::Duple (0.0, 10.0));
-		points->push_back (ArdourCanvas::Duple (0.0, 5.0));
-		points->push_back (ArdourCanvas::Duple (3.0, 0.0));
+		points = new Canvas::Points ();
+		points->push_back (Canvas::Duple (3.0, 0.0));
+		points->push_back (Canvas::Duple (6.0, 5.0));
+		points->push_back (Canvas::Duple (6.0, 10.0));
+		points->push_back (Canvas::Duple (0.0, 10.0));
+		points->push_back (Canvas::Duple (0.0, 5.0));
+		points->push_back (Canvas::Duple (3.0, 0.0));
 
 		_shift = 3;
 		_label_offset = 8.0;
@@ -165,11 +165,11 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 	case SessionStart:
 	case RangeStart:
 		
-	        points = new ArdourCanvas::Points ();
-		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
-		points->push_back (ArdourCanvas::Duple (6.5, 6.5));
-		points->push_back (ArdourCanvas::Duple (0.0, 13.0));
-		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
+	        points = new Canvas::Points ();
+		points->push_back (Canvas::Duple (0.0, 0.0));
+		points->push_back (Canvas::Duple (6.5, 6.5));
+		points->push_back (Canvas::Duple (0.0, 13.0));
+		points->push_back (Canvas::Duple (0.0, 0.0));
 
 		_shift = 0;
 		_label_offset = 13.0;
@@ -177,55 +177,55 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 
 	case SessionEnd:
 	case RangeEnd:
-		points = new ArdourCanvas::Points ();
-		points->push_back (ArdourCanvas::Duple (6.5, 6.5));
-		points->push_back (ArdourCanvas::Duple (13.0, 0.0));
-		points->push_back (ArdourCanvas::Duple (13.0, 13.0));
-		points->push_back (ArdourCanvas::Duple (6.5, 6.5));
+		points = new Canvas::Points ();
+		points->push_back (Canvas::Duple (6.5, 6.5));
+		points->push_back (Canvas::Duple (13.0, 0.0));
+		points->push_back (Canvas::Duple (13.0, 13.0));
+		points->push_back (Canvas::Duple (6.5, 6.5));
 
 		_shift = 13;
 		_label_offset = 6.0;
 		break;
 
 	case LoopStart:
-		points = new ArdourCanvas::Points ();
-		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
-		points->push_back (ArdourCanvas::Duple (13.0, 13.0));
-		points->push_back (ArdourCanvas::Duple (0.0, 13.0));
-		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
+		points = new Canvas::Points ();
+		points->push_back (Canvas::Duple (0.0, 0.0));
+		points->push_back (Canvas::Duple (13.0, 13.0));
+		points->push_back (Canvas::Duple (0.0, 13.0));
+		points->push_back (Canvas::Duple (0.0, 0.0));
 
 		_shift = 0;
 		_label_offset = 12.0;
 		break;
 
 	case LoopEnd:
-		points = new ArdourCanvas::Points ();
-		points->push_back (ArdourCanvas::Duple (13.0,  0.0));
-		points->push_back (ArdourCanvas::Duple (13.0, 13.0));
-		points->push_back (ArdourCanvas::Duple (0.0, 13.0));
-		points->push_back (ArdourCanvas::Duple (13.0, 0.0));
+		points = new Canvas::Points ();
+		points->push_back (Canvas::Duple (13.0,  0.0));
+		points->push_back (Canvas::Duple (13.0, 13.0));
+		points->push_back (Canvas::Duple (0.0, 13.0));
+		points->push_back (Canvas::Duple (13.0, 0.0));
 
 		_shift = 13;
 		_label_offset = 0.0;
 		break;
 
 	case  PunchIn:
-		points = new ArdourCanvas::Points ();
-		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
-		points->push_back (ArdourCanvas::Duple (13.0, 0.0));
-		points->push_back (ArdourCanvas::Duple (0.0, 13.0));
-		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
+		points = new Canvas::Points ();
+		points->push_back (Canvas::Duple (0.0, 0.0));
+		points->push_back (Canvas::Duple (13.0, 0.0));
+		points->push_back (Canvas::Duple (0.0, 13.0));
+		points->push_back (Canvas::Duple (0.0, 0.0));
 
 		_shift = 0;
 		_label_offset = 13.0;
 		break;
 
 	case  PunchOut:
-		points = new ArdourCanvas::Points ();
-		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
-		points->push_back (ArdourCanvas::Duple (12.0, 0.0));
-		points->push_back (ArdourCanvas::Duple (12.0, 12.0));
-		points->push_back (ArdourCanvas::Duple (0.0, 0.0));
+		points = new Canvas::Points ();
+		points->push_back (Canvas::Duple (0.0, 0.0));
+		points->push_back (Canvas::Duple (12.0, 0.0));
+		points->push_back (Canvas::Duple (12.0, 12.0));
+		points->push_back (Canvas::Duple (0.0, 0.0));
 
 		_shift = 13;
 		_label_offset = 0.0;
@@ -237,12 +237,12 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 	unit_position = editor.frame_to_unit (frame);
 	unit_position -= _shift;
 	
-	group = new ArdourCanvas::Group (&parent, ArdourCanvas::Duple (unit_position, 1.0));
+	group = new Canvas::Group (&parent, Canvas::Duple (unit_position, 1.0));
 #ifdef CANVAS_DEBUG
 	group->name = string_compose ("Marker::group for %1", annotation);
 #endif	
 
-	_name_background = new ArdourCanvas::Rectangle (group);
+	_name_background = new Canvas::Rectangle (group);
 #ifdef CANVAS_DEBUG
 	_name_background->name = string_compose ("Marker::_name_background for %1", annotation);
 #endif	
@@ -250,7 +250,7 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 
 	/* adjust to properly locate the tip */
 
-	mark = new ArdourCanvas::Polygon (group);
+	mark = new Canvas::Polygon (group);
 #ifdef CANVAS_DEBUG
 	mark->name = string_compose ("Marker::mark for %1", annotation);
 #endif	
@@ -269,11 +269,11 @@ Marker::Marker (PublicEditor& ed, ArdourCanvas::Group& parent, guint32 rgba, con
 	layout->set_font_description (*name_font);
 	Gtkmm2ext::get_ink_pixel_size (layout, width, name_height);
 
-	name_pixbuf = new ArdourCanvas::Pixbuf (group);
+	name_pixbuf = new Canvas::Pixbuf (group);
 #ifdef CANVAS_DEBUG
 	name_pixbuf->name = string_compose ("Marker::name_pixbuf for %1", annotation);
 #endif	
-	name_pixbuf->set_position (ArdourCanvas::Duple (_label_offset, 13 / 2 - name_height / 2));
+	name_pixbuf->set_position (Canvas::Duple (_label_offset, 13 / 2 - name_height / 2));
 
 	set_name (annotation.c_str());
 
@@ -297,7 +297,7 @@ Marker::~Marker ()
 	delete _line;
 }
 
-void Marker::reparent(ArdourCanvas::Group & parent)
+void Marker::reparent(Canvas::Group & parent)
 {
 	group->reparent (&parent);
 	_parent = &parent;
@@ -324,7 +324,7 @@ Marker::setup_line ()
 
 		if (_line == 0) {
 
-			_line = new ArdourCanvas::Line (group);
+			_line = new Canvas::Line (group);
 			_line->set_outline_color (ARDOUR_UI::config()->canvasvar_EditPoint.get());
 
 			_line->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_marker_event), mark, this));
@@ -359,7 +359,7 @@ Marker::canvas_height_set (double h)
 	setup_line ();
 }
 
-ArdourCanvas::Item&
+Canvas::Item&
 Marker::the_item() const
 {
 	return *mark;
@@ -495,7 +495,7 @@ Marker::set_right_label_limit (double p)
 
 /***********************************************************************/
 
-TempoMarker::TempoMarker (PublicEditor& editor, ArdourCanvas::Group& parent, guint32 rgba, const string& text,
+TempoMarker::TempoMarker (PublicEditor& editor, Canvas::Group& parent, guint32 rgba, const string& text,
 			  ARDOUR::TempoSection& temp)
 	: Marker (editor, parent, rgba, text, Tempo, 0, false),
 	  _tempo (temp)
@@ -510,7 +510,7 @@ TempoMarker::~TempoMarker ()
 
 /***********************************************************************/
 
-MeterMarker::MeterMarker (PublicEditor& editor, ArdourCanvas::Group& parent, guint32 rgba, const string& text,
+MeterMarker::MeterMarker (PublicEditor& editor, Canvas::Group& parent, guint32 rgba, const string& text,
 			  ARDOUR::MeterSection& m)
 	: Marker (editor, parent, rgba, text, Meter, 0, false),
 	  _meter (m)

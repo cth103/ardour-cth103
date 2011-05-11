@@ -48,7 +48,7 @@ class AutomationTimeAxisView;
 class Selectable;
 class Selection;
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class Rectangle;
 }
 
@@ -56,7 +56,7 @@ namespace ArdourCanvas {
 class AutomationLine : public sigc::trackable, public PBD::StatefulDestructible
 {
   public:
-	AutomationLine (const std::string& name, TimeAxisView&, ArdourCanvas::Group&,
+	AutomationLine (const std::string& name, TimeAxisView&, Canvas::Group&,
 			boost::shared_ptr<ARDOUR::AutomationList>,
 			const Evoral::TimeConverter<double, ARDOUR::framepos_t>* converter = 0);
 	virtual ~AutomationLine ();
@@ -99,9 +99,9 @@ class AutomationLine : public sigc::trackable, public PBD::StatefulDestructible
 
 	TimeAxisView& trackview;
 
-	ArdourCanvas::Group& canvas_group() const { return *group; }
-	ArdourCanvas::Item&  parent_group() const { return _parent_group; }
-	ArdourCanvas::Item&  grab_item() const { return *line; }
+	Canvas::Group& canvas_group() const { return *group; }
+	Canvas::Item&  parent_group() const { return _parent_group; }
+	Canvas::Item&  grab_item() const { return *line; }
 
 	std::string get_verbose_cursor_string (double) const;
 	std::string fraction_to_string (double) const;
@@ -164,10 +164,10 @@ class AutomationLine : public sigc::trackable, public PBD::StatefulDestructible
 	bool    points_visible            : 1;
 	bool    did_push;
 
-	ArdourCanvas::Group&        _parent_group;
-	ArdourCanvas::Group*        group;
-	ArdourCanvas::PolyLine*     line; /* line */
-	ArdourCanvas::Points        line_points; /* coordinates for canvas line */
+	Canvas::Group&        _parent_group;
+	Canvas::Group*        group;
+	Canvas::PolyLine*     line; /* line */
+	Canvas::Points        line_points; /* coordinates for canvas line */
 	std::vector<ControlPoint*>  control_points; /* visible control points */
 
 	struct ALPoint {

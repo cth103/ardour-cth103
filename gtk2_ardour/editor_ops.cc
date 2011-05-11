@@ -5669,13 +5669,13 @@ Editor::place_transient()
 }
 
 void
-Editor::remove_transient(ArdourCanvas::Item* item)
+Editor::remove_transient(Canvas::Item* item)
 {
 	if (!_session) {
 		return;
 	}
 
-	ArdourCanvas::Line* _line = reinterpret_cast<ArdourCanvas::Line*> (item);
+	Canvas::Line* _line = reinterpret_cast<Canvas::Line*> (item);
 	assert (_line);
 
 	AudioRegionView* _arv = reinterpret_cast<AudioRegionView*> (item->get_data ("regionview"));

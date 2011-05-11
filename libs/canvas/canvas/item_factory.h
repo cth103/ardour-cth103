@@ -1,4 +1,4 @@
-namespace ArdourCanvas
+namespace Canvas
 {
 
 class Item;

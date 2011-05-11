@@ -5,7 +5,7 @@
 #include "canvas/pixbuf.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 Rectangle* rectangle = 0;
 

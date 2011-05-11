@@ -27,20 +27,20 @@ class Editor;
 class EditorCursor
 {
 public:
-	EditorCursor (Editor&, bool (Editor::*)(GdkEvent*, ArdourCanvas::Item*));
+	EditorCursor (Editor&, bool (Editor::*)(GdkEvent*, Canvas::Item*));
 	~EditorCursor ();
 
 	void set_position (framepos_t);
 
 	void show ();
 	void hide ();
-	void set_color (ArdourCanvas::Color);
+	void set_color (Canvas::Color);
 
 	framepos_t current_frame () const {
 		return _current_frame;
 	}
 
-	ArdourCanvas::Line& track_canvas_item () {
+	Canvas::Line& track_canvas_item () {
 		return _track_canvas_item;
 	}
 
@@ -49,8 +49,8 @@ public:
 private:	
 
 	Editor&               _editor;
-	ArdourCanvas::Arrow   _time_bars_canvas_item;
-	ArdourCanvas::Line    _track_canvas_item;
+	Canvas::Arrow   _time_bars_canvas_item;
+	Canvas::Line    _track_canvas_item;
 	framepos_t            _current_frame;
 	double		      _length;
 };

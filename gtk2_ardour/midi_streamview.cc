@@ -69,12 +69,12 @@ MidiStreamView::MidiStreamView (MidiTimeAxisView& tv)
 	, _updates_suspended (false)
 {
 	/* use a group dedicated to MIDI underlays. Audio underlays are not in this group. */
-	midi_underlay_group = new ArdourCanvas::Group (_canvas_group);
+	midi_underlay_group = new Canvas::Group (_canvas_group);
 	midi_underlay_group->lower_to_bottom();
 
 	/* put the note lines in the timeaxisview's group, so it
 	   can be put below ghost regions from MIDI underlays*/
-	_note_lines = new ArdourCanvas::LineSet (_canvas_group);
+	_note_lines = new Canvas::LineSet (_canvas_group);
 
 	_note_lines->Event.connect (sigc::bind (
 			sigc::mem_fun(_trackview.editor(), &PublicEditor::canvas_stream_view_event),
@@ -511,8 +511,8 @@ MidiStreamView::setup_rec_box ()
 
 			fill_color = ARDOUR_UI::config()->canvasvar_RecordingRect.get();
 
-			ArdourCanvas::Rectangle * rec_rect = new ArdourCanvas::Rectangle (_canvas_group);
-			rec_rect->set (ArdourCanvas::Rect (xstart, 1, xend, _trackview.current_height() - 1));
+			Canvas::Rectangle * rec_rect = new Canvas::Rectangle (_canvas_group);
+			rec_rect->set (Canvas::Rect (xstart, 1, xend, _trackview.current_height() - 1));
 			rec_rect->set_outline_color (ARDOUR_UI::config()->canvasvar_RecordingRect.get());
 			rec_rect->set_fill_color (fill_color);
 			rec_rect->lower_to_bottom();

@@ -36,7 +36,7 @@ using namespace std;
  */
 PatchChange::PatchChange(
 		MidiRegionView& region,
-		ArdourCanvas::Group* parent,
+		Canvas::Group* parent,
 		const string&   text,
 		double          height,
 		double          x,
@@ -50,12 +50,12 @@ PatchChange::PatchChange(
 	, _patch (patch)
 	, _popup_initialized(false)
 {
-	_flag = new ArdourCanvas::Flag (
+	_flag = new Canvas::Flag (
 		parent,
 		height,
 		ARDOUR_UI::config()->canvasvar_MidiPatchChangeOutline.get(),
 		ARDOUR_UI::config()->canvasvar_MidiPatchChangeFill.get(),
-		ArdourCanvas::Duple (x, y)
+		Canvas::Duple (x, y)
 		);
 	
 	_flag->Event.connect (sigc::mem_fun (*this, &PatchChange::event_handler));
@@ -203,13 +203,13 @@ PatchChange::event_handler (GdkEvent* ev)
 }
 
 void
-PatchChange::move (ArdourCanvas::Duple d)
+PatchChange::move (Canvas::Duple d)
 {
 	_flag->move (d);
 }
 
 void
-PatchChange::set_height (ArdourCanvas::Distance height)
+PatchChange::set_height (Canvas::Distance height)
 {
 	_flag->set_height (height);
 }

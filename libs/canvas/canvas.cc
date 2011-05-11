@@ -32,7 +32,7 @@
 #include "canvas/debug.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 /** Construct a Tile.  This creates the blank bitmap and marks
  *  it dirty, so that it is redrawn when required.
@@ -85,7 +85,7 @@ Tile::set_dirty ()
 }
 
 /** Construct a new Canvas */
-Canvas::Canvas ()
+Canvas::Canvas::Canvas ()
 	: _root (this)
 	, _updates_suspended (false)
 #ifdef CANVAS_DEBUG	  
@@ -101,7 +101,7 @@ Canvas::Canvas ()
 /** Construct a new Canvas from an XML tree.
  *  @param tree XML Tree.
  */
-Canvas::Canvas (XMLTree const * tree)
+Canvas::Canvas::Canvas (XMLTree const * tree)
 	: _root (this)
 	, _updates_suspended (false)
 #ifdef CANVAS_DEBUG	  
@@ -137,7 +137,7 @@ Canvas::Canvas (XMLTree const * tree)
  *  @param ty Tile y index.
  */
 void
-Canvas::ensure_tile (int tx, int ty) const
+Canvas::Canvas::ensure_tile (int tx, int ty) const
 {
 	/* Grow the array */
 	
@@ -166,7 +166,7 @@ Canvas::ensure_tile (int tx, int ty) const
  *  @param ty1 Set to the upper y tile index (inclusive).
  */
 void
-Canvas::area_to_tiles (Rect const & area, int& tx0, int& ty0, int& tx1, int& ty1) const
+Canvas::Canvas::area_to_tiles (Rect const & area, int& tx0, int& ty0, int& tx1, int& ty1) const
 {
 	if (area.x0 == COORD_MAX) {
 		tx0 = INT_MAX;
@@ -197,7 +197,7 @@ Canvas::area_to_tiles (Rect const & area, int& tx0, int& ty0, int& tx1, int& ty1
 
 /** Render an area of the canvas using our tiles, creating and updating tiles as we go */
 void
-Canvas::paint_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
+Canvas::Canvas::paint_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> const & context) const
 {
 #ifdef CANVAS_DEBUG	
 	tile_render_count = 0;
@@ -239,7 +239,7 @@ Canvas::paint_from_tiles (Rect const & area, Cairo::RefPtr<Cairo::Context> const
  *  @param ty Tile's y index.
  */
 void
-Canvas::render_to_tile (Cairo::RefPtr<Cairo::Context> context, int tx, int ty) const
+Canvas::Canvas::render_to_tile (Cairo::RefPtr<Cairo::Context> context, int tx, int ty) const
 {
 	boost::optional<Rect> root_bbox = _root.bbox ();
 	if (!root_bbox) {
@@ -272,7 +272,7 @@ Canvas::render_to_tile (Cairo::RefPtr<Cairo::Context> context, int tx, int ty) c
  *  in the parent's coordinates.
  */
 void
-Canvas::item_changed (Item* item, boost::optional<Rect> pre_parent_bbox)
+Canvas::Canvas::item_changed (Item* item, boost::optional<Rect> pre_parent_bbox)
 {
 	if (_updates_suspended) {
 		return;
@@ -305,7 +305,7 @@ Canvas::item_changed (Item* item, boost::optional<Rect> pre_parent_bbox)
  *  @param area Area to redraw in the item's coordinates.
  */
 void
-Canvas::mark_item_area_dirty (Item* item, Rect area)
+Canvas::Canvas::mark_item_area_dirty (Item* item, Rect area)
 {
 	if (_tiles.empty ()) {
 		return;
@@ -345,14 +345,14 @@ Canvas::mark_item_area_dirty (Item* item, Rect area)
 
 /** Suspend all updates to the canvas */
 void
-Canvas::suspend_updates ()
+Canvas::Canvas::suspend_updates ()
 {
 	_updates_suspended = true;
 }
 
 /** Resume updates and redraw the whole visible canvas area */
 void
-Canvas::resume_updates ()
+Canvas::Canvas::resume_updates ()
 {
 	_updates_suspended = false;
 	for (vector<vector<boost::shared_ptr<Tile> > >::iterator i = _tiles.begin(); i != _tiles.end(); ++i) {
@@ -371,7 +371,7 @@ Canvas::resume_updates ()
 
 /** @return An XML description of the canvas and its objects */
 XMLTree *
-Canvas::get_state () const
+Canvas::Canvas::get_state () const
 {
 	XMLTree* tree = new XMLTree ();
 	XMLNode* node = new XMLNode ("Canvas");

@@ -470,7 +470,7 @@ Editor::step_mouse_mode (bool next)
 }
 
 void
-Editor::button_selection (ArdourCanvas::Item* /*item*/, GdkEvent* event, ItemType item_type)
+Editor::button_selection (Canvas::Item* /*item*/, GdkEvent* event, ItemType item_type)
 {
  	/* in object/audition/timefx/gain-automation mode,
 	   any button press sets the selection if the object
@@ -573,7 +573,7 @@ Editor::button_selection (ArdourCanvas::Item* /*item*/, GdkEvent* event, ItemTyp
 }
 
 bool
-Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_type)
+Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType item_type)
 {
 	/* single mouse clicks on any of these item types operate
 	   independent of mouse mode, mostly because they are
@@ -1055,7 +1055,7 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 }
 
 bool
-Editor::button_press_handler_2 (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_type)
+Editor::button_press_handler_2 (Canvas::Item* item, GdkEvent* event, ItemType item_type)
 {
 	Editing::MouseMode const eff = effective_mouse_mode ();
 	switch (eff) {
@@ -1132,7 +1132,7 @@ Editor::button_press_handler_2 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 }
 
 bool
-Editor::button_press_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_type)
+Editor::button_press_handler (Canvas::Item* item, GdkEvent* event, ItemType item_type)
 {
 	if (event->type != GDK_BUTTON_PRESS) {
 		return false;
@@ -1199,7 +1199,7 @@ Editor::button_release_dispatch (GdkEventButton* ev)
 }
 
 bool
-Editor::button_release_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_type)
+Editor::button_release_handler (Canvas::Item* item, GdkEvent* event, ItemType item_type)
 {
 	framepos_t where = event_frame (event, 0, 0);
 	AutomationTimeAxisView* atv = 0;
@@ -1555,7 +1555,7 @@ Editor::button_release_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 }
 
 bool
-Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_type)
+Editor::enter_handler (Canvas::Item* item, GdkEvent* event, ItemType item_type)
 {
 	ControlPoint* cp;
 	Marker * marker;
@@ -1590,7 +1590,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 
 	case GainLineItem:
 		if (mouse_mode == MouseGain) {
-			ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
+			Canvas::Line *line = dynamic_cast<Canvas::Line *> (item);
 			if (line) {
 				line->set_outline_color (ARDOUR_UI::config()->canvasvar_EnteredGainLine.get());
 			}
@@ -1602,7 +1602,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 
 	case AutomationLineItem:
 		if (mouse_mode == MouseGain || mouse_mode == MouseObject) {
-			ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
+			Canvas::Line *line = dynamic_cast<Canvas::Line *> (item);
 			if (line) {
 				line->set_outline_color (ARDOUR_UI::config()->canvasvar_EnteredAutomationLine.get());
 			}
@@ -1719,7 +1719,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 
 	case FadeInHandleItem:
 		if (mouse_mode == MouseObject && !internal_editing()) {
-			ArdourCanvas::Rectangle *rect = dynamic_cast<ArdourCanvas::Rectangle *> (item);
+			Canvas::Rectangle *rect = dynamic_cast<Canvas::Rectangle *> (item);
 			if (rect) {
 				rect->set_fill_color (0xBBBBBBAA);
 			}
@@ -1729,7 +1729,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 
 	case FadeOutHandleItem:
 		if (mouse_mode == MouseObject && !internal_editing()) {
-			ArdourCanvas::Rectangle *rect = dynamic_cast<ArdourCanvas::Rectangle *> (item);
+			Canvas::Rectangle *rect = dynamic_cast<Canvas::Rectangle *> (item);
 			if (rect) {
 				rect->set_fill_color (0xBBBBBBAA);
 			}
@@ -1738,7 +1738,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 		break;
 	case FeatureLineItem:
 	{
-		ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
+		Canvas::Line *line = dynamic_cast<Canvas::Line *> (item);
 		line->set_outline_color (0xFF0000FF);
 	}
 	break;
@@ -1777,7 +1777,7 @@ Editor::enter_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 }
 
 bool
-Editor::leave_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_type)
+Editor::leave_handler (Canvas::Item* item, GdkEvent* event, ItemType item_type)
 {
 	AutomationLine* al;
 	ControlPoint* cp;
@@ -1828,7 +1828,7 @@ Editor::leave_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 	case AutomationLineItem:
 		al = reinterpret_cast<AutomationLine*> (item->get_data ("line"));
 		{
-			ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
+			Canvas::Line *line = dynamic_cast<Canvas::Line *> (item);
 			if (line) {
 				line->set_outline_color (al->get_line_color());
 			}
@@ -1882,7 +1882,7 @@ Editor::leave_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 	case FadeOutHandleItem:
 		rv = static_cast<RegionView*>(item->get_data ("regionview"));
 		{
-			ArdourCanvas::Rectangle *rect = dynamic_cast<ArdourCanvas::Rectangle *> (item);
+			Canvas::Rectangle *rect = dynamic_cast<Canvas::Rectangle *> (item);
 			if (rect) {
 				rect->set_fill_color (rv->get_fill_color());
 				rect->set_outline (false);
@@ -1900,7 +1900,7 @@ Editor::leave_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_
 		break;
 	case FeatureLineItem:
 		{
-			ArdourCanvas::Line *line = dynamic_cast<ArdourCanvas::Line *> (item);
+			Canvas::Line *line = dynamic_cast<Canvas::Line *> (item);
 			line->set_outline_color (ARDOUR_UI::config()->canvasvar_ZeroLine.get());
 		}
 		break;
@@ -2002,7 +2002,7 @@ Editor::scrub (framepos_t frame, double current_x)
 }
 
 bool
-Editor::motion_handler (ArdourCanvas::Item* /*item*/, GdkEvent* event, bool from_autoscroll)
+Editor::motion_handler (Canvas::Item* /*item*/, GdkEvent* event, bool from_autoscroll)
 {
 	_last_motion_y = event->motion.y;
 
@@ -2056,7 +2056,7 @@ Editor::motion_handler (ArdourCanvas::Item* /*item*/, GdkEvent* event, bool from
 }
 
 void
-Editor::remove_gain_control_point (ArdourCanvas::Item*item, GdkEvent* /*event*/)
+Editor::remove_gain_control_point (Canvas::Item*item, GdkEvent* /*event*/)
 {
 	ControlPoint* control_point;
 
@@ -2075,7 +2075,7 @@ Editor::remove_gain_control_point (ArdourCanvas::Item*item, GdkEvent* /*event*/)
 }
 
 void
-Editor::remove_control_point (ArdourCanvas::Item* item, GdkEvent* /*event*/)
+Editor::remove_control_point (Canvas::Item* item, GdkEvent* /*event*/)
 {
 	ControlPoint* control_point;
 
@@ -2088,7 +2088,7 @@ Editor::remove_control_point (ArdourCanvas::Item* item, GdkEvent* /*event*/)
 }
 
 void
-Editor::edit_control_point (ArdourCanvas::Item* item)
+Editor::edit_control_point (Canvas::Item* item)
 {
 	ControlPoint* p = reinterpret_cast<ControlPoint *> (item->get_data ("control_point"));
 
@@ -2109,7 +2109,7 @@ Editor::edit_control_point (ArdourCanvas::Item* item)
 }
 
 void
-Editor::edit_note (ArdourCanvas::Item* item)
+Editor::edit_note (Canvas::Item* item)
 {
 	NoteBase* e = reinterpret_cast<NoteBase*> (item->get_data ("notebase"));
 	assert (e);
@@ -2273,7 +2273,7 @@ Editor::point_trim (GdkEvent* event, framepos_t new_bound)
 }
 
 void
-Editor::hide_marker (ArdourCanvas::Item* item, GdkEvent* /*event*/)
+Editor::hide_marker (Canvas::Item* item, GdkEvent* /*event*/)
 {
 	Marker* marker;
 	bool is_start;
@@ -2295,12 +2295,12 @@ Editor::reposition_zoom_rect (framepos_t start, framepos_t end)
 	double x2 = frame_to_pixel (end);
 	double y2 = _full_canvas_height - 1.0;
 
-	zoom_rect->set (ArdourCanvas::Rect (x1, 1, x2, y2));
+	zoom_rect->set (Canvas::Rect (x1, 1, x2, y2));
 }
 
 
 gint
-Editor::mouse_rename_region (ArdourCanvas::Item* /*item*/, GdkEvent* /*event*/)
+Editor::mouse_rename_region (Canvas::Item* /*item*/, GdkEvent* /*event*/)
 {
 	using namespace Gtkmm2ext;
 
@@ -2380,7 +2380,7 @@ Editor::track_height_step_timeout ()
 }
 
 void
-Editor::add_region_drag (ArdourCanvas::Item* item, GdkEvent* event, RegionView* region_view)
+Editor::add_region_drag (Canvas::Item* item, GdkEvent* event, RegionView* region_view)
 {
 	assert (region_view);
 
@@ -2402,7 +2402,7 @@ Editor::add_region_drag (ArdourCanvas::Item* item, GdkEvent* event, RegionView* 
 }
 
 void
-Editor::add_region_copy_drag (ArdourCanvas::Item* item, GdkEvent* event, RegionView* region_view)
+Editor::add_region_copy_drag (Canvas::Item* item, GdkEvent* event, RegionView* region_view)
 {
 	assert (region_view);
 
@@ -2417,7 +2417,7 @@ Editor::add_region_copy_drag (ArdourCanvas::Item* item, GdkEvent* event, RegionV
 }
 
 void
-Editor::add_region_brush_drag (ArdourCanvas::Item* item, GdkEvent* event, RegionView* region_view)
+Editor::add_region_brush_drag (Canvas::Item* item, GdkEvent* event, RegionView* region_view)
 {
 	assert (region_view);
 
@@ -2440,7 +2440,7 @@ Editor::add_region_brush_drag (ArdourCanvas::Item* item, GdkEvent* event, Region
  *  the section of the clicked region that lies within the time range.
  */
 void
-Editor::start_selection_grab (ArdourCanvas::Item* /*item*/, GdkEvent* event)
+Editor::start_selection_grab (Canvas::Item* /*item*/, GdkEvent* event)
 {
 	if (clicked_regionview == 0) {
 		return;
@@ -2599,7 +2599,7 @@ Editor::effective_mouse_mode () const
 }
 
 void
-Editor::remove_midi_note (ArdourCanvas::Item* item, GdkEvent *)
+Editor::remove_midi_note (Canvas::Item* item, GdkEvent *)
 {
 	NoteBase* e = reinterpret_cast<NoteBase*> (item->get_data ("notebase"));
 	assert (e);
@@ -2617,16 +2617,16 @@ Editor::set_canvas_cursor_for_region_view (double x, RegionView* rv)
 	
 	assert (rv);
 	
-	ArdourCanvas::Group* g = rv->get_canvas_group ();
-	ArdourCanvas::Group* p = g->parent ();
+	Canvas::Group* g = rv->get_canvas_group ();
+	Canvas::Group* p = g->parent ();
 
 	/* Compute x in region view parent coordinates */
 	double dy = 0;
 	p->canvas_to_item (x, dy);
 
-	boost::optional<ArdourCanvas::Rect> item_bbox = g->bbox ();
+	boost::optional<Canvas::Rect> item_bbox = g->bbox ();
 	assert (item_bbox);
-	ArdourCanvas::Rect parent_bbox = g->item_to_parent (item_bbox.get ());
+	Canvas::Rect parent_bbox = g->item_to_parent (item_bbox.get ());
 
 	/* Halfway across the region */
 	double const h = (parent_bbox.x0 + parent_bbox.x1) / 2;

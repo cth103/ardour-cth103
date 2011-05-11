@@ -55,7 +55,7 @@ using namespace Editing;
 
 static const Evoral::IdentityConverter<double, framepos_t> default_converter;
 
-AutomationLine::AutomationLine (const string& name, TimeAxisView& tv, ArdourCanvas::Group& parent,
+AutomationLine::AutomationLine (const string& name, TimeAxisView& tv, Canvas::Group& parent,
 		boost::shared_ptr<AutomationList> al,
 		const Evoral::TimeConverter<double, framepos_t>* converter)
 	: trackview (tv)
@@ -75,9 +75,9 @@ AutomationLine::AutomationLine (const string& name, TimeAxisView& tv, ArdourCanv
 	terminal_points_can_slide = true;
 	_height = 0;
 
-	group = new ArdourCanvas::Group (&parent);
+	group = new Canvas::Group (&parent);
 
-	line = new ArdourCanvas::PolyLine (group);
+	line = new Canvas::PolyLine (group);
 	line->set_outline_width (1);
 	line->set_data ("line", this);
 
@@ -470,7 +470,7 @@ AutomationLine::determine_visible_control_points (ALPoints& points)
 		/* reset the line coordinates */
 
 		while (line_points.size() < npoints) {
-			line_points.push_back (ArdourCanvas::Duple (0,0));
+			line_points.push_back (Canvas::Duple (0,0));
 		}
 
 		while (line_points.size() > npoints) {

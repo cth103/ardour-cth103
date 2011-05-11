@@ -17,8 +17,8 @@ private:
 	void render_in_pieces ();
 	void cache ();
 
-	ArdourCanvas::ImageCanvas* _canvas;
-	ArdourCanvas::WaveView* _wave_view;
+	Canvas::ImageCanvas* _canvas;
+	Canvas::WaveView* _wave_view;
 	boost::shared_ptr<ARDOUR::Region> _region;
 	boost::shared_ptr<ARDOUR::AudioRegion> _audio_region;
 };

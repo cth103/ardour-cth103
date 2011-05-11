@@ -30,7 +30,7 @@ using namespace ARDOUR;
 using namespace PBD;
 using namespace Gtk;
 
-EditorCursor::EditorCursor (Editor& ed, bool (Editor::*callbck)(GdkEvent*,ArdourCanvas::Item*))
+EditorCursor::EditorCursor (Editor& ed, bool (Editor::*callbck)(GdkEvent*,Canvas::Item*))
 	: _editor (ed)
 	, _time_bars_canvas_item (_editor._time_bars_canvas->root ())
 	, _track_canvas_item (_editor._track_canvas->root ())
@@ -52,8 +52,8 @@ EditorCursor::EditorCursor (Editor& ed, bool (Editor::*callbck)(GdkEvent*,Ardour
 	_time_bars_canvas_item.Event.connect (sigc::bind (sigc::mem_fun (ed, callbck), &_time_bars_canvas_item));
 	_track_canvas_item.Event.connect (sigc::bind (sigc::mem_fun (ed, callbck), &_track_canvas_item));
 
-	_time_bars_canvas_item.set_y1 (ArdourCanvas::COORD_MAX);
-	_track_canvas_item.set_y1 (ArdourCanvas::COORD_MAX);
+	_time_bars_canvas_item.set_y1 (Canvas::COORD_MAX);
+	_track_canvas_item.set_y1 (Canvas::COORD_MAX);
 	
 	_current_frame = 1; /* force redraw at 0 */
 }
@@ -97,7 +97,7 @@ EditorCursor::hide ()
 }
 
 void
-EditorCursor::set_color (ArdourCanvas::Color color)
+EditorCursor::set_color (Canvas::Color color)
 {
 	_time_bars_canvas_item.set_color (color);
 	_track_canvas_item.set_outline_color (color);

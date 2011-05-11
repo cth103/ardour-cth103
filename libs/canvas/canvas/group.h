@@ -30,7 +30,7 @@
 #include "canvas/item.h"
 #include "canvas/types.h"
 
-namespace ArdourCanvas {
+namespace Canvas {
 
 /** An Item which is itself a group of other items */
 class Group : public Item

@@ -35,7 +35,7 @@ class AutomationTimeAxisView;
 class Selectable;
 class Selection;
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class Rectangle;
 	class Diamond;
 }
@@ -81,7 +81,7 @@ class ControlPoint : public Selectable
 	AutomationLine&                  line()  const { return _line; }
 
   private:
-	ArdourCanvas::Rectangle* _item;
+	Canvas::Rectangle* _item;
 
 	AutomationLine& _line;
 

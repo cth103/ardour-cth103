@@ -35,7 +35,7 @@ class PatchChange
 public:
 	PatchChange(
 		MidiRegionView& region,
-		ArdourCanvas::Group* parent,
+		Canvas::Group* parent,
 		const string&   text,
 		double          height,
 		double          x,
@@ -55,12 +55,12 @@ public:
 
 	void on_patch_menu_selected(const MIDI::Name::PatchPrimaryKey& key);
 
-	ArdourCanvas::Item* canvas_item () const {
+	Canvas::Item* canvas_item () const {
 		return _flag;
 	}
 
-	void move (ArdourCanvas::Duple);
-	void set_height (ArdourCanvas::Distance);
+	void move (Canvas::Duple);
+	void set_height (Canvas::Distance);
 	void hide ();
 	void show ();
 
@@ -73,7 +73,7 @@ private:
 	ARDOUR::MidiModel::PatchChangePtr _patch;
 	Gtk::Menu     _popup;
 	bool          _popup_initialized;
-	ArdourCanvas::Flag* _flag;
+	Canvas::Flag* _flag;
 };
 
 #endif /* __PATCH_CHANGE_H__ */

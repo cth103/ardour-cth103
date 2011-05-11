@@ -299,44 +299,44 @@ class PublicEditor : public Gtk::Window, public PBD::StatefulDestructible {
 
 	virtual void reset_focus () = 0;
 
-	virtual bool canvas_control_point_event (GdkEvent* event, ArdourCanvas::Item*, ControlPoint*) = 0;
-	virtual bool canvas_line_event (GdkEvent* event, ArdourCanvas::Item*, AutomationLine*) = 0;
-	virtual bool canvas_selection_rect_event (GdkEvent* event, ArdourCanvas::Item*, SelectionRect*) = 0;
-	virtual bool canvas_selection_start_trim_event (GdkEvent* event, ArdourCanvas::Item*, SelectionRect*) = 0;
-	virtual bool canvas_selection_end_trim_event (GdkEvent* event, ArdourCanvas::Item*, SelectionRect*) = 0;
-	virtual bool canvas_crossfade_view_event (GdkEvent* event, ArdourCanvas::Item*, CrossfadeView*) = 0;
-	virtual bool canvas_fade_in_event (GdkEvent* event, ArdourCanvas::Item*, AudioRegionView*) = 0;
-	virtual bool canvas_fade_in_handle_event (GdkEvent* event, ArdourCanvas::Item*, AudioRegionView*) = 0;
-	virtual bool canvas_fade_out_event (GdkEvent* event, ArdourCanvas::Item*, AudioRegionView*) = 0;
-	virtual bool canvas_fade_out_handle_event (GdkEvent* event, ArdourCanvas::Item*, AudioRegionView*) = 0;
-	virtual bool canvas_region_view_event (GdkEvent* event, ArdourCanvas::Item*, RegionView*) = 0;
-	virtual bool canvas_frame_handle_event (GdkEvent* event, ArdourCanvas::Item*, RegionView*) = 0;
-	virtual bool canvas_region_view_name_highlight_event (GdkEvent* event, ArdourCanvas::Item*, RegionView*) = 0;
-	virtual bool canvas_region_view_name_event (GdkEvent* event, ArdourCanvas::Item*, RegionView*) = 0;
-	virtual bool canvas_feature_line_event (GdkEvent* event, ArdourCanvas::Item*, RegionView*) = 0;
-	virtual bool canvas_stream_view_event (GdkEvent* event, ArdourCanvas::Item*, RouteTimeAxisView*) = 0;
-	virtual bool canvas_marker_event (GdkEvent* event, ArdourCanvas::Item*, Marker*) = 0;
-	virtual bool canvas_zoom_rect_event (GdkEvent* event, ArdourCanvas::Item*) = 0;
-	virtual bool canvas_tempo_marker_event (GdkEvent* event, ArdourCanvas::Item*, TempoMarker*) = 0;
-	virtual bool canvas_meter_marker_event (GdkEvent* event, ArdourCanvas::Item*, MeterMarker*) = 0;
-	virtual bool canvas_automation_track_event(GdkEvent* event, ArdourCanvas::Item*, AutomationTimeAxisView*) = 0;
+	virtual bool canvas_control_point_event (GdkEvent* event, Canvas::Item*, ControlPoint*) = 0;
+	virtual bool canvas_line_event (GdkEvent* event, Canvas::Item*, AutomationLine*) = 0;
+	virtual bool canvas_selection_rect_event (GdkEvent* event, Canvas::Item*, SelectionRect*) = 0;
+	virtual bool canvas_selection_start_trim_event (GdkEvent* event, Canvas::Item*, SelectionRect*) = 0;
+	virtual bool canvas_selection_end_trim_event (GdkEvent* event, Canvas::Item*, SelectionRect*) = 0;
+	virtual bool canvas_crossfade_view_event (GdkEvent* event, Canvas::Item*, CrossfadeView*) = 0;
+	virtual bool canvas_fade_in_event (GdkEvent* event, Canvas::Item*, AudioRegionView*) = 0;
+	virtual bool canvas_fade_in_handle_event (GdkEvent* event, Canvas::Item*, AudioRegionView*) = 0;
+	virtual bool canvas_fade_out_event (GdkEvent* event, Canvas::Item*, AudioRegionView*) = 0;
+	virtual bool canvas_fade_out_handle_event (GdkEvent* event, Canvas::Item*, AudioRegionView*) = 0;
+	virtual bool canvas_region_view_event (GdkEvent* event, Canvas::Item*, RegionView*) = 0;
+	virtual bool canvas_frame_handle_event (GdkEvent* event, Canvas::Item*, RegionView*) = 0;
+	virtual bool canvas_region_view_name_highlight_event (GdkEvent* event, Canvas::Item*, RegionView*) = 0;
+	virtual bool canvas_region_view_name_event (GdkEvent* event, Canvas::Item*, RegionView*) = 0;
+	virtual bool canvas_feature_line_event (GdkEvent* event, Canvas::Item*, RegionView*) = 0;
+	virtual bool canvas_stream_view_event (GdkEvent* event, Canvas::Item*, RouteTimeAxisView*) = 0;
+	virtual bool canvas_marker_event (GdkEvent* event, Canvas::Item*, Marker*) = 0;
+	virtual bool canvas_zoom_rect_event (GdkEvent* event, Canvas::Item*) = 0;
+	virtual bool canvas_tempo_marker_event (GdkEvent* event, Canvas::Item*, TempoMarker*) = 0;
+	virtual bool canvas_meter_marker_event (GdkEvent* event, Canvas::Item*, MeterMarker*) = 0;
+	virtual bool canvas_automation_track_event(GdkEvent* event, Canvas::Item*, AutomationTimeAxisView*) = 0;
 
-	virtual bool canvas_tempo_bar_event (GdkEvent* event, ArdourCanvas::Item*) = 0;
-	virtual bool canvas_meter_bar_event (GdkEvent* event, ArdourCanvas::Item*) = 0;
-	virtual bool canvas_marker_bar_event (GdkEvent* event, ArdourCanvas::Item*) = 0;
-	virtual bool canvas_range_marker_bar_event (GdkEvent* event, ArdourCanvas::Item*) = 0;
-	virtual bool canvas_transport_marker_bar_event (GdkEvent* event, ArdourCanvas::Item*) = 0;
-	virtual bool canvas_note_event (GdkEvent* event, ArdourCanvas::Item*) = 0;
+	virtual bool canvas_tempo_bar_event (GdkEvent* event, Canvas::Item*) = 0;
+	virtual bool canvas_meter_bar_event (GdkEvent* event, Canvas::Item*) = 0;
+	virtual bool canvas_marker_bar_event (GdkEvent* event, Canvas::Item*) = 0;
+	virtual bool canvas_range_marker_bar_event (GdkEvent* event, Canvas::Item*) = 0;
+	virtual bool canvas_transport_marker_bar_event (GdkEvent* event, Canvas::Item*) = 0;
+	virtual bool canvas_note_event (GdkEvent* event, Canvas::Item*) = 0;
 
 #ifdef WITH_CMT
-	virtual bool canvas_imageframe_item_view_event(GdkEvent* event, ArdourCanvas::Item*,ImageFrameView*) = 0;
-	virtual bool canvas_imageframe_view_event(GdkEvent* event, ArdourCanvas::Item*,ImageFrameTimeAxis*) = 0;
-	virtual bool canvas_imageframe_start_handle_event(GdkEvent* event, ArdourCanvas::Item*,ImageFrameView*) = 0;
-	virtual bool canvas_imageframe_end_handle_event(GdkEvent* event, ArdourCanvas::Item*,ImageFrameView*) = 0;
-	virtual bool canvas_marker_time_axis_view_event(GdkEvent* event, ArdourCanvas::Item*,MarkerTimeAxis*) = 0;
-	virtual bool canvas_markerview_item_view_event(GdkEvent* event, ArdourCanvas::Item*,MarkerView*) = 0;
-	virtual bool canvas_markerview_start_handle_event(GdkEvent* event, ArdourCanvas::Item*,MarkerView*) = 0;
-	virtual bool canvas_markerview_end_handle_event(GdkEvent* event, ArdourCanvas::Item*,MarkerView*) = 0;
+	virtual bool canvas_imageframe_item_view_event(GdkEvent* event, Canvas::Item*,ImageFrameView*) = 0;
+	virtual bool canvas_imageframe_view_event(GdkEvent* event, Canvas::Item*,ImageFrameTimeAxis*) = 0;
+	virtual bool canvas_imageframe_start_handle_event(GdkEvent* event, Canvas::Item*,ImageFrameView*) = 0;
+	virtual bool canvas_imageframe_end_handle_event(GdkEvent* event, Canvas::Item*,ImageFrameView*) = 0;
+	virtual bool canvas_marker_time_axis_view_event(GdkEvent* event, Canvas::Item*,MarkerTimeAxis*) = 0;
+	virtual bool canvas_markerview_item_view_event(GdkEvent* event, Canvas::Item*,MarkerView*) = 0;
+	virtual bool canvas_markerview_start_handle_event(GdkEvent* event, Canvas::Item*,MarkerView*) = 0;
+	virtual bool canvas_markerview_end_handle_event(GdkEvent* event, Canvas::Item*,MarkerView*) = 0;
 #endif
 
 	static const int window_border_width;
@@ -354,8 +354,8 @@ class PublicEditor : public Gtk::Window, public PBD::StatefulDestructible {
 #endif
 
 	virtual gdouble get_trackview_group_vertical_offset () const = 0;
-	virtual ArdourCanvas::Group* get_trackview_group () const = 0;
-	virtual ArdourCanvas::Group* get_background_group () const = 0;
+	virtual Canvas::Group* get_trackview_group () const = 0;
+	virtual Canvas::Group* get_background_group () const = 0;
 
 	virtual TimeAxisView* axis_view_from_route (boost::shared_ptr<ARDOUR::Route>) const = 0;
 

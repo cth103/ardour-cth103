@@ -57,7 +57,7 @@ namespace Gtk {
 	class Menu;
 }
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class Canvas;
 	class Group;
 	class Item;
@@ -89,7 +89,7 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 
   public:
 
-	TimeAxisView(ARDOUR::Session* sess, PublicEditor& ed, TimeAxisView* parent, ArdourCanvas::Canvas& canvas);
+	TimeAxisView(ARDOUR::Session* sess, PublicEditor& ed, TimeAxisView* parent, Canvas::Canvas& canvas);
 	virtual ~TimeAxisView ();
 
 	XMLNode& get_state ();
@@ -106,9 +106,9 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
         virtual void enter_internal_edit_mode () {}
         virtual void leave_internal_edit_mode () {}
 
-	ArdourCanvas::Group* canvas_display () { return _canvas_display; }
-	ArdourCanvas::Group* canvas_background () { return _canvas_background; }
-	ArdourCanvas::Group* ghost_group () { return _ghost_group; }
+	Canvas::Group* canvas_display () { return _canvas_display; }
+	Canvas::Group* canvas_background () { return _canvas_background; }
+	Canvas::Group* ghost_group () { return _ghost_group; }
 
 	/** @return effective height (taking children into account) in canvas units, or
 	    0 if this TimeAxisView has not yet been shown */
@@ -189,7 +189,7 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 		return boost::shared_ptr<ARDOUR::Region> ();
 	}
 
-  	void order_selection_trims (ArdourCanvas::Item *item, bool put_start_on_top);
+  	void order_selection_trims (Canvas::Item *item, bool put_start_on_top);
 
 	virtual void get_selectables (ARDOUR::framepos_t, ARDOUR::framepos_t, double, double, std::list<Selectable*>&);
 	virtual void get_inverted_selectables (Selection&, std::list<Selectable *>& results);
@@ -294,7 +294,7 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 
 	/* selection display */
 
-	ArdourCanvas::Group      *selection_group;
+	Canvas::Group      *selection_group;
 
 	std::list<GhostRegion*> ghosts;
 
@@ -316,18 +316,18 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 	void build_size_menu ();
 	Gtk::Menu* _size_menu;
 
-	ArdourCanvas::Group* _canvas_display;
+	Canvas::Group* _canvas_display;
 	double _y_position;
 	PublicEditor& _editor;
 
 private:
 
-	ArdourCanvas::Group* _canvas_background;
+	Canvas::Group* _canvas_background;
  	Gtk::VBox* control_parent;
 	int _order;
 	uint32_t _effective_height;
 	double _resize_drag_start;
-	ArdourCanvas::Group* _ghost_group;
+	Canvas::Group* _ghost_group;
 
 	void compute_heights ();
 	static uint32_t extra_height;

@@ -61,11 +61,11 @@ using namespace std;
 using namespace ARDOUR;
 using namespace PBD;
 using namespace Editing;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 static const int32_t sync_mark_width = 9;
 
-AudioRegionView::AudioRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView &tv, boost::shared_ptr<AudioRegion> r, double spu,
+AudioRegionView::AudioRegionView (Canvas::Group *parent, RouteTimeAxisView &tv, boost::shared_ptr<AudioRegion> r, double spu,
 				  Gdk::Color const & basic_color)
 	: RegionView (parent, tv, r, spu, basic_color)
 	, sync_mark(0)
@@ -82,7 +82,7 @@ AudioRegionView::AudioRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView
 }
 
 
-AudioRegionView::AudioRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView &tv, boost::shared_ptr<AudioRegion> r, double spu,
+AudioRegionView::AudioRegionView (Canvas::Group *parent, RouteTimeAxisView &tv, boost::shared_ptr<AudioRegion> r, double spu,
 				  Gdk::Color const & basic_color, bool recording, TimeAxisViewItem::Visibility visibility)
 	: RegionView (parent, tv, r, spu, basic_color, recording, visibility)
 	, sync_mark(0)
@@ -172,28 +172,28 @@ AudioRegionView::init (Gdk::Color const & basic_color, bool wfd)
 
 	create_waves ();
 
-	fade_in_shape = new ArdourCanvas::Polygon (group);
+	fade_in_shape = new Canvas::Polygon (group);
 	fade_in_shape->set_fill_color (fade_color);
 	fade_in_shape->set_data ("regionview", this);
 
-	fade_out_shape = new ArdourCanvas::Polygon (group);
+	fade_out_shape = new Canvas::Polygon (group);
 	fade_out_shape->set_fill_color (fade_color);
 	fade_out_shape->set_data ("regionview", this);
 
 	if (!_recregion) {
-		fade_in_handle = new ArdourCanvas::Rectangle (group);
+		fade_in_handle = new Canvas::Rectangle (group);
 		fade_in_handle->set_fill_color (UINT_RGBA_CHANGE_A (fill_color, 0));
 		fade_in_handle->set_outline (false);
 
 		fade_in_handle->set_data ("regionview", this);
 
-		fade_out_handle = new ArdourCanvas::Rectangle (group);
+		fade_out_handle = new Canvas::Rectangle (group);
 		fade_out_handle->set_fill_color (UINT_RGBA_CHANGE_A (fill_color, 0));
 		fade_out_handle->set_outline (false);
 
 		fade_out_handle->set_data ("regionview", this);
 		
-		fade_position_line = new ArdourCanvas::Line (group);
+		fade_position_line = new Canvas::Line (group);
 		fade_position_line->set_outline_color (0xBBBBBBAA);
 		fade_position_line->set_y0 (7);
 		fade_position_line->set_y1 (_height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1);
@@ -265,7 +265,7 @@ AudioRegionView::~AudioRegionView ()
 		delete *i;
 	}
 
-	for (list<std::pair<framepos_t, ArdourCanvas::Line*> >::iterator i = feature_lines.begin(); i != feature_lines.end(); ++i) {
+	for (list<std::pair<framepos_t, Canvas::Line*> >::iterator i = feature_lines.begin(); i != feature_lines.end(); ++i) {
 		delete ((*i).second);
 	}
 
@@ -409,7 +409,7 @@ AudioRegionView::region_resized (const PropertyChange& what_changed)
 		
 		/* hide transient lines that extend beyond the region end */
 
-		list<std::pair<framepos_t, ArdourCanvas::Line*> >::iterator l;
+		list<std::pair<framepos_t, Canvas::Line*> >::iterator l;
 		
 		for (l = feature_lines.begin(); l != feature_lines.end(); ++l) {
 			if (l->first > _region->length() - 1) {
@@ -441,7 +441,7 @@ AudioRegionView::reset_width_dependent_items (double pixel_width)
 	AnalysisFeatureList analysis_features = _region->transients();
 	AnalysisFeatureList::const_iterator i;
 
-	list<std::pair<framepos_t, ArdourCanvas::Line*> >::iterator l;
+	list<std::pair<framepos_t, Canvas::Line*> >::iterator l;
 
 	for (i = analysis_features.begin(), l = feature_lines.begin(); i != analysis_features.end() && l != feature_lines.end(); ++i, ++l) {
 	  
@@ -449,8 +449,8 @@ AudioRegionView::reset_width_dependent_items (double pixel_width)
 
 		(*l).first = *i;
 		(*l).second->set (
-			ArdourCanvas::Duple (x_pos, 2.0),
-			ArdourCanvas::Duple (x_pos, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
+			Canvas::Duple (x_pos, 2.0),
+			Canvas::Duple (x_pos, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
 			);
 	}
 	
@@ -528,15 +528,15 @@ AudioRegionView::set_height (gdouble height)
 	reset_fade_shapes ();
 	
 	/* Update hights for any active feature lines */
-	list<std::pair<framepos_t, ArdourCanvas::Line*> >::iterator l;
+	list<std::pair<framepos_t, Canvas::Line*> >::iterator l;
 	
 	for (l = feature_lines.begin(); l != feature_lines.end(); ++l) {
 
 		float pos_x = trackview.editor().frame_to_pixel((*l).first);
 
 		(*l).second->set (
-			ArdourCanvas::Duple (pos_x, 2.0),
-			ArdourCanvas::Duple (pos_x, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
+			Canvas::Duple (pos_x, 2.0),
+			Canvas::Duple (pos_x, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
 			);
 	}
 
@@ -992,7 +992,7 @@ AudioRegionView::peaks_ready_handler (uint32_t which)
 }
 
 void
-AudioRegionView::add_gain_point_event (ArdourCanvas::Item *item, GdkEvent *ev)
+AudioRegionView::add_gain_point_event (Canvas::Item *item, GdkEvent *ev)
 {
 	if (gain_line == 0) {
 		return;
@@ -1045,7 +1045,7 @@ AudioRegionView::add_gain_point_event (ArdourCanvas::Item *item, GdkEvent *ev)
 }
 
 void
-AudioRegionView::remove_gain_point_event (ArdourCanvas::Item *item, GdkEvent */*ev*/)
+AudioRegionView::remove_gain_point_event (Canvas::Item *item, GdkEvent */*ev*/)
 {
 	ControlPoint *cp = reinterpret_cast<ControlPoint *> (item->get_data ("control_point"));
 	audio_region()->envelope()->erase (cp->model());
@@ -1282,7 +1282,7 @@ AudioRegionView::set_frame_color ()
 		}
 	}
 
-        for (vector<ArdourCanvas::WaveView*>::iterator w = waves.begin(); w != waves.end(); ++w) {
+        for (vector<Canvas::WaveView*>::iterator w = waves.begin(); w != waves.end(); ++w) {
 		(*w)->set_outline_color (wc);
                 if (!_region->muted()) {
                         (*w)->set_fill_color (fc);
@@ -1369,11 +1369,11 @@ AudioRegionView::transients_changed ()
 
 	while (feature_lines.size() < analysis_features.size()) {
 
-		ArdourCanvas::Line* canvas_item = new ArdourCanvas::Line (group);
+		Canvas::Line* canvas_item = new Canvas::Line (group);
 	
 		canvas_item->set (
-			ArdourCanvas::Duple (-1.0, 2.0),
-			ArdourCanvas::Duple (1.0, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
+			Canvas::Duple (-1.0, 2.0),
+			Canvas::Duple (1.0, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
 			);
 
 		canvas_item->set_outline_width (1);
@@ -1393,13 +1393,13 @@ AudioRegionView::transients_changed ()
 	}
 
 	while (feature_lines.size() > analysis_features.size()) {
-		ArdourCanvas::Line* line = feature_lines.back().second;
+		Canvas::Line* line = feature_lines.back().second;
 		feature_lines.pop_back ();
 		delete line;
 	}
 
 	AnalysisFeatureList::const_iterator i;
-	list<std::pair<framepos_t, ArdourCanvas::Line*> >::iterator l;
+	list<std::pair<framepos_t, Canvas::Line*> >::iterator l;
 	
 	for (i = analysis_features.begin(), l = feature_lines.begin(); i != analysis_features.end() && l != feature_lines.end(); ++i, ++l) {
 
@@ -1407,8 +1407,8 @@ AudioRegionView::transients_changed ()
 		*pos = trackview.editor().frame_to_pixel (*i);
 
 		(*l).second->set (
-			ArdourCanvas::Duple (*pos, 2.0),
-			ArdourCanvas::Duple (*pos, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
+			Canvas::Duple (*pos, 2.0),
+			Canvas::Duple (*pos, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
 			);
 		
 		(*l).second->set_data ("position", pos);
@@ -1421,7 +1421,7 @@ void
 AudioRegionView::update_transient(float /*old_pos*/, float new_pos)
 {
 	/* Find frame at old pos, calulate new frame then update region transients*/
-	list<std::pair<framepos_t, ArdourCanvas::Line*> >::iterator l;
+	list<std::pair<framepos_t, Canvas::Line*> >::iterator l;
 
 	for (l = feature_lines.begin(); l != feature_lines.end(); ++l) {
 
@@ -1445,7 +1445,7 @@ void
 AudioRegionView::remove_transient(float pos)
 {
 	/* Find frame at old pos, calulate new frame then update region transients*/
-	list<std::pair<framepos_t, ArdourCanvas::Line*> >::iterator l;
+	list<std::pair<framepos_t, Canvas::Line*> >::iterator l;
 
 	for (l = feature_lines.begin(); l != feature_lines.end(); ++l) {
 

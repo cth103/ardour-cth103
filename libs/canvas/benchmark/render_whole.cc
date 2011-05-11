@@ -7,7 +7,7 @@
 #include "benchmark.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 class RenderWhole : public Benchmark
 {

@@ -5,7 +5,7 @@
 #include "canvas/outline.h"
 #include "canvas/fill.h"
 
-namespace ArdourCanvas {
+namespace Canvas {
 
 class Polygon : public PolyItem, public Fill
 {

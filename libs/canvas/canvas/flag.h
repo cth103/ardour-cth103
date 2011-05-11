@@ -1,7 +1,7 @@
 #include "canvas/group.h"
 #include "canvas/types.h"
 
-namespace ArdourCanvas {
+namespace Canvas {
 
 class Text;
 class Line;

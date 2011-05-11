@@ -60,7 +60,7 @@ using namespace Gdk;
 using namespace ARDOUR;
 using namespace PBD;
 using namespace Editing;
-using namespace ArdourCanvas;
+using namespace Canvas;
 using Gtkmm2ext::Keyboard;
 
 const double trim_handle_size = 6.0; /* pixels */
@@ -69,7 +69,7 @@ uint32_t TimeAxisView::smaller_height;
 int const TimeAxisView::_max_order = 512;
 PBD::Signal1<void,TimeAxisView*> TimeAxisView::CatchDeletion;
 
-TimeAxisView::TimeAxisView (ARDOUR::Session* sess, PublicEditor& ed, TimeAxisView* rent, Canvas& /*canvas*/)
+TimeAxisView::TimeAxisView (ARDOUR::Session* sess, PublicEditor& ed, TimeAxisView* rent, Canvas::Canvas& /*canvas*/)
 	: AxisView (sess)
 	, controls_table (2, 8)
 	, _controls_padding_table (3, 3)
@@ -82,8 +82,8 @@ TimeAxisView::TimeAxisView (ARDOUR::Session* sess, PublicEditor& ed, TimeAxisVie
 		compute_heights ();
 	}
 	
-	_canvas_background = new Group (ed.get_background_group (), ArdourCanvas::Duple (0.0, 0.0));
-	_canvas_display = new Group (ed.get_trackview_group (), ArdourCanvas::Duple (0.0, 0.0));
+	_canvas_background = new Group (ed.get_background_group (), Canvas::Duple (0.0, 0.0));
+	_canvas_display = new Group (ed.get_trackview_group (), Canvas::Duple (0.0, 0.0));
 	_canvas_display->hide(); // reveal as needed 
 
 	selection_group = new Group (_canvas_display);
@@ -680,7 +680,7 @@ TimeAxisView::set_frames_per_pixel (double fpp)
 	}
 
 	AnalysisFeatureList::const_iterator i;
-	list<ArdourCanvas::Line*>::iterator l;
+	list<Canvas::Line*>::iterator l;
 }
 
 void
@@ -739,13 +739,13 @@ TimeAxisView::show_selection (TimeSelection& ts)
 		x2 = _editor.frame_to_unit (start + cnt - 1);
 		y2 = current_height();
 
-		rect->rect->set (ArdourCanvas::Rect (x1, 1, x2, y2));
+		rect->rect->set (Canvas::Rect (x1, 1, x2, y2));
 
 		// trim boxes are at the top for selections
 
 		if (x2 > x1) {
-			rect->start_trim->set (ArdourCanvas::Rect (x1, 1, x1 + trim_handle_size, y2));
-			rect->end_trim->set (ArdourCanvas::Rect (x2 - trim_handle_size, 1, x2, y2));
+			rect->start_trim->set (Canvas::Rect (x1, 1, x1 + trim_handle_size, y2));
+			rect->end_trim->set (Canvas::Rect (x2 - trim_handle_size, 1, x2, y2));
 
 			rect->start_trim->show();
 			rect->end_trim->show();
@@ -789,7 +789,7 @@ TimeAxisView::hide_selection ()
 }
 
 void
-TimeAxisView::order_selection_trims (ArdourCanvas::Item *item, bool put_start_on_top)
+TimeAxisView::order_selection_trims (Canvas::Item *item, bool put_start_on_top)
 {
 	/* find the selection rect this is for. we have the item corresponding to one
 	   of the trim handles.
@@ -840,16 +840,16 @@ TimeAxisView::get_selection_rect (uint32_t id)
 
 		rect = new SelectionRect;
 
-		rect->rect = new ArdourCanvas::Rectangle (selection_group);
+		rect->rect = new Canvas::Rectangle (selection_group);
 		rect->rect->set_outline_what (0);
 		rect->rect->set_fill_color (ARDOUR_UI::config()->canvasvar_SelectionRect.get());
 
-		rect->start_trim = new ArdourCanvas::Rectangle (selection_group);
+		rect->start_trim = new Canvas::Rectangle (selection_group);
 		rect->start_trim->set_outline_what (0);
 		rect->start_trim->set_x0 (0);
 		rect->start_trim->set_x1 (0);
 		
-		rect->end_trim = new ArdourCanvas::Rectangle (selection_group);
+		rect->end_trim = new Canvas::Rectangle (selection_group);
 		rect->end_trim->set_outline_what (0);
 		rect->end_trim->set_x0 (0);
 		rect->end_trim->set_x1 (0);

@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "canvas/item.h"
 
-namespace ArdourCanvas {
+namespace Canvas {
 
 class Fill : virtual public Item
 {

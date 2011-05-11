@@ -1,16 +1,16 @@
 Check set of duration during drags...
 
+cairo_pattern_t for tiles?
+
 Maybe do LUT-like stuff using tiles.
 XXX_NEW_CANVAS
 Canvas is-a group?
 unparent needed?  can we not just reparent?
-change handling is a little grubby.  Unify perhaps.
 some automated testing of deciding where to render
 outline_what ...
 Check XXX.
 Check declarations in headers.
 GPL boilerplate.
-ArdourCanvas -> ?
 Loading could probably be sped up by suspending all handling of bbox dirty.
 pixbufs for text?!
 Memory management

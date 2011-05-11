@@ -17,7 +17,7 @@
 using namespace std;
 using namespace PBD;
 using namespace ARDOUR;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 CPPUNIT_TEST_SUITE_REGISTRATION (WaveViewTest);
 

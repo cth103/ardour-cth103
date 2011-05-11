@@ -33,7 +33,7 @@
 
 using namespace std;
 using namespace PBD;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 /** Construct an Item with no parent.
  *  @param canvas This item's canvas.

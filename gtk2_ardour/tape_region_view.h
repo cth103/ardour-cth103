@@ -27,7 +27,7 @@
 class TapeAudioRegionView : public AudioRegionView
 {
   public:
-	TapeAudioRegionView (ArdourCanvas::Group *,
+	TapeAudioRegionView (Canvas::Group *,
 			     RouteTimeAxisView&,
 			     boost::shared_ptr<ARDOUR::AudioRegion>,
 			     double initial_frames_per_pixel,

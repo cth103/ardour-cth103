@@ -24,7 +24,7 @@
 
 #include "canvas/types.h"
 
-namespace ArdourCanvas {
+namespace Canvas {
 
 extern void set_source_rgba (Cairo::RefPtr<Cairo::Context>, Color);
 	

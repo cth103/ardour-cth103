@@ -43,7 +43,7 @@ namespace PBD {
 #define CANVAS_DEBUG(i, n) /* empty */
 #endif
 
-namespace ArdourCanvas {
+namespace Canvas {
 	extern struct timeval epoch;
 	extern std::map<std::string, struct timeval> last_time;
 	extern void checkpoint (std::string, std::string);

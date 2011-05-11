@@ -22,7 +22,7 @@
 
 class MidiRegionView;
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class Flag;
 }
 
@@ -31,7 +31,7 @@ class SysEx
 public:
 	SysEx (
 			MidiRegionView& region,
-			ArdourCanvas::Group* parent,
+			Canvas::Group* parent,
 			std::string&    text,
 			double          height,
 			double          x,
@@ -46,7 +46,7 @@ private:
 	bool event_handler (GdkEvent* ev);
 
 	MidiRegionView& _region;
-	ArdourCanvas::Flag* _flag;
+	Canvas::Flag* _flag;
 };
 
 #endif /* __SYSEX_H__ */

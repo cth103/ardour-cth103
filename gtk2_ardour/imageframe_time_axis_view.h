@@ -72,7 +72,7 @@ class ImageFrameTimeAxisView : public sigc::trackable
 		/**
 		 *
 		 */
-		ArdourCanvas::Group * canvas_item() { return &canvas_group; }
+		Canvas::Group * canvas_item() { return &canvas_group; }
 
 
 		//---------------------------------------------------------------------------------------//
@@ -244,8 +244,8 @@ class ImageFrameTimeAxisView : public sigc::trackable
 		/* the TimeAxisView that this object is acting as the view helper for */
 		ImageFrameTimeAxis& _trackview ;
 
-		ArdourCanvas::Group       canvas_group ;
-		ArdourCanvas::SimpleRect  canvas_rect; /* frame around the whole thing */
+		Canvas::Group       canvas_group ;
+		Canvas::SimpleRect  canvas_rect; /* frame around the whole thing */
 
 		/** the current frames per pixel */
 		double _frames_per_pixel;

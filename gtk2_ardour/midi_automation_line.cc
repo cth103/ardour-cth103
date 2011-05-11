@@ -25,7 +25,7 @@ using namespace std;
 MidiAutomationLine::MidiAutomationLine (
 	const std::string&                                      name,
 	TimeAxisView&                                           tav,
-	ArdourCanvas::Group&                                    group,
+	Canvas::Group&                                    group,
 	boost::shared_ptr<ARDOUR::AutomationList>               list,
 	boost::shared_ptr<ARDOUR::MidiRegion>                   region,
 	Evoral::Parameter                                       parameter,

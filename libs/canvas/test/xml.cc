@@ -7,7 +7,7 @@
 CPPUNIT_TEST_SUITE_REGISTRATION (XMLTest);
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 void
 XMLTest::check (string const & name)

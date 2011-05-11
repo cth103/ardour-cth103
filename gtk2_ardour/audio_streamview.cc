@@ -525,7 +525,7 @@ AudioStreamView::setup_rec_box ()
 				break;
 			}
 
-			ArdourCanvas::Rectangle * rec_rect = new ArdourCanvas::Rectangle (_canvas_group);
+			Canvas::Rectangle * rec_rect = new Canvas::Rectangle (_canvas_group);
 			rec_rect->set_x0 (xstart);
 			rec_rect->set_y0 (1);
 			rec_rect->set_x1 (xend);
@@ -683,7 +683,7 @@ AudioStreamView::update_rec_regions (framepos_t start, framecnt_t cnt)
 					check_record_layers (region, (region->position() - region->start() + start + cnt));
 					
 					/* also update rect */
-					ArdourCanvas::Rectangle * rect = rec_rects[n].rectangle;
+					Canvas::Rectangle * rect = rec_rects[n].rectangle;
 					gdouble xend = _trackview.editor().frame_to_pixel (region->position() + region->length());
 					rect->set_x1 (xend);
 				}
@@ -707,7 +707,7 @@ AudioStreamView::update_rec_regions (framepos_t start, framecnt_t cnt)
 						}
 
 						/* also hide rect */
-						ArdourCanvas::Item * rect = rec_rects[n].rectangle;
+						Canvas::Item * rect = rec_rects[n].rectangle;
 						rect->hide();
 
 					}

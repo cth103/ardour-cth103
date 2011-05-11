@@ -62,7 +62,7 @@ class AutomationTimeAxisView : public TimeAxisView {
 				PublicEditor&,
 				TimeAxisView& parent,
 				bool show_regions,
-				ArdourCanvas::Canvas& canvas,
+				Canvas::Canvas& canvas,
 				const std::string & name, /* translatable */
 				const std::string & plug_name = "");
 
@@ -73,7 +73,7 @@ class AutomationTimeAxisView : public TimeAxisView {
 	bool set_visibility (bool yn);
 	std::string name() const { return _name; }
 
-	void add_automation_event (ArdourCanvas::Item *item, GdkEvent *event, framepos_t, double);
+	void add_automation_event (Canvas::Item *item, GdkEvent *event, framepos_t, double);
 
 	void clear_lines ();
 
@@ -110,7 +110,7 @@ class AutomationTimeAxisView : public TimeAxisView {
 		return _parameter;
 	}
 
-	ArdourCanvas::Item* base_item () const {
+	Canvas::Item* base_item () const {
 		return _base_rect;
 	}
 
@@ -131,7 +131,7 @@ class AutomationTimeAxisView : public TimeAxisView {
 	boost::shared_ptr<AutomationController> _controller;
 	Evoral::Parameter _parameter;
 
-	ArdourCanvas::Rectangle* _base_rect;
+	Canvas::Rectangle* _base_rect;
 	boost::shared_ptr<AutomationLine> _line;
 
 	/** AutomationStreamView if we are editing region-based automation (for MIDI), otherwise 0 */

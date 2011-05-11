@@ -54,7 +54,7 @@ namespace ARDOUR {
 	class Playlist;
 }
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class Rectangle;
 }
 
@@ -73,7 +73,7 @@ class RouteGroupMenu;
 class RouteTimeAxisView : public RouteUI, public TimeAxisView
 {
 public:
- 	RouteTimeAxisView (PublicEditor&, ARDOUR::Session*, boost::shared_ptr<ARDOUR::Route>, ArdourCanvas::Canvas& canvas);
+ 	RouteTimeAxisView (PublicEditor&, ARDOUR::Session*, boost::shared_ptr<ARDOUR::Route>, Canvas::Canvas& canvas);
  	virtual ~RouteTimeAxisView ();
 
 	void show_selection (TimeSelection&);
@@ -248,7 +248,7 @@ protected:
 	boost::shared_ptr<AutomationTimeAxisView> gain_track;
 	
 	StreamView*           _view;
-	ArdourCanvas::Canvas& parent_canvas;
+	Canvas::Canvas& parent_canvas;
 	bool                  no_redraw;
 
 	Gtk::HBox   other_button_hbox;
@@ -271,7 +271,7 @@ protected:
 
 	void use_playlist (Gtk::RadioMenuItem *item, boost::weak_ptr<ARDOUR::Playlist> wpl);
 
-	ArdourCanvas::Rectangle* timestretch_rect;
+	Canvas::Rectangle* timestretch_rect;
 
 	void set_track_mode (ARDOUR::TrackMode, bool apply_to_selection = false);
 

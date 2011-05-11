@@ -2,9 +2,9 @@
 #include "canvas/types.h"
 
 extern double double_random ();
-extern ArdourCanvas::Rect rect_random (double);
+extern Canvas::Rect rect_random (double);
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class ImageCanvas;
 }
 
@@ -17,10 +17,10 @@ public:
 	void set_iterations (int);
 	double run ();
 	
-	virtual void do_run (ArdourCanvas::ImageCanvas &) = 0;
-	virtual void finish (ArdourCanvas::ImageCanvas &) {}
+	virtual void do_run (Canvas::ImageCanvas &) = 0;
+	virtual void finish (Canvas::ImageCanvas &) {}
 
 private:
-	ArdourCanvas::ImageCanvas* _canvas;
+	Canvas::ImageCanvas* _canvas;
 	int _iterations;
 };

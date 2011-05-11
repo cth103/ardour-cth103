@@ -1,7 +1,7 @@
 #include "pbd/xml++.h"
 #include "canvas/poly_line.h"
 
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 PolyLine::PolyLine (Group* parent)
 	: Item (parent)

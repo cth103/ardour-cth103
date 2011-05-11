@@ -30,7 +30,7 @@
 #include <stdint.h>
 #include <boost/optional.hpp>
 
-namespace ArdourCanvas
+namespace Canvas
 {
 
 /** A coordinate */

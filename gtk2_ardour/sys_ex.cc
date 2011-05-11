@@ -26,19 +26,19 @@ using namespace std;
 
 SysEx::SysEx (
 	MidiRegionView& region,
-	ArdourCanvas::Group* parent,
+	Canvas::Group* parent,
 	string&         text,
 	double          height,
 	double          x,
 	double          y)
 	: _region (region)
 {
-	_flag = new ArdourCanvas::Flag (
+	_flag = new Canvas::Flag (
 		parent,
 		height, 
 		ARDOUR_UI::config()->canvasvar_MidiSysExOutline.get(),
 		ARDOUR_UI::config()->canvasvar_MidiSysExFill.get(),
-		ArdourCanvas::Duple (x, y)
+		Canvas::Duple (x, y)
 		);
 	
 	_flag->set_text (text);

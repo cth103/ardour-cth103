@@ -23,7 +23,7 @@
 #include <iostream>
 #include "note_base.h"
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class Polygon;
 }
 
@@ -34,15 +34,15 @@ public:
 
 	Hit (
 		MidiRegionView&                   region,
-		ArdourCanvas::Group*              group,
+		Canvas::Group*              group,
 		double                            size,
 		const boost::shared_ptr<NoteType> note = boost::shared_ptr<NoteType>(),
 		bool with_events = true);
 
 	Hit (
 		MidiRegionView&                   region,
-		ArdourCanvas::Group*              group,
-		ArdourCanvas::TransformIndex,
+		Canvas::Group*              group,
+		Canvas::TransformIndex,
 		double                            size,
 		const boost::shared_ptr<NoteType> note = boost::shared_ptr<NoteType>(),
 		bool with_events = true);
@@ -50,14 +50,14 @@ public:
 	void show ();
 	void hide ();
 
-	ArdourCanvas::Coord x0 () const;
-	ArdourCanvas::Coord y0 () const;
-	ArdourCanvas::Coord x1 () const;
-	ArdourCanvas::Coord y1 () const;
+	Canvas::Coord x0 () const;
+	Canvas::Coord y0 () const;
+	Canvas::Coord x1 () const;
+	Canvas::Coord y1 () const;
 
-	void set_position (ArdourCanvas::Duple);
+	void set_position (Canvas::Duple);
 
-	void set_height (ArdourCanvas::Coord);
+	void set_height (Canvas::Coord);
 
 	void set_outline_color (uint32_t);
 	void set_fill_color (uint32_t);
@@ -65,7 +65,7 @@ public:
 	void move_event (ARDOUR::frameoffset_t, double);
 
 private:
-	ArdourCanvas::Polygon* _polygon;
+	Canvas::Polygon* _polygon;
 };
 
 #endif /* __gtk_ardour_hit_h__ */

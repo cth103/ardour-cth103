@@ -101,7 +101,7 @@ RouteTimeAxisView::setup_slider_pix ()
 	}
 }
 
-RouteTimeAxisView::RouteTimeAxisView (PublicEditor& ed, Session* sess, boost::shared_ptr<Route> rt, ArdourCanvas::Canvas& canvas)
+RouteTimeAxisView::RouteTimeAxisView (PublicEditor& ed, Session* sess, boost::shared_ptr<Route> rt, Canvas::Canvas& canvas)
 	: AxisView(sess)
 	, RouteUI(rt, sess)
 	, TimeAxisView(sess,ed,(TimeAxisView*) 0, canvas)
@@ -791,7 +791,7 @@ RouteTimeAxisView::show_timestretch (framepos_t start, framepos_t end)
 #endif
 
 	if (timestretch_rect == 0) {
-		timestretch_rect = new ArdourCanvas::Rectangle (canvas_display ());
+		timestretch_rect = new Canvas::Rectangle (canvas_display ());
 		timestretch_rect->set_fill_color (ARDOUR_UI::config()->canvasvar_TimeStretchFill.get());
 		timestretch_rect->set_outline_color (ARDOUR_UI::config()->canvasvar_TimeStretchOutline.get());
 	}
@@ -803,7 +803,7 @@ RouteTimeAxisView::show_timestretch (framepos_t start, framepos_t end)
 	x2 = (end - 1) / _editor.get_current_zoom();
 	y2 = current_height() - 2;
 
-	timestretch_rect->set (ArdourCanvas::Rect (x1, 1, x2, y2));
+	timestretch_rect->set (Canvas::Rect (x1, 1, x2, y2));
 }
 
 void

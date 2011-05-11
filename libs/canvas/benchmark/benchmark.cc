@@ -5,7 +5,7 @@
 #include "benchmark.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 double
 double_random ()
@@ -13,7 +13,7 @@ double_random ()
 	return ((double) rand() / RAND_MAX);
 }
 
-ArdourCanvas::Rect
+Canvas::Rect
 rect_random (double rough_size)
 {
 	double const x = double_random () * rough_size / 2;

@@ -610,11 +610,11 @@ Editor::update_ruler_visibility ()
 	if (ruler_meter_action->get_active()) {
 		old_unit_pos = meter_group->position().y;
 		if (tbpos != old_unit_pos) {
-			meter_group->move (ArdourCanvas::Duple (0.0, tbpos - old_unit_pos));
+			meter_group->move (Canvas::Duple (0.0, tbpos - old_unit_pos));
 		}
 		old_unit_pos = meter_bar_group->position().y;
 		if (tbgpos != old_unit_pos) {
-			meter_bar_group->move (ArdourCanvas::Duple (0.0, tbgpos - old_unit_pos));
+			meter_bar_group->move (Canvas::Duple (0.0, tbgpos - old_unit_pos));
 		}
 		meter_bar_group->show();
 		meter_group->show();

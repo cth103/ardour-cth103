@@ -35,7 +35,7 @@
 
 class XMLTree;
 
-namespace ArdourCanvas
+namespace Canvas
 {
 
 class Rect;

@@ -28,7 +28,7 @@
 
 class TimeAxisView;
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class Pixbuf;
 	class Rectangle;
 	class Item;
@@ -72,10 +72,10 @@ class TimeAxisViewItem : public Selectable, public PBD::ScopedConnectionList
 	void set_y (double);
 	void set_color (Gdk::Color const &);
 
-	ArdourCanvas::Item* get_canvas_frame();
-	ArdourCanvas::Group* get_canvas_group();
-	ArdourCanvas::Item* get_name_highlight();
-	ArdourCanvas::Pixbuf* get_name_pixbuf();
+	Canvas::Item* get_canvas_frame();
+	Canvas::Group* get_canvas_group();
+	Canvas::Item* get_name_highlight();
+	Canvas::Pixbuf* get_name_pixbuf();
 
 	virtual void set_frames_per_pixel (double);
 
@@ -145,7 +145,7 @@ class TimeAxisViewItem : public Selectable, public PBD::ScopedConnectionList
 	};
 	
   protected:
-	TimeAxisViewItem(const std::string &, ArdourCanvas::Group&, TimeAxisView&, double, Gdk::Color const &,
+	TimeAxisViewItem(const std::string &, Canvas::Group&, TimeAxisView&, double, Gdk::Color const &,
 			 framepos_t, framepos_t, bool recording = false, bool automation = false, Visibility v = Visibility (0));
 	
 	TimeAxisViewItem (const TimeAxisViewItem&);
@@ -227,15 +227,15 @@ class TimeAxisViewItem : public Selectable, public PBD::ScopedConnectionList
 	bool high_enough_for_name;
         bool rect_visible;
 
-	ArdourCanvas::Group*      group;
-	ArdourCanvas::Rectangle*  vestigial_frame;
-	ArdourCanvas::Rectangle*  frame;
-	ArdourCanvas::Pixbuf*     name_pixbuf;
-	ArdourCanvas::Rectangle*  name_highlight;
+	Canvas::Group*      group;
+	Canvas::Rectangle*  vestigial_frame;
+	Canvas::Rectangle*  frame;
+	Canvas::Pixbuf*     name_pixbuf;
+	Canvas::Rectangle*  name_highlight;
 
 	/* with these two values, if frame_handle_start == 0 then frame_handle_end will also be 0 */
-	ArdourCanvas::Rectangle*  frame_handle_start; ///< `frame' (fade) handle for the start of the item, or 0
-	ArdourCanvas::Rectangle*  frame_handle_end; ///< `frame' (fade) handle for the end of the item, or 0
+	Canvas::Rectangle*  frame_handle_start; ///< `frame' (fade) handle for the start of the item, or 0
+	Canvas::Rectangle*  frame_handle_end; ///< `frame' (fade) handle for the end of the item, or 0
 	
 	double _height;
 	Visibility visibility;

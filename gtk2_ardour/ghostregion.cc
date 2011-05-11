@@ -31,19 +31,19 @@
 
 using namespace std;
 using namespace Editing;
-using namespace ArdourCanvas;
+using namespace Canvas;
 using namespace ARDOUR;
 
 PBD::Signal1<void,GhostRegion*> GhostRegion::CatchDeletion;
 
-GhostRegion::GhostRegion (ArdourCanvas::Group* parent, TimeAxisView& tv, TimeAxisView& source_tv, double initial_pos)
+GhostRegion::GhostRegion (Canvas::Group* parent, TimeAxisView& tv, TimeAxisView& source_tv, double initial_pos)
 	: trackview (tv)
 	, source_trackview (source_tv)
 {
-	group = new ArdourCanvas::Group (parent);
-	group->set_position (ArdourCanvas::Duple (initial_pos, 0));
+	group = new Canvas::Group (parent);
+	group->set_position (Canvas::Duple (initial_pos, 0));
 
-	base_rect = new ArdourCanvas::Rectangle (group);
+	base_rect = new Canvas::Rectangle (group);
 	base_rect->set_x0 (0);
 	base_rect->set_y0 (0);
 	base_rect->set_y1 (trackview.current_height());
@@ -193,10 +193,10 @@ MidiGhostRegion::GhostEvent::GhostEvent (NoteBase* e)
 	
 }
 
-MidiGhostRegion::GhostNote::GhostNote (Note* n, ArdourCanvas::Group* g)
+MidiGhostRegion::GhostNote::GhostNote (Note* n, Canvas::Group* g)
 	: GhostEvent (n)
 {
-	rect = new ArdourCanvas::Rectangle (g, ArdourCanvas::Rect (n->x0(), n->y0(), n->x1(), n->y1()));
+	rect = new Canvas::Rectangle (g, Canvas::Rect (n->x0(), n->y0(), n->x1(), n->y1()));
 }
 
 MidiGhostRegion::GhostNote::~GhostNote()

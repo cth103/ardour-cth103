@@ -23,7 +23,7 @@
 #include <vector>
 #include "pbd/signals.h"
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class WaveView;
 }
 
@@ -36,7 +36,7 @@ class TimeAxisView;
 class GhostRegion : public sigc::trackable
 {
 public:
-	GhostRegion(ArdourCanvas::Group* parent, TimeAxisView& tv, TimeAxisView& source_tv, double initial_unit_pos);
+	GhostRegion(Canvas::Group* parent, TimeAxisView& tv, TimeAxisView& source_tv, double initial_unit_pos);
 	virtual ~GhostRegion();
 
 	virtual void set_frames_per_pixel (double) = 0;
@@ -52,8 +52,8 @@ public:
 	TimeAxisView& trackview;
 	/** TimeAxisView that we are a ghost for */
 	TimeAxisView& source_trackview;
-	ArdourCanvas::Group* group;
-	ArdourCanvas::Rectangle* base_rect;
+	Canvas::Group* group;
+	Canvas::Rectangle* base_rect;
 
 	static PBD::Signal1<void,GhostRegion*> CatchDeletion;
 };
@@ -66,7 +66,7 @@ public:
 	void set_height();
 	void set_colors();
 
-	std::vector<ArdourCanvas::WaveView*> waves;
+	std::vector<Canvas::WaveView*> waves;
 };
 
 class MidiGhostRegion : public GhostRegion {
@@ -81,10 +81,10 @@ public:
 
 	class GhostNote : public GhostEvent {
 	public:
-		GhostNote (Note *, ArdourCanvas::Group*);
+		GhostNote (Note *, Canvas::Group*);
 		~GhostNote ();
 
-		ArdourCanvas::Rectangle* rect;
+		Canvas::Rectangle* rect;
 	};
 
 	MidiGhostRegion(TimeAxisView& tv, TimeAxisView& source_tv, double initial_unit_pos);

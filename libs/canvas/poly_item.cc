@@ -4,7 +4,7 @@
 #include "canvas/poly_item.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 PolyItem::PolyItem (Group* parent)
 	: Item (parent)

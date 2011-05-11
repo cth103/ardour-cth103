@@ -4,7 +4,7 @@
 #include "canvas/line.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 Flag::Flag (Group* parent, Distance height, Color outline_color, Color fill_color, Duple position)
 	: Group (parent)

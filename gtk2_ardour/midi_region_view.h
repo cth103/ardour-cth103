@@ -69,7 +69,7 @@ class MidiRegionView : public RegionView
 	typedef Evoral::Note<Evoral::MusicalTime> NoteType;
 	typedef Evoral::Sequence<Evoral::MusicalTime>::Notes Notes;
 
-	MidiRegionView (ArdourCanvas::Group *,
+	MidiRegionView (Canvas::Group *,
 	                RouteTimeAxisView&,
 	                boost::shared_ptr<ARDOUR::MidiRegion>,
 	                double initial_frames_per_pixel,
@@ -232,7 +232,7 @@ class MidiRegionView : public RegionView
 
 	struct NoteResizeData {
 		Note                     *note;
-		ArdourCanvas::Rectangle  *resize_rect;
+		Canvas::Rectangle  *resize_rect;
 	};
 
 	/** Snap a region relative pixel coordinate to pixel units.
@@ -278,7 +278,7 @@ class MidiRegionView : public RegionView
 	/** Allows derived types to specify their visibility requirements
 	 * to the TimeAxisViewItem parent class.
 	 */
-	MidiRegionView (ArdourCanvas::Group *,
+	MidiRegionView (Canvas::Group *,
 	                RouteTimeAxisView&,
 	                boost::shared_ptr<ARDOUR::MidiRegion>,
 	                double frames_per_pixel,
@@ -358,8 +358,8 @@ class MidiRegionView : public RegionView
 	PatchChanges                         _patch_changes;
 	SysExes                              _sys_exes;
 	Note**                               _active_notes;
-	ArdourCanvas::Group*                 _note_group;
-	ArdourCanvas::TransformIndex         _note_transform_index;
+	Canvas::Group*                 _note_group;
+	Canvas::TransformIndex         _note_transform_index;
 	ARDOUR::MidiModel::NoteDiffCommand*  _note_diff_command;
 	Note*                                _ghost_note;
 	double                               _last_ghost_x;
@@ -368,8 +368,8 @@ class MidiRegionView : public RegionView
         double                               _drag_start_y;
         double                               _last_x;
         double                               _last_y;
-	ArdourCanvas::Rectangle*             _drag_rect;
-        ArdourCanvas::Rectangle*             _step_edit_cursor;
+	Canvas::Rectangle*             _drag_rect;
+        Canvas::Rectangle*             _step_edit_cursor;
         Evoral::MusicalTime                  _step_edit_cursor_width;
         Evoral::MusicalTime                  _step_edit_cursor_position;
 	NoteBase*	     _channel_selection_scoped_note;
@@ -378,7 +378,7 @@ class MidiRegionView : public RegionView
 	/** A group used to temporarily reparent _note_group to during start trims, so
 	 *  that the notes don't move with the parent region view.
 	 */
-	ArdourCanvas::Group*                 _temporary_note_group;
+	Canvas::Group*                 _temporary_note_group;
 
 	MouseState _mouse_state;
 	int _pressed_button;

@@ -40,7 +40,7 @@ namespace ARDOUR
 	class Crossfade;
 }
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class Rectangle;
 	class Line;
 	class Polygon;
@@ -95,8 +95,8 @@ class CrossfadeEditor : public ArdourDialog
 	struct Point {
 	    ~Point();
 
-	    ArdourCanvas::Rectangle* box;
-	    ArdourCanvas::PolyLine* curve;
+	    Canvas::Rectangle* box;
+	    Canvas::PolyLine* curve;
 	    double x;
 	    double y;
 
@@ -111,16 +111,16 @@ class CrossfadeEditor : public ArdourDialog
 	    }
 	};
 
-	ArdourCanvas::Rectangle*   toplevel;
-	ArdourCanvas::GtkCanvas* canvas;
+	Canvas::Rectangle*   toplevel;
+	Canvas::GtkCanvas* canvas;
 
 	struct Half {
-	    ArdourCanvas::PolyLine* line;
-	    ArdourCanvas::Polygon*  shading;
+	    Canvas::PolyLine* line;
+	    Canvas::Polygon*  shading;
 	    std::list<Point*>       points;
 	    ARDOUR::AutomationList  normative_curve; /* 0 - 1.0, linear */
 	    ARDOUR::AutomationList  gain_curve;      /* 0 - 2.0, gain mapping */
-	    std::vector<ArdourCanvas::WaveView*>  waves;
+	    std::vector<Canvas::WaveView*>  waves;
 
 	    Half();
 	};

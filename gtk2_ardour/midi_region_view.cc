@@ -79,10 +79,10 @@
 using namespace ARDOUR;
 using namespace PBD;
 using namespace Editing;
-using namespace ArdourCanvas;
+using namespace Canvas;
 using Gtkmm2ext::Keyboard;
 
-MidiRegionView::MidiRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView &tv,
+MidiRegionView::MidiRegionView (Canvas::Group *parent, RouteTimeAxisView &tv,
 		boost::shared_ptr<MidiRegion> r, double spu, Gdk::Color const & basic_color)
 	: RegionView (parent, tv, r, spu, basic_color)
 	, _force_channel(-1)
@@ -92,7 +92,7 @@ MidiRegionView::MidiRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView &
 	, _model_name(string())
 	, _custom_device_mode(string())
 	, _active_notes(0)
-	, _note_group (new ArdourCanvas::Group (group))
+	, _note_group (new Canvas::Group (group))
 	, _note_diff_command (0)
 	, _ghost_note(0)
         , _drag_rect (0)
@@ -118,7 +118,7 @@ MidiRegionView::MidiRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView &
 	connect_to_diskstream ();
 }
 
-MidiRegionView::MidiRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView &tv,
+MidiRegionView::MidiRegionView (Canvas::Group *parent, RouteTimeAxisView &tv,
 		boost::shared_ptr<MidiRegion> r, double spu, Gdk::Color& basic_color,
 		TimeAxisViewItem::Visibility visibility)
 	: RegionView (parent, tv, r, spu, basic_color, false, visibility)
@@ -127,7 +127,7 @@ MidiRegionView::MidiRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView &
 	, _model_name(string())
 	, _custom_device_mode(string())
 	, _active_notes(0)
-	, _note_group (new ArdourCanvas::Group (parent))
+	, _note_group (new Canvas::Group (parent))
 	, _note_diff_command (0)
 	, _ghost_note(0)
         , _drag_rect (0)
@@ -159,7 +159,7 @@ MidiRegionView::MidiRegionView (const MidiRegionView& other)
 	, _model_name(string())
 	, _custom_device_mode(string())
 	, _active_notes(0)
-	, _note_group (new ArdourCanvas::Group (get_canvas_group()))
+	, _note_group (new Canvas::Group (get_canvas_group()))
 	, _note_diff_command (0)
 	, _ghost_note(0)
         , _drag_rect (0)
@@ -193,7 +193,7 @@ MidiRegionView::MidiRegionView (const MidiRegionView& other, boost::shared_ptr<M
 	, _model_name(string())
 	, _custom_device_mode(string())
 	, _active_notes(0)
-	, _note_group (new ArdourCanvas::Group (get_canvas_group()))
+	, _note_group (new Canvas::Group (get_canvas_group()))
 	, _note_diff_command (0)
 	, _ghost_note(0)
         , _drag_rect (0)
@@ -567,8 +567,8 @@ MidiRegionView::motion (GdkEventMotion* ev)
                         _drag_start_x = event_x;
                         _drag_start_y = event_y;
 
-                        _drag_rect = new ArdourCanvas::Rectangle (group);
-			_drag_rect->set (ArdourCanvas::Rect (event_x, event_y, event_x, event_y));
+                        _drag_rect = new Canvas::Rectangle (group);
+			_drag_rect->set (Canvas::Rect (event_x, event_y, event_x, event_y));
                         _drag_rect->set_outline_what (0xf);
                         _drag_rect->set_outline_color (ARDOUR_UI::config()->canvasvar_MidiSelectRectOutline.get());
                         _drag_rect->set_fill_color (ARDOUR_UI::config()->canvasvar_MidiSelectRectFill.get());
@@ -589,7 +589,7 @@ MidiRegionView::motion (GdkEventMotion* ev)
                         _drag_start_x = event_x;
                         _drag_start_y = event_y;
 
-                        _drag_rect = new ArdourCanvas::Rectangle (group);
+                        _drag_rect = new Canvas::Rectangle (group);
                         _drag_rect->set_x0 (trackview.editor().frame_to_pixel(event_frame));
                         _drag_rect->set_y0 (midi_stream_view()->note_to_y (midi_stream_view()->y_to_note(event_y)));
                         _drag_rect->set_x1 (trackview.editor().frame_to_pixel(event_frame));
@@ -1527,7 +1527,7 @@ MidiRegionView::update_hit (Hit* ev)
 	const double diamond_size = midi_stream_view()->note_height() / 2.0;
 	const double y = midi_stream_view()->note_to_y(note->note()) + ((diamond_size-2) / 4.0);
 
-	ev->set_position (ArdourCanvas::Duple (x, y));
+	ev->set_position (Canvas::Duple (x, y));
 
 	return diamond_size;
 }
@@ -1546,7 +1546,7 @@ MidiRegionView::add_note(const boost::shared_ptr<NoteType> note, bool visible)
 	assert(note->time() >= 0);
 	assert(midi_view()->note_mode() == Sustained || midi_view()->note_mode() == Percussive);
 
-	//ArdourCanvas::Group* const group = (ArdourCanvas::Group*) get_canvas_group();
+	//Canvas::Group* const group = (Canvas::Group*) get_canvas_group();
 
 	if (midi_view()->note_mode() == Sustained) {
 
@@ -2325,7 +2325,7 @@ MidiRegionView::begin_resizing (bool /*at_front*/)
 
 			// create a new Rectangle from the note which will be the resize preview
 			Rectangle *resize_rect = new Rectangle(
-				_note_group, _note_transform_index, ArdourCanvas::Rect (note->x0(), note->y0(), note->x1(), note->y1()));
+				_note_group, _note_transform_index, Canvas::Rect (note->x0(), note->y0(), note->x1(), note->y1()));
 
 			// calculate the colors: get the color settings
 			uint32_t fill_color = UINT_RGBA_CHANGE_A(
@@ -3289,9 +3289,9 @@ void
 MidiRegionView::show_step_edit_cursor (Evoral::MusicalTime pos)
 {
         if (_step_edit_cursor == 0) {
-                ArdourCanvas::Group* const group = (ArdourCanvas::Group*)get_canvas_group();
+                Canvas::Group* const group = (Canvas::Group*)get_canvas_group();
 
-                _step_edit_cursor = new ArdourCanvas::Rectangle (group);
+                _step_edit_cursor = new Canvas::Rectangle (group);
                 _step_edit_cursor->set_y0 (0);
                 _step_edit_cursor->set_y1 (midi_stream_view()->contents_height());
                 _step_edit_cursor->set_fill_color (RGBA_TO_UINT (45,0,0,90));
@@ -3392,7 +3392,7 @@ MidiRegionView::trim_front_starting ()
 	/* Reparent the note group to the region view's parent, so that it doesn't change
 	   when the region view is trimmed.
 	*/
-	_temporary_note_group = new ArdourCanvas::Group (group->parent ());
+	_temporary_note_group = new Canvas::Group (group->parent ());
 	_temporary_note_group->move (group->position ());
 	_note_group->reparent (_temporary_note_group);
 }

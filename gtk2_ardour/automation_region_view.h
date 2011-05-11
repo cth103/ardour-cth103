@@ -37,7 +37,7 @@ class TimeAxisView;
 class AutomationRegionView : public RegionView
 {
 public:
-	AutomationRegionView(ArdourCanvas::Group*,
+	AutomationRegionView(Canvas::Group*,
 	                     AutomationTimeAxisView&,
 	                     boost::shared_ptr<ARDOUR::Region>,
 	                     const Evoral::Parameter& parameter,

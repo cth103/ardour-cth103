@@ -56,7 +56,7 @@ class MarkerView : public TimeAxisViewItem
 		 * @param start the start time of this item
 		 * @param duration the duration of this item
 		 */
-                 MarkerView(ArdourCanvas::Group *parent,
+                 MarkerView(Canvas::Group *parent,
 			TimeAxisView *tv,
 			ImageFrameView* marked,
 			double spu,

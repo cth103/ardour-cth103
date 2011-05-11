@@ -3,7 +3,7 @@
 
 #include "group.h"
 
-namespace ArdourCanvas {
+namespace Canvas {
 
 class RootGroup : public Group
 {

@@ -29,7 +29,7 @@
 #include "canvas/utils.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 /** Construct a Text item.
  *  @param parent Parent group.

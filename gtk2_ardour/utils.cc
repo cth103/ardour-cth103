@@ -289,7 +289,7 @@ xpm2rgba (const char** xpm, uint32_t& w, uint32_t& h)
 	return (savergb);
 }
 
-ArdourCanvas::Points*
+Canvas::Points*
 get_canvas_points (string /*who*/, uint32_t npoints)
 {
 	// cerr << who << ": wants " << npoints << " canvas points" << endl;
@@ -298,7 +298,7 @@ get_canvas_points (string /*who*/, uint32_t npoints)
 		abort ();
 	}
 #endif
-	return new ArdourCanvas::Points (npoints);
+	return new Canvas::Points (npoints);
 }
 
 Pango::FontDescription*

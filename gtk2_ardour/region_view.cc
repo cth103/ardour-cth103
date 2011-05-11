@@ -58,13 +58,13 @@ using namespace ARDOUR;
 using namespace PBD;
 using namespace Editing;
 using namespace Gtk;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 static const int32_t sync_mark_width = 9;
 
 PBD::Signal1<void,RegionView*> RegionView::RegionViewGoingAway;
 
-RegionView::RegionView (ArdourCanvas::Group*              parent,
+RegionView::RegionView (Canvas::Group*              parent,
                         TimeAxisView&                     tv,
                         boost::shared_ptr<ARDOUR::Region> r,
                         double                            spu,
@@ -125,7 +125,7 @@ RegionView::RegionView (const RegionView& other, boost::shared_ptr<Region> other
 	GhostRegion::CatchDeletion.connect (*this, invalidator (*this), ui_bind (&RegionView::remove_ghost, this, _1), gui_context());
 }
 
-RegionView::RegionView (ArdourCanvas::Group*         parent,
+RegionView::RegionView (Canvas::Group*         parent,
                         TimeAxisView&                tv,
                         boost::shared_ptr<ARDOUR::Region> r,
                         double                       spu,
@@ -211,7 +211,7 @@ RegionView::~RegionView ()
 		delete *g;
 	}
 
-	for (list<ArdourCanvas::Rectangle*>::iterator i = _coverage_frames.begin (); i != _coverage_frames.end (); ++i) {
+	for (list<Canvas::Rectangle*>::iterator i = _coverage_frames.begin (); i != _coverage_frames.end (); ++i) {
 		delete *i;
 	}
 
@@ -236,7 +236,7 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double thres
 
 	for (AudioIntervalResult::const_iterator i = silences.begin(); i != silences.end(); ++i) {
 
-		ArdourCanvas::Rectangle* cr = new ArdourCanvas::Rectangle (group);
+		Canvas::Rectangle* cr = new Canvas::Rectangle (group);
 		CANVAS_DEBUG_NAME (cr, "RV silent frame");
 		_silent_frames.push_back (cr);
 
@@ -270,7 +270,7 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double thres
 		shortest_audible = min (shortest_audible, dur);
 	}
 
-        _silence_text = new ArdourCanvas::Text (group);
+        _silence_text = new Canvas::Text (group);
 	_silence_text->set_ignore_events (true);
 	CANVAS_DEBUG_NAME (group, "TAV silence text");
         _silence_text->set_font_description (get_font_for_style (N_("SilenceText")));
@@ -325,7 +325,7 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double thres
 void
 RegionView::hide_silent_frames ()
 {
-	for (list<ArdourCanvas::Rectangle*>::iterator i = _silent_frames.begin (); i != _silent_frames.end (); ++i) {
+	for (list<Canvas::Rectangle*>::iterator i = _silent_frames.begin (); i != _silent_frames.end (); ++i) {
                 (*i)->hide ();
 	}
         _silence_text->hide();
@@ -334,7 +334,7 @@ RegionView::hide_silent_frames ()
 void
 RegionView::drop_silent_frames ()
 {
-	for (list<ArdourCanvas::Rectangle*>::iterator i = _silent_frames.begin (); i != _silent_frames.end (); ++i) {
+	for (list<Canvas::Rectangle*>::iterator i = _silent_frames.begin (); i != _silent_frames.end (); ++i) {
 		delete *i;
 	}
         _silent_frames.clear ();
@@ -344,7 +344,7 @@ RegionView::drop_silent_frames ()
 }
 
 gint
-RegionView::_lock_toggle (ArdourCanvas::Item*, GdkEvent* ev, void* arg)
+RegionView::_lock_toggle (Canvas::Item*, GdkEvent* ev, void* arg)
 {
 	switch (ev->type) {
 	case GDK_BUTTON_RELEASE:
@@ -472,7 +472,7 @@ RegionView::set_position (framepos_t pos, void* /*src*/, double* ignored)
 
 	if (delta) {
 		for (vector<GhostRegion*>::iterator i = ghosts.begin(); i != ghosts.end(); ++i) {
-			(*i)->group->move (ArdourCanvas::Duple (delta, 0.0));
+			(*i)->group->move (Canvas::Duple (delta, 0.0));
 		}
 	}
 
@@ -618,12 +618,12 @@ RegionView::region_sync_changed ()
 
 		/* points set below */
 
-		sync_mark = new ArdourCanvas::Polygon (group);
+		sync_mark = new Canvas::Polygon (group);
 		CANVAS_DEBUG_NAME (sync_mark, "RV sync mark");
 		/* XXX: make a themable colour */
 		sync_mark->set_fill_color (RGBA_TO_UINT (0, 255, 0, 255));
 
-		sync_line = new ArdourCanvas::Line (group);
+		sync_line = new Canvas::Line (group);
 		CANVAS_DEBUG_NAME (sync_mark, "RV sync line");
 		/* XXX: make themable */
 		sync_line->set_outline_color (RGBA_TO_UINT (0, 255, 0, 255));
@@ -659,14 +659,14 @@ RegionView::region_sync_changed ()
 			//points = sync_mark->property_points().get_value();
 
 			double offset = sync_offset / frames_per_pixel;
-			points.push_back (ArdourCanvas::Duple (offset - ((sync_mark_width-1)/2), 1));
-			points.push_back (ArdourCanvas::Duple (offset + ((sync_mark_width-1)/2), 1));
-			points.push_back (ArdourCanvas::Duple (offset, sync_mark_width - 1));
-			points.push_back (ArdourCanvas::Duple (offset - ((sync_mark_width-1)/2), 1));
+			points.push_back (Canvas::Duple (offset - ((sync_mark_width-1)/2), 1));
+			points.push_back (Canvas::Duple (offset + ((sync_mark_width-1)/2), 1));
+			points.push_back (Canvas::Duple (offset, sync_mark_width - 1));
+			points.push_back (Canvas::Duple (offset - ((sync_mark_width-1)/2), 1));
 			sync_mark->set (points);
 			sync_mark->show ();
 
-			sync_line->set (ArdourCanvas::Duple (offset, 0), ArdourCanvas::Duple (offset, trackview.current_height() - NAME_HIGHLIGHT_SIZE));
+			sync_line->set (Canvas::Duple (offset, 0), Canvas::Duple (offset, trackview.current_height() - NAME_HIGHLIGHT_SIZE));
 			sync_line->show ();
 		}
 	}
@@ -679,12 +679,12 @@ RegionView::move (double x_delta, double y_delta)
 		return;
 	}
 
-	get_canvas_group()->move (ArdourCanvas::Duple (x_delta, y_delta));
+	get_canvas_group()->move (Canvas::Duple (x_delta, y_delta));
 
 	/* note: ghosts never leave their tracks so y_delta for them is always zero */
 
 	for (vector<GhostRegion*>::iterator i = ghosts.begin(); i != ghosts.end(); ++i) {
-		(*i)->group->move (ArdourCanvas::Duple (x_delta, 0.0));
+		(*i)->group->move (Canvas::Duple (x_delta, 0.0));
 	}
 }
 
@@ -733,16 +733,16 @@ RegionView::set_height (double h)
 		double offset = sync_offset / frames_per_pixel;
 
 		sync_line->set (
-			ArdourCanvas::Duple (offset, 0),
-			ArdourCanvas::Duple (offset, h - NAME_HIGHLIGHT_SIZE)
+			Canvas::Duple (offset, 0),
+			Canvas::Duple (offset, h - NAME_HIGHLIGHT_SIZE)
 			);
 	}
 
-	for (list<ArdourCanvas::Rectangle*>::iterator i = _coverage_frames.begin(); i != _coverage_frames.end(); ++i) {
+	for (list<Canvas::Rectangle*>::iterator i = _coverage_frames.begin(); i != _coverage_frames.end(); ++i) {
 		(*i)->set_y1 (h + 1);
 	}
 
-	for (list<ArdourCanvas::Rectangle*>::iterator i = _silent_frames.begin(); i != _silent_frames.end(); ++i) {
+	for (list<Canvas::Rectangle*>::iterator i = _silent_frames.begin(); i != _silent_frames.end(); ++i) {
 		(*i)->set_y1 (h + 1);
 	}
 
@@ -754,7 +754,7 @@ void
 RegionView::update_coverage_frames (LayerDisplay d)
 {
 	/* remove old coverage frames */
-	for (list<ArdourCanvas::Rectangle*>::iterator i = _coverage_frames.begin (); i != _coverage_frames.end (); ++i) {
+	for (list<Canvas::Rectangle*>::iterator i = _coverage_frames.begin (); i != _coverage_frames.end (); ++i) {
 		delete *i;
 	}
 
@@ -774,7 +774,7 @@ RegionView::update_coverage_frames (LayerDisplay d)
 	framepos_t t = position;
 	framepos_t const end = _region->last_frame ();
 
-	ArdourCanvas::Rectangle* cr = 0;
+	Canvas::Rectangle* cr = 0;
 	bool me = false;
 
 	uint32_t const color = frame->fill_color ();
@@ -794,7 +794,7 @@ RegionView::update_coverage_frames (LayerDisplay d)
 
 		/* start off any new rect, if required */
 		if (cr == 0 || me != new_me) {
-			cr = new ArdourCanvas::Rectangle (group);
+			cr = new Canvas::Rectangle (group);
 			CANVAS_DEBUG_NAME (cr, "RV coverage frame");
 			_coverage_frames.push_back (cr);
 			cr->set_x0 (trackview.editor().frame_to_pixel (t - position));

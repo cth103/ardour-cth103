@@ -35,7 +35,7 @@ class GhostRegion;
 class AutomationTimeAxisView;
 class AutomationRegionView;
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class Polygon;
 	class Text;
 }
@@ -43,7 +43,7 @@ namespace ArdourCanvas {
 class RegionView : public TimeAxisViewItem
 {
   public:
-	RegionView (ArdourCanvas::Group* parent,
+	RegionView (Canvas::Group* parent,
 	            TimeAxisView&        time_view,
 	            boost::shared_ptr<ARDOUR::Region> region,
 	            double               frames_per_pixel,
@@ -119,7 +119,7 @@ class RegionView : public TimeAxisViewItem
 	/** Allows derived types to specify their visibility requirements
 	 * to the TimeAxisViewItem parent class
 	 */
-	RegionView (ArdourCanvas::Group *,
+	RegionView (Canvas::Group *,
 		    TimeAxisView&,
 		    boost::shared_ptr<ARDOUR::Region>,
 		    double frames_per_pixel,
@@ -136,7 +136,7 @@ class RegionView : public TimeAxisViewItem
 	
 	std::string make_name () const;
 	
-	static gint _lock_toggle (ArdourCanvas::Item*, GdkEvent*, void*);
+	static gint _lock_toggle (Canvas::Item*, GdkEvent*, void*);
 	void        lock_toggle ();
 	
 	virtual void set_colors ();
@@ -147,8 +147,8 @@ class RegionView : public TimeAxisViewItem
 	
 	boost::shared_ptr<ARDOUR::Region> _region;
 	
-	ArdourCanvas::Polygon* sync_mark; ///< polgyon for sync position
-	ArdourCanvas::Line* sync_line; ///< polgyon for sync position
+	Canvas::Polygon* sync_mark; ///< polgyon for sync position
+	Canvas::Line* sync_line; ///< polgyon for sync position
 	
 	RegionEditor* editor;
 	
@@ -168,17 +168,17 @@ class RegionView : public TimeAxisViewItem
 	    different bits of regions according to whether or not they are the one
 	    that will be played at any given time.
 	*/
-	std::list<ArdourCanvas::Rectangle*> _coverage_frames;
+	std::list<Canvas::Rectangle*> _coverage_frames;
 
 	/** a list of rectangles used to show silent segments 
 	*/
-	std::list<ArdourCanvas::Rectangle*> _silent_frames;
+	std::list<Canvas::Rectangle*> _silent_frames;
 	/** a list of rectangles used to show the current silence threshold
 	*/
-	std::list<ArdourCanvas::Rectangle*> _silent_threshold_frames;
+	std::list<Canvas::Rectangle*> _silent_threshold_frames;
         /** a text item to display strip silence statistics
          */
-        ArdourCanvas::Text* _silence_text;
+        Canvas::Text* _silence_text;
         
 	ARDOUR::BeatsFramesConverter _time_converter;
 };

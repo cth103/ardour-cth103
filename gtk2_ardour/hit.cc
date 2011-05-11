@@ -25,7 +25,7 @@
 #include "hit.h"
 
 using namespace ARDOUR;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 Hit::Hit (
 	MidiRegionView&                   region,

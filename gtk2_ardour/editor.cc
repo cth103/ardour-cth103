@@ -489,9 +489,9 @@ Editor::Editor ()
 	_cursors = new MouseCursors;
 
 	/* XXX: CANVAS: these lines used to have manage () */
-	ArdourCanvas::GtkCanvas* time_pad = new ArdourCanvas::GtkCanvas ();
-	ArdourCanvas::Line* pad_line_1 = new ArdourCanvas::Line (time_pad->root ());
-	pad_line_1->set (ArdourCanvas::Duple (0.0, 1.0), ArdourCanvas::Duple (100.0, 1.0));
+	Canvas::GtkCanvas* time_pad = new Canvas::GtkCanvas ();
+	Canvas::Line* pad_line_1 = new Canvas::Line (time_pad->root ());
+	pad_line_1->set (Canvas::Duple (0.0, 1.0), Canvas::Duple (100.0, 1.0));
 	
 	pad_line_1->set_outline_color (0xFF0000FF);
 	pad_line_1->show();
@@ -1255,7 +1255,7 @@ Editor::action_pre_activated (Glib::RefPtr<Action> const & a)
 
 /** Pop up a context menu for when the user clicks on a fade in or fade out */
 void
-Editor::popup_fade_context_menu (int button, int32_t time, ArdourCanvas::Item* item, ItemType item_type)
+Editor::popup_fade_context_menu (int button, int32_t time, Canvas::Item* item, ItemType item_type)
 {
 	using namespace Menu_Helpers;
 	AudioRegionView* arv = static_cast<AudioRegionView*> (item->get_data ("regionview"));
@@ -5532,7 +5532,7 @@ Editor::notebook_tab_clicked (GdkEventButton* ev, Gtk::Widget* page)
 void
 Editor::save_canvas_state ()
 {
-	XMLTree* tree = static_cast<ArdourCanvas::Canvas*>(_track_canvas)->get_state ();
+	XMLTree* tree = static_cast<Canvas::Canvas*>(_track_canvas)->get_state ();
 	string path = string_compose ("%1/canvas-state.xml", _session->path());
 	tree->write (path);
 }

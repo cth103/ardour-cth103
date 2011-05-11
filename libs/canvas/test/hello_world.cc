@@ -1,7 +1,7 @@
 #include "canvas/canvas.h"
 #include "canvas/rectangle.h"
 
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 int main ()
 {

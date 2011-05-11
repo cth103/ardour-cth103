@@ -40,7 +40,7 @@ namespace Gtk {
         class Adjustment;
 }
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class Item;
 }
 
@@ -59,7 +59,7 @@ void add_item_with_sensitivity (Gtk::Menu_Helpers::MenuList &, Gtk::Menu_Helpers
 unsigned char* xpm2rgb  (const char** xpm, uint32_t& w, uint32_t& h);
 unsigned char* xpm2rgba (const char** xpm, uint32_t& w, uint32_t& h);
 
-ArdourCanvas::Points* get_canvas_points (std::string who, uint32_t npoints);
+Canvas::Points* get_canvas_points (std::string who, uint32_t npoints);
 
 Pango::FontDescription* get_font_for_style (std::string widgetname);
 

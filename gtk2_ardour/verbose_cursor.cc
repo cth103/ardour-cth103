@@ -42,12 +42,12 @@ VerboseCursor::VerboseCursor (Editor* editor)
 {
 	Pango::FontDescription* font = get_font_for_style (N_("VerboseCanvasCursor"));
 
-	_canvas_item = new ArdourCanvas::Text (_editor->_track_canvas->root());
+	_canvas_item = new Canvas::Text (_editor->_track_canvas->root());
 	_canvas_item->set_ignore_events (true);
 	_canvas_item->set_font_description (font);
 }
 
-ArdourCanvas::Item *
+Canvas::Item *
 VerboseCursor::canvas_item () const
 {
 	return _canvas_item;
@@ -266,7 +266,7 @@ void
 VerboseCursor::set_position (double x, double y)
 {
 	_canvas_item->show ();
-	_canvas_item->set_position (ArdourCanvas::Duple (clamp_x (x + _xoffset), clamp_y (y + _yoffset)));
+	_canvas_item->set_position (Canvas::Duple (clamp_x (x + _xoffset), clamp_y (y + _yoffset)));
 }
 
 bool

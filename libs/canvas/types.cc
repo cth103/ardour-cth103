@@ -28,10 +28,10 @@
 #include "canvas/types.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
-Coord const ArdourCanvas::COORD_MAX = DBL_MAX;
-TransformIndex const ArdourCanvas::IDENTITY = -1;
+Coord const Canvas::COORD_MAX = DBL_MAX;
+TransformIndex const Canvas::IDENTITY = -1;
 
 /** A fairly dumb but effective add operator which avoids
  *  overflow in some circumstances (namely if a or b are COORD_MAX).
@@ -40,7 +40,7 @@ TransformIndex const ArdourCanvas::IDENTITY = -1;
  *  @return a + b (unless a == COORD_MAX or b == COORD_MAX, in which case the result is COORD_MAX).
  */
 Coord
-ArdourCanvas::safe_add (Coord a, Coord b)
+Canvas::safe_add (Coord a, Coord b)
 {
 	if (a == COORD_MAX || b == COORD_MAX) {
 		return COORD_MAX;
@@ -212,42 +212,42 @@ Rect::operator!= (Rect const & other) const
 
 /** Unary operator- for Duples */
 Duple
-ArdourCanvas::operator- (Duple const & o)
+Canvas::operator- (Duple const & o)
 {
 	return Duple (-o.x, -o.y);
 }
 
 /** Binary operator+ for Duples */
 Duple
-ArdourCanvas::operator+ (Duple const & a, Duple const & b)
+Canvas::operator+ (Duple const & a, Duple const & b)
 {
 	return Duple (safe_add (a.x, b.x), safe_add (a.y, b.y));
 }
 
 /** Binary operator- for Duples */
 Duple
-ArdourCanvas::operator- (Duple const & a, Duple const & b)
+Canvas::operator- (Duple const & a, Duple const & b)
 {
 	return Duple (a.x - b.x, a.y - b.y);
 }
 
 /** Binary operator/ for Duples with a double */
 Duple
-ArdourCanvas::operator/ (Duple const & a, double b)
+Canvas::operator/ (Duple const & a, double b)
 {
 	return Duple (a.x / b, a.y / b);
 }
 
 /** Binary operator/ for Duples */
 Duple
-ArdourCanvas::operator/ (Duple const & a, Duple const & b)
+Canvas::operator/ (Duple const & a, Duple const & b)
 {
 	return Duple (a.x / b.x, a.y / b.y);
 }
 
 /** operator<< for ostreams and Duples */
 ostream &
-ArdourCanvas::operator<< (ostream & s, Duple const & r)
+Canvas::operator<< (ostream & s, Duple const & r)
 {
 	s << "(" << r.x << ", " << r.y << ")";
 	return s;
@@ -255,7 +255,7 @@ ArdourCanvas::operator<< (ostream & s, Duple const & r)
 
 /** operator<< for ostreams and Rects */
 ostream &
-ArdourCanvas::operator<< (ostream & s, Rect const & r)
+Canvas::operator<< (ostream & s, Rect const & r)
 {
 	s << "[(" << r.x0 << ", " << r.y0 << "), (" << r.x1 << ", " << r.y1 << ")]";
 	return s;

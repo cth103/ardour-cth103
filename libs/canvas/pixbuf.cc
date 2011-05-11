@@ -3,7 +3,7 @@
 #include "canvas/pixbuf.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 Pixbuf::Pixbuf (Group* g)
 	: Item (g)

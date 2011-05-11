@@ -49,12 +49,12 @@ using namespace ARDOUR;
 using namespace PBD;
 using namespace Editing;
 
-StreamView::StreamView (RouteTimeAxisView& tv, ArdourCanvas::Group* background_group, ArdourCanvas::Group* canvas_group)
+StreamView::StreamView (RouteTimeAxisView& tv, Canvas::Group* background_group, Canvas::Group* canvas_group)
 	: _trackview (tv)
 	, owns_background_group (background_group == 0)
 	, owns_canvas_group (canvas_group == 0)
-	, _background_group (background_group ? background_group : new ArdourCanvas::Group (_trackview.canvas_background()))
-	, _canvas_group (canvas_group ? canvas_group : new ArdourCanvas::Group (_trackview.canvas_display()))
+	, _background_group (background_group ? background_group : new Canvas::Group (_trackview.canvas_background()))
+	, _canvas_group (canvas_group ? canvas_group : new Canvas::Group (_trackview.canvas_display()))
 	, _frames_per_pixel (_trackview.editor().get_current_zoom ())
 	, rec_updating(false)
 	, rec_active(false)
@@ -70,9 +70,9 @@ StreamView::StreamView (RouteTimeAxisView& tv, ArdourCanvas::Group* background_g
 	
 	/* set_position() will position the group */
 
-	canvas_rect = new ArdourCanvas::Rectangle (_background_group);
+	canvas_rect = new Canvas::Rectangle (_background_group);
 	CANVAS_DEBUG_NAME (canvas_rect, "SV canvas rectangle");
-	canvas_rect->set (ArdourCanvas::Rect (0, 0, ArdourCanvas::COORD_MAX, tv.current_height ()));
+	canvas_rect->set (Canvas::Rect (0, 0, Canvas::COORD_MAX, tv.current_height ()));
 	canvas_rect->raise(1); // raise above tempo lines
 
 	canvas_rect->set_outline_what (0x2 | 0x8);
@@ -120,7 +120,7 @@ StreamView::attach ()
 int
 StreamView::set_position (gdouble x, gdouble y)
 {
-	_canvas_group->set_position (ArdourCanvas::Duple (x, y));
+	_canvas_group->set_position (Canvas::Duple (x, y));
 	return 0;
 }
 
@@ -161,8 +161,8 @@ StreamView::set_frames_per_pixel (double fpp)
 	for (vector<RecBoxInfo>::iterator xi = rec_rects.begin(); xi != rec_rects.end(); ++xi) {
 		RecBoxInfo &recbox = (*xi);
 
-		ArdourCanvas::Coord const xstart = _trackview.editor().frame_to_pixel (recbox.start);
-		ArdourCanvas::Coord const xend = _trackview.editor().frame_to_pixel (recbox.start + recbox.length);
+		Canvas::Coord const xstart = _trackview.editor().frame_to_pixel (recbox.start);
+		Canvas::Coord const xend = _trackview.editor().frame_to_pixel (recbox.start + recbox.length);
 
 		recbox.rectangle->set_x0 (xstart);
 		recbox.rectangle->set_x1 (xend);

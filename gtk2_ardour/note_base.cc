@@ -32,7 +32,7 @@
 using namespace std;
 using namespace Gtkmm2ext;
 using ARDOUR::MidiModel;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 PBD::Signal1<void,NoteBase*> NoteBase::NoteBaseDeleted;
 

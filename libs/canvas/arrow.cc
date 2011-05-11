@@ -26,7 +26,7 @@
 #include "canvas/polygon.h"
 #include "canvas/line.h"
 
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 /** Construct an Arrow.
  *  @param parent Parent canvas group.

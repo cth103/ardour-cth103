@@ -58,7 +58,7 @@ class ImageFrameView : public TimeAxisViewItem
 		 * @param num_channels the number of color channels within rgb_data
 		 */
 		ImageFrameView(const std::string & item_id,
-			 ArdourCanvas::Group *parent,
+			 Canvas::Group *parent,
 			ImageFrameTimeAxis *tv,
 			ImageFrameTimeAxisGroup* group,
 			double spu,
@@ -203,7 +203,7 @@ class ImageFrameView : public TimeAxisViewItem
 		// ------- Our canvas element -----------
 
 		/** the CanvasImageFrame to display the image */
-		ArdourCanvas::ImageFrame* imageframe ;
+		Canvas::ImageFrame* imageframe ;
 
 } ; /* class ImageFrameView */
 

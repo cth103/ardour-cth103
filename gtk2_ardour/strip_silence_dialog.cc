@@ -38,7 +38,7 @@
 
 using namespace ARDOUR;
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 /** Construct Strip silence dialog box */
 StripSilenceDialog::StripSilenceDialog (Session* s, list<RegionView*> const & v)

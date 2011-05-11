@@ -5,7 +5,7 @@
 #include "item.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 CPPUNIT_TEST_SUITE_REGISTRATION (ItemTest);
 

@@ -30,7 +30,7 @@
 #include "canvas/utils.h"
 #include "canvas/debug.h"
 
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 /** Construct an Outline object.
  *  @param parent Parent group

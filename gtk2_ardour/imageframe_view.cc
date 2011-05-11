@@ -54,7 +54,7 @@ sigc::signal<void,ImageFrameView*> ImageFrameView::GoingAway;
  * @param num_channels the number of color channels within rgb_data
  */
 ImageFrameView::ImageFrameView(const string & item_id,
-	ArdourCanvas::Group *parent,
+	Canvas::Group *parent,
 	ImageFrameTimeAxis* tv,
 	ImageFrameTimeAxisGroup* item_group,
 	double spu,

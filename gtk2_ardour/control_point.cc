@@ -41,7 +41,7 @@ ControlPoint::ControlPoint (AutomationLine& al)
 	_shape = Full;
 	_size = 4.0;
 
-	_item = new ArdourCanvas::Rectangle (&_line.canvas_group());
+	_item = new Canvas::Rectangle (&_line.canvas_group());
 	_item->property_draw() = true;
 	_item->set_fill (false);
 	_item->set_fill_color (ARDOUR_UI::config()->canvasvar_ControlPointFill.get());
@@ -69,7 +69,7 @@ ControlPoint::ControlPoint (const ControlPoint& other, bool /*dummy_arg_to_force
 	_shape = other._shape;
 	_size = other._size;
 
-	_item = new ArdourCanvas::Rectangle (&_line.canvas_group());
+	_item = new Canvas::Rectangle (&_line.canvas_group());
 	_item->set_fill (false);
 	_item->set_outline_color (ARDOUR_UI::config()->canvasvar_ControlPointOutline.get());
 	_item->set_outline_width (1);
@@ -175,7 +175,7 @@ ControlPoint::move_to (double x, double y, ShapeType shape)
 		break;
 	}
 
-	_item->set (ArdourCanvas::Rect (x1, y - half_size, x2, y + half_size));
+	_item->set (Canvas::Rect (x1, y - half_size, x2, y + half_size));
 
 	_x = x;
 	_y = y;

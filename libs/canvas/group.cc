@@ -32,7 +32,7 @@
 #include "canvas/item_factory.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 /** Construct a Group with no parent.
  *  @param canvas This group's canvas.

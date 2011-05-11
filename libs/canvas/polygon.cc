@@ -1,7 +1,7 @@
 #include "pbd/xml++.h"
 #include "canvas/polygon.h"
 
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 Polygon::Polygon (Group* parent)
 	: Item (parent)

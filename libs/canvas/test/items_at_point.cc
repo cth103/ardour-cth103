@@ -4,7 +4,7 @@
 #include "items_at_point.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 CPPUNIT_TEST_SUITE_REGISTRATION (ItemsAtPointTest);
 

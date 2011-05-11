@@ -27,7 +27,7 @@ enum Width {
 	Narrow,
 };
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class Rectangle;
 }
 
@@ -37,9 +37,9 @@ enum LayerDisplay {
 };
 
 struct SelectionRect {
-    ArdourCanvas::Rectangle *rect;
-    ArdourCanvas::Rectangle *end_trim;
-    ArdourCanvas::Rectangle *start_trim;
+    Canvas::Rectangle *rect;
+    Canvas::Rectangle *end_trim;
+    Canvas::Rectangle *start_trim;
     uint32_t id;
 };
 

@@ -2,7 +2,7 @@
 #include "canvas/canvas.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 RootGroup::RootGroup (Canvas* canvas)
 	: Group (canvas)

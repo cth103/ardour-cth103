@@ -1,7 +1,7 @@
 #include <gdkmm/pixbuf.h>
 #include "canvas/item.h"
 
-namespace ArdourCanvas {
+namespace Canvas {
 
 class Pixbuf : public Item
 {

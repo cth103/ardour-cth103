@@ -40,13 +40,13 @@ namespace ARDOUR {
 	class Track;
 }
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class Rectangle;
 	class Group;
 }
 
 struct RecBoxInfo {
-	ArdourCanvas::Rectangle*   rectangle;
+	Canvas::Rectangle*   rectangle;
 	framepos_t                 start;
 	ARDOUR::framecnt_t         length;
 };
@@ -83,8 +83,8 @@ public:
  	void set_layer_display (LayerDisplay);
 	LayerDisplay layer_display () const { return _layer_display; }
 
-	ArdourCanvas::Group* background_group() { return _background_group; }
-	ArdourCanvas::Group* canvas_item() { return _canvas_group; }
+	Canvas::Group* background_group() { return _background_group; }
+	Canvas::Group* canvas_item() { return _canvas_group; }
 
 	enum ColorTarget {
 		RegionColor,
@@ -125,7 +125,7 @@ public:
 	sigc::signal<void> RegionViewRemoved;
 
 protected:
-	StreamView (RouteTimeAxisView&, ArdourCanvas::Group* background_group = 0, ArdourCanvas::Group* canvas_group = 0);
+	StreamView (RouteTimeAxisView&, Canvas::Group* background_group = 0, Canvas::Group* canvas_group = 0);
 
 	void         transport_changed();
 	void         transport_looped();
@@ -151,9 +151,9 @@ protected:
 	RouteTimeAxisView&        _trackview;
 	bool                      owns_background_group;
 	bool                      owns_canvas_group;
-	ArdourCanvas::Group*      _background_group;
-	ArdourCanvas::Group*      _canvas_group;
-	ArdourCanvas::Rectangle*  canvas_rect; /* frame around the whole thing */
+	Canvas::Group*      _background_group;
+	Canvas::Group*      _canvas_group;
+	Canvas::Rectangle*  canvas_rect; /* frame around the whole thing */
 
 	typedef std::list<RegionView* > RegionViewList;
 	RegionViewList  region_views;

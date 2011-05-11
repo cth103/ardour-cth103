@@ -65,7 +65,7 @@ Editor::add_new_location (Location *location)
 {
 	ENSURE_GUI_THREAD (*this, &Editor::add_new_location, location);
 
-	ArdourCanvas::Group* group = add_new_location_internal (location);
+	Canvas::Group* group = add_new_location_internal (location);
 
 	/* Do a full update of the markers in this group */
 	update_marker_labels (group);
@@ -75,14 +75,14 @@ Editor::add_new_location (Location *location)
  *  the caller must call update_marker_labels () after calling this.
  *  @return canvas group that the location's marker was added to.
  */
-ArdourCanvas::Group*
+Canvas::Group*
 Editor::add_new_location_internal (Location* location)
 {
 	LocationMarkers *lam = new LocationMarkers;
 	uint32_t color;
 
 	/* make a note here of which group this marker ends up in */
-	ArdourCanvas::Group* group = 0;
+	Canvas::Group* group = 0;
 
 	if (location->is_cd_marker()) {
 		color = location_cd_marker_color;
@@ -304,14 +304,14 @@ struct MarkerComparator {
 void
 Editor::update_marker_labels ()
 {
-	for (std::map<ArdourCanvas::Group *, std::list<Marker *> >::iterator i = _sorted_marker_lists.begin(); i != _sorted_marker_lists.end(); ++i) {
+	for (std::map<Canvas::Group *, std::list<Marker *> >::iterator i = _sorted_marker_lists.begin(); i != _sorted_marker_lists.end(); ++i) {
 		update_marker_labels (i->first);
 	}
 }
 
 /** Look at all markers in a group and update label widths */
 void
-Editor::update_marker_labels (ArdourCanvas::Group* group)
+Editor::update_marker_labels (Canvas::Group* group)
 {
 	list<Marker*>& sorted = _sorted_marker_lists[group];
 
@@ -664,7 +664,7 @@ Editor::mouse_add_new_marker (framepos_t where, bool is_cd, bool is_xrun)
 }
 
 void
-Editor::remove_marker (ArdourCanvas::Item& item, GdkEvent*)
+Editor::remove_marker (Canvas::Item& item, GdkEvent*)
 {
 	Marker* marker;
 	bool is_start;
@@ -729,7 +729,7 @@ Editor::location_gone (Location *location)
 }
 
 void
-Editor::tempo_or_meter_marker_context_menu (GdkEventButton* ev, ArdourCanvas::Item* item)
+Editor::tempo_or_meter_marker_context_menu (GdkEventButton* ev, Canvas::Item* item)
 {
 	marker_menu_item = item;
 	
@@ -753,7 +753,7 @@ Editor::tempo_or_meter_marker_context_menu (GdkEventButton* ev, ArdourCanvas::It
 }
 
 void
-Editor::marker_context_menu (GdkEventButton* ev, ArdourCanvas::Item* item)
+Editor::marker_context_menu (GdkEventButton* ev, Canvas::Item* item)
 {
 	Marker * marker;
 	if ((marker = reinterpret_cast<Marker *> (item->get_data("marker"))) == 0) {
@@ -805,7 +805,7 @@ Editor::marker_context_menu (GdkEventButton* ev, ArdourCanvas::Item* item)
 }
 
 void
-Editor::new_transport_marker_context_menu (GdkEventButton* ev, ArdourCanvas::Item*)
+Editor::new_transport_marker_context_menu (GdkEventButton* ev, Canvas::Item*)
 {
 	if (new_transport_marker_menu == 0) {
 		build_new_transport_marker_menu ();
@@ -816,7 +816,7 @@ Editor::new_transport_marker_context_menu (GdkEventButton* ev, ArdourCanvas::Ite
 }
 
 void
-Editor::transport_marker_context_menu (GdkEventButton* ev, ArdourCanvas::Item*)
+Editor::transport_marker_context_menu (GdkEventButton* ev, Canvas::Item*)
 {
 	if (transport_marker_menu == 0) {
 		build_range_marker_menu (true);
@@ -1401,7 +1401,7 @@ Editor::update_punch_range_view (bool visibility)
 	Location* tpl;
 
 	if ((_session->config.get_punch_in() || _session->config.get_punch_out()) && ((tpl = transport_punch_location()) != 0)) {
-		ArdourCanvas::Rect const v = _track_canvas_viewport->visible_area ();
+		Canvas::Rect const v = _track_canvas_viewport->visible_area ();
 		if (_session->config.get_punch_in()) {
 			transport_punch_range_rect->set_x0 (frame_to_pixel (tpl->start()));
 			transport_punch_range_rect->set_x1 (_session->config.get_punch_out() ? frame_to_pixel (tpl->end()) : frame_to_pixel (JACK_MAX_FRAMES));
@@ -1504,7 +1504,7 @@ Editor::toggle_marker_lines ()
 void
 Editor::remove_sorted_marker (Marker* m)
 {
-	for (std::map<ArdourCanvas::Group *, std::list<Marker *> >::iterator i = _sorted_marker_lists.begin(); i != _sorted_marker_lists.end(); ++i) {
+	for (std::map<Canvas::Group *, std::list<Marker *> >::iterator i = _sorted_marker_lists.begin(); i != _sorted_marker_lists.end(); ++i) {
 		i->second.remove (m);
 	}
 }

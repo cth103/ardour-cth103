@@ -5,7 +5,7 @@
 #include "canvas/utils.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 Fill::Fill (Group* parent)
 	: Item (parent)

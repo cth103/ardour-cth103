@@ -55,13 +55,13 @@ using namespace Gtk;
  * @param sess the current session
  * @param canvas the parent canvas item
  */
-ImageFrameTimeAxis::ImageFrameTimeAxis(const string & track_id, PublicEditor& ed, ARDOUR::Session* sess, ArdourCanvas::Canvas& canvas)
+ImageFrameTimeAxis::ImageFrameTimeAxis(const string & track_id, PublicEditor& ed, ARDOUR::Session* sess, Canvas::Canvas& canvas)
 	: AxisView(sess),
 	  VisualTimeAxis(track_id, ed, sess, canvas)
 {
 	_color = unique_random_color() ;
 
-	selection_group = new ArdourCanvas::Group (*canvas_display);
+	selection_group = new Canvas::Group (*canvas_display);
 	selection_group->hide();
 
 	// intialize our data items

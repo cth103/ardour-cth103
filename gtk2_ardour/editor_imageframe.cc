@@ -136,7 +136,7 @@ Editor::add_imageframe_marker_time_axis(const string & track_name, TimeAxisView*
 }
 
 void
-Editor::popup_imageframe_edit_menu(int button, int32_t time, ArdourCanvas::Item* ifv, bool with_item)
+Editor::popup_imageframe_edit_menu(int button, int32_t time, Canvas::Item* ifv, bool with_item)
 {
 	ImageFrameTimeAxis* ifta = dynamic_cast<ImageFrameTimeAxis*>(clicked_axisview) ;
 
@@ -153,7 +153,7 @@ Editor::popup_imageframe_edit_menu(int button, int32_t time, ArdourCanvas::Item*
 }
 
 void
-Editor::popup_marker_time_axis_edit_menu(int button, int32_t time, ArdourCanvas::Item* ifv, bool with_item)
+Editor::popup_marker_time_axis_edit_menu(int button, int32_t time, Canvas::Item* ifv, bool with_item)
 {
 	MarkerTimeAxis* mta = dynamic_cast<MarkerTimeAxis*>(clicked_axisview) ;
 
@@ -170,7 +170,7 @@ Editor::popup_marker_time_axis_edit_menu(int button, int32_t time, ArdourCanvas:
 
 /* <CMT Additions file="editor_canvas_events.cc"> */
 bool
-Editor::canvas_imageframe_item_view_event (GdkEvent *event, ArdourCanvas::Item* item, ImageFrameView *ifv)
+Editor::canvas_imageframe_item_view_event (GdkEvent *event, Canvas::Item* item, ImageFrameView *ifv)
 {
 	gint ret = FALSE ;
 	ImageFrameTimeAxisGroup* iftag = 0 ;
@@ -198,7 +198,7 @@ Editor::canvas_imageframe_item_view_event (GdkEvent *event, ArdourCanvas::Item* 
 }
 
 bool
-Editor::canvas_imageframe_start_handle_event (GdkEvent *event, ArdourCanvas::Item* item, ImageFrameView *ifv)
+Editor::canvas_imageframe_start_handle_event (GdkEvent *event, Canvas::Item* item, ImageFrameView *ifv)
 {
 	gint ret = FALSE ;
 	ImageFrameTimeAxisGroup* iftag = 0 ;
@@ -233,7 +233,7 @@ Editor::canvas_imageframe_start_handle_event (GdkEvent *event, ArdourCanvas::Ite
 }
 
 bool
-Editor::canvas_imageframe_end_handle_event (GdkEvent *event, ArdourCanvas::Item* item, ImageFrameView *ifv)
+Editor::canvas_imageframe_end_handle_event (GdkEvent *event, Canvas::Item* item, ImageFrameView *ifv)
 {
 	gint ret = FALSE ;
 	ImageFrameTimeAxisGroup* iftag = 0 ;
@@ -268,7 +268,7 @@ Editor::canvas_imageframe_end_handle_event (GdkEvent *event, ArdourCanvas::Item*
 }
 
 bool
-Editor::canvas_imageframe_view_event (GdkEvent* event, ArdourCanvas::Item* item, ImageFrameTimeAxis* ifta)
+Editor::canvas_imageframe_view_event (GdkEvent* event, Canvas::Item* item, ImageFrameTimeAxis* ifta)
 {
 	gint ret = FALSE ;
 	switch (event->type)
@@ -291,7 +291,7 @@ Editor::canvas_imageframe_view_event (GdkEvent* event, ArdourCanvas::Item* item,
 }
 
 bool
-Editor::canvas_marker_time_axis_view_event (GdkEvent* event, ArdourCanvas::Item* item, MarkerTimeAxis* mta)
+Editor::canvas_marker_time_axis_view_event (GdkEvent* event, Canvas::Item* item, MarkerTimeAxis* mta)
 {
 	gint ret = FALSE ;
 	switch (event->type)
@@ -314,7 +314,7 @@ Editor::canvas_marker_time_axis_view_event (GdkEvent* event, ArdourCanvas::Item*
 
 
 bool
-Editor::canvas_markerview_item_view_event (GdkEvent* event, ArdourCanvas::Item* item, MarkerView* mta)
+Editor::canvas_markerview_item_view_event (GdkEvent* event, Canvas::Item* item, MarkerView* mta)
 {
 	gint ret = FALSE ;
 	switch (event->type)
@@ -339,7 +339,7 @@ Editor::canvas_markerview_item_view_event (GdkEvent* event, ArdourCanvas::Item* 
 }
 
 bool
-Editor::canvas_markerview_start_handle_event (GdkEvent* event, ArdourCanvas::Item* item, MarkerView* mta)
+Editor::canvas_markerview_start_handle_event (GdkEvent* event, Canvas::Item* item, MarkerView* mta)
 {
 	gint ret = FALSE ;
 	switch (event->type)
@@ -370,7 +370,7 @@ Editor::canvas_markerview_start_handle_event (GdkEvent* event, ArdourCanvas::Ite
 }
 
 bool
-Editor::canvas_markerview_end_handle_event (GdkEvent* event, ArdourCanvas::Item* item, MarkerView* mta)
+Editor::canvas_markerview_end_handle_event (GdkEvent* event, Canvas::Item* item, MarkerView* mta)
 {
 	gint ret = FALSE ;
 	switch (event->type)
@@ -415,7 +415,7 @@ Editor::canvas_markerview_end_handle_event (GdkEvent* event, ArdourCanvas::Item*
 /* <CMT Additions file="editor_mouse.cc"> */
 
 void
-Editor::start_imageframe_grab(ArdourCanvas::Item* item, GdkEvent* event)
+Editor::start_imageframe_grab(Canvas::Item* item, GdkEvent* event)
 {
 	ImageFrameView* ifv = ((ImageFrameTimeAxis*)clicked_axisview)->get_view()->get_selected_imageframe_view() ;
 	drag_info.copy = false ;
@@ -449,7 +449,7 @@ Editor::start_imageframe_grab(ArdourCanvas::Item* item, GdkEvent* event)
 
 
 void
-Editor::start_markerview_grab(ArdourCanvas::Item* item, GdkEvent* event)
+Editor::start_markerview_grab(Canvas::Item* item, GdkEvent* event)
 {
 	MarkerView* mv = ((MarkerTimeAxis*)clicked_axisview)->get_view()->get_selected_time_axis_item() ;
 	drag_info.copy = false ;
@@ -483,7 +483,7 @@ Editor::start_markerview_grab(ArdourCanvas::Item* item, GdkEvent* event)
 
 
 void
-Editor::markerview_drag_motion_callback(ArdourCanvas::Item*, GdkEvent* event)
+Editor::markerview_drag_motion_callback(Canvas::Item*, GdkEvent* event)
 {
 	double cx, cy ;
 
@@ -530,7 +530,7 @@ Editor::markerview_drag_motion_callback(ArdourCanvas::Item*, GdkEvent* event)
 }
 
 void
-Editor::imageframe_drag_motion_callback(ArdourCanvas::Item*, GdkEvent* event)
+Editor::imageframe_drag_motion_callback(Canvas::Item*, GdkEvent* event)
 {
 	double cx, cy ;
 
@@ -569,7 +569,7 @@ Editor::imageframe_drag_motion_callback(ArdourCanvas::Item*, GdkEvent* event)
 }
 
 void
-Editor::timeaxis_item_drag_finished_callback(ArdourCanvas::Item*, GdkEvent* event)
+Editor::timeaxis_item_drag_finished_callback(Canvas::Item*, GdkEvent* event)
 {
 	framepos_t where ;
 	TimeAxisViewItem* tavi = reinterpret_cast<TimeAxisViewItem*>(drag_info.data) ;
@@ -607,7 +607,7 @@ Editor::timeaxis_item_drag_finished_callback(ArdourCanvas::Item*, GdkEvent* even
 
 
 void
-Editor::imageframe_start_handle_op(ArdourCanvas::Item* item, GdkEvent* event)
+Editor::imageframe_start_handle_op(Canvas::Item* item, GdkEvent* event)
 {
 	// get the selected item from the parent time axis
 	ImageFrameTimeAxis* ifta = dynamic_cast<ImageFrameTimeAxis*>(clicked_axisview) ;
@@ -635,7 +635,7 @@ Editor::imageframe_start_handle_op(ArdourCanvas::Item* item, GdkEvent* event)
 }
 
 void
-Editor::imageframe_end_handle_op(ArdourCanvas::Item* item, GdkEvent* event)
+Editor::imageframe_end_handle_op(Canvas::Item* item, GdkEvent* event)
 {
 	// get the selected item from the parent time axis
 	ImageFrameTimeAxis* ifta = dynamic_cast<ImageFrameTimeAxis*>(clicked_axisview) ;
@@ -665,7 +665,7 @@ Editor::imageframe_end_handle_op(ArdourCanvas::Item* item, GdkEvent* event)
 }
 
 void
-Editor::imageframe_start_handle_trim_motion(ArdourCanvas::Item* item, GdkEvent* event)
+Editor::imageframe_start_handle_trim_motion(Canvas::Item* item, GdkEvent* event)
 {
 	ImageFrameView* ifv = reinterpret_cast<ImageFrameView*> (drag_info.data) ;
 
@@ -736,7 +736,7 @@ Editor::imageframe_start_handle_trim_motion(ArdourCanvas::Item* item, GdkEvent* 
 }
 
 void
-Editor::imageframe_start_handle_end_trim(ArdourCanvas::Item* item, GdkEvent* event)
+Editor::imageframe_start_handle_end_trim(Canvas::Item* item, GdkEvent* event)
 {
 	ImageFrameView* ifv = reinterpret_cast<ImageFrameView *> (drag_info.data) ;
 
@@ -754,7 +754,7 @@ Editor::imageframe_start_handle_end_trim(ArdourCanvas::Item* item, GdkEvent* eve
 }
 
 void
-Editor::imageframe_end_handle_trim_motion(ArdourCanvas::Item* item, GdkEvent* event)
+Editor::imageframe_end_handle_trim_motion(Canvas::Item* item, GdkEvent* event)
 {
 	ImageFrameView* ifv = reinterpret_cast<ImageFrameView *> (drag_info.data) ;
 
@@ -813,7 +813,7 @@ Editor::imageframe_end_handle_trim_motion(ArdourCanvas::Item* item, GdkEvent* ev
 
 
 void
-Editor::imageframe_end_handle_end_trim (ArdourCanvas::Item* item, GdkEvent* event)
+Editor::imageframe_end_handle_end_trim (Canvas::Item* item, GdkEvent* event)
 {
 	ImageFrameView* ifv = reinterpret_cast<ImageFrameView *> (drag_info.data) ;
 
@@ -833,7 +833,7 @@ Editor::imageframe_end_handle_end_trim (ArdourCanvas::Item* item, GdkEvent* even
 
 
 void
-Editor::markerview_item_start_handle_op(ArdourCanvas::Item* item, GdkEvent* event)
+Editor::markerview_item_start_handle_op(Canvas::Item* item, GdkEvent* event)
 {
 	MarkerView* mv = reinterpret_cast<MarkerTimeAxis*>(clicked_axisview)->get_view()->get_selected_time_axis_item() ;
 
@@ -856,7 +856,7 @@ Editor::markerview_item_start_handle_op(ArdourCanvas::Item* item, GdkEvent* even
 }
 
 void
-Editor::markerview_item_end_handle_op(ArdourCanvas::Item* item, GdkEvent* event)
+Editor::markerview_item_end_handle_op(Canvas::Item* item, GdkEvent* event)
 {
 	MarkerView* mv = reinterpret_cast<MarkerTimeAxis*>(clicked_axisview)->get_view()->get_selected_time_axis_item() ;
 	if (mv == 0)
@@ -879,7 +879,7 @@ Editor::markerview_item_end_handle_op(ArdourCanvas::Item* item, GdkEvent* event)
 
 
 void
-Editor::markerview_start_handle_trim_motion(ArdourCanvas::Item* item, GdkEvent* event)
+Editor::markerview_start_handle_trim_motion(Canvas::Item* item, GdkEvent* event)
 {
 	MarkerView* mv = reinterpret_cast<MarkerView*> (drag_info.data) ;
 
@@ -953,7 +953,7 @@ Editor::markerview_start_handle_trim_motion(ArdourCanvas::Item* item, GdkEvent* 
 }
 
 void
-Editor::markerview_start_handle_end_trim(ArdourCanvas::Item* item, GdkEvent* event)
+Editor::markerview_start_handle_end_trim(Canvas::Item* item, GdkEvent* event)
 {
 	MarkerView* mv = reinterpret_cast<MarkerView*> (drag_info.data) ;
 
@@ -971,7 +971,7 @@ Editor::markerview_start_handle_end_trim(ArdourCanvas::Item* item, GdkEvent* eve
 }
 
 void
-Editor::markerview_end_handle_trim_motion(ArdourCanvas::Item* item, GdkEvent* event)
+Editor::markerview_end_handle_trim_motion(Canvas::Item* item, GdkEvent* event)
 {
 	MarkerView* mv = reinterpret_cast<MarkerView*> (drag_info.data) ;
 
@@ -1047,7 +1047,7 @@ Editor::markerview_end_handle_trim_motion(ArdourCanvas::Item* item, GdkEvent* ev
 
 
 void
-Editor::markerview_end_handle_end_trim (ArdourCanvas::Item* item, GdkEvent* event)
+Editor::markerview_end_handle_end_trim (Canvas::Item* item, GdkEvent* event)
 {
 	MarkerView* mv = reinterpret_cast<MarkerView*> (drag_info.data) ;
 

@@ -29,7 +29,7 @@ namespace ARDOUR {
 	class Session;
 }
 
-namespace ArdourCanvas {
+namespace Canvas {
 
 /** Canvas item to draw bar and beat lines.  I think it's easier
  *  to have a specific object rather than using a group with lines

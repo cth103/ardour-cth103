@@ -29,14 +29,14 @@
 class RouteTimeAxisView;
 class AudioRegionView;
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class PolyLine;
 }
 
 class CrossfadeView : public TimeAxisViewItem
 {
 public:
-	CrossfadeView (ArdourCanvas::Group*,
+	CrossfadeView (Canvas::Group*,
 		       RouteTimeAxisView&,
 		       boost::shared_ptr<ARDOUR::Crossfade>,
 		       double initial_frames_per_pixel,
@@ -74,9 +74,9 @@ private:
 	bool _visible;
 	bool _all_in_view;   
 	
-	ArdourCanvas::PolyLine *fade_in;
-	ArdourCanvas::PolyLine *fade_out;
-	ArdourCanvas::Item *active_button;
+	Canvas::PolyLine *fade_in;
+	Canvas::PolyLine *fade_out;
+	Canvas::Item *active_button;
 	
 	void crossfade_changed (const PBD::PropertyChange&);
 	void crossfade_fades_changed ();

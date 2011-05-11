@@ -12,7 +12,7 @@ namespace ARDOUR {
 
 class WaveViewTest;
 	
-namespace ArdourCanvas {
+namespace Canvas {
 
 class WaveView : virtual public Item, public Outline, public Fill
 {

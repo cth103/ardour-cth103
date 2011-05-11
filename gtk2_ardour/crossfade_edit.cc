@@ -128,29 +128,29 @@ CrossfadeEditor::CrossfadeEditor (Session* s, boost::shared_ptr<Crossfade> xf, d
 	point_grabbed = false;
 	toplevel = 0;
 
-	canvas = new ArdourCanvas::GtkCanvas ();
+	canvas = new Canvas::GtkCanvas ();
 	canvas->signal_size_allocate().connect (sigc::mem_fun(*this, &CrossfadeEditor::canvas_allocation));
 	canvas->set_size_request (425, 200);
 
-	toplevel = new ArdourCanvas::Rectangle (canvas->root());
-	toplevel->set (ArdourCanvas::Rect (0, 0, 10, 10));
+	toplevel = new Canvas::Rectangle (canvas->root());
+	toplevel->set (Canvas::Rect (0, 0, 10, 10));
 	toplevel->set_fill (true);
 	toplevel->set_fill_color (ARDOUR_UI::config()->canvasvar_CrossfadeEditorBase.get());
 	toplevel->set_outline (false);
 	toplevel->Event.connect (sigc::mem_fun (*this, &CrossfadeEditor::canvas_event));
 
-	fade[Out].line = new ArdourCanvas::PolyLine (canvas->root());
+	fade[Out].line = new Canvas::PolyLine (canvas->root());
 	fade[Out].line->set_outline_width (1);
 	fade[Out].line->set_outline_color (ARDOUR_UI::config()->canvasvar_CrossfadeEditorLine.get());
 
-	fade[Out].shading = new ArdourCanvas::Polygon (canvas->root());
+	fade[Out].shading = new Canvas::Polygon (canvas->root());
 	fade[Out].shading->set_fill_color (ARDOUR_UI::config()->canvasvar_CrossfadeEditorLineShading.get());
 
-	fade[In].line = new ArdourCanvas::PolyLine (canvas->root());
+	fade[In].line = new Canvas::PolyLine (canvas->root());
 	fade[In].line->set_outline_width (1);
 	fade[In].line->set_outline_color (ARDOUR_UI::config()->canvasvar_CrossfadeEditorLine.get());
 
-	fade[In].shading = new ArdourCanvas::Polygon (canvas->root());
+	fade[In].shading = new Canvas::Polygon (canvas->root());
 	fade[In].shading->set_fill_color (ARDOUR_UI::config()->canvasvar_CrossfadeEditorLineShading.get());
 
 	fade[In].shading->Event.connect (sigc::mem_fun (*this, &CrossfadeEditor::canvas_event));
@@ -463,7 +463,7 @@ CrossfadeEditor::make_point ()
 {
 	Point* p = new Point;
 
-	p->box = new ArdourCanvas::Rectangle (canvas->root());
+	p->box = new Canvas::Rectangle (canvas->root());
 	p->box->set_fill (true);
 	p->box->set_fill_color (ARDOUR_UI::config()->canvasvar_CrossfadeEditorPointFill.get());
 	p->box->set_outline_color (ARDOUR_UI::config()->canvasvar_CrossfadeEditorPointOutline.get());
@@ -518,7 +518,7 @@ CrossfadeEditor::Point::move_to (double nx, double ny, double xfract, double yfr
 	double x1 = nx - half_size;
 	double x2 = nx + half_size;
 
-	box->set (ArdourCanvas::Rect (x1, ny - half_size, x2, ny + half_size));
+	box->set (Canvas::Rect (x1, ny - half_size, x2, ny + half_size));
 
 	x = xfract;
 	y = yfract;
@@ -529,7 +529,7 @@ CrossfadeEditor::canvas_allocation (Gtk::Allocation& /*alloc*/)
 {
 	if (toplevel) {
 		toplevel->set (
-			ArdourCanvas::Rect (
+			Canvas::Rect (
 				0,
 				0,
 				canvas->get_allocation().get_width() + canvas_border,
@@ -611,7 +611,7 @@ CrossfadeEditor::canvas_allocation (Gtk::Allocation& /*alloc*/)
 	}
 
 	double ht;
-	vector<ArdourCanvas::WaveView*>::iterator i;
+	vector<Canvas::WaveView*>::iterator i;
 	uint32_t n;
 
 	ht = canvas->get_allocation().get_height() / xfade->in()->n_channels();
@@ -676,15 +676,15 @@ CrossfadeEditor::redraw ()
 
 	fade[current].normative_curve.curve().get_vector (0, 1.0, vec, npoints);
 
-	ArdourCanvas::Points pts;
-	ArdourCanvas::Points spts;
+	Canvas::Points pts;
+	Canvas::Points spts;
 
 	while (pts.size() < npoints) {
-		pts.push_back (ArdourCanvas::Duple (0,0));
+		pts.push_back (Canvas::Duple (0,0));
 	}
 
 	while (spts.size() < npoints + 3) {
-		spts.push_back (ArdourCanvas::Duple (0,0));
+		spts.push_back (Canvas::Duple (0,0));
 	}
 
 	/* the shade coordinates *MUST* be in anti-clockwise order.
@@ -743,7 +743,7 @@ CrossfadeEditor::redraw ()
 	fade[current].line->set (pts);
 	fade[current].shading->set (pts);
 
-	for (vector<ArdourCanvas::WaveView*>::iterator i = fade[current].waves.begin(); i != fade[current].waves.end(); ++i) {
+	for (vector<Canvas::WaveView*>::iterator i = fade[current].waves.begin(); i != fade[current].waves.end(); ++i) {
 		(*i)->property_gain_src() = static_cast<Evoral::Curve*>(&fade[current].gain_curve.curve());
 	}
 }
@@ -1065,12 +1065,12 @@ CrossfadeEditor::curve_select_clicked (WhichFade wf)
 
 	if (wf == In) {
 
-		for (vector<ArdourCanvas::WaveView*>::iterator i = fade[In].waves.begin(); i != fade[In].waves.end(); ++i) {
+		for (vector<Canvas::WaveView*>::iterator i = fade[In].waves.begin(); i != fade[In].waves.end(); ++i) {
 			(*i)->set_outline_color (ARDOUR_UI::config()->canvasvar_SelectedCrossfadeEditorWave.get());
 			(*i)->set_fill_color (ARDOUR_UI::config()->canvasvar_SelectedCrossfadeEditorWave.get());
 		}
 
-		for (vector<ArdourCanvas::WaveView*>::iterator i = fade[Out].waves.begin(); i != fade[Out].waves.end(); ++i) {
+		for (vector<Canvas::WaveView*>::iterator i = fade[Out].waves.begin(); i != fade[Out].waves.end(); ++i) {
 			(*i)->set_outline_color (ARDOUR_UI::config()->canvasvar_CrossfadeEditorWave.get());
 			(*i)->set_fill_color (ARDOUR_UI::config()->canvasvar_CrossfadeEditorWave.get());
 		}
@@ -1090,12 +1090,12 @@ CrossfadeEditor::curve_select_clicked (WhichFade wf)
 
 	} else {
 
-		for (vector<ArdourCanvas::WaveView*>::iterator i = fade[In].waves.begin(); i != fade[In].waves.end(); ++i) {
+		for (vector<Canvas::WaveView*>::iterator i = fade[In].waves.begin(); i != fade[In].waves.end(); ++i) {
 			(*i)->set_outline_color (ARDOUR_UI::config()->canvasvar_CrossfadeEditorWave.get());
 			(*i)->set_fill_color (ARDOUR_UI::config()->canvasvar_CrossfadeEditorWave.get());
 		}
 
-		for (vector<ArdourCanvas::WaveView*>::iterator i = fade[Out].waves.begin(); i != fade[Out].waves.end(); ++i) {
+		for (vector<Canvas::WaveView*>::iterator i = fade[Out].waves.begin(); i != fade[Out].waves.end(); ++i) {
 			(*i)->set_outline_color (ARDOUR_UI::config()->canvasvar_SelectedCrossfadeEditorWave.get());
 			(*i)->set_fill_color (ARDOUR_UI::config()->canvasvar_SelectedCrossfadeEditorWave.get());
 		}
@@ -1159,7 +1159,7 @@ CrossfadeEditor::make_waves (boost::shared_ptr<AudioRegion> region, WhichFade wh
 		gdouble yoff = n * ht;
 
 		if (region->audio_source(n)->peaks_ready (boost::bind (&CrossfadeEditor::peaks_ready, this, boost::weak_ptr<AudioRegion>(region), which), &_peaks_ready_connection, gui_context())) {
-			ArdourCanvas::WaveView* waveview = new ArdourCanvas::WaveView (canvas->root(), region);
+			Canvas::WaveView* waveview = new Canvas::WaveView (canvas->root(), region);
 
 			waveview->set_channel (n);
 			waveview->property_gain_function() = (void*) curve_get_vector_from_c;

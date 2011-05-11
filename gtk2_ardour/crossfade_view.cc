@@ -40,7 +40,7 @@ using namespace Editing;
 
 PBD::Signal1<void,CrossfadeView*> CrossfadeView::CatchDeletion;
 
-CrossfadeView::CrossfadeView (ArdourCanvas::Group *parent,
+CrossfadeView::CrossfadeView (Canvas::Group *parent,
 			      RouteTimeAxisView &tv,
 			      boost::shared_ptr<Crossfade> xf,
 			      double spu,
@@ -59,11 +59,11 @@ CrossfadeView::CrossfadeView (ArdourCanvas::Group *parent,
 	_valid = true;
 	_visible = true;
 
-	fade_in = new ArdourCanvas::PolyLine (group);
+	fade_in = new Canvas::PolyLine (group);
 	fade_in->set_outline_color (ARDOUR_UI::config()->canvasvar_CrossfadeLine.get());
 	fade_in->set_outline_width (1);
 
-	fade_out = new ArdourCanvas::PolyLine (group);
+	fade_out = new Canvas::PolyLine (group);
 	fade_out->set_outline_color (ARDOUR_UI::config()->canvasvar_CrossfadeLine.get());
 	fade_out->set_outline_width (1);
 
@@ -186,7 +186,7 @@ CrossfadeView::redraw_curves ()
 		fade_out->show();
 	}
 
-	ArdourCanvas::Points* points = get_canvas_points ("xfade edit redraw", npoints);
+	Canvas::Points* points = get_canvas_points ("xfade edit redraw", npoints);
 	float* vec = new float[npoints];
 
 	crossfade->fade_in().curve().get_vector (min_frames - crossfade->position(), max_frames - crossfade->position(), vec, npoints);
@@ -198,7 +198,7 @@ CrossfadeView::redraw_curves ()
 	}
 
 	for (int i = 0, pci = 0; i < npoints; ++i) {
-		ArdourCanvas::Duple &p = (*points)[pci++];
+		Canvas::Duple &p = (*points)[pci++];
 		p.x = xoff + i + 1;
 		p.y = _height - ((_height - 2) * vec[i]);
 	}
@@ -208,7 +208,7 @@ CrossfadeView::redraw_curves ()
 	crossfade->fade_out().curve().get_vector (min_frames - crossfade->position(), max_frames - crossfade->position(), vec, npoints);
 
 	for (int i = 0, pci = 0; i < npoints; ++i) {
-		ArdourCanvas::Duple &p = (*points)[pci++];
+		Canvas::Duple &p = (*points)[pci++];
 		p.x = xoff + i + 1;
 		p.y = _height - ((_height - 2) * vec[i]);
 	}

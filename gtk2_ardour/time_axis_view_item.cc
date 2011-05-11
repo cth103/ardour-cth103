@@ -98,7 +98,7 @@ TimeAxisViewItem::set_constant_heights ()
  * @param automation true if this is an automation region view
  */
 TimeAxisViewItem::TimeAxisViewItem(
-	const string & it_name, ArdourCanvas::Group& parent, TimeAxisView& tv, double spu, Gdk::Color const & base_color,
+	const string & it_name, Canvas::Group& parent, TimeAxisView& tv, double spu, Gdk::Color const & base_color,
 	framepos_t start, framecnt_t duration, bool recording, bool automation, Visibility vis
 	)
 	: trackview (tv)
@@ -106,7 +106,7 @@ TimeAxisViewItem::TimeAxisViewItem(
 	, _recregion (recording)
 	, _automation (automation)
 {
-	group = new ArdourCanvas::Group (&parent);
+	group = new Canvas::Group (&parent);
 	CANVAS_DEBUG_NAME (group, "TAVI group");
 
 	init (it_name, spu, base_color, start, duration, vis, true, true);
@@ -128,9 +128,9 @@ TimeAxisViewItem::TimeAxisViewItem (const TimeAxisViewItem& other)
 
 	/* share the other's parent, but still create a new group */
 
-	ArdourCanvas::Group* parent = other.group->parent();
+	Canvas::Group* parent = other.group->parent();
 
-	group = new ArdourCanvas::Group (parent);
+	group = new Canvas::Group (parent);
 	CANVAS_DEBUG_NAME (group, "TAVI group");
 
 	_selected = other._selected;
@@ -167,7 +167,7 @@ TimeAxisViewItem::init (
 		warning << "Time Axis Item Duration == 0" << endl;
 	}
 
-	vestigial_frame = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0, 1, 2, trackview.current_height()));
+	vestigial_frame = new Canvas::Rectangle (group, Canvas::Rect (0, 1, 2, trackview.current_height()));
 	CANVAS_DEBUG_NAME (vestigial_frame, "TAVI vestigial frame");
 	vestigial_frame->hide ();
 	vestigial_frame->set_outline_what (0xf);
@@ -175,7 +175,7 @@ TimeAxisViewItem::init (
 	vestigial_frame->set_fill_color (ARDOUR_UI::config()->canvasvar_VestigialFrame.get());
 
 	if (visibility & ShowFrame) {
-		frame = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0, 1, trackview.editor().frame_to_pixel(duration), trackview.current_height()));
+		frame = new Canvas::Rectangle (group, Canvas::Rect (0, 1, trackview.editor().frame_to_pixel(duration), trackview.current_height()));
 		CANVAS_DEBUG_NAME (frame, "TAVI frame");
 		
 		frame->set_outline_width (1);
@@ -193,7 +193,7 @@ TimeAxisViewItem::init (
 
 	if (visibility & ShowNameHighlight) {
 		
-		name_highlight = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, trackview.editor().frame_to_pixel(item_duration), trackview.current_height() - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE, trackview.current_height()));
+		name_highlight = new Canvas::Rectangle (group, Canvas::Rect (0.0, trackview.editor().frame_to_pixel(item_duration), trackview.current_height() - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE, trackview.current_height()));
 		CANVAS_DEBUG_NAME (name_highlight, "TAVI name highlight");
 		
 		name_highlight->set_data ("timeaxisviewitem", this);
@@ -206,19 +206,19 @@ TimeAxisViewItem::init (
 	}
 
 	if (visibility & ShowNameText) {
-		name_pixbuf = new ArdourCanvas::Pixbuf (group);
+		name_pixbuf = new Canvas::Pixbuf (group);
 		CANVAS_DEBUG_NAME (name_pixbuf, "TAVI name pixbuf");
-		name_pixbuf->set_position (ArdourCanvas::Duple (NAME_X_OFFSET, trackview.current_height() + 1 - NAME_Y_OFFSET));
+		name_pixbuf->set_position (Canvas::Duple (NAME_X_OFFSET, trackview.current_height() + 1 - NAME_Y_OFFSET));
 	} else {
 		name_pixbuf = 0;
 	}
 
 	/* create our grab handles used for trimming/duration etc */
 	if (!_recregion && !_automation) {
-		frame_handle_start = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, TimeAxisViewItem::GRAB_HANDLE_LENGTH, 5.0, trackview.current_height()));
+		frame_handle_start = new Canvas::Rectangle (group, Canvas::Rect (0.0, TimeAxisViewItem::GRAB_HANDLE_LENGTH, 5.0, trackview.current_height()));
 		CANVAS_DEBUG_NAME (frame_handle_start, "TAVI frame handle start");
 		frame_handle_start->set_outline_what (0);
-		frame_handle_end = new ArdourCanvas::Rectangle (group, ArdourCanvas::Rect (0.0, TimeAxisViewItem::GRAB_HANDLE_LENGTH, 5.0, trackview.current_height()));
+		frame_handle_end = new Canvas::Rectangle (group, Canvas::Rect (0.0, TimeAxisViewItem::GRAB_HANDLE_LENGTH, 5.0, trackview.current_height()));
 		CANVAS_DEBUG_NAME (frame_handle_end, "TAVI frame handle end");
 		frame_handle_end->set_outline_what (0);
 	} else {
@@ -280,8 +280,8 @@ TimeAxisViewItem::set_position(framepos_t pos, void* src, double* delta)
 
 	frame_position = pos;
 
-	ArdourCanvas::Coord const old_pixel_pos = group->position().x;
-	ArdourCanvas::Coord const new_pixel_pos = rint (pos / frames_per_pixel);
+	Canvas::Coord const old_pixel_pos = group->position().x;
+	Canvas::Coord const new_pixel_pos = rint (pos / frames_per_pixel);
 
 	if (new_pixel_pos != old_pixel_pos) {
 		group->set_x_position (new_pixel_pos);
@@ -561,25 +561,25 @@ TimeAxisViewItem::set_color (Gdk::Color const & base_color)
 	set_colors ();
 }
 
-ArdourCanvas::Item*
+Canvas::Item*
 TimeAxisViewItem::get_canvas_frame()
 {
 	return frame;
 }
 
-ArdourCanvas::Group*
+Canvas::Group*
 TimeAxisViewItem::get_canvas_group()
 {
 	return group;
 }
 
-ArdourCanvas::Item*
+Canvas::Item*
 TimeAxisViewItem::get_name_highlight()
 {
 	return name_highlight;
 }
 
-ArdourCanvas::Pixbuf*
+Canvas::Pixbuf*
 TimeAxisViewItem::get_name_pixbuf()
 {
 	return name_pixbuf;

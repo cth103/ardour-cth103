@@ -1,6 +1,6 @@
 #include "canvas/item.h"
 
-namespace ArdourCanvas {
+namespace Canvas {
 
 class LineSet : public Item
 {

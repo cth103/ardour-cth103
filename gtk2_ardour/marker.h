@@ -34,7 +34,7 @@ namespace ARDOUR {
 	class MeterSection;
 }
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class Polygon;
 	class Line;
 	class Rectangle;
@@ -63,14 +63,14 @@ class Marker : public sigc::trackable
 	};
 
 
-	Marker (PublicEditor& editor, ArdourCanvas::Group &, guint32 rgba, const std::string& text, Type,
+	Marker (PublicEditor& editor, Canvas::Group &, guint32 rgba, const std::string& text, Type,
 		framepos_t frame = 0, bool handle_events = true);
 
 	virtual ~Marker ();
 
 	static PBD::Signal1<void,Marker*> CatchDeletion;
 
-	ArdourCanvas::Item& the_item() const;
+	Canvas::Item& the_item() const;
 
 	void set_selected (bool);
 	void set_show_line (bool);
@@ -83,8 +83,8 @@ class Marker : public sigc::trackable
 
 	framepos_t position() const { return frame_position; }
 
-	ArdourCanvas::Group * get_parent() { return _parent; }
-	void reparent (ArdourCanvas::Group & parent);
+	Canvas::Group * get_parent() { return _parent; }
+	void reparent (Canvas::Group & parent);
 
 	void hide ();
 	void show ();
@@ -105,14 +105,14 @@ class Marker : public sigc::trackable
 
 	Pango::FontDescription* name_font;
 
-	ArdourCanvas::Group* _parent;
-	ArdourCanvas::Group *group;
-	ArdourCanvas::Polygon *mark;
-	ArdourCanvas::Pixbuf *name_pixbuf;
-	ArdourCanvas::Points *points;
-	ArdourCanvas::Line* _line;
-	ArdourCanvas::Points *line_points;
-	ArdourCanvas::Rectangle* _name_background;
+	Canvas::Group* _parent;
+	Canvas::Group *group;
+	Canvas::Polygon *mark;
+	Canvas::Pixbuf *name_pixbuf;
+	Canvas::Points *points;
+	Canvas::Line* _line;
+	Canvas::Points *line_points;
+	Canvas::Rectangle* _name_background;
 
 	std::string  _name;
 	double        unit_position;
@@ -142,7 +142,7 @@ private:
 class TempoMarker : public Marker
 {
   public:
-        TempoMarker (PublicEditor& editor, ArdourCanvas::Group &, guint32 rgba, const std::string& text, ARDOUR::TempoSection&);
+        TempoMarker (PublicEditor& editor, Canvas::Group &, guint32 rgba, const std::string& text, ARDOUR::TempoSection&);
 	~TempoMarker ();
 
 	ARDOUR::TempoSection& tempo() const { return _tempo; }
@@ -154,7 +154,7 @@ class TempoMarker : public Marker
 class MeterMarker : public Marker
 {
   public:
-        MeterMarker (PublicEditor& editor, ArdourCanvas::Group &, guint32 rgba, const std::string& text, ARDOUR::MeterSection&);
+        MeterMarker (PublicEditor& editor, Canvas::Group &, guint32 rgba, const std::string& text, ARDOUR::MeterSection&);
 	~MeterMarker ();
 
 	ARDOUR::MeterSection& meter() const { return _meter; }

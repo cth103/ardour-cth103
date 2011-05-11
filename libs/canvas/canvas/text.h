@@ -26,7 +26,7 @@
 #include <pangomm/layout.h>
 #include "canvas/item.h"
 
-namespace ArdourCanvas {
+namespace Canvas {
 
 /** An Item which displays some text */
 class Text : public Item

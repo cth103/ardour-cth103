@@ -66,7 +66,7 @@ AutomationTimeAxisView::AutomationTimeAxisView (
 	PublicEditor& e,
 	TimeAxisView& parent,
 	bool show_regions,
-	ArdourCanvas::Canvas& canvas,
+	Canvas::Canvas& canvas,
 	const string & nom,
 	const string & nomparent
 	)
@@ -101,8 +101,8 @@ AutomationTimeAxisView::AutomationTimeAxisView (
 	ignore_state_request = false;
 	first_call_to_set_height = true;
 
-	_base_rect = new ArdourCanvas::Rectangle (_canvas_display);
-	_base_rect->set_x1 (ArdourCanvas::COORD_MAX);
+	_base_rect = new Canvas::Rectangle (_canvas_display);
+	_base_rect->set_x1 (Canvas::COORD_MAX);
 	_base_rect->set_outline_color (ARDOUR_UI::config()->canvasvar_AutomationTrackOutline.get());
 
 	/* outline ends and bottom */
@@ -599,7 +599,7 @@ AutomationTimeAxisView::build_display_menu ()
 }
 
 void
-AutomationTimeAxisView::add_automation_event (ArdourCanvas::Item* /*item*/, GdkEvent* /*event*/, framepos_t when, double y)
+AutomationTimeAxisView::add_automation_event (Canvas::Item* /*item*/, GdkEvent* /*event*/, framepos_t when, double y)
 {
 	if (!_line) {
 		return;

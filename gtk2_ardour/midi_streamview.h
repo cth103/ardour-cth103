@@ -41,7 +41,7 @@ namespace ARDOUR {
 	class MidiModel;
 }
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class LineSet;
 }
 
@@ -68,7 +68,7 @@ class MidiStreamView : public StreamView
 	};
 
 	Gtk::Adjustment note_range_adjustment;
-	ArdourCanvas::Group* midi_underlay_group;
+	Canvas::Group* midi_underlay_group;
 
 	void set_note_range(VisibleNoteRange r);
 
@@ -132,7 +132,7 @@ class MidiStreamView : public StreamView
 	uint8_t                   _highest_note;  ///< currently visible
 	uint8_t                   _data_note_min; ///< in data
 	uint8_t                   _data_note_max; ///< in data
-	ArdourCanvas::LineSet*    _note_lines;
+	Canvas::LineSet*    _note_lines;
 	/** true if updates to the note lines and regions are currently suspended */
 	bool                      _updates_suspended;
 };

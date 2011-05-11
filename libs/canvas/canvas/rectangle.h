@@ -6,7 +6,7 @@
 #include "canvas/outline.h"
 #include "canvas/fill.h"
 
-namespace ArdourCanvas
+namespace Canvas
 {
 
 class Rectangle : virtual public Item, public Outline, public Fill

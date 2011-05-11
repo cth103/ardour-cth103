@@ -35,7 +35,7 @@ namespace Evoral {
 	template<typename T> class Note;
 }
 
-namespace ArdourCanvas {
+namespace Canvas {
 	class Item;
 	class Text;
 }
@@ -64,7 +64,7 @@ public:
 
 	virtual ~NoteBase ();
 
-	void set_item (ArdourCanvas::Item *);
+	void set_item (Canvas::Item *);
 
         static PBD::Signal1<void, NoteBase*> NoteBaseDeleted;
 
@@ -97,10 +97,10 @@ public:
 	virtual void set_outline_color(uint32_t c) = 0;
 	virtual void set_fill_color(uint32_t c) = 0;
 
-	virtual ArdourCanvas::Coord x0 () const = 0;
-	virtual ArdourCanvas::Coord y0 () const = 0;
-	virtual ArdourCanvas::Coord x1 () const = 0;
-	virtual ArdourCanvas::Coord y1 () const = 0;
+	virtual Canvas::Coord x0 () const = 0;
+	virtual Canvas::Coord y0 () const = 0;
+	virtual Canvas::Coord x1 () const = 0;
+	virtual Canvas::Coord y1 () const = 0;
 
         float mouse_x_fraction() const { return _mouse_x_fraction; }
         float mouse_y_fraction() const { return _mouse_y_fraction; }
@@ -151,8 +151,8 @@ protected:
 	enum State { None, Pressed, Dragging };
 
 	MidiRegionView&                   _region;
-	ArdourCanvas::Item*               _item;
-	ArdourCanvas::Text*               _text;
+	Canvas::Item*               _item;
+	Canvas::Text*               _text;
 //	Widget*                           _channel_selector_widget;
 	State                             _state;
 	const boost::shared_ptr<NoteType> _note;

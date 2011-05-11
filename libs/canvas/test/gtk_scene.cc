@@ -6,7 +6,7 @@
 #include "canvas/pixbuf.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 bool
 foo (GdkEvent* ev)

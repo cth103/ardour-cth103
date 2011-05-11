@@ -33,7 +33,7 @@
 
 class XMLNode;
 
-namespace ArdourCanvas
+namespace Canvas
 {
 
 class Canvas;

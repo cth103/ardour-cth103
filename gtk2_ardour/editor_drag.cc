@@ -63,7 +63,7 @@ using namespace PBD;
 using namespace Gtk;
 using namespace Gtkmm2ext;
 using namespace Editing;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 using Gtkmm2ext::Keyboard;
 
@@ -174,7 +174,7 @@ DragManager::motion_handler (GdkEvent* e, bool from_autoscroll)
 }
 
 bool
-DragManager::have_item (ArdourCanvas::Item* i) const
+DragManager::have_item (Canvas::Item* i) const
 {
 	list<Drag*>::const_iterator j = _drags.begin ();
 	while (j != _drags.end() && (*j)->item () != i) {
@@ -184,7 +184,7 @@ DragManager::have_item (ArdourCanvas::Item* i) const
 	return j != _drags.end ();
 }
 
-Drag::Drag (Editor* e, ArdourCanvas::Item* i) 
+Drag::Drag (Editor* e, Canvas::Item* i) 
 	: _editor (e)
 	, _item (i)
 	, _pointer_frame_offset (0)
@@ -197,7 +197,7 @@ Drag::Drag (Editor* e, ArdourCanvas::Item* i)
 }
 
 void
-Drag::swap_grab (ArdourCanvas::Item* new_item, Gdk::Cursor* cursor, uint32_t time)
+Drag::swap_grab (Canvas::Item* new_item, Gdk::Cursor* cursor, uint32_t time)
 {
 	_item->ungrab ();
 	_item = new_item;
@@ -401,7 +401,7 @@ struct EditorOrderTimeAxisViewSorter {
     }
 };
 
-RegionDrag::RegionDrag (Editor* e, ArdourCanvas::Item* i, RegionView* p, list<RegionView*> const & v)
+RegionDrag::RegionDrag (Editor* e, Canvas::Item* i, RegionView* p, list<RegionView*> const & v)
 	: Drag (e, i),
 	  _primary (p)
 {
@@ -464,7 +464,7 @@ RegionDrag::find_time_axis_view (TimeAxisView* t) const
 	return i;
 }
 
-RegionMotionDrag::RegionMotionDrag (Editor* e, ArdourCanvas::Item* i, RegionView* p, list<RegionView*> const & v, bool b)
+RegionMotionDrag::RegionMotionDrag (Editor* e, Canvas::Item* i, RegionView* p, list<RegionView*> const & v, bool b)
 	: RegionDrag (e, i, p, v),
 	  _brushing (b),
 	  _total_x_delta (0)
@@ -1210,7 +1210,7 @@ RegionMotionDrag::aborted (bool)
 /** @param b true to brush, otherwise false.
  *  @param c true to make copies of the regions being moved, otherwise false.
  */
-RegionMoveDrag::RegionMoveDrag (Editor* e, ArdourCanvas::Item* i, RegionView* p, list<RegionView*> const & v, bool b, bool c)
+RegionMoveDrag::RegionMoveDrag (Editor* e, Canvas::Item* i, RegionView* p, list<RegionView*> const & v, bool b, bool c)
 	: RegionMotionDrag (e, i, p, v, b),
 	  _copy (c)
 {
@@ -1281,7 +1281,7 @@ RegionInsertDrag::aborted (bool)
 	_views.clear ();
 }
 
-RegionSpliceDrag::RegionSpliceDrag (Editor* e, ArdourCanvas::Item* i, RegionView* p, list<RegionView*> const & v)
+RegionSpliceDrag::RegionSpliceDrag (Editor* e, Canvas::Item* i, RegionView* p, list<RegionView*> const & v)
 	: RegionMoveDrag (e, i, p, v, false, false)
 {
 	DEBUG_TRACE (DEBUG::Drags, "New RegionSpliceDrag\n");
@@ -1378,7 +1378,7 @@ RegionSpliceDrag::aborted (bool)
 	/* XXX: TODO */
 }
 
-RegionCreateDrag::RegionCreateDrag (Editor* e, ArdourCanvas::Item* i, TimeAxisView* v)
+RegionCreateDrag::RegionCreateDrag (Editor* e, Canvas::Item* i, TimeAxisView* v)
 	: Drag (e, i),
 	  _view (dynamic_cast<MidiTimeAxisView*> (v))
 {
@@ -1452,7 +1452,7 @@ RegionCreateDrag::aborted (bool)
 	/* XXX */
 }
 
-NoteResizeDrag::NoteResizeDrag (Editor* e, ArdourCanvas::Item* i)
+NoteResizeDrag::NoteResizeDrag (Editor* e, Canvas::Item* i)
 	: Drag (e, i)
 	, region (0)
 {
@@ -1545,7 +1545,7 @@ NoteResizeDrag::aborted (bool)
 	/* XXX: TODO */
 }
 
-RegionGainDrag::RegionGainDrag (Editor* e, ArdourCanvas::Item* i)
+RegionGainDrag::RegionGainDrag (Editor* e, Canvas::Item* i)
 	: Drag (e, i)
 {
 	DEBUG_TRACE (DEBUG::Drags, "New RegionGainDrag\n");
@@ -1569,7 +1569,7 @@ RegionGainDrag::aborted (bool)
 	/* XXX: TODO */
 }
 
-TrimDrag::TrimDrag (Editor* e, ArdourCanvas::Item* i, RegionView* p, list<RegionView*> const & v)
+TrimDrag::TrimDrag (Editor* e, Canvas::Item* i, RegionView* p, list<RegionView*> const & v)
 	: RegionDrag (e, i, p, v)
 {
 	DEBUG_TRACE (DEBUG::Drags, "New TrimDrag\n");
@@ -1850,7 +1850,7 @@ TrimDrag::setup_pointer_frame_offset ()
 	}
 }
 
-MeterMarkerDrag::MeterMarkerDrag (Editor* e, ArdourCanvas::Item* i, bool c)
+MeterMarkerDrag::MeterMarkerDrag (Editor* e, Canvas::Item* i, bool c)
 	: Drag (e, i),
 	  _copy (c)
 {
@@ -1952,7 +1952,7 @@ MeterMarkerDrag::aborted (bool)
 	_marker->set_position (_marker->meter().frame ());
 }
 
-TempoMarkerDrag::TempoMarkerDrag (Editor* e, ArdourCanvas::Item* i, bool c)
+TempoMarkerDrag::TempoMarkerDrag (Editor* e, Canvas::Item* i, bool c)
 	: Drag (e, i),
 	  _copy (c)
 {
@@ -2045,7 +2045,7 @@ TempoMarkerDrag::aborted (bool)
 	_marker->set_position (_marker->tempo().frame());
 }
 
-CursorDrag::CursorDrag (Editor* e, ArdourCanvas::Item* i, bool s)
+CursorDrag::CursorDrag (Editor* e, Canvas::Item* i, bool s)
 	: Drag (e, i),
 	  _stop (s)
 {
@@ -2148,7 +2148,7 @@ CursorDrag::aborted (bool)
 	_editor->playhead_cursor->set_position (adjusted_frame (grab_frame (), 0, false));
 }
 
-FadeInDrag::FadeInDrag (Editor* e, ArdourCanvas::Item* i, RegionView* p, list<RegionView*> const & v)
+FadeInDrag::FadeInDrag (Editor* e, Canvas::Item* i, RegionView* p, list<RegionView*> const & v)
 	: RegionDrag (e, i, p, v)
 {
 	DEBUG_TRACE (DEBUG::Drags, "New FadeInDrag\n");
@@ -2267,7 +2267,7 @@ FadeInDrag::aborted (bool)
 	}
 }
 
-FadeOutDrag::FadeOutDrag (Editor* e, ArdourCanvas::Item* i, RegionView* p, list<RegionView*> const & v)
+FadeOutDrag::FadeOutDrag (Editor* e, Canvas::Item* i, RegionView* p, list<RegionView*> const & v)
 	: RegionDrag (e, i, p, v)
 {
 	DEBUG_TRACE (DEBUG::Drags, "New FadeOutDrag\n");
@@ -2390,7 +2390,7 @@ FadeOutDrag::aborted (bool)
 	}
 }
 
-MarkerDrag::MarkerDrag (Editor* e, ArdourCanvas::Item* i)
+MarkerDrag::MarkerDrag (Editor* e, Canvas::Item* i)
 	: Drag (e, i)
 {
 	DEBUG_TRACE (DEBUG::Drags, "New MarkerDrag\n");
@@ -2398,8 +2398,8 @@ MarkerDrag::MarkerDrag (Editor* e, ArdourCanvas::Item* i)
 	_marker = reinterpret_cast<Marker*> (_item->get_data ("marker"));
 	assert (_marker);
 
-	_points.push_back (ArdourCanvas::Duple (0, 0));
-	_points.push_back (ArdourCanvas::Duple (0, physical_screen_height (_editor->get_window())));
+	_points.push_back (Canvas::Duple (0, 0));
+	_points.push_back (Canvas::Duple (0, physical_screen_height (_editor->get_window())));
 }
 
 MarkerDrag::~MarkerDrag ()
@@ -2711,7 +2711,7 @@ MarkerDrag::update_item (Location* location)
         /* noop */
 }
 
-ControlPointDrag::ControlPointDrag (Editor* e, ArdourCanvas::Item* i)
+ControlPointDrag::ControlPointDrag (Editor* e, Canvas::Item* i)
 	: Drag (e, i),
 	  _cumulative_x_drag (0),
 	  _cumulative_y_drag (0)
@@ -2836,7 +2836,7 @@ ControlPointDrag::active (Editing::MouseMode m)
 	return dynamic_cast<AutomationLine*> (&(_point->line())) != 0;
 }
 
-LineDrag::LineDrag (Editor* e, ArdourCanvas::Item* i)
+LineDrag::LineDrag (Editor* e, Canvas::Item* i)
 	: Drag (e, i),
 	  _line (0),
 	  _cumulative_y_drag (0)
@@ -2934,7 +2934,7 @@ LineDrag::aborted (bool)
 	_line->reset ();
 }
 
-FeatureLineDrag::FeatureLineDrag (Editor* e, ArdourCanvas::Item* i)
+FeatureLineDrag::FeatureLineDrag (Editor* e, Canvas::Item* i)
 	: Drag (e, i),
 	  _line (0),
 	  _cumulative_x_drag (0)
@@ -2989,8 +2989,8 @@ FeatureLineDrag::motion (GdkEvent*, bool)
 	assert (bbox);
 	
 	_line->set (
-		ArdourCanvas::Duple (cx, 2.0),
-		ArdourCanvas::Duple (cx, bbox.get().height ())		
+		Canvas::Duple (cx, 2.0),
+		Canvas::Duple (cx, bbox.get().height ())		
 		);
 	
 	float *pos = new float;
@@ -3014,7 +3014,7 @@ FeatureLineDrag::aborted (bool)
 	//_line->reset ();
 }
 
-RubberbandSelectDrag::RubberbandSelectDrag (Editor* e, ArdourCanvas::Item* i)
+RubberbandSelectDrag::RubberbandSelectDrag (Editor* e, Canvas::Item* i)
 	: Drag (e, i)
 {
 	DEBUG_TRACE (DEBUG::Drags, "New RubberbandSelectDrag\n");
@@ -3066,7 +3066,7 @@ RubberbandSelectDrag::motion (GdkEvent* event, bool)
 		double x1 = _editor->frame_to_pixel (start);
 		double x2 = _editor->frame_to_pixel (end);
 
-		_editor->rubberband_rect->set (ArdourCanvas::Rect (x1, y1, x2, y2));
+		_editor->rubberband_rect->set (Canvas::Rect (x1, y1, x2, y2));
 
 		_editor->rubberband_rect->show();
 		_editor->rubberband_rect->raise_to_top();
@@ -3122,7 +3122,7 @@ RubberbandSelectDrag::aborted (bool)
 	_editor->rubberband_rect->hide ();
 }
 
-TimeFXDrag::TimeFXDrag (Editor* e, ArdourCanvas::Item* i, RegionView* p, std::list<RegionView*> const & v)
+TimeFXDrag::TimeFXDrag (Editor* e, Canvas::Item* i, RegionView* p, std::list<RegionView*> const & v)
 	: RegionDrag (e, i, p, v)
 {
 	DEBUG_TRACE (DEBUG::Drags, "New TimeFXDrag\n");
@@ -3193,7 +3193,7 @@ TimeFXDrag::aborted (bool)
 	_primary->get_time_axis_view().hide_timestretch ();
 }
 
-ScrubDrag::ScrubDrag (Editor* e, ArdourCanvas::Item* i)
+ScrubDrag::ScrubDrag (Editor* e, Canvas::Item* i)
 	: Drag (e, i)
 {
 	DEBUG_TRACE (DEBUG::Drags, "New ScrubDrag\n");
@@ -3226,7 +3226,7 @@ ScrubDrag::aborted (bool)
 	/* XXX: TODO */
 }
 
-SelectionDrag::SelectionDrag (Editor* e, ArdourCanvas::Item* i, Operation o)
+SelectionDrag::SelectionDrag (Editor* e, Canvas::Item* i, Operation o)
 	: Drag (e, i)
 	, _operation (o)
 	, _copy (false)
@@ -3494,16 +3494,16 @@ SelectionDrag::aborted (bool)
 	/* XXX: TODO */
 }
 
-RangeMarkerBarDrag::RangeMarkerBarDrag (Editor* e, ArdourCanvas::Item* i, Operation o)
+RangeMarkerBarDrag::RangeMarkerBarDrag (Editor* e, Canvas::Item* i, Operation o)
 	: Drag (e, i),
 	  _operation (o),
 	  _copy (false)
 {
 	DEBUG_TRACE (DEBUG::Drags, "New RangeMarkerBarDrag\n");
 	
-	_drag_rect = new ArdourCanvas::Rectangle (
+	_drag_rect = new Canvas::Rectangle (
 		_editor->time_line_group,
-		ArdourCanvas::Rect (0.0, 0.0, 0.0, physical_screen_height (_editor->get_window()))
+		Canvas::Rect (0.0, 0.0, 0.0, physical_screen_height (_editor->get_window()))
 		);
 	
 	_drag_rect->hide ();
@@ -3549,7 +3549,7 @@ RangeMarkerBarDrag::motion (GdkEvent* event, bool first_move)
 {
 	framepos_t start = 0;
 	framepos_t end = 0;
-	ArdourCanvas::Rectangle *crect;
+	Canvas::Rectangle *crect;
 
 	switch (_operation) {
 	case CreateRangeMarker:
@@ -3713,7 +3713,7 @@ RangeMarkerBarDrag::update_item (Location* location)
 	_drag_rect->set_x1 (x2);
 }
 
-MouseZoomDrag::MouseZoomDrag (Editor* e, ArdourCanvas::Item* i)
+MouseZoomDrag::MouseZoomDrag (Editor* e, Canvas::Item* i)
 	: Drag (e, i)
 	, _zoom_out (false)
 {
@@ -3795,7 +3795,7 @@ MouseZoomDrag::aborted (bool)
 	_editor->zoom_rect->hide ();
 }
 
-NoteDrag::NoteDrag (Editor* e, ArdourCanvas::Item* i)
+NoteDrag::NoteDrag (Editor* e, Canvas::Item* i)
 	: Drag (e, i)
 	, _cumulative_dx (0)
 	, _cumulative_dy (0)
@@ -3943,7 +3943,7 @@ NoteDrag::aborted (bool)
 	/* XXX: TODO */
 }
 
-AutomationRangeDrag::AutomationRangeDrag (Editor* editor, ArdourCanvas::Item* item, list<AudioRange> const & r)
+AutomationRangeDrag::AutomationRangeDrag (Editor* editor, Canvas::Item* item, list<AudioRange> const & r)
 	: Drag (editor, item)
 	, _ranges (r)
 	, _nothing_to_drag (false)
@@ -4178,7 +4178,7 @@ PatchChangeDrag::motion (GdkEvent* ev, bool)
 	f = min (f, r->last_frame ());
 	
 	framecnt_t const dxf = f - grab_frame();
-	_patch_change->move (ArdourCanvas::Duple (dxf - _cumulative_dx, 0));
+	_patch_change->move (Canvas::Duple (dxf - _cumulative_dx, 0));
 	_cumulative_dx = dxf;
 }
 
@@ -4204,7 +4204,7 @@ PatchChangeDrag::finished (GdkEvent* ev, bool movement_occurred)
 void
 PatchChangeDrag::aborted (bool)
 {
-	_patch_change->move (ArdourCanvas::Duple (-_cumulative_dx, 0));
+	_patch_change->move (Canvas::Duple (-_cumulative_dx, 0));
 }
 
 void

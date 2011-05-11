@@ -4,7 +4,7 @@
 #include "canvas/item.h"
 #include "canvas/outline.h"
 
-namespace ArdourCanvas {
+namespace Canvas {
 
 class PolyItem : virtual public Item, public Outline
 {

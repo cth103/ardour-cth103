@@ -9,7 +9,7 @@
 
 using namespace std;
 using namespace ARDOUR;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 WaveView::WaveView (Group* parent, boost::shared_ptr<ARDOUR::AudioRegion> region)
 	: Item (parent)

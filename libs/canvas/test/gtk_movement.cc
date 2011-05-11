@@ -4,7 +4,7 @@
 #include "canvas/rectangle.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 Rectangle* rectangle[2];
 

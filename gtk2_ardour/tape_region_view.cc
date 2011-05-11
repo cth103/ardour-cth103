@@ -37,7 +37,7 @@
 using namespace ARDOUR;
 using namespace PBD;
 using namespace Editing;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 const TimeAxisViewItem::Visibility TapeAudioRegionView::default_tape_visibility
 	= TimeAxisViewItem::Visibility (
@@ -46,7 +46,7 @@ const TimeAxisViewItem::Visibility TapeAudioRegionView::default_tape_visibility
 		TimeAxisViewItem::ShowFrame |
 		TimeAxisViewItem::HideFrameRight);
 
-TapeAudioRegionView::TapeAudioRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView &tv,
+TapeAudioRegionView::TapeAudioRegionView (Canvas::Group *parent, RouteTimeAxisView &tv,
 					  boost::shared_ptr<AudioRegion> r,
 					  double spu,
 					  Gdk::Color const & basic_color)

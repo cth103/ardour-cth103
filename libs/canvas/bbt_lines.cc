@@ -28,7 +28,7 @@
 #include "canvas/utils.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 /** Construct a BBTLines object.
  *  @param parent Parent group.

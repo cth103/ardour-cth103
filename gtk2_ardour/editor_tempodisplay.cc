@@ -242,7 +242,7 @@ Editor::mouse_add_new_meter_event (framepos_t frame)
 }
 
 void
-Editor::remove_tempo_marker (ArdourCanvas::Item* item)
+Editor::remove_tempo_marker (Canvas::Item* item)
 {
 	Marker* marker;
 	TempoMarker* tempo_marker;
@@ -327,7 +327,7 @@ Editor::edit_tempo_section (TempoSection* section)
 }
 
 void
-Editor::edit_tempo_marker (ArdourCanvas::Item *item)
+Editor::edit_tempo_marker (Canvas::Item *item)
 {
 	Marker* marker;
 	TempoMarker* tempo_marker;
@@ -346,7 +346,7 @@ Editor::edit_tempo_marker (ArdourCanvas::Item *item)
 }
 
 void
-Editor::edit_meter_marker (ArdourCanvas::Item *item)
+Editor::edit_meter_marker (Canvas::Item *item)
 {
 	Marker* marker;
 	MeterMarker* meter_marker;
@@ -378,7 +378,7 @@ Editor::real_remove_tempo_marker (TempoSection *section)
 }
 
 void
-Editor::remove_meter_marker (ArdourCanvas::Item* item)
+Editor::remove_meter_marker (Canvas::Item* item)
 {
 	Marker* marker;
 	MeterMarker* meter_marker;

@@ -33,13 +33,13 @@ uint64_t PBD::DEBUG::CanvasItemsDirtied = PBD::new_debug_bit ("canvasitemsdirtie
 uint64_t PBD::DEBUG::CanvasEvents = PBD::new_debug_bit ("canvasevents");
 
 /** Starting point for our checkpoint timing code */
-struct timeval ArdourCanvas::epoch;
+struct timeval Canvas::epoch;
 /** Last checkpoint time */
-map<string, struct timeval> ArdourCanvas::last_time;
+map<string, struct timeval> Canvas::last_time;
 
 /** Set now as a starting point from which checkpoint times will be referenced */
 void
-ArdourCanvas::set_epoch ()
+Canvas::set_epoch ()
 {
 	gettimeofday (&epoch, 0);
 }
@@ -51,7 +51,7 @@ ArdourCanvas::set_epoch ()
  *  @param message Message to print out with this checkpoint.
  */
 void
-ArdourCanvas::checkpoint (string group, string message)
+Canvas::checkpoint (string group, string message)
 {
 	struct timeval now;
 	gettimeofday (&now, 0);

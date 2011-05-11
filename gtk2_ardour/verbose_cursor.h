@@ -26,7 +26,7 @@ class VerboseCursor
 public:
 	VerboseCursor (Editor *);
 	
-	ArdourCanvas::Item* canvas_item () const;
+	Canvas::Item* canvas_item () const;
 	bool visible () const;
 
 	void set_color (uint32_t);
@@ -45,7 +45,7 @@ private:
 	double clamp_y (double);
 
 	Editor* _editor;
-	ArdourCanvas::Text* _canvas_item;
+	Canvas::Text* _canvas_item;
 	bool _visible;
 	double _xoffset;
 	double _yoffset;

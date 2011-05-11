@@ -29,7 +29,7 @@
 #include "canvas/types.h"
 #include "canvas/item.h"
 
-namespace ArdourCanvas {
+namespace Canvas {
 
 /** A mixin class which can be inherited by items that have
  *  an outline (e.g. lines, polygons etc.)

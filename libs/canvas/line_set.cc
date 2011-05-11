@@ -3,7 +3,7 @@
 #include "canvas/utils.h"
 
 using namespace std;
-using namespace ArdourCanvas;
+using namespace Canvas;
 
 /* XXX: hard-wired to horizontal only */
 
