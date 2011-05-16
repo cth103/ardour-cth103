@@ -56,9 +56,9 @@ void
 LineSet::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) const
 {
 	for (list<Line>::const_iterator i = _lines.begin(); i != _lines.end(); ++i) {
-		if (i->y > area.y1) {
+		if ((i->y + i->width / 2) > area.y1) {
 			break;
-		} else if (i->y > area.y0) {
+		} else if ((i->y - i->width / 2) > area.y0) {
 			set_source_rgba (context, i->color);
 			context->set_line_width (i->width);
 			context->move_to (area.x0, i->y);

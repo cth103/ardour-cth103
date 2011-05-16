@@ -340,9 +340,9 @@ MidiStreamView::draw_note_lines()
 		}
 
 		if (i == highest_note()) {
-			_note_lines->add (y, prev_y - y, color);
+			_note_lines->add ((y + prev_y) / 2 - 0.5, prev_y - y, color);
 		} else {
-			_note_lines->add (y + 1.0, prev_y - y - 1.0, color);
+			_note_lines->add ((y + prev_y) / 2, prev_y - y - 1.0, color);
 		}
 
 		prev_y = y;
