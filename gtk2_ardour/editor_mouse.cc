@@ -719,8 +719,7 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 			if (internal_editing()) {
 				/* trim notes if we're in internal edit mode and near the ends of the note */
 				NoteBase* cn = reinterpret_cast<NoteBase*> (item->get_data ("notebase"));
-				assert (cn);
-				if (cn->big_enough_to_trim() && cn->mouse_near_ends()) {
+				if (cn && cn->big_enough_to_trim() && cn->mouse_near_ends()) {
 					_drags->set (new NoteResizeDrag (this, item), event, current_canvas_cursor);
 				} else {
 					_drags->set (new NoteDrag (this, item), event);

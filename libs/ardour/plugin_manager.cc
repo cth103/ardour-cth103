@@ -48,8 +48,7 @@
 #include "ardour/ladspa_plugin.h"
 #include "ardour/filesystem_paths.h"
 
-#ifdef HAVE_SLV2
-#include <slv2/slv2.h>
+#ifdef LV2_SUPPORT
 #include "ardour/lv2_plugin.h"
 #endif
 
@@ -134,19 +133,12 @@ PluginManager::PluginManager ()
 		ladspa_plugin_whitelist.push_back (2150); // tap pitch shifter
 	}
 
-#ifdef HAVE_SLV2
-	_lv2_world = new LV2World();
-#endif
-
 	BootMessage (_("Discovering Plugins"));
 }
 
 
 PluginManager::~PluginManager()
 {
-#ifdef HAVE_SLV2
-	delete _lv2_world;
-#endif
 }
 
 
@@ -154,7 +146,7 @@ void
 PluginManager::refresh ()
 {
 	ladspa_refresh ();
-#ifdef HAVE_SLV2
+#ifdef LV2_SUPPORT
 	lv2_refresh ();
 #endif
 #ifdef VST_SUPPORT
@@ -471,12 +463,12 @@ PluginManager::get_ladspa_category (uint32_t plugin_id)
 	}
 }
 
-#ifdef HAVE_SLV2
+#ifdef LV2_SUPPORT
 void
 PluginManager::lv2_refresh ()
 {
 	delete _lv2_plugin_info;
-	_lv2_plugin_info = LV2PluginInfo::discover(_lv2_world);
+	_lv2_plugin_info = LV2PluginInfo::discover();
 }
 #endif
 
@@ -768,7 +760,7 @@ PluginManager::ladspa_plugin_info ()
 ARDOUR::PluginInfoList&
 PluginManager::lv2_plugin_info ()
 {
-#ifdef HAVE_SLV2
+#ifdef LV2_SUPPORT
 	if (!_lv2_plugin_info)
 		lv2_refresh();
 	return *_lv2_plugin_info;

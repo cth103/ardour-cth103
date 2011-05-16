@@ -300,7 +300,7 @@ Session::destroy ()
 
 	DEBUG_TRACE (DEBUG::Destruction, "delete sources\n");
 	for (SourceMap::iterator i = sources.begin(); i != sources.end(); ++i) {
-		DEBUG_TRACE(DEBUG::Destruction, string_compose ("Dropping for source %1 ; pre-ref = %2\n", i->second->path(), i->second.use_count()));
+		DEBUG_TRACE(DEBUG::Destruction, string_compose ("Dropping for source %1 ; pre-ref = %2\n", i->second->name(), i->second.use_count()));
 		i->second->drop_references ();
 	}
 
@@ -2534,6 +2534,8 @@ Session::playlist_region_added (boost::weak_ptr<Region> w)
 	ops.push_back (Operations::region_fill);
 	ops.push_back (Operations::fill_selection);
 	ops.push_back (Operations::create_region);
+	ops.push_back (Operations::region_copy);
+	ops.push_back (Operations::fixed_time_region_copy);
 	ops.sort ();
 
 	/* See if any of the current operations match the ones that we want */

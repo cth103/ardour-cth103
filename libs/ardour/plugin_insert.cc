@@ -37,7 +37,7 @@
 #include "ardour/port.h"
 #include "ardour/route.h"
 
-#ifdef HAVE_SLV2
+#ifdef LV2_SUPPORT
 #include "ardour/lv2_plugin.h"
 #endif
 
@@ -413,21 +413,38 @@ PluginInsert::run (BufferSet& bufs, framepos_t /*start_frame*/, framepos_t /*end
 
 	} else {
 
-		/* FIXME: type, audio only */
+		if (is_generator()) {
 
-		uint32_t in = _plugins[0]->get_info()->n_inputs.n_audio();
-		uint32_t out = _plugins[0]->get_info()->n_outputs.n_audio();
+			/* silence all (audio) outputs. Should really declick
+			 * at the transitions of "active"
+			 */
 
-		if (out > in) {
+			uint32_t out = _plugins[0]->get_info()->n_outputs.n_audio();
 
-			/* not active, but something has make up for any channel count increase */
-
-			for (uint32_t n = out - in; n < out; ++n) {
-				memcpy (bufs.get_audio(n).data(), bufs.get_audio(in - 1).data(), sizeof (Sample) * nframes);
+			for (uint32_t n = 0; n < out; ++n) {
+				bufs.get_audio (n).silence (nframes);
 			}
-		}
 
-		bufs.count().set_audio(out);
+			bufs.count().set_audio (out);
+		
+		} else {
+
+			/* does this need to be done with MIDI? it appears not */
+			
+			uint32_t in = _plugins[0]->get_info()->n_inputs.n_audio();
+			uint32_t out = _plugins[0]->get_info()->n_outputs.n_audio();
+			
+			if (out > in) {
+				
+				/* not active, but something has make up for any channel count increase */
+				
+				for (uint32_t n = out - in; n < out; ++n) {
+					memcpy (bufs.get_audio(n).data(), bufs.get_audio(in - 1).data(), sizeof (Sample) * nframes);
+				}
+			}
+			
+			bufs.count().set_audio (out);
+		}
 	}
 
 	_active = _pending_active;
@@ -532,7 +549,7 @@ boost::shared_ptr<Plugin>
 PluginInsert::plugin_factory (boost::shared_ptr<Plugin> other)
 {
 	boost::shared_ptr<LadspaPlugin> lp;
-#ifdef HAVE_SLV2
+#ifdef LV2_SUPPORT
 	boost::shared_ptr<LV2Plugin> lv2p;
 #endif
 #ifdef VST_SUPPORT
@@ -544,7 +561,7 @@ PluginInsert::plugin_factory (boost::shared_ptr<Plugin> other)
 
 	if ((lp = boost::dynamic_pointer_cast<LadspaPlugin> (other)) != 0) {
 		return boost::shared_ptr<Plugin> (new LadspaPlugin (*lp));
-#ifdef HAVE_SLV2
+#ifdef LV2_SUPPORT
 	} else if ((lv2p = boost::dynamic_pointer_cast<LV2Plugin> (other)) != 0) {
 		return boost::shared_ptr<Plugin> (new LV2Plugin (*lv2p));
 #endif

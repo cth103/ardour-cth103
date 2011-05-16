@@ -30,7 +30,6 @@
 #include "pbd/stateful.h"
 
 #include <jack/types.h>
-#include <slv2/slv2.h>
 
 #include "ardour/plugin.h"
 #include "ardour/uri_map.h"
@@ -38,7 +37,6 @@
 namespace ARDOUR {
 
 class AudioEngine;
-class LV2World;
 class Session;
 
 class LV2Plugin : public ARDOUR::Plugin
@@ -46,21 +44,19 @@ class LV2Plugin : public ARDOUR::Plugin
   public:
 	LV2Plugin (ARDOUR::AudioEngine& engine,
 	           ARDOUR::Session&     session,
-	           ARDOUR::LV2World&    world,
-	           SLV2Plugin           plugin,
+	           void*                c_plugin,
 	           framecnt_t           sample_rate);
 	LV2Plugin (const LV2Plugin &);
 	~LV2Plugin ();
 
 	std::string unique_id () const;
+	const char* uri () const;
+	const char* label () const;
+	const char* name () const;
+	const char* maker () const;
 
-	const char* label () const { return slv2_value_as_string(_name); }
-	const char* name () const  { return slv2_value_as_string(_name); }
-	const char* maker () const {
-		return _author ? slv2_value_as_string (_author) : "Unknown";
-	}
-
-	uint32_t   parameter_count () const { return slv2_plugin_get_num_ports(_plugin); }
+	uint32_t   num_ports () const;
+	uint32_t   parameter_count () const;
 	float      default_value (uint32_t port);
 	framecnt_t signal_latency () const;
 	void       set_parameter (uint32_t port, float val);
@@ -68,15 +64,12 @@ class LV2Plugin : public ARDOUR::Plugin
 	int        get_parameter_descriptor (uint32_t which, ParameterDescriptor&) const;
 	uint32_t   nth_parameter (uint32_t port, bool& ok) const;
 
-	const void* extension_data (const char* uri) {
-		return _instance->lv2_descriptor->extension_data (uri);
-	}
+	const void* extension_data (const char* uri) const;
 
-	SLV2Plugin slv2_plugin ()         { return _plugin; }
-	SLV2UI     slv2_ui ()             { return _ui; }
-	SLV2Value  ui_type()              { return _ui_type; }
-	SLV2Port   slv2_port (uint32_t i) { return slv2_plugin_get_port_by_index (_plugin, i); }
-	bool       is_external_ui () const;
+	void* c_plugin();
+	void* c_ui();
+
+	bool is_external_ui () const;
 
 	const char* port_symbol (uint32_t port) const;
 
@@ -108,6 +101,9 @@ class LV2Plugin : public ARDOUR::Plugin
 	bool parameter_is_output (uint32_t) const;
 	bool parameter_is_toggled (uint32_t) const;
 
+	boost::shared_ptr<Plugin::ScalePoints>
+	get_scale_points(uint32_t port_index) const;
+		
 	static uint32_t midi_event_type () { return _midi_event_type; }
 
 	void set_insert_info(const PluginInsert* insert);
@@ -121,15 +117,10 @@ class LV2Plugin : public ARDOUR::Plugin
 	bool has_editor () const;
 
   private:
+	struct Impl;
+	Impl*             _impl;
 	void*             _module;
-	LV2World&         _world;
 	LV2_Feature**     _features;
-	SLV2Plugin        _plugin;
-	SLV2UI            _ui;
-	SLV2Value         _ui_type;
-	SLV2Value         _name;
-	SLV2Value         _author;
-	SLV2Instance      _instance;
 	framecnt_t        _sample_rate;
 	float*            _control_data;
 	float*            _shadow_data;
@@ -175,7 +166,7 @@ class LV2Plugin : public ARDOUR::Plugin
 	static char* lv2_files_new_file_path (void*       host_data,
 	                                      const char* relative_path);
 
-	void init (LV2World& world, SLV2Plugin plugin, framecnt_t rate);
+	void init (void* c_plugin, framecnt_t rate);
 	void run (pframes_t nsamples);
 
 	void latency_compute_run ();
@@ -186,43 +177,16 @@ class LV2Plugin : public ARDOUR::Plugin
 };
 
 
-/** The SLV2World, and various cached (as symbols, fast) URIs.
- *
- * This object represents everything ardour 'knows' about LV2
- * (ie understood extensions/features/etc)
- */
-class LV2World {
-public:
-	LV2World ();
-	~LV2World ();
-
-	SLV2World world;
-	SLV2Value input_class; ///< Input port
-	SLV2Value output_class; ///< Output port
-	SLV2Value audio_class; ///< Audio port
-	SLV2Value control_class; ///< Control port
-	SLV2Value event_class; ///< Event port
-	SLV2Value midi_class; ///< MIDI event
-	SLV2Value in_place_broken;
-	SLV2Value integer;
-	SLV2Value toggled;
-	SLV2Value srate;
-	SLV2Value gtk_gui;
-	SLV2Value external_gui;
-	SLV2Value logarithmic;
-};
-
-
 class LV2PluginInfo : public PluginInfo {
 public:
-	LV2PluginInfo (void* slv2_world, void* slv2_plugin);
+	LV2PluginInfo (void* c_plugin);
 	~LV2PluginInfo ();
-	static PluginInfoList* discover (void* slv2_world);
+
+	static PluginInfoList* discover ();
 
 	PluginPtr load (Session& session);
 
-	void* _lv2_world;
-	void* _slv2_plugin;
+	void* _c_plugin;
 };
 
 typedef boost::shared_ptr<LV2PluginInfo> LV2PluginInfoPtr;
