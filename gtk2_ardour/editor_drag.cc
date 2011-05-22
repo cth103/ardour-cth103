@@ -93,9 +93,11 @@ DragManager::abort ()
 		delete *i;
 	}
 
-	_drags.clear ();
+	if (!_drags.empty ()) {
+		_editor->set_follow_playhead (_old_follow_playhead, false);
+	}
 
-	_editor->set_follow_playhead (_old_follow_playhead, false);
+	_drags.clear ();
 	
 	_ending = false;
 }
@@ -3174,8 +3176,6 @@ TimeFXDrag::finished (GdkEvent* /*event*/, bool movement_occurred)
 		percentage = (float) ((double) newlen - (double) _primary->region()->length()) / ((double) newlen) * 100.0f;
 	}
 #endif
-
-	_editor->begin_reversible_command (_("timestretch"));
 
 	// XXX how do timeFX on multiple regions ?
 

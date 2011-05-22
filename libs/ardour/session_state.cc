@@ -69,6 +69,7 @@
 
 #include "ardour/amp.h"
 #include "ardour/audio_diskstream.h"
+#include "ardour/audio_playlist_source.h"
 #include "ardour/audio_track.h"
 #include "ardour/audioengine.h"
 #include "ardour/audiofilesource.h"
@@ -220,6 +221,7 @@ Session::first_stage_init (string fullpath, string snapshot_name)
         _speakers.reset (new Speakers);
 
 	AudioDiskstream::allocate_working_buffers();
+	AudioSource::allocate_working_buffers ();
 
 	/* default short fade = 15ms */
 
@@ -1054,20 +1056,23 @@ Session::state(bool full_state)
 
 		for (SourceMap::iterator siter = sources.begin(); siter != sources.end(); ++siter) {
 
-			/* Don't save information about non-destructive file sources that are empty
-                           and unused by any regions.
+			/* Don't save information about non-file Sources, or
+			 * about non-destructive file sources that are empty
+			 * and unused by any regions.
                         */
 
 			boost::shared_ptr<FileSource> fs;
+
 			if ((fs = boost::dynamic_pointer_cast<FileSource> (siter->second)) != 0) {
+
 				if (!fs->destructive()) {
 					if (fs->empty() && !fs->used()) {
 						continue;
 					}
 				}
+				
+				child->add_child_nocopy (siter->second->get_state());
 			}
-
-			child->add_child_nocopy (siter->second->get_state());
 		}
 	}
 

@@ -224,6 +224,8 @@ MidiTimeAxisView::MidiTimeAxisView (PublicEditor& ed, Session* sess,
 			_percussion_mode_item->set_active (_note_mode == Percussive);
 		}
 	}
+
+	set_color_mode (_color_mode, true, false);
 }
 
 void
@@ -361,8 +363,8 @@ MidiTimeAxisView::append_extra_display_menu_items ()
 			sigc::mem_fun(*this, &MidiTimeAxisView::set_note_range),
 			MidiStreamView::ContentsRange)));
 
-	items.push_back (MenuElem (_("Note range"), *range_menu));
-	items.push_back (MenuElem (_("Note mode"), *build_note_mode_menu()));
+	items.push_back (MenuElem (_("Note Range"), *range_menu));
+	items.push_back (MenuElem (_("Note Mode"), *build_note_mode_menu()));
 	items.push_back (MenuElem (_("Default Channel"), *build_def_channel_menu()));
 
 	items.push_back (CheckMenuElem (_("MIDI Thru"), sigc::mem_fun(*this, &MidiTimeAxisView::toggle_midi_thru)));
@@ -757,17 +759,20 @@ MidiTimeAxisView::build_color_mode_menu()
 
 	RadioMenuItem::Group mode_group;
 	items.push_back (RadioMenuElem (mode_group, _("Meter Colors"),
-				sigc::bind (sigc::mem_fun (*this, &MidiTimeAxisView::set_color_mode), MeterColors)));
+	                                sigc::bind (sigc::mem_fun (*this, &MidiTimeAxisView::set_color_mode),
+	                                            MeterColors, false, true)));
 	_meter_color_mode_item = dynamic_cast<RadioMenuItem*>(&items.back());
 	_meter_color_mode_item->set_active(_color_mode == MeterColors);
 
 	items.push_back (RadioMenuElem (mode_group, _("Channel Colors"),
-				sigc::bind (sigc::mem_fun (*this, &MidiTimeAxisView::set_color_mode), ChannelColors)));
+	                                sigc::bind (sigc::mem_fun (*this, &MidiTimeAxisView::set_color_mode),
+	                                            ChannelColors, false, true)));
 	_channel_color_mode_item = dynamic_cast<RadioMenuItem*>(&items.back());
 	_channel_color_mode_item->set_active(_color_mode == ChannelColors);
 
 	items.push_back (RadioMenuElem (mode_group, _("Track Color"),
-				sigc::bind (sigc::mem_fun (*this, &MidiTimeAxisView::set_color_mode), TrackColor)));
+	                                sigc::bind (sigc::mem_fun (*this, &MidiTimeAxisView::set_color_mode),
+	                                            TrackColor, false, true)));
 	_channel_color_mode_item = dynamic_cast<RadioMenuItem*>(&items.back());
 	_channel_color_mode_item->set_active(_color_mode == TrackColor);
 
@@ -786,17 +791,21 @@ MidiTimeAxisView::set_note_mode(NoteMode mode)
 }
 
 void
-MidiTimeAxisView::set_color_mode(ColorMode mode)
+MidiTimeAxisView::set_color_mode (ColorMode mode, bool force, bool redisplay)
 {
-	if (_color_mode != mode) {
-		if (mode == ChannelColors) {
-			_channel_selector.set_channel_colors (NoteBase::midi_channel_colors);
-		} else {
-			_channel_selector.set_default_channel_color();
-		}
-
-		_color_mode = mode;
-		xml_node->add_property ("color-mode", enum_2_string(_color_mode));
+	if (_color_mode == mode && !force) {
+		return;
+	}
+	
+	if (mode == ChannelColors) {
+		_channel_selector.set_channel_colors (NoteBase::midi_channel_colors);
+	} else {
+		_channel_selector.set_default_channel_color();
+	}
+	
+	_color_mode = mode;
+	xml_node->add_property ("color-mode", enum_2_string(_color_mode));
+	if (redisplay) {
 		_view->redisplay_track();
 	}
 }

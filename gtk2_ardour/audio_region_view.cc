@@ -98,29 +98,6 @@ AudioRegionView::AudioRegionView (Canvas::Group *parent, RouteTimeAxisView &tv, 
 {
 }
 
-
-AudioRegionView::AudioRegionView (const AudioRegionView& other)
-	: sigc::trackable(other)
-	, RegionView (other)
-	, fade_in_shape(0)
-	, fade_out_shape(0)
-	, fade_in_handle(0)
-	, fade_out_handle(0)
-	, fade_position_line(0)
-	, gain_line(0)
-	, _amplitude_above_axis(1.0)
-	, _flags(0)
-	, fade_color(0)
-{
-	Gdk::Color c;
-	int r,g,b,a;
-
-	UINT_TO_RGBA (other.fill_color, &r, &g, &b, &a);
-	c.set_rgb_p (r/255.0, g/255.0, b/255.0);
-
-	init (c, false);
-}
-
 AudioRegionView::AudioRegionView (const AudioRegionView& other, boost::shared_ptr<AudioRegion> other_region)
 	: RegionView (other, boost::shared_ptr<Region> (other_region))
 	, fade_in_shape(0)
@@ -129,8 +106,8 @@ AudioRegionView::AudioRegionView (const AudioRegionView& other, boost::shared_pt
 	, fade_out_handle(0)
 	, fade_position_line(0)
 	, gain_line(0)
-	, _amplitude_above_axis(1.0)
-	, _flags(0)
+	, _amplitude_above_axis (other._amplitude_above_axis)
+	, _flags (other._flags)
 	, fade_color(0)
 {
 	Gdk::Color c;

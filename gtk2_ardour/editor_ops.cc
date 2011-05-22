@@ -3555,6 +3555,7 @@ Editor::cut_copy_points (CutCopyOp op)
 	for (PointSelection::iterator i = selection->points.begin(); i != selection->points.end(); ++i) {
 
 		AutomationTimeAxisView* atv = dynamic_cast<AutomationTimeAxisView*>((*i).track);
+		_last_cut_copy_source_track = atv;
 
 		if (atv) {
 			atv->cut_copy_clear_objects (selection->points, op);
@@ -6403,6 +6404,38 @@ Editor::toggle_region_mute ()
 		
 	}
 	
+	commit_reversible_command ();
+}
+
+void
+Editor::combine_regions ()
+{
+	/* foreach track with selected regions, take all selected regions
+	   and join them into a new region containing the subregions (as a
+	   playlist)
+	*/
+
+	typedef set<RouteTimeAxisView*> RTVS;
+	RTVS tracks;
+
+	if (selection->regions.empty()) {
+		return;
+	}
+
+	for (RegionSelection::iterator i = selection->regions.begin(); i != selection->regions.end(); ++i) {
+		RouteTimeAxisView* rtv = dynamic_cast<RouteTimeAxisView*>(&(*i)->get_time_axis_view());
+
+		if (rtv) {
+			tracks.insert (rtv);
+		}
+	}
+
+	begin_reversible_command (_("combine regions"));
+
+	for (RTVS::iterator i = tracks.begin(); i != tracks.end(); ++i) {
+		(*i)->combine_regions ();
+	}
+
 	commit_reversible_command ();
 }
 

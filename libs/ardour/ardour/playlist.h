@@ -97,6 +97,8 @@ public:
 
 	boost::shared_ptr<Region> region_by_id (const PBD::ID&) const;
 
+	uint32_t max_source_level () const;
+
 	void set_region_ownership ();
 
 	virtual void clear (bool with_signals=true);
@@ -137,6 +139,8 @@ public:
 	void partition (framepos_t start, framepos_t end, bool cut = false);
 	void duplicate (boost::shared_ptr<Region>, framepos_t position, float times);
 	void nudge_after (framepos_t start, framecnt_t distance, bool forwards);
+	void join (const RegionList&, const std::string&);
+
 	void shuffle (boost::shared_ptr<Region>, int dir);
 	void update_after_tempo_map_change ();
 
@@ -147,7 +151,8 @@ public:
 	const RegionListProperty& region_list () const { return regions; }
 
 	RegionList*                regions_at (framepos_t frame);
-        uint32_t                   count_regions_at (framepos_t);
+        uint32_t                   count_regions_at (framepos_t) const;
+	uint32_t                   count_joined_regions () const;
 	RegionList*                regions_touched (framepos_t start, framepos_t end);
 	RegionList*                regions_to_read (framepos_t start, framepos_t end);
 	uint32_t                   region_use_count (boost::shared_ptr<Region>) const;
@@ -224,6 +229,7 @@ public:
 	}
 
 	framepos_t find_next_top_layer_position (framepos_t) const;	
+	uint32_t combine_ops() const { return _combine_ops; }
 
   protected:
 	friend class Session;
@@ -290,6 +296,7 @@ public:
 	uint64_t         layer_op_counter;
 	framecnt_t       freeze_length;
 	bool             auto_partition;
+	uint32_t        _combine_ops;
 
 	/** true if relayering should be done using region's current layers and their `pending explicit relayer'
 	 *  flags; otherwise false if relayering should be done using the layer-model (most recently moved etc.)
@@ -371,6 +378,10 @@ public:
 	void timestamp_layer_op (boost::shared_ptr<Region>);
 
 	void _split_region (boost::shared_ptr<Region>, framepos_t position);
+	void load_nested_sources (const XMLNode& node);
+
+	typedef std::pair<boost::shared_ptr<Region>, boost::shared_ptr<Region> > TwoRegions;
+	virtual void copy_dependents (const std::vector<TwoRegions>&, boost::shared_ptr<Playlist>) { }
 };
 
 } /* namespace ARDOUR */

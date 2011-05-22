@@ -28,10 +28,10 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include "pbd/convert.h"
 #include "pbd/failed_constructor.h"
 #include "pbd/stateful_diff_command.h"
 #include "pbd/xml++.h"
-#include "pbd/stacktrace.h"
 
 #include "ardour/debug.h"
 #include "ardour/playlist.h"
@@ -41,6 +41,7 @@
 #include "ardour/playlist_factory.h"
 #include "ardour/transient_detector.h"
 #include "ardour/session_playlists.h"
+#include "ardour/source_factory.h"
 
 #include "i18n.h"
 
@@ -356,6 +357,7 @@ Playlist::init (bool hide)
 	layer_op_counter = 0;
 	freeze_length = 0;
 	_explicit_relayering = false;
+	_combine_ops = 0;
 
 	_session.history().BeginUndoRedo.connect_same_thread (*this, boost::bind (&Playlist::begin_undo, this));
 	_session.history().EndUndoRedo.connect_same_thread (*this, boost::bind (&Playlist::end_undo, this));
@@ -1755,12 +1757,12 @@ Playlist::regions_at (framepos_t frame)
 }
 
 uint32_t
-Playlist::count_regions_at (framepos_t frame)
+Playlist::count_regions_at (framepos_t frame) const
 {
-	RegionLock rlock (this);
+	RegionLock rlock (const_cast<Playlist*>(this));
 	uint32_t cnt = 0;
 
-	for (RegionList::iterator i = regions.begin(); i != regions.end(); ++i) {
+	for (RegionList::const_iterator i = regions.begin(); i != regions.end(); ++i) {
 		if ((*i)->covers (frame)) {
 			cnt++;
 		}
@@ -2220,6 +2222,26 @@ Playlist::update (const RegionListProperty::ChangeRecord& change)
 	thaw ();
 }
 
+void
+Playlist::load_nested_sources (const XMLNode& node)
+{
+	XMLNodeList nlist;
+	XMLNodeConstIterator niter;
+
+	nlist = node.children();
+
+	for (niter = nlist.begin(); niter != nlist.end(); ++niter) {
+		if ((*niter)->name() == "Source") {
+			try {
+				SourceFactory::create (_session, **niter, true);
+			} 
+			catch (failed_constructor& err) {
+				error << string_compose (_("Cannot reconstruct nested source for playlist %1"), name()) << endmsg;
+			}
+		}
+	}
+}
+
 int
 Playlist::set_state (const XMLNode& node, int version)
 {
@@ -2256,12 +2278,27 @@ Playlist::set_state (const XMLNode& node, int version)
 			_orig_diskstream_id = prop->value ();
 		} else if (prop->name() == X_("frozen")) {
 			_frozen = string_is_affirmative (prop->value());
+		} else if (prop->name() == X_("combine-ops")) {
+			_combine_ops = atoi (prop->value());
 		}
 	}
 
 	clear (true);
 
 	nlist = node.children();
+
+	/* find the "Nested" node, if any, and recreate the PlaylistSources
+	   listed there
+	*/
+
+	for (niter = nlist.begin(); niter != nlist.end(); ++niter) {
+		child = *niter;
+
+		if (child->name() == "Nested") {
+			load_nested_sources (*child);
+			break;
+		}
+	}
 
 	for (niter = nlist.begin(); niter != nlist.end(); ++niter) {
 
@@ -2291,7 +2328,7 @@ Playlist::set_state (const XMLNode& node, int version)
 				error << _("Playlist: cannot create region from XML") << endmsg;
 				continue;
 			}
-
+			
 
 			add_region (region, region->position(), 1.0);
 
@@ -2335,7 +2372,7 @@ XMLNode&
 Playlist::state (bool full_state)
 {
 	XMLNode *node = new XMLNode (X_("Playlist"));
-	char buf[64] = "";
+	char buf[64];
 
 	node->add_property (X_("id"), id().to_s());
 	node->add_property (X_("name"), _name);
@@ -2347,6 +2384,34 @@ Playlist::state (bool full_state)
 
 	if (full_state) {
 		RegionLock rlock (this, false);
+		XMLNode* nested_node = 0;
+
+		snprintf (buf, sizeof (buf), "%u", _combine_ops);
+		node->add_property ("combine-ops", buf);
+
+		for (RegionList::iterator i = regions.begin(); i != regions.end(); ++i) {
+			if ((*i)->max_source_level() > 0) {
+
+				if (!nested_node) {
+					nested_node = new XMLNode (X_("Nested"));
+				}
+
+				/* region is compound - get its playlist and
+				   store that before we list the region that
+				   needs it ...
+				*/
+
+				const SourceList& sl ((*i)->sources());
+
+				for (SourceList::const_iterator s = sl.begin(); s != sl.end(); ++s) {
+					nested_node->add_child_nocopy ((*s)->get_state ());
+				}
+			}
+		}
+
+		if (nested_node) {
+			node->add_child_nocopy (*nested_node);
+		}
 
 		for (RegionList::iterator i = regions.begin(); i != regions.end(); ++i) {
 			node->add_child_nocopy ((*i)->get_state());
@@ -3084,3 +3149,118 @@ Playlist::find_next_top_layer_position (framepos_t t) const
 
 	return max_framepos;
 }
+
+void
+Playlist::join (const RegionList& r, const std::string& name)
+{
+	PropertyList plist; 
+	uint32_t channels = 0;
+	uint32_t layer = 0;
+	framepos_t earliest_position = max_framepos;
+	vector<TwoRegions> old_and_new_regions;
+
+	boost::shared_ptr<Playlist> pl = PlaylistFactory::create (_type, _session, name, true);
+
+	for (RegionList::const_iterator i = r.begin(); i != r.end(); ++i) {
+		earliest_position = min (earliest_position, (*i)->position());
+	}
+
+	/* enable this so that we do not try to create xfades etc. as we add
+	 * regions
+	 */
+
+	pl->in_partition = true;
+
+	for (RegionList::const_iterator i = r.begin(); i != r.end(); ++i) {
+
+		/* copy the region */
+
+		boost::shared_ptr<Region> original_region = (*i);
+		boost::shared_ptr<Region> copied_region = RegionFactory::create (original_region, false);
+
+		old_and_new_regions.push_back (TwoRegions (original_region,copied_region));
+
+		/* make position relative to zero */
+
+		pl->add_region (copied_region, original_region->position() - earliest_position);
+
+		/* use the maximum number of channels for any region */
+
+		channels = max (channels, original_region->n_channels());
+
+		/* it will go above the layer of the highest existing region */
+
+		layer = max (layer, original_region->layer());
+	}
+
+	pl->in_partition = false;
+
+	/* now create a new PlaylistSource for each channel in the new playlist */
+
+	SourceList sources;
+	pair<framepos_t,framepos_t> extent = pl->get_extent();
+	
+	for (uint32_t chn = 0; chn < channels; ++chn) {
+		sources.push_back (SourceFactory::createFromPlaylist (_type, _session, pl, name, chn, 0, extent.second, false, false));
+	}
+	
+	/* now a new region using the list of sources */
+
+	plist.add (Properties::start, 0);
+	plist.add (Properties::length, extent.second);
+	plist.add (Properties::name, name);
+	plist.add (Properties::layer, layer+1);
+	
+	boost::shared_ptr<Region> compound_region = RegionFactory::create (sources, plist, true);
+
+	/* add any dependent regions to the new playlist */
+
+	copy_dependents (old_and_new_regions, pl);
+
+	/* remove all the selected regions from the current playlist
+	 */
+
+	freeze ();
+	
+	for (RegionList::const_iterator i = r.begin(); i != r.end(); ++i) {
+		remove_region (*i);
+	}
+
+	/* add the new region at the right location */
+	
+	add_region (compound_region, earliest_position);
+
+	_combine_ops++;
+
+	thaw ();
+}
+
+uint32_t
+Playlist::max_source_level () const
+{
+	RegionLock rlock (const_cast<Playlist *> (this));
+	uint32_t lvl = 0;
+
+	for (RegionList::const_iterator i = regions.begin(); i != regions.end(); ++i) {
+		lvl = max (lvl, (*i)->max_source_level());
+	}
+
+	return lvl;
+}
+
+
+uint32_t
+Playlist::count_joined_regions () const
+{
+	RegionLock rlock (const_cast<Playlist *> (this));
+	uint32_t cnt = 0;
+
+	for (RegionList::const_iterator i = regions.begin(); i != regions.end(); ++i) {
+		if ((*i)->max_source_level() > 0) {
+			cnt++;
+		}
+	}
+
+	return cnt;
+}
+

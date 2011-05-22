@@ -1512,7 +1512,7 @@ RouteTimeAxisView::build_playlist_menu ()
 	playlist_items.push_back (MenuElem (_("Clear Current"), sigc::bind(sigc::mem_fun(_editor, &PublicEditor::clear_playlists), this)));
 	playlist_items.push_back (SeparatorElem());
 
-	playlist_items.push_back (MenuElem(_("Select from all..."), sigc::mem_fun(*this, &RouteTimeAxisView::show_playlist_selector)));
+	playlist_items.push_back (MenuElem(_("Select From All..."), sigc::mem_fun(*this, &RouteTimeAxisView::show_playlist_selector)));
 }
 
 void
@@ -2467,4 +2467,33 @@ RouteTimeAxisView::create_gain_automation_child (const Evoral::Parameter& param,
 	}
 	
 	add_automation_child (Evoral::Parameter(GainAutomation), gain_track, show);
+}
+
+static
+void add_region_to_list (RegionView* rv, Playlist::RegionList* l, uint32_t* max_level)
+{
+	l->push_back (rv->region());
+	*max_level = max (*max_level, rv->region()->max_source_level());
+}
+
+void
+RouteTimeAxisView::combine_regions ()
+{
+	assert (is_track());
+
+	if (!_view) {
+		return;
+	}
+
+	Playlist::RegionList selected_regions;
+	boost::shared_ptr<Playlist> playlist = track()->playlist();
+	uint32_t max_level = 0;
+
+	_view->foreach_selected_regionview (sigc::bind (sigc::ptr_fun (add_region_to_list), &selected_regions, &max_level));
+	
+	string name = string_compose (_("%1 compound-%2 (%3)"), playlist->name(), playlist->combine_ops()+1, max_level+1);
+
+	playlist->clear_changes ();
+	playlist->join (selected_regions, name);
+	_session->add_command (new StatefulDiffCommand (playlist));
 }

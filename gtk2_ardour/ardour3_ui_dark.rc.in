@@ -25,6 +25,7 @@
 
 #@color arm #F33
 #@color solo #A8F730
+#@color midi_channel_selector #A8F730
 #@color isolate #B9ECF2
 #@color mute #FFFA87
 #@color mono #DEC
@@ -712,6 +713,14 @@ style "transport_rec_button_alternate"
 	bg[ACTIVE] = @@COLPREFIX@_arm
 }
 
+style "midi_channel_selector_button"
+{
+	bg[NORMAL] = @@COLPREFIX@_bg
+	bg[ACTIVE] = @@COLPREFIX@_midi_channel_selector
+	fg[NORMAL] = @@COLPREFIX@_fg
+	fg[ACTIVE] = @@COLPREFIX@_darkest
+}
+
 style "shuttle_control" = "very_small_text"
 {
 	fg[NORMAL] = @@COLPREFIX@_control_text2
@@ -1047,12 +1056,22 @@ style "audio_track_metrics" = "audio_track_base"
 	font_name = "@FONT_TINY@"
 }
 
+style "midi_track_metrics" = "midi_track_base"
+{
+	font_name = "@FONT_TINY@"
+}
+
 style "audio_bus_metrics" = "audio_bus_base"
 {
 	font_name = "@FONT_TINY@"
 }
 
 style "audio_track_metrics_inactive" = "track_controls_inactive"
+{
+	font_name = "@FONT_TINY@"
+}
+
+style "midi_track_metrics_inactive" = "track_controls_inactive"
 {
 	font_name = "@FONT_TINY@"
 }
@@ -1626,8 +1645,10 @@ widget "*AudioBusStripBaseInactive" style:highest "track_controls_inactive"
 widget "*MidiTrackStripBaseInactive" style:highest "track_controls_inactive"
 widget "*FaderMetricsStrip" style:highest "audio_track_metrics"
 widget "*AudioTrackMetrics" style:highest "audio_track_metrics"
+widget "*MidiTrackMetrics" style:highest "midi_track_metrics"
 widget "*AudioBusMetrics" style:highest "audio_bus_metrics"
 widget "*AudioTrackMetricsInactive" style:highest "audio_track_metrics_inactive"
+widget "*MidiTrackMetricsInactive" style:highest "midi_track_metrics_inactive"
 widget "*AudioBusMetricsInactive" style:highest "audio_bus_metrics_inactive"
 
 widget "*TimeAxisViewControlsBaseUnselected" style:highest "audio_track_base"
@@ -1709,6 +1730,7 @@ widget "*MixerStripGainUnitButton" style:highest "very_small_button"
 widget "*MixerStripGainUnitButton*" style:highest "very_small_button"
 widget "*MixerStripMeterPreButton" style:highest "very_small_button"
 widget "*MixerStripMeterPreButton*" style:highest "very_small_button"
+widget "*MixerStripPeakDisplay" style:highest "red_active_small_entry"
 widget "*MixerStripPeakDisplay*" style:highest "red_active_small_entry"
 widget "*MixerStripPeakDisplayPeak*" style:highest "peak_display_peaked_entry"
 widget "*MixerStripSelectedFrame" style:highest "selected_strip_frame"
@@ -1831,6 +1853,7 @@ widget "*SoloSafeLED" style:highest "solo_safe_led"
 widget "*SoloLEDLabel" style:highest "very_small_text"
 widget "*ContrastingPopup" style:highest "contrasting_popup"
 widget "*ContrastingPopup*" style:highest "contrasting_popup"
+widget "*MidiChannelSelectorButton" style:highest "midi_channel_selector_button"
 
 widget "*RouteNameEditorEntry" style:highest "text_cell_entry"
 widget "*RegionNameEditorEntry" style:highest "text_cell_entry"
