@@ -100,6 +100,8 @@ class MidiTimeAxisView : public RouteTimeAxisView
 
 	void first_idle ();
 
+	uint8_t get_channel_for_add () const;
+	
   protected:
 	void start_step_editing ();
 	void stop_step_editing ();
@@ -140,9 +142,6 @@ class MidiTimeAxisView : public RouteTimeAxisView
 	Gtk::CheckMenuItem*          _midi_thru_item;
 	Gtk::Menu*                    default_channel_menu;
 
-
-	Gtk::Menu* build_def_channel_menu();
-	void set_default_channel (int);
 	void toggle_midi_thru ();
 
 	void change_all_channel_tracks_visibility (bool yn, Evoral::Parameter param);

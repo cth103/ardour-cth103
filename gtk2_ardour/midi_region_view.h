@@ -333,8 +333,6 @@ private:
 	void add_to_selection (NoteBase*);
 	void remove_from_selection (NoteBase*);
 
-	uint8_t get_channel_for_add () const;
-
 	void show_verbose_cursor (std::string const &, double, double) const;
 	void show_verbose_cursor (boost::shared_ptr<NoteType>) const;
 

@@ -302,7 +302,7 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	void startup ();
 	void shutdown ();
 
-	int  ask_about_saving_session (const std::string & why);
+	int  ask_about_saving_session (const std::vector<std::string>& actions);
 
 	/* periodic safety backup, to be precise */
 	gint autosave_session();
@@ -691,9 +691,6 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	void loading_message (const std::string& msg);
 	void end_loading_messages ();
 
-	void platform_specific ();
-	void platform_setup ();
-	void fontconfig_dialog ();
         void toggle_translations ();
 
 	PBD::ScopedConnectionList forever_connections;

@@ -204,6 +204,8 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 	ui_config = new UIConfiguration();
 	theme_manager = new ThemeManager();
 
+	key_editor = 0;
+
 	editor = 0;
 	mixer = 0;
 	editor = 0;
@@ -217,6 +219,7 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 	_will_create_new_session_automatically = false;
 	add_route_dialog = 0;
 	route_params = 0;
+	bundle_manager = 0;
 	rc_option_editor = 0;
 	session_option_editor = 0;
 	location_ui = 0;
@@ -327,8 +330,6 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 	
 	starting.connect (sigc::mem_fun(*this, &ARDOUR_UI::startup));
 	stopping.connect (sigc::mem_fun(*this, &ARDOUR_UI::shutdown));
-
-	platform_setup ();
 }
 
 /** @return true if a session was chosen and `apply' clicked, otherwise false if `cancel' was clicked */
@@ -809,7 +810,11 @@ ARDOUR_UI::finish()
 		}
 
 		if (_session->dirty()) {
-			switch (ask_about_saving_session(_("quit"))) {
+			vector<string> actions;
+			actions.push_back (_("Don't quit"));
+			actions.push_back (_("Just quit"));
+			actions.push_back (_("Save and quit"));
+			switch (ask_about_saving_session(actions)) {
 			case -1:
 				return;
 				break;
@@ -858,7 +863,7 @@ If you still wish to quit, please use the\n\n\
 }
 
 int
-ARDOUR_UI::ask_about_saving_session (const string & what)
+ARDOUR_UI::ask_about_saving_session (const vector<string>& actions)
 {
 	ArdourDialog window (_("Unsaved Session"));
 	Gtk::HBox dhbox;  // the hbox for the image and text
@@ -867,12 +872,11 @@ ARDOUR_UI::ask_about_saving_session (const string & what)
 
 	string msg;
 
-	msg = string_compose(_("Don't %1"), what);
-	window.add_button (msg, RESPONSE_REJECT);
-	msg = string_compose(_("Just %1"), what);
-	window.add_button (msg, RESPONSE_APPLY);
-	msg = string_compose(_("Save and %1"), what);
-	window.add_button (msg, RESPONSE_ACCEPT);
+	assert (actions.size() >= 3);
+
+	window.add_button (actions[0], RESPONSE_REJECT);
+	window.add_button (actions[1], RESPONSE_APPLY);
+	window.add_button (actions[2], RESPONSE_ACCEPT);
 
 	window.set_default_response (RESPONSE_ACCEPT);
 
@@ -880,15 +884,14 @@ ARDOUR_UI::ask_about_saving_session (const string & what)
 	noquit_button.set_name ("EditorGTKButton");
 
 	string prompt;
-	string type;
 
 	if (_session->snap_name() == _session->name()) {
-		type = _("session");
+		prompt = string_compose(_("The session \"%1\"\nhas not been saved.\n\nAny changes made this time\nwill be lost unless you save it.\n\nWhat do you want to do?"),
+					_session->snap_name());
 	} else {
-		type = _("snapshot");
+		prompt = string_compose(_("The snapshot \"%1\"\nhas not been saved.\n\nAny changes made this time\nwill be lost unless you save it.\n\nWhat do you want to do?"),
+					_session->snap_name());
 	}
-	prompt = string_compose(_("The %1 \"%2\"\nhas not been saved.\n\nAny changes made this time\nwill be lost unless you save it.\n\nWhat do you want to do?"),
-			 type, _session->snap_name());
 
 	prompt_label.set_text (prompt);
 	prompt_label.set_name (X_("PrompterLabel"));
@@ -2273,34 +2276,6 @@ ARDOUR_UI::import_metadata ()
 	dialog.set_session (_session);
 	editor->ensure_float (dialog);
 	dialog.run ();
-}
-
-void
-ARDOUR_UI::fontconfig_dialog ()
-{
-#ifdef GTKOSX
-	/* X11 users will always have fontconfig info around, but new GTK-OSX users
-	   may not and it can take a while to build it. Warn them.
-	*/
-
-	std::string fontconfig = Glib::build_filename (Glib::get_home_dir(), ".fontconfig");
-
-	if (!Glib::file_test (fontconfig, Glib::FILE_TEST_EXISTS|Glib::FILE_TEST_IS_DIR)) {
-		MessageDialog msg (*_startup,
-		                   string_compose (_("Welcome to %1.\n\n"
-		                                     "The program will take a bit longer to start up\n"
-		                                     "while the system fonts are checked.\n\n"
-		                                     "This will only be done once, and you will\n"
-		                                     "not see this message again\n"), PROGRAM_NAME),
-		                   true,
-		                   Gtk::MESSAGE_INFO,
-		                   Gtk::BUTTONS_OK);
-		pop_back_splash ();
-		msg.show_all ();
-		msg.present ();
-		msg.run ();
-	}
-#endif
 }
 
 bool

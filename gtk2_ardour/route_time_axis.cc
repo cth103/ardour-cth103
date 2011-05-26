@@ -53,6 +53,7 @@
 #include "ardour/playlist.h"
 #include "ardour/processor.h"
 #include "ardour/profile.h"
+#include "ardour/region_factory.h"
 #include "ardour/route_group.h"
 #include "ardour/session.h"
 #include "ardour/session_playlist.h"
@@ -2470,14 +2471,40 @@ RouteTimeAxisView::create_gain_automation_child (const Evoral::Parameter& param,
 }
 
 static
-void add_region_to_list (RegionView* rv, Playlist::RegionList* l, uint32_t* max_level)
+void add_region_to_list (RegionView* rv, Playlist::RegionList* l)
 {
 	l->push_back (rv->region());
-	*max_level = max (*max_level, rv->region()->max_source_level());
+}
+
+RegionView*
+RouteTimeAxisView::combine_regions ()
+{
+	assert (is_track());
+
+	if (!_view) {
+		return 0;
+	}
+
+	Playlist::RegionList selected_regions;
+	boost::shared_ptr<Playlist> playlist = track()->playlist();
+
+	_view->foreach_selected_regionview (sigc::bind (sigc::ptr_fun (add_region_to_list), &selected_regions));
+
+	if (selected_regions.size() < 2) {
+		return 0;
+	}
+	
+	playlist->clear_changes ();
+	boost::shared_ptr<Region> compound_region = playlist->combine (selected_regions);
+
+	_session->add_command (new StatefulDiffCommand (playlist));
+	/* make the new region be selected */
+	
+	return _view->find_view (compound_region);
 }
 
 void
-RouteTimeAxisView::combine_regions ()
+RouteTimeAxisView::uncombine_regions ()
 {
 	assert (is_track());
 
@@ -2487,13 +2514,19 @@ RouteTimeAxisView::combine_regions ()
 
 	Playlist::RegionList selected_regions;
 	boost::shared_ptr<Playlist> playlist = track()->playlist();
-	uint32_t max_level = 0;
 
-	_view->foreach_selected_regionview (sigc::bind (sigc::ptr_fun (add_region_to_list), &selected_regions, &max_level));
-	
-	string name = string_compose (_("%1 compound-%2 (%3)"), playlist->name(), playlist->combine_ops()+1, max_level+1);
+	/* have to grab selected regions first because the uncombine is going
+	 * to change that in the middle of the list traverse
+	 */
+
+	_view->foreach_selected_regionview (sigc::bind (sigc::ptr_fun (add_region_to_list), &selected_regions));
 
 	playlist->clear_changes ();
-	playlist->join (selected_regions, name);
+
+	for (Playlist::RegionList::iterator i = selected_regions.begin(); i != selected_regions.end(); ++i) {
+		playlist->uncombine (*i);
+	}
+
 	_session->add_command (new StatefulDiffCommand (playlist));
 }
+

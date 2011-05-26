@@ -27,6 +27,7 @@
 #include "ardour/audioplaylist.h"
 #include "ardour/audioregion.h"
 #include "ardour/crossfade.h"
+#include "ardour/region_sorters.h"
 #include "ardour/session.h"
 #include "pbd/enumwriter.h"
 
@@ -1078,5 +1079,121 @@ AudioPlaylist::copy_dependents (const vector<TwoRegions>& old_and_new, boost::sh
 
 		new_xfade->set_position (ci->second.new_in->position(), this);
 		other_audio->add_crossfade (new_xfade);
+	}
+}
+
+void
+AudioPlaylist::pre_combine (vector<boost::shared_ptr<Region> >& copies)
+{
+	RegionSortByPosition cmp;
+	boost::shared_ptr<AudioRegion> ar;
+
+	sort (copies.begin(), copies.end(), cmp);
+
+	ar = boost::dynamic_pointer_cast<AudioRegion> (copies.front());
+
+	/* disable fade in of the first region */
+
+	if (ar) {
+		ar->set_fade_in_active (false);
+	}
+
+	ar = boost::dynamic_pointer_cast<AudioRegion> (copies.back());
+
+	/* disable fade out of the last region */
+
+	if (ar) {
+		ar->set_fade_out_active (false);
+	}
+}
+
+void
+AudioPlaylist::post_combine (vector<boost::shared_ptr<Region> >& originals, boost::shared_ptr<Region> compound_region)
+{
+	RegionSortByPosition cmp;
+	boost::shared_ptr<AudioRegion> ar;
+	boost::shared_ptr<AudioRegion> cr;
+
+	if ((cr = boost::dynamic_pointer_cast<AudioRegion> (compound_region)) == 0) {
+		return;
+	}
+
+	sort (originals.begin(), originals.end(), cmp);
+
+	ar = boost::dynamic_pointer_cast<AudioRegion> (originals.front());
+
+	/* copy the fade in of the first into the compound region */
+
+	if (ar) {
+		cr->set_fade_in (ar->fade_in());
+	}
+
+	ar = boost::dynamic_pointer_cast<AudioRegion> (originals.back());
+
+	if (ar) {
+		/* copy the fade out of the last into the compound region */
+		cr->set_fade_out (ar->fade_out());
+	}
+}
+
+void
+AudioPlaylist::pre_uncombine (vector<boost::shared_ptr<Region> >& originals, boost::shared_ptr<Region> compound_region)
+{
+	RegionSortByPosition cmp;
+	boost::shared_ptr<AudioRegion> ar;
+	boost::shared_ptr<AudioRegion> cr = boost::dynamic_pointer_cast<AudioRegion>(compound_region);
+
+	if (!cr) {
+		return;
+	}
+
+	sort (originals.begin(), originals.end(), cmp);
+
+	/* no need to call clear_changes() on the originals because that is
+	 * done within Playlist::uncombine ()
+	 */
+
+	for (vector<boost::shared_ptr<Region> >::iterator i = originals.begin(); i != originals.end(); ++i) {
+
+		if ((ar = boost::dynamic_pointer_cast<AudioRegion> (*i)) == 0) {
+			continue;
+		}
+
+		/* scale the uncombined regions by any gain setting for the
+		 * compound one.
+		 */
+
+		ar->set_scale_amplitude (ar->scale_amplitude() * cr->scale_amplitude());
+
+		if (i == originals.begin()) {
+			
+			/* copy the compound region's fade in back into the first
+			   original region.
+			*/
+			
+			if (cr->fade_in()->back()->when <= ar->length()) {
+				/* don't do this if the fade is longer than the
+				 * region
+				 */
+				ar->set_fade_in (cr->fade_in());
+			}
+
+			
+		} else if (*i == originals.back()) {
+
+			/* copy the compound region's fade out back into the last
+			   original region.
+			*/
+			
+			if (cr->fade_out()->back()->when <= ar->length()) {
+				/* don't do this if the fade is longer than the
+				 * region
+				 */
+				ar->set_fade_out (cr->fade_out());
+			}
+
+		}
+
+		_session.add_command (new StatefulDiffCommand (*i));
 	}
 }

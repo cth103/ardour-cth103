@@ -566,7 +566,7 @@ Session::create (const string& mix_template, BusProfile* bus_profile)
                                 return -1;
                         }
 #ifdef BOOST_SP_ENABLE_DEBUG_HOOKS
-			boost_debug_shared_ptr_mark_interesting (rt.get(), "Route");
+			boost_debug_shared_ptr_mark_interesting (r.get(), "Route");
 #endif
 			{
 				Glib::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
@@ -583,7 +583,7 @@ Session::create (const string& mix_template, BusProfile* bus_profile)
                                         return -1;
                                 }
 #ifdef BOOST_SP_ENABLE_DEBUG_HOOKS
-                                boost_debug_shared_ptr_mark_interesting (rt, "Route");
+                                boost_debug_shared_ptr_mark_interesting (r.get(), "Route");
 #endif
 				{
 					Glib::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
@@ -648,7 +648,8 @@ Session::remove_pending_capture_state ()
 }
 
 /** Rename a state file.
- * @param snapshot_name Snapshot name.
+ *  @param old_name Old snapshot name.
+ *  @param new_name New snapshot name.
  */
 void
 Session::rename_state (string old_name, string new_name)
@@ -676,7 +677,7 @@ Session::rename_state (string old_name, string new_name)
 }
 
 /** Remove a state file.
- * @param snapshot_name Snapshot name.
+ *  @param snapshot_name Snapshot name.
  */
 void
 Session::remove_state (string snapshot_name)
@@ -1088,6 +1089,22 @@ Session::state(bool full_state)
                                 child->add_child_nocopy (r->state ());
                         }
                 }
+		
+		RegionFactory::CompoundAssociations& cassocs (RegionFactory::compound_associations());
+
+		if (!cassocs.empty()) {
+			XMLNode* ca = node->add_child (X_("CompoundAssociations"));
+
+			for (RegionFactory::CompoundAssociations::iterator i = cassocs.begin(); i != cassocs.end(); ++i) {
+				char buf[64];
+				XMLNode* can = new XMLNode (X_("CompoundAssociation"));
+				i->first->id().print (buf, sizeof (buf));
+				can->add_property (X_("copy"), buf);
+				i->second->id().print (buf, sizeof (buf));
+				can->add_property (X_("original"), buf);
+				ca->add_child_nocopy (*can);
+			}
+		}  
 	}
 
 	if (full_state) {
@@ -1316,6 +1333,12 @@ Session::set_state (const XMLNode& node, int version)
 		// this is OK
 	} else if (playlists->load_unused (*this, *child)) {
 		goto out;
+	}
+	
+	if ((child = find_named_node (node, "CompoundAssociations")) != 0) {
+		if (load_compounds (*child)) {
+			goto out;
+		}
 	}
 	
 	if ((child = find_named_node (node, "NamedSelections")) != 0) {
@@ -1556,7 +1579,7 @@ Session::XMLRouteFactory_2X (const XMLNode& node, int version)
 
                 if (r->init () == 0 && r->set_state (node, version) == 0) {
 #ifdef BOOST_SP_ENABLE_DEBUG_HOOKS
-                        boost_debug_shared_ptr_mark_interesting (rt, "Route");
+                        boost_debug_shared_ptr_mark_interesting (r.get(), "Route");
 #endif
                         ret = r;
                 }
@@ -1592,12 +1615,79 @@ Session::load_regions (const XMLNode& node)
 	return 0;
 }
 
+int
+Session::load_compounds (const XMLNode& node)
+{
+	XMLNodeList calist = node.children();
+	XMLNodeConstIterator caiter;
+	XMLProperty *caprop;
+	
+	for (caiter = calist.begin(); caiter != calist.end(); ++caiter) {
+		XMLNode* ca = *caiter;
+		ID orig_id;
+		ID copy_id;
+		
+		if ((caprop = ca->property (X_("original"))) == 0) {
+			continue;
+		}
+		orig_id = caprop->value();
+		
+		if ((caprop = ca->property (X_("copy"))) == 0) {
+			continue;
+		}
+		copy_id = caprop->value();
+		
+		boost::shared_ptr<Region> orig = RegionFactory::region_by_id (orig_id);
+		boost::shared_ptr<Region> copy = RegionFactory::region_by_id (copy_id);
+		
+		if (!orig || !copy) {
+			warning << string_compose (_("Regions in compound description not found (ID's %1 and %2): ignored"),
+						   orig_id, copy_id) 
+				<< endmsg;
+			continue;
+		}
+		
+		RegionFactory::add_compound_association (orig, copy);
+	}
+
+	return 0;
+}
+
+void
+Session::load_nested_sources (const XMLNode& node)
+{
+	XMLNodeList nlist;
+	XMLNodeConstIterator niter;
+
+	nlist = node.children();
+
+	for (niter = nlist.begin(); niter != nlist.end(); ++niter) {
+		if ((*niter)->name() == "Source") {
+			try {
+				SourceFactory::create (*this, **niter, true);
+			} 
+			catch (failed_constructor& err) {
+				error << string_compose (_("Cannot reconstruct nested source for region %1"), name()) << endmsg;
+			}
+		}
+	}
+}
+
 boost::shared_ptr<Region>
 Session::XMLRegionFactory (const XMLNode& node, bool full)
 {
 	const XMLProperty* type = node.property("type");
 
 	try {
+
+		const XMLNodeList& nlist = node.children();
+		
+		for (XMLNodeConstIterator niter = nlist.begin(); niter != nlist.end(); ++niter) {
+			XMLNode *child = (*niter);
+			if (child->name() == "NestedSource") {
+				load_nested_sources (*child);
+			}
+		}
 
                 if (!type || type->value() == "audio") {
                         return boost::shared_ptr<Region>(XMLAudioRegionFactory (node, full));

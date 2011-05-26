@@ -1253,6 +1253,7 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	mutable Glib::Mutex region_lock;
 
 	int load_regions (const XMLNode& node);
+	int load_compounds (const XMLNode& node);
 
 	void route_group_changed ();
 
@@ -1499,6 +1500,7 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	framepos_t compute_stop_limit () const;
 
         boost::shared_ptr<Speakers> _speakers; 
+	void load_nested_sources (const XMLNode& node);
 };
 
 } // namespace ARDOUR

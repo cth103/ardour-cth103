@@ -139,7 +139,8 @@ public:
 	void partition (framepos_t start, framepos_t end, bool cut = false);
 	void duplicate (boost::shared_ptr<Region>, framepos_t position, float times);
 	void nudge_after (framepos_t start, framecnt_t distance, bool forwards);
-	void join (const RegionList&, const std::string&);
+	boost::shared_ptr<Region> combine (const RegionList&);
+	void uncombine (boost::shared_ptr<Region>);
 
 	void shuffle (boost::shared_ptr<Region>, int dir);
 	void update_after_tempo_map_change ();
@@ -378,10 +379,25 @@ public:
 	void timestamp_layer_op (boost::shared_ptr<Region>);
 
 	void _split_region (boost::shared_ptr<Region>, framepos_t position);
-	void load_nested_sources (const XMLNode& node);
 
 	typedef std::pair<boost::shared_ptr<Region>, boost::shared_ptr<Region> > TwoRegions;
 	virtual void copy_dependents (const std::vector<TwoRegions>&, boost::shared_ptr<Playlist>) { }
+
+	struct RegionInfo {
+	    boost::shared_ptr<Region> region;
+	    framepos_t position;
+	    framecnt_t length;
+	    framepos_t start;
+	};
+
+	/* this is called before we create a new compound region */
+	virtual void pre_combine (std::vector<boost::shared_ptr<Region> >&) {}
+	/* this is called before we create a new compound region */
+	virtual void post_combine (std::vector<boost::shared_ptr<Region> >&, boost::shared_ptr<Region>) {}
+	/* this is called before we remove a compound region and replace it
+	   with its constituent regions
+	*/
+	virtual void pre_uncombine (std::vector<boost::shared_ptr<Region> >&, boost::shared_ptr<Region>) {}
 };
 
 } /* namespace ARDOUR */
