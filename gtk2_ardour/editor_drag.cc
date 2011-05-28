@@ -2079,7 +2079,7 @@ CursorDrag::start_grab (GdkEvent* event, Gdk::Cursor* c)
 {
 	Drag::start_grab (event, c);
 
-	_grab_zoom = _editor->frames_per_unit;
+	_grab_zoom = _editor->frames_per_pixel;
 
 	framepos_t where = _editor->event_frame (event, 0, 0);
 	_editor->snap_to_with_modifier (where, event);
