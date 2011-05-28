@@ -65,7 +65,7 @@ MidiStreamView::MidiStreamView (MidiTimeAxisView& tv)
 	, _highest_note(71)
 	, _data_note_min(60)
 	, _data_note_max(71)
-        , _note_lines (0)
+	, _note_lines (0)
 	, _updates_suspended (false)
 {
 	/* use a group dedicated to MIDI underlays. Audio underlays are not in this group. */
@@ -90,7 +90,7 @@ MidiStreamView::MidiStreamView (MidiTimeAxisView& tv)
 	note_range_adjustment.set_value(_lowest_note);
 
 	note_range_adjustment.signal_value_changed().connect(
-			sigc::mem_fun(*this, &MidiStreamView::note_range_adjustment_changed));
+		sigc::mem_fun(*this, &MidiStreamView::note_range_adjustment_changed));
 }
 
 MidiStreamView::~MidiStreamView ()
@@ -134,7 +134,6 @@ MidiStreamView::create_region_view (boost::shared_ptr<Region> r, bool /*wfd*/, b
 
 	RegionView* region_view = new MidiRegionView (_canvas_group, _trackview, region,
 						      _frames_per_pixel, region_color);
-	
 	region_view->init (region_color, false);
 
 	return region_view;
@@ -169,11 +168,11 @@ MidiStreamView::add_region_view_internal (boost::shared_ptr<Region> r, bool wfd,
 
 	region_views.push_front (region_view);
 
-        if (_trackview.editor().internal_editing()) {
-                region_view->hide_rect ();
-        } else {
-                region_view->show_rect ();
-        }
+	if (_trackview.editor().internal_editing()) {
+		region_view->hide_rect ();
+	} else {
+		region_view->show_rect ();
+	}
 
 	/* display events and find note range */
 	display_region (region_view, wfd);
@@ -191,7 +190,7 @@ MidiStreamView::display_region(MidiRegionView* region_view, bool load_model)
 {
 	if (!region_view) {
 		return;
-        }
+	}
 
 	region_view->enable_display(true);
 
@@ -202,8 +201,8 @@ MidiStreamView::display_region(MidiRegionView* region_view, bool load_model)
 	}
 
 	_range_dirty = update_data_note_range(
-			source->model()->lowest_note(),
-			source->model()->highest_note());
+		source->model()->lowest_note(),
+		source->model()->highest_note());
 
 	// Display region contents
 	region_view->set_height (child_height());
@@ -216,7 +215,7 @@ MidiStreamView::display_track (boost::shared_ptr<Track> tr)
 	StreamView::display_track (tr);
 
 	draw_note_lines();
-	
+
 	NoteRangeChanged();
 }
 
@@ -227,8 +226,8 @@ MidiStreamView::update_contents_metrics(boost::shared_ptr<Region> r)
 	if (mr) {
 		mr->midi_source(0)->load_model();
 		_range_dirty = update_data_note_range(
-				mr->model()->lowest_note(),
-				mr->model()->highest_note());
+			mr->model()->lowest_note(),
+			mr->model()->highest_note());
 	}
 }
 
@@ -261,8 +260,7 @@ MidiStreamView::redisplay_track ()
 	_data_note_min = 127;
 	_data_note_max = 0;
 	_trackview.track()->playlist()->foreach_region(
-		sigc::mem_fun (*this, &StreamView::update_contents_metrics)
-		);
+		sigc::mem_fun (*this, &StreamView::update_contents_metrics));
 
 	// No notes, use default range
 	if (!_range_dirty) {
@@ -284,8 +282,7 @@ MidiStreamView::redisplay_track ()
 
 	// Add and display region views, and flag them as valid
 	_trackview.track()->playlist()->foreach_region(
-		sigc::hide_return (sigc::mem_fun (*this, &StreamView::add_region_view))
-		);
+		sigc::hide_return (sigc::mem_fun (*this, &StreamView::add_region_view)));
 
 	// Stack regions by layer, and remove invalid regions
 	layer_regions();
@@ -301,22 +298,22 @@ MidiStreamView::update_contents_height ()
 	StreamView::update_contents_height();
 	_note_lines->set_height (child_height ());
 
-        apply_note_range (lowest_note(), highest_note(), true);
+	apply_note_range (lowest_note(), highest_note(), true);
 }
 
 void
 MidiStreamView::draw_note_lines()
 {
-        if (!_note_lines || _updates_suspended) {
-                return;
-        }
+	if (!_note_lines || _updates_suspended) {
+		return;
+	}
 
 	double y;
 	double prev_y = contents_height();
 	uint32_t color;
 
 	_note_lines->clear();
-	
+
 	if (child_height() < 140){
 		return;
 	}
@@ -369,18 +366,19 @@ MidiStreamView::apply_note_range(uint8_t lowest, uint8_t highest, bool to_region
 	_highest_note = highest;
 	_lowest_note = lowest;
 
-	int const range = _highest_note - _lowest_note;  
+	int const max_note_height = 20;  // This should probably be based on text size...
+	int const range = _highest_note - _lowest_note;
 	int const pixels_per_note = floor (child_height () / range);
-	
+
 	/* do not grow note height beyond 10 pixels */
-	if (pixels_per_note > 10) {
-		
-		int const available_note_range = floor (child_height() / 10);
+	if (pixels_per_note > max_note_height) {
+
+		int const available_note_range = floor (child_height() / max_note_height);
 		int additional_notes = available_note_range - range;
-		
+
 		/* distribute additional notes to higher and lower ranges, clamp at 0 and 127 */
 		for (int i = 0; i < additional_notes; i++){
-			
+
 			if (i % 2 && _highest_note < 127){
 				_highest_note++;
 			}
@@ -395,16 +393,16 @@ MidiStreamView::apply_note_range(uint8_t lowest, uint8_t highest, bool to_region
 			}
 		}
 	}
-	
+
 	note_range_adjustment.set_page_size(_highest_note - _lowest_note);
 	note_range_adjustment.set_value(_lowest_note);
-	
+
 	draw_note_lines();
 
 	if (to_region_views) {
 		apply_note_range_to_regions ();
 	}
-	
+
 	NoteRangeChanged();
 }
 
@@ -452,16 +450,16 @@ MidiStreamView::setup_rec_box ()
 				framepos_t start = 0;
 				if (rec_regions.size() > 0) {
 					start = rec_regions.back().first->start()
-							+ _trackview.track()->get_captured_frames(rec_regions.size()-1);
+						+ _trackview.track()->get_captured_frames(rec_regions.size()-1);
 				}
 
 				if (!rec_regions.empty()) {
 					MidiRegionView* mrv = dynamic_cast<MidiRegionView*> (rec_regions.back().second);
 					mrv->end_write ();
 				}
-				
-				PropertyList plist; 
-				
+
+				PropertyList plist;
+
 				plist.add (ARDOUR::Properties::start, start);
 				plist.add (ARDOUR::Properties::length, 1);
 				/* Just above we're setting this nascent region's length to 1.  I think this
@@ -481,7 +479,7 @@ MidiStreamView::setup_rec_box ()
 				plist.add (ARDOUR::Properties::layer, 0);
 
 				boost::shared_ptr<MidiRegion> region (boost::dynamic_pointer_cast<MidiRegion>
-								      (RegionFactory::create (sources, plist, false)));
+				                                      (RegionFactory::create (sources, plist, false)));
 
 				assert(region);
 				region->set_start (_trackview.track()->current_capture_start() - _trackview.track()->get_capture_start_frame (0), this);
@@ -526,13 +524,13 @@ MidiStreamView::setup_rec_box ()
 
 			screen_update_connection.disconnect();
 			screen_update_connection = ARDOUR_UI::instance()->SuperRapidScreenUpdate.connect (
-					sigc::mem_fun (*this, &MidiStreamView::update_rec_box));
+				sigc::mem_fun (*this, &MidiStreamView::update_rec_box));
 			rec_updating = true;
 			rec_active = true;
 
 		} else if (rec_active &&
-			   (_trackview.session()->record_status() != Session::Recording ||
-			    !_trackview.track()->record_enabled())) {
+		           (_trackview.session()->record_status() != Session::Recording ||
+		            !_trackview.track()->record_enabled())) {
 			screen_update_connection.disconnect();
 			rec_active = false;
 			rec_updating = false;
@@ -583,7 +581,7 @@ MidiStreamView::setup_rec_box ()
 void
 MidiStreamView::color_handler ()
 {
-        draw_note_lines ();
+	draw_note_lines ();
 
 	if (_trackview.is_midi_track()) {
 		canvas_rect->set_fill_color (ARDOUR_UI::config()->canvasvar_MidiTrackBase.get());
@@ -648,7 +646,7 @@ MidiStreamView::y_to_note (double y) const
 	} else if (n > 127) {
 		return 127;
 	}
-	
+
 	return n;
 }
 
