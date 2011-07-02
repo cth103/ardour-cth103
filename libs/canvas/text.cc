@@ -87,9 +87,7 @@ Text::layout (Cairo::RefPtr<Cairo::Context> context) const
 {
 	Glib::RefPtr<Pango::Layout> layout = Pango::Layout::create (context);
 	layout->set_text (_text);
-	if (_font_description) {
-		layout->set_font_description (*_font_description);
-	}
+	layout->set_font_description (_font_description);
 	layout->set_alignment (_alignment);
 	return layout;
 }
@@ -137,7 +135,7 @@ Text::set_alignment (Pango::Alignment alignment)
  *  @param font_description New font description.
  */
 void
-Text::set_font_description (Pango::FontDescription* font_description)
+Text::set_font_description (Pango::FontDescription font_description)
 {
 	begin_change ();
 	

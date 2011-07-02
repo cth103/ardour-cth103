@@ -1033,7 +1033,7 @@ AutomationTimeAxisView::what_has_visible_automation (const boost::shared_ptr<Aut
 guint32
 AutomationTimeAxisView::show_at (double y, int& nth, Gtk::VBox *parent)
 {
-	if (!canvas_item_visible (_canvas_display)) {
+	if (!_canvas_display->visible ()) {
 		update_extra_xml_shown (true);
 	}
 
@@ -1043,7 +1043,7 @@ AutomationTimeAxisView::show_at (double y, int& nth, Gtk::VBox *parent)
 void
 AutomationTimeAxisView::show ()
 {
-	if (!canvas_item_visible (_canvas_display)) {
+	if (!_canvas_display->visible ()) {
 		update_extra_xml_shown (true);
 	}
 
@@ -1053,7 +1053,7 @@ AutomationTimeAxisView::show ()
 void
 AutomationTimeAxisView::hide ()
 {
-	if (canvas_item_visible (_canvas_display)) {
+	if (_canvas_display->visible ()) {
 		update_extra_xml_shown (false);
 	}
 

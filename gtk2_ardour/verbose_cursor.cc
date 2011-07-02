@@ -41,11 +41,9 @@ VerboseCursor::VerboseCursor (Editor* editor)
 	, _xoffset (0)
 	, _yoffset (0)
 {
-	Pango::FontDescription* font = get_font_for_style (N_("VerboseCanvasCursor"));
-
 	_canvas_item = new Canvas::Text (_editor->_track_canvas->root());
 	_canvas_item->set_ignore_events (true);
-	_canvas_item->set_font_description (font);
+	_canvas_item->set_font_description (get_font_for_style (N_("VerboseCanvasCursor")));
 }
 
 Canvas::Item *

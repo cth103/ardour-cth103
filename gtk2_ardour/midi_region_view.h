@@ -268,15 +268,9 @@ public:
 	void selection_as_notelist (Notes& selected, bool allow_all_if_none_selected = false);
 
 	void enable_display (bool);
-<<<<<<< HEAD
 	
 	void set_channel_selector_scoped_note(NoteBase* note){ _channel_selection_scoped_note = note; }
 	NoteBase* channel_selector_scoped_note(){  return _channel_selection_scoped_note; }
-=======
-
-	void set_channel_selector_scoped_note(ArdourCanvas::CanvasNoteEvent* note){ _channel_selection_scoped_note = note; }
-	ArdourCanvas::CanvasNoteEvent* channel_selector_scoped_note(){  return _channel_selection_scoped_note; }
->>>>>>> origin/master
 
 	void trim_front_starting ();
 	void trim_front_ending ();
@@ -369,7 +363,6 @@ private:
 	Note*                                _ghost_note;
 	double                               _last_ghost_x;
 	double                               _last_ghost_y;
-<<<<<<< HEAD
         double                               _drag_start_x;
         double                               _drag_start_y;
         double                               _last_x;
@@ -378,20 +371,8 @@ private:
         Canvas::Rectangle*             _step_edit_cursor;
         Evoral::MusicalTime                  _step_edit_cursor_width;
         Evoral::MusicalTime                  _step_edit_cursor_position;
-	NoteBase*	     _channel_selection_scoped_note;
+	NoteBase*	     		     _channel_selection_scoped_note;
 	
-=======
-	double                               _drag_start_x;
-	double                               _drag_start_y;
-	double                               _last_x;
-	double                               _last_y;
-	ArdourCanvas::SimpleRect*            _drag_rect;
-	ArdourCanvas::SimpleRect*            _step_edit_cursor;
-	Evoral::MusicalTime                  _step_edit_cursor_width;
-	Evoral::MusicalTime                  _step_edit_cursor_position;
-	ArdourCanvas::CanvasNoteEvent*	     _channel_selection_scoped_note;
-
->>>>>>> origin/master
 
 	/** A group used to temporarily reparent _note_group to during start trims, so
 	 *  that the notes don't move with the parent region view.

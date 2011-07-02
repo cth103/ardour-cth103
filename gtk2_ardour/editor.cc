@@ -899,14 +899,14 @@ Editor::zoom_adjustment_changed ()
 		return;
 	}
 
-	double fpu = zoom_range_clock.current_duration() / _visible_canvas_width;
+	double fpu = zoom_range_clock->current_duration() / _visible_canvas_width;
 
 	if (fpu < 1.0) {
 		fpu = 1.0;
-		zoom_range_clock.set ((framepos_t) floor (fpu * _visible_canvas_width));
+		zoom_range_clock->set ((framepos_t) floor (fpu * _visible_canvas_width));
 	} else if (fpu > _session->current_end_frame() / _visible_canvas_width) {
 		fpu = _session->current_end_frame() / _visible_canvas_width;
-		zoom_range_clock.set ((framepos_t) floor (fpu * _visible_canvas_width));
+		zoom_range_clock->set ((framepos_t) floor (fpu * _visible_canvas_width));
 	}
 
 	temporal_zoom (fpu);
@@ -1092,7 +1092,7 @@ Editor::set_session (Session *t)
 	_track_canvas->suspend_updates ();
 	_time_bars_canvas->suspend_updates ();
 
-	zoom_range_clock.set_session (_session);
+	zoom_range_clock->set_session (_session);
 	_playlist_selector->set_session (_session);
 	nudge_clock->set_session (_session);
 	_summary->set_session (_session);
@@ -4230,8 +4230,8 @@ Editor::post_zoom ()
 
 	framepos_t frames = (framepos_t) floor (frames_per_pixel * _visible_canvas_width);
 
-	if (frames_per_pixel != zoom_range_clock.current_duration()) {
-		zoom_range_clock.set (frames);
+	if (frames_per_pixel != zoom_range_clock->current_duration()) {
+		zoom_range_clock->set (frames);
 	}
 
 	if (mouse_mode == MouseRange && selection->time.start () != selection->time.end_frame ()) {

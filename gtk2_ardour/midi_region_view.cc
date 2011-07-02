@@ -2530,9 +2530,25 @@ MidiRegionView::commit_resizing (NoteBase* primary, bool at_front, double delta_
 }
 
 void
-MidiRegionView::change_note_channel (NoteBase* event, int8_t channel)
+MidiRegionView::change_note_channel (NoteBase* event, int8_t chn, bool relative)
 {
-	note_diff_add_change (event, MidiModel::NoteDiffCommand::Channel, (uint8_t) channel);
+	uint8_t new_channel;
+
+	if (relative) {
+		if (chn < 0.0) {
+			if (event->note()->channel() < -chn) {
+				new_channel = 0;
+			} else {
+				new_channel = event->note()->channel() + chn;
+			}
+		} else {
+			new_channel = event->note()->channel() + chn;
+		}
+	} else {
+		new_channel = (uint8_t) chn;
+	}
+
+	note_diff_add_change (event, MidiModel::NoteDiffCommand::Channel, new_channel);
 }
 
 void
@@ -3221,13 +3237,8 @@ MidiRegionView::update_ghost_note (double x, double y)
 
 	_last_ghost_x = x;
 	_last_ghost_y = y;
-<<<<<<< HEAD
 	
 	_note_group->canvas_to_item (x, y);
-=======
-
-	_note_group->w2i (x, y);
->>>>>>> origin/master
 	framepos_t const f = snap_pixel_to_frame (x);
 
 	bool success;
@@ -3482,19 +3493,11 @@ void
 MidiRegionView::show_verbose_cursor (boost::shared_ptr<NoteType> n) const
 {
 	char buf[24];
-<<<<<<< HEAD
 	snprintf (buf, sizeof (buf), "%s (%d) Chn %d\nVel %d", 
                   Evoral::midi_note_name (n->note()).c_str(), 
                   (int) n->note (),
 		  (int) n->channel() + 1,
                   (int) n->velocity());
-=======
-	snprintf (buf, sizeof (buf), "%s (%d) Chn %d\nVel %d",
-	          Evoral::midi_note_name (n->note()).c_str(),
-	          (int) n->note (),
-	          (int) n->channel() + 1,
-	          (int) n->velocity());
->>>>>>> origin/master
 
 	show_verbose_cursor (buf, 10, 20);
 }
@@ -3510,14 +3513,8 @@ MidiRegionView::show_verbose_cursor (string const & text, double xoffset, double
 	wy += yoffset;
 
 	/* Flip the cursor above the mouse pointer if it would overlap the bottom of the canvas */
-<<<<<<< HEAD
 	
 	boost::optional<Rect> bbox = trackview.editor().verbose_cursor()->canvas_item()->bbox ();
-=======
-
-	double x1, y1, x2, y2;
-	trackview.editor().verbose_cursor()->canvas_item()->get_bounds (x1, y1, x2, y2);
->>>>>>> origin/master
 
 	if (bbox) {
 		if ((wy + bbox.get().height()) > trackview.editor().visible_canvas_height()) {

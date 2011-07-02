@@ -179,7 +179,7 @@ class RegionView : public TimeAxisViewItem
         /** a text item to display strip silence statistics
          */
         Canvas::Text* _silence_text;
-        
+	
 	ARDOUR::BeatsFramesConverter _time_converter;
 };
 

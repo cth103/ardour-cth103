@@ -41,7 +41,7 @@ public:
 
 	void set (std::string const &);
 	void set_color (uint32_t);
-	void set_font_description (Pango::FontDescription *);
+	void set_font_description (Pango::FontDescription);
 	void set_alignment (Pango::Alignment);
 
 private:
@@ -50,7 +50,7 @@ private:
 	/** Our text */
 	std::string _text;
 	/** Our font */
-	Pango::FontDescription* _font_description;
+	Pango::FontDescription _font_description;
 	/** Our color */
 	uint32_t _color;
 	/** Our alignment */

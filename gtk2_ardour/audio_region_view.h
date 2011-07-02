@@ -178,13 +178,6 @@ class AudioRegionView : public RegionView
 	void set_frame_color ();
 
 	void color_handler ();
-<<<<<<< HEAD
-	
-=======
-
-	std::vector<GnomeCanvasWaveViewCache*> wave_caches;
-
->>>>>>> origin/master
 	void transients_changed();
 
 private:
