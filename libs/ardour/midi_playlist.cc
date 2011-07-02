@@ -52,7 +52,9 @@ MidiPlaylist::MidiPlaylist (Session& session, const XMLNode& node, bool hidden)
 #endif
 
 	in_set_state++;
-	set_state (node, Stateful::loading_state_version);
+	if (set_state (node, Stateful::loading_state_version)) {
+		throw failed_constructor ();
+	}
 	in_set_state--;
 }
 
@@ -88,7 +90,7 @@ struct EventsSortByTime {
 
 /** Returns the number of frames in time duration read (eg could be large when 0 events are read) */
 framecnt_t
-MidiPlaylist::read (MidiRingBuffer<framepos_t>& dst, framepos_t start, framecnt_t dur, unsigned chan_n)
+MidiPlaylist::read (Evoral::EventSink<framepos_t>& dst, framepos_t start, framecnt_t dur, unsigned chan_n)
 {
 	/* this function is never called from a realtime thread, so
 	   its OK to block (for short intervals).
@@ -326,7 +328,9 @@ MidiPlaylist::set_state (const XMLNode& node, int version)
 	in_set_state++;
 	freeze ();
 
-	Playlist::set_state (node, version);
+	if (Playlist::set_state (node, version)) {
+		return -1;
+	}
 
 	thaw();
 	in_set_state--;

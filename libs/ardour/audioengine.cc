@@ -171,7 +171,7 @@ AudioEngine::set_jack_callbacks ()
         } else {
                 jack_on_shutdown (_priv_jack, halted, this);
         }
-	
+
         jack_set_thread_init_callback (_priv_jack, _thread_init_callback, this);
         jack_set_process_thread (_priv_jack, _process_thread, this);
         jack_set_sample_rate_callback (_priv_jack, _sample_rate_callback, this);
@@ -187,7 +187,7 @@ AudioEngine::set_jack_callbacks ()
                 jack_set_timebase_callback (_priv_jack, 0, _jack_timebase_callback, this);
         }
 
-#ifdef HAVE_JACK_SESSION 
+#ifdef HAVE_JACK_SESSION
         if( jack_set_session_callback)
                 jack_set_session_callback (_priv_jack, _session_callback, this);
 #endif
@@ -206,34 +206,28 @@ AudioEngine::start ()
 
 	if (!_running) {
 
-                pframes_t blocksize;
-
-                if (jack_port_type_get_buffer_size) {
-                        blocksize = jack_port_type_get_buffer_size (_priv_jack, JACK_DEFAULT_AUDIO_TYPE);
-                } else {
+                if (!jack_port_type_get_buffer_size) {
                         warning << _("This version of JACK is old - you should upgrade to a newer version that supports jack_port_type_get_buffer_size()") << endmsg;
-                        blocksize = jack_get_buffer_size (_priv_jack);
-                }
+		}
 
 		if (_session) {
 			BootMessage (_("Connect session to engine"));
-			_session->set_block_size (blocksize);
 			_session->set_frame_rate (jack_get_sample_rate (_priv_jack));
 		}
-
-		_processed_frames = 0;
-		last_monitor_check = 0;
-
-                set_jack_callbacks ();
 
                 /* a proxy for whether jack_activate() will definitely call the buffer size
                  * callback. with older versions of JACK, this function symbol will be null.
                  * this is reliable, but not clean.
                  */
 
-                if (!jack_port_type_get_buffer_size) { 
-                        jack_bufsize_callback (blocksize);
+                if (!jack_port_type_get_buffer_size) {
+			jack_bufsize_callback (jack_get_buffer_size (_priv_jack));
                 }
+		
+		_processed_frames = 0;
+		last_monitor_check = 0;
+
+                set_jack_callbacks ();
 
 		if (jack_activate (_priv_jack) == 0) {
 			_running = true;
@@ -243,7 +237,7 @@ AudioEngine::start ()
 			// error << _("cannot activate JACK client") << endmsg;
 		}
 	}
-
+		
 	return _running ? 0 : -1;
 }
 
@@ -426,7 +420,7 @@ AudioEngine::_connect_callback (jack_port_id_t id_a, jack_port_id_t id_b, int co
 		}
 		++i;
 	}
-	
+
 	ae->PortConnectedOrDisconnected (port_a, port_b, conn == 0 ? false : true); /* EMIT SIGNAL */
 }
 
@@ -449,7 +443,7 @@ AudioEngine::split_cycle (pframes_t offset)
 void*
 AudioEngine::process_thread ()
 {
-        /* JACK doesn't do this for us when we use the wait API 
+        /* JACK doesn't do this for us when we use the wait API
          */
 
         _thread_init_callback (0);
@@ -528,7 +522,7 @@ AudioEngine::process_callback (pframes_t nframes)
 
 
 	if (_freewheeling && !Freewheel.empty()) {
-		/* emit the Freewheel signal and stop freewheeling in the event of trouble 
+		/* emit the Freewheel signal and stop freewheeling in the event of trouble
 		 */
                 boost::optional<int> r = Freewheel (nframes);
 		if (r.get_value_or (0)) {
@@ -656,25 +650,25 @@ AudioEngine::jack_bufsize_callback (pframes_t nframes)
         } else {
 
                 /* Old version of JACK.
-                   
+
                    These crude guesses, see below where we try to get the right answers.
-                   
+
                    Note that our guess for MIDI deliberatey tries to overestimate
                    by a little. It would be nicer if we could get the actual
-                   size from a port, but we have to use this estimate in the 
+                   size from a port, but we have to use this estimate in the
                    event that there are no MIDI ports currently. If there are
                    the value will be adjusted below.
                 */
-                
+
                 _raw_buffer_sizes[DataType::AUDIO] = nframes * sizeof (Sample);
                 _raw_buffer_sizes[DataType::MIDI] = nframes * 4 - (nframes/2);
         }
 
-	{ 
+	{
 		Glib::Mutex::Lock lm (_process_lock);
-		
+
 		boost::shared_ptr<Ports> p = ports.reader();
-		
+
 		for (Ports::iterator i = p->begin(); i != p->end(); ++i) {
 			(*i)->reset();
 		}
@@ -725,25 +719,25 @@ void
 AudioEngine::set_session (Session *s)
 {
 	Glib::Mutex::Lock pl (_process_lock);
-	
+
 	SessionHandlePtr::set_session (s);
 
 	if (_session) {
 
 		start_metering_thread ();
-		
+
 		pframes_t blocksize = jack_get_buffer_size (_jack);
-		
+
 		/* page in as much of the session process code as we
 		   can before we really start running.
 		*/
-		
+
 		boost::shared_ptr<Ports> p = ports.reader();
-		
+
 		for (Ports::iterator i = p->begin(); i != p->end(); ++i) {
 			(*i)->cycle_start (blocksize);
 		}
-		
+
 		_session->process (blocksize);
 		_session->process (blocksize);
 		_session->process (blocksize);
@@ -752,12 +746,12 @@ AudioEngine::set_session (Session *s)
 		_session->process (blocksize);
 		_session->process (blocksize);
 		_session->process (blocksize);
-		
+
 		for (Ports::iterator i = p->begin(); i != p->end(); ++i) {
 			(*i)->cycle_end (blocksize);
 		}
 	}
-} 
+}
 
 void
 AudioEngine::remove_session ()
@@ -813,12 +807,6 @@ AudioEngine::register_port (DataType dtype, const string& portname, bool input)
 			newport = new MidiPort (portname, (input ? Port::IsInput : Port::IsOutput));
 		} else {
 			throw PortRegistrationFailure("unable to create port (unknown type)");
-		}
-
-		size_t& old_buffer_size  = _raw_buffer_sizes[newport->type()];
-		size_t  port_buffer_size = newport->raw_buffer_size(0);
-		if (port_buffer_size > old_buffer_size) {
-			old_buffer_size = port_buffer_size;
 		}
 
 		RCUWriter<Ports> writer (ports);
@@ -1053,17 +1041,17 @@ void
 AudioEngine::halted_info (jack_status_t code, const char* reason, void *arg)
 {
         /* called from jack shutdown handler  */
-        
+
         AudioEngine* ae = static_cast<AudioEngine *> (arg);
         bool was_running = ae->_running;
-        
+
         ae->stop_metering_thread ();
-        
+
         ae->_running = false;
         ae->_buffer_size = 0;
         ae->_frame_rate = 0;
         ae->_jack = 0;
-        
+
         if (was_running) {
 #ifdef HAVE_JACK_ON_INFO_SHUTDOWN
                 switch (code) {
@@ -1134,7 +1122,7 @@ ChanCount
 AudioEngine::n_physical (unsigned long flags) const
 {
 	ChanCount c;
-	
+
 	GET_PRIVATE_JACK_POINTER_RET (_jack, c);
 
 	const char ** ports = jack_get_ports (_priv_jack, NULL, NULL, JackPortIsPhysical | flags);
@@ -1255,7 +1243,7 @@ AudioEngine::freewheel (bool onoff)
 
 	if (onoff != _freewheeling) {
                 return jack_set_freewheel (_priv_jack, onoff);
-                
+
 	} else {
                 /* already doing what has been asked for */
                 return 0;
@@ -1268,7 +1256,7 @@ AudioEngine::remove_all_ports ()
 	/* make sure that JACK callbacks that will be invoked as we cleanup
 	 * ports know that they have nothing to do.
 	 */
-	 
+
 	port_remove_in_progress = true;
 
 	/* process lock MUST be held by caller
@@ -1400,7 +1388,7 @@ AudioEngine::reconnect_to_jack ()
 	GET_PRIVATE_JACK_POINTER_RET (_jack,-1);
 
 	MIDI::Manager::instance()->reestablish (_priv_jack);
-	
+
 	if (_session) {
 		_session->reset_jack_connection (_priv_jack);
                 jack_bufsize_callback (jack_get_buffer_size (_priv_jack));
@@ -1408,7 +1396,7 @@ AudioEngine::reconnect_to_jack ()
 	}
 
 	last_monitor_check = 0;
-	
+
         set_jack_callbacks ();
 
 	if (jack_activate (_priv_jack) == 0) {
@@ -1441,7 +1429,7 @@ AudioEngine::request_buffer_size (pframes_t nframes)
 	if (nframes == jack_get_buffer_size (_priv_jack)) {
                 return 0;
 	}
-	
+
 	return jack_set_buffer_size (_priv_jack, nframes);
 }
 
@@ -1513,10 +1501,10 @@ AudioEngine::create_process_thread (boost::function<void()> f, pthread_t* thread
         GET_PRIVATE_JACK_POINTER_RET (_jack, 0);
         ThreadData* td = new ThreadData (this, f, stacksize);
 
-        if (jack_client_create_thread (_priv_jack, thread, jack_client_real_time_priority (_priv_jack), 
+        if (jack_client_create_thread (_priv_jack, thread, jack_client_real_time_priority (_priv_jack),
                                        jack_is_realtime (_priv_jack), _start_process_thread, td)) {
                 return -1;
-        } 
+        }
 
         return 0;
 }
@@ -1533,7 +1521,7 @@ AudioEngine::_start_process_thread (void* arg)
         return 0;
 }
 
-bool 
+bool
 AudioEngine::port_is_physical (const std::string& portname) const
 {
         GET_PRIVATE_JACK_POINTER_RET(_jack, false);
@@ -1543,11 +1531,11 @@ AudioEngine::port_is_physical (const std::string& portname) const
         if (!port) {
                 return false;
         }
-        
+
         return jack_port_flags (port) & JackPortIsPhysical;
 }
 
-void 
+void
 AudioEngine::ensure_monitor_input (const std::string& portname, bool yn) const
 {
         GET_PRIVATE_JACK_POINTER(_jack);

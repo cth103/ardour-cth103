@@ -88,16 +88,16 @@ class TimeAxisViewItem : public Selectable, public PBD::ScopedConnectionList
 
         virtual void hide_rect ();
         virtual void show_rect ();
-        
+
 	/** @return true if the name area should respond to events */
 	bool name_active() const { return name_connected; }
 
 	// Default sizes, font and spacing
-	static Pango::FontDescription* NAME_FONT;
+	static Pango::FontDescription NAME_FONT;
 	static void set_constant_heights ();
 	static const double NAME_X_OFFSET;
 	static const double GRAB_HANDLE_LENGTH;
-	
+
 	/* these are not constant, but vary with the pixel size
 	   of the font used to display the item name.
 	*/
@@ -118,22 +118,22 @@ class TimeAxisViewItem : public Selectable, public PBD::ScopedConnectionList
 
 	/** Emitted when the name of this item is changed */
 	sigc::signal<void,std::string,std::string,void*> NameChanged;
-	
+
 	/** Emiited when the position of this item changes */
 	sigc::signal<void,framepos_t,void*> PositionChanged;
-	
+
 	/** Emitted when the position lock of this item is changed */
 	sigc::signal<void,bool,void*> PositionLockChanged;
-	
+
 	/** Emitted when the duration of this item changes */
 	sigc::signal<void,framecnt_t,void*> DurationChanged;
-	
+
 	/** Emitted when the maximum item duration is changed */
 	sigc::signal<void,framecnt_t,void*> MaxDurationChanged;
-	
+
 	/** Emitted when the mionimum item duration is changed */
 	sigc::signal<void,framecnt_t,void*> MinDurationChanged;
-	
+
 	enum Visibility {
 		ShowFrame = 0x1,
 		ShowNameHighlight = 0x2,
@@ -143,13 +143,13 @@ class TimeAxisViewItem : public Selectable, public PBD::ScopedConnectionList
 		HideFrameRight = 0x20,
 		HideFrameTB = 0x40,
 	};
-	
+
   protected:
 	TimeAxisViewItem(const std::string &, Canvas::Group&, TimeAxisView&, double, Gdk::Color const &,
 			 framepos_t, framepos_t, bool recording = false, bool automation = false, Visibility v = Visibility (0));
-	
+
 	TimeAxisViewItem (const TimeAxisViewItem&);
-	
+
 	void init (const std::string&, double, Gdk::Color const &, framepos_t, framepos_t, Visibility, bool, bool);
 
 	virtual void compute_colors (Gdk::Color const &);
@@ -160,30 +160,30 @@ class TimeAxisViewItem : public Selectable, public PBD::ScopedConnectionList
 	virtual void reset_width_dependent_items (double);
 	void reset_name_width (double);
 	void update_name_pixbuf_visibility ();
-	
+
 	static gint idle_remove_this_item(TimeAxisViewItem*, void*);
-	
+
 	/** time axis that this item is on */
 	TimeAxisView& trackview;
-	
+
 	/** indicates whether this item is locked to its current position */
 	bool position_locked;
-	
+
 	/** position of this item on the timeline */
 	framepos_t frame_position;
 
 	/** duration of this item upon the timeline */
 	framecnt_t item_duration;
-        
+
 	/** maximum duration that this item can have */
 	framecnt_t max_item_duration;
-	
+
 	/** minimum duration that this item can have */
 	framecnt_t min_item_duration;
-	
+
 	/** indicates whether the max duration constraint is active */
 	bool max_duration_active;
-	
+
 	/** indicates whether the min duration constraint is active */
 	bool min_duration_active;
 	
@@ -192,7 +192,7 @@ class TimeAxisViewItem : public Selectable, public PBD::ScopedConnectionList
 
 	/** should the item respond to events */
 	bool _sensitive;
-	
+
 	/**
 	 * The unique item name of this Item.
 	 * Each item upon a time axis must have a unique id.
@@ -214,7 +214,7 @@ class TimeAxisViewItem : public Selectable, public PBD::ScopedConnectionList
 	uint32_t selected_frame_color_g;
 	uint32_t selected_frame_color_b;
 	uint32_t label_color;
-	
+
 	uint32_t handle_color_r;
 	uint32_t handle_color_g;
 	uint32_t handle_color_b;
@@ -243,9 +243,9 @@ class TimeAxisViewItem : public Selectable, public PBD::ScopedConnectionList
 	bool _automation; ///< true if this is an automation region view
 
 private:
-	
+
 	void parameter_changed (std::string);
-	
+
 }; /* class TimeAxisViewItem */
 
 #endif /* __gtk_ardour_time_axis_view_item_h__ */

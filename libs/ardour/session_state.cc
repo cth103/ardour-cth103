@@ -221,7 +221,6 @@ Session::first_stage_init (string fullpath, string snapshot_name)
         _speakers.reset (new Speakers);
 
 	AudioDiskstream::allocate_working_buffers();
-	AudioSource::allocate_working_buffers ();
 
 	/* default short fade = 15ms */
 
@@ -551,7 +550,7 @@ Session::create (const string& mix_template, BusProfile* bus_profile)
 	/* set initial start + end point */
 
 	_state_of_the_state = Clean;
-        
+
         /* set up Master Out and Control Out if necessary */
 
         if (bus_profile) {
@@ -591,7 +590,7 @@ Session::create (const string& mix_template, BusProfile* bus_profile)
 					r->output()->ensure_io (count, false, this);
 				}
                                 r->set_remote_control_id (control_id);
-                                
+
                                 rl.push_back (r);
                         }
 
@@ -611,7 +610,7 @@ Session::create (const string& mix_template, BusProfile* bus_profile)
                         bus_profile->input_ac = AutoConnectOption (0);
                         bus_profile->output_ac = AutoConnectOption (0);
                 }
-                
+
                 Config->set_input_auto_connect (bus_profile->input_ac);
                 Config->set_output_auto_connect (bus_profile->output_ac);
         }
@@ -716,7 +715,7 @@ Session::jack_session_event (jack_session_event_t * event)
         if (event->type == JackSessionSaveTemplate)
         {
                 if (save_template( timebuf )) {
-                        event->flags = JackSessionSaveError; 
+                        event->flags = JackSessionSaveError;
                 } else {
                         string cmd ("ardour3 -P -U ");
                         cmd += event->client_uuid;
@@ -729,7 +728,7 @@ Session::jack_session_event (jack_session_event_t * event)
         else
         {
                 if (save_state (timebuf)) {
-                        event->flags = JackSessionSaveError; 
+                        event->flags = JackSessionSaveError;
                 } else {
                         sys::path xml_path (_session_dir->root_path());
                         xml_path /= legalize_for_path (timebuf) + statefile_suffix;
@@ -926,7 +925,7 @@ Session::load_state (string snapshot_name)
 		sscanf (prop->value().c_str(), "%d.%d.%d", &major, &minor, &micro);
 		Stateful::loading_state_version = (major * 1000) + minor;
 	}
-		
+
 	if (Stateful::loading_state_version < CURRENT_SESSION_FILE_VERSION) {
 
 		sys::path backup_path(_session_dir->root_path());
@@ -1071,7 +1070,7 @@ Session::state(bool full_state)
 						continue;
 					}
 				}
-				
+
 				child->add_child_nocopy (siter->second->get_state());
 			}
 		}
@@ -1089,7 +1088,7 @@ Session::state(bool full_state)
                                 child->add_child_nocopy (r->state ());
                         }
                 }
-		
+
 		RegionFactory::CompoundAssociations& cassocs (RegionFactory::compound_associations());
 
 		if (!cassocs.empty()) {
@@ -1104,7 +1103,7 @@ Session::state(bool full_state)
 				can->add_property (X_("original"), buf);
 				ca->add_child_nocopy (*can);
 			}
-		}  
+		}
 	}
 
 	if (full_state) {
@@ -1251,9 +1250,7 @@ Session::set_state (const XMLNode& node, int version)
 
 	IO::disable_connecting ();
 
-	if ((child = find_named_node (node, "Extra")) != 0) {
-		_extra_xml = new XMLNode (*child);
-	}
+	Stateful::save_extra_xml (node);
 
 	if (((child = find_named_node (node, "Options")) != 0)) { /* old style */
 		load_options (*child);
@@ -1334,13 +1331,13 @@ Session::set_state (const XMLNode& node, int version)
 	} else if (playlists->load_unused (*this, *child)) {
 		goto out;
 	}
-	
+
 	if ((child = find_named_node (node, "CompoundAssociations")) != 0) {
 		if (load_compounds (*child)) {
 			goto out;
 		}
 	}
-	
+
 	if ((child = find_named_node (node, "NamedSelections")) != 0) {
 		if (load_named_selections (*child)) {
 			goto out;
@@ -1358,7 +1355,7 @@ Session::set_state (const XMLNode& node, int version)
 			_bundle_xml_node = new XMLNode (*child);
 		}
 	}
-	
+
 	if (version < 3000) {
 		if ((child = find_named_node (node, X_("DiskStreams"))) == 0) {
 			error << _("Session: XML state has no diskstreams section") << endmsg;
@@ -1379,16 +1376,16 @@ Session::set_state (const XMLNode& node, int version)
 	_diskstreams_2X.clear ();
 
 	if (version >= 3000) {
-		
+
 		if ((child = find_named_node (node, "RouteGroups")) == 0) {
 			error << _("Session: XML state has no route groups section") << endmsg;
 			goto out;
 		} else if (load_route_groups (*child, version)) {
 			goto out;
 		}
-		
+
 	} else if (version < 3000) {
-		
+
 		if ((child = find_named_node (node, "EditGroups")) == 0) {
 			error << _("Session: XML state has no edit groups section") << endmsg;
 			goto out;
@@ -1443,7 +1440,7 @@ Session::load_routes (const XMLNode& node, int version)
 		} else {
 			route = XMLRouteFactory (**niter, version);
 		}
-		
+
 		if (route == 0) {
 			error << _("Session: cannot create Route from XML description.") << endmsg;
 			return -1;
@@ -1482,26 +1479,26 @@ Session::XMLRouteFactory (const XMLNode& node, int version)
 	if (ds_child) {
 
 		boost::shared_ptr<Track> track;
-                
+
                 if (type == DataType::AUDIO) {
                         track.reset (new AudioTrack (*this, X_("toBeResetFroXML")));
                 } else {
                         track.reset (new MidiTrack (*this, X_("toBeResetFroXML")));
                 }
-                
+
                 if (track->init()) {
                         return ret;
                 }
-                
+
                 if (track->set_state (node, version)) {
                         return ret;
                 }
-                
+
 #ifdef BOOST_SP_ENABLE_DEBUG_HOOKS
                 boost_debug_shared_ptr_mark_interesting (track.get(), "Track");
 #endif
                 ret = track;
-                
+
 	} else {
 		boost::shared_ptr<Route> r (new Route (*this, X_("toBeResetFroXML")));
 
@@ -1558,22 +1555,22 @@ Session::XMLRouteFactory_2X (const XMLNode& node, int version)
                 } else {
                         track.reset (new MidiTrack (*this, X_("toBeResetFroXML")));
                 }
-                
+
                 if (track->init()) {
                         return ret;
                 }
-                
+
                 if (track->set_state (node, version)) {
                         return ret;
                 }
 
 		track->set_diskstream (*i);
-                
-#ifdef BOOST_SP_ENABLE_DEBUG_HOOKS                
+
+#ifdef BOOST_SP_ENABLE_DEBUG_HOOKS
                 boost_debug_shared_ptr_mark_interesting (track.get(), "Track");
 #endif
                 ret = track;
-                
+
 	} else {
 		boost::shared_ptr<Route> r (new Route (*this, X_("toBeResetFroXML")));
 
@@ -1621,32 +1618,32 @@ Session::load_compounds (const XMLNode& node)
 	XMLNodeList calist = node.children();
 	XMLNodeConstIterator caiter;
 	XMLProperty *caprop;
-	
+
 	for (caiter = calist.begin(); caiter != calist.end(); ++caiter) {
 		XMLNode* ca = *caiter;
 		ID orig_id;
 		ID copy_id;
-		
+
 		if ((caprop = ca->property (X_("original"))) == 0) {
 			continue;
 		}
 		orig_id = caprop->value();
-		
+
 		if ((caprop = ca->property (X_("copy"))) == 0) {
 			continue;
 		}
 		copy_id = caprop->value();
-		
+
 		boost::shared_ptr<Region> orig = RegionFactory::region_by_id (orig_id);
 		boost::shared_ptr<Region> copy = RegionFactory::region_by_id (copy_id);
-		
+
 		if (!orig || !copy) {
 			warning << string_compose (_("Regions in compound description not found (ID's %1 and %2): ignored"),
-						   orig_id, copy_id) 
+						   orig_id, copy_id)
 				<< endmsg;
 			continue;
 		}
-		
+
 		RegionFactory::add_compound_association (orig, copy);
 	}
 
@@ -1663,11 +1660,26 @@ Session::load_nested_sources (const XMLNode& node)
 
 	for (niter = nlist.begin(); niter != nlist.end(); ++niter) {
 		if ((*niter)->name() == "Source") {
-			try {
-				SourceFactory::create (*this, **niter, true);
-			} 
-			catch (failed_constructor& err) {
-				error << string_compose (_("Cannot reconstruct nested source for region %1"), name()) << endmsg;
+
+			/* it may already exist, so don't recreate it unnecessarily 
+			 */
+
+			XMLProperty* prop = (*niter)->property (X_("id"));
+			if (!prop) {
+				error << _("Nested source has no ID info in session state file! (ignored)") << endmsg;
+				continue;
+			}
+
+			ID source_id (prop->value());
+
+			if (!source_by_id (source_id)) {
+
+				try {
+					SourceFactory::create (*this, **niter, true);
+				}
+				catch (failed_constructor& err) {
+					error << string_compose (_("Cannot reconstruct nested source for region %1"), name()) << endmsg;
+				}
 			}
 		}
 	}
@@ -1681,7 +1693,7 @@ Session::XMLRegionFactory (const XMLNode& node, bool full)
 	try {
 
 		const XMLNodeList& nlist = node.children();
-		
+
 		for (XMLNodeConstIterator niter = nlist.begin(); niter != nlist.end(); ++niter) {
 			XMLNode *child = (*niter);
 			if (child->name() == "NestedSource") {
@@ -1962,8 +1974,8 @@ Session::load_sources (const XMLNode& node)
                         case 0:
                                 /* user added a new search location, so try again */
                                 goto retry;
-                                
-                                
+
+
                         case 1:
                                 /* user asked to quit the entire session load
                                  */
@@ -2288,7 +2300,7 @@ Session::load_route_groups (const XMLNode& node, int version)
 	set_dirty ();
 
 	if (version >= 3000) {
-		
+
 		for (niter = nlist.begin(); niter != nlist.end(); ++niter) {
 			if ((*niter)->name() == "RouteGroup") {
 				RouteGroup* rg = new RouteGroup (*this, "");
@@ -2375,7 +2387,7 @@ Session::add_route_group (RouteGroup* g)
 
 	g->MembershipChanged.connect_same_thread (*this, boost::bind (&Session::route_group_changed, this));
 	g->PropertyChanged.connect_same_thread (*this, boost::bind (&Session::route_group_changed, this));
-	
+
 	set_dirty ();
 }
 
@@ -2449,14 +2461,14 @@ Session::begin_reversible_command (GQuark q)
 	   to hold all the commands that are committed.  This keeps the order of
 	   commands correct in the history.
 	*/
-	
+
 	if (_current_trans == 0) {
 		/* start a new transaction */
 		assert (_current_trans_quarks.empty ());
 		_current_trans = new UndoTransaction();
 		_current_trans->set_name (g_quark_to_string (q));
 	}
-	
+
 	_current_trans_quarks.push_front (q);
 }
 
@@ -2465,7 +2477,7 @@ Session::commit_reversible_command (Command *cmd)
 {
 	assert (_current_trans);
 	assert (!_current_trans_quarks.empty ());
-	
+
 	struct timeval now;
 
 	if (cmd) {
@@ -2495,7 +2507,7 @@ Session::commit_reversible_command (Command *cmd)
 
 static bool
 accept_all_audio_files (const string& path, void */*arg*/)
-{ 
+{
         if (!Glib::file_test (path, Glib::FILE_TEST_IS_REGULAR)) {
                 return false;
         }
@@ -2646,11 +2658,11 @@ Session::cleanup_regions ()
 	for (RegionFactory::RegionMap::const_iterator i = regions.begin(); i != regions.end(); ++i) {
 
 		boost::shared_ptr<AudioRegion> audio_region = boost::dynamic_pointer_cast<AudioRegion>( i->second);
-		
+
 		if (!audio_region) {
 			continue;
 		}
-		
+
 		uint32_t used = playlists->region_use_count (audio_region);
 
 		if (used == 0 && !audio_region->automatic()) {
@@ -2686,7 +2698,7 @@ Session::cleanup_sources (CleanupReport& rep)
 	_state_of_the_state = (StateOfTheState) (_state_of_the_state | InCleanup);
 
 	/* consider deleting all unused playlists */
-	
+
 	if (playlists->maybe_delete_unused (boost::bind (Session::ask_about_playlist_deletion, _1))) {
 		ret = 0;
 		goto out;
@@ -2791,13 +2803,13 @@ Session::cleanup_sources (CleanupReport& rep)
                         if (playlists->source_use_count (fs) != 0) {
                                 all_sources.insert (fs->path());
                         } else {
-                                
+
                                 /* we might not remove this source from disk, because it may be used
                                    by other snapshots, but its not being used in this version
                                    so lets get rid of it now, along with any representative regions
                                    in the region list.
                                 */
-                                
+
                                 RegionFactory::remove_regions_using_source (i->second);
                                 sources.erase (i);
                         }
@@ -2811,18 +2823,18 @@ Session::cleanup_sources (CleanupReport& rep)
 
         if (candidates) {
                 for (vector<string*>::iterator x = candidates->begin(); x != candidates->end(); ++x) {
-                        
+
                         used = false;
                         spath = **x;
-                        
+
                         for (set<string>::iterator i = all_sources.begin(); i != all_sources.end(); ++i) {
-                                
+
                                 if (realpath(spath.c_str(), tmppath1) == 0) {
                                         error << string_compose (_("Cannot expand path %1 (%2)"),
                                                                  spath, strerror (errno)) << endmsg;
                                         continue;
                                 }
-                                
+
                                 if (realpath((*i).c_str(),  tmppath2) == 0) {
                                         error << string_compose (_("Cannot expand path %1 (%2)"),
                                                                  (*i), strerror (errno)) << endmsg;
@@ -2834,7 +2846,7 @@ Session::cleanup_sources (CleanupReport& rep)
                                         break;
                                 }
                         }
-                        
+
                         if (!used) {
                                 unused.push_back (spath);
                         }
@@ -2882,7 +2894,7 @@ Session::cleanup_sources (CleanupReport& rep)
 		}
 
 		newpath = Glib::build_filename (newpath, Glib::path_get_basename ((*x)));
-                
+
 		if (Glib::file_test (newpath, Glib::FILE_TEST_EXISTS)) {
 
 			/* the new path already exists, try versioning */
@@ -2926,12 +2938,12 @@ Session::cleanup_sources (CleanupReport& rep)
 		 */
 
                 string base = basename_nosuffix (*x);
-                base += "%A"; /* this is what we add for the channel suffix of all native files, 
+                base += "%A"; /* this is what we add for the channel suffix of all native files,
                                  or for the first channel of embedded files. it will miss
                                  some peakfiles for other channels
                               */
 		string peakpath = peak_path (base);
-                
+
 		if (Glib::file_test (peakpath.c_str(), Glib::FILE_TEST_EXISTS)) {
 			if (::unlink (peakpath.c_str()) != 0) {
 				error << string_compose (_("cannot remove peakfile %1 for %2 (%3)"),
@@ -3093,7 +3105,7 @@ Session::controllable_by_descriptor (const ControllableDescriptor& desc)
 		r = route_by_remote_id (desc.rid());
 		break;
 	}
-	
+
 	if (!r) {
 		return c;
 	}
@@ -3114,7 +3126,7 @@ Session::controllable_by_descriptor (const ControllableDescriptor& desc)
 	case ControllableDescriptor::Recenable:
 	{
 		boost::shared_ptr<Track> t = boost::dynamic_pointer_cast<Track>(r);
-		
+
 		if (t) {
 			c = t->rec_enable_control ();
 		}
@@ -3149,17 +3161,17 @@ Session::controllable_by_descriptor (const ControllableDescriptor& desc)
 		uint32_t parameter_index = desc.target (1);
 
 		/* revert to zero based counting */
-		
+
 		if (plugin > 0) {
 			--plugin;
 		}
-		
+
 		if (parameter_index > 0) {
 			--parameter_index;
 		}
 
 		boost::shared_ptr<Processor> p = r->nth_plugin (plugin);
-		
+
 		if (p) {
 			c = boost::dynamic_pointer_cast<ARDOUR::AutomationControl>(
 				p->control(Evoral::Parameter(PluginAutomation, 0, parameter_index)));
@@ -3167,18 +3179,18 @@ Session::controllable_by_descriptor (const ControllableDescriptor& desc)
 		break;
 	}
 
-	case ControllableDescriptor::SendGain: 
+	case ControllableDescriptor::SendGain:
 	{
 		uint32_t send = desc.target (0);
 
 		/* revert to zero-based counting */
-		
+
 		if (send > 0) {
 			--send;
 		}
-		
+
 		boost::shared_ptr<Processor> p = r->nth_send (send);
-		
+
 		if (p) {
 			boost::shared_ptr<Send> s = boost::dynamic_pointer_cast<Send>(p);
 			boost::shared_ptr<Amp> a = s->amp();
@@ -3349,7 +3361,7 @@ Session::restore_history (string snapshot_name)
 				} else {
 					error << _("Failed to downcast MidiSource for SysExDiffCommand") << endmsg;
 				}
-				
+
 			} else if (n->name() == "PatchChangeDiffCommand") {
 
 				PBD::ID id (n->property("midi-source")->value());
@@ -3559,6 +3571,8 @@ Session::config_changed (std::string p, bool ours)
 		solo_control_mode_changed ();
 	} else if (p == "timecode-offset" || p == "timecode-offset-negative") {
 		last_timecode_valid = false;
+	} else if (p == "playback-buffer-seconds") {
+		AudioSource::allocate_working_buffers (frame_rate());
 	}
 
 	set_dirty ();
@@ -3604,7 +3618,7 @@ void
 Session::setup_midi_machine_control ()
 {
 	MIDI::MachineControl* mmc = MIDI::Manager::instance()->mmc ();
-	
+
 	mmc->Play.connect_same_thread (*this, boost::bind (&Session::mmc_deferred_play, this, _1));
 	mmc->DeferredPlay.connect_same_thread (*this, boost::bind (&Session::mmc_deferred_play, this, _1));
 	mmc->Stop.connect_same_thread (*this, boost::bind (&Session::mmc_stop, this, _1));
@@ -3637,6 +3651,6 @@ Session::solo_cut_control() const
            it up as a Controllable. Changes to the Controllable will just map back to the RCConfiguration
            parameter.
         */
-        
+
         return _solo_cut_control;
 }

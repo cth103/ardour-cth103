@@ -105,11 +105,11 @@ Editor::add_new_location_internal (Location* location)
 			lam->start = new Marker (*this, *marker_group, color, location->name(), Marker::Mark, location->start());
 			group = marker_group;
 		}
-		
+
 		lam->end = 0;
 
 	} else if (location->is_auto_loop()) {
-		
+
 		// transport marker
 		lam->start = new Marker (*this, *transport_marker_group, color,
 					 location->name(), Marker::LoopStart, location->start());
@@ -118,21 +118,21 @@ Editor::add_new_location_internal (Location* location)
 		group = transport_marker_group;
 
 	} else if (location->is_auto_punch()) {
-		
+
 		// transport marker
 		lam->start = new Marker (*this, *transport_marker_group, color,
 					 location->name(), Marker::PunchIn, location->start());
 		lam->end   = new Marker (*this, *transport_marker_group, color,
 					 location->name(), Marker::PunchOut, location->end());
 		group = transport_marker_group;
-		
+
 	} else if (location->is_session_range()) {
 
 		// session range
 		lam->start = new Marker (*this, *marker_group, color, _("start"), Marker::SessionStart, location->start());
 		lam->end = new Marker (*this, *marker_group, color, _("end"), Marker::SessionEnd, location->end());
 		group = marker_group;
-		
+
 	} else {
 		// range marker
 		if (location->is_cd_marker() && ruler_cd_marker_action->get_active()) {
@@ -224,7 +224,7 @@ Editor::check_marker_label (Marker* m)
 {
 	/* Get a time-ordered list of markers from the last time anything changed */
 	std::list<Marker*>& sorted = _sorted_marker_lists[m->get_parent()];
-	
+
 	list<Marker*>::iterator i = find (sorted.begin(), sorted.end(), m);
 
 	list<Marker*>::iterator prev = sorted.end ();
@@ -258,7 +258,7 @@ Editor::check_marker_label (Marker* m)
 	if (prev != sorted.end()) {
 
 		/* Update just the available space between the previous marker and this one */
-		
+
 		double const p = frame_to_pixel (m->position() - (*prev)->position());
 
 		if (m->label_on_left()) {
@@ -266,7 +266,7 @@ Editor::check_marker_label (Marker* m)
 		} else {
 			(*prev)->set_right_label_limit (p);
 		}
-		
+
 		if ((*prev)->label_on_left ()) {
 			m->set_left_label_limit (p);
 		} else {
@@ -277,7 +277,7 @@ Editor::check_marker_label (Marker* m)
 	if (next != sorted.end()) {
 
 		/* Update just the available space between this marker and the next */
-		
+
 		double const p = frame_to_pixel ((*next)->position() - m->position());
 
 		if ((*next)->label_on_left()) {
@@ -320,7 +320,7 @@ Editor::update_marker_labels (Canvas::Group* group)
 	}
 
 	/* We sort the list of markers and then set up the space available between each one */
-	
+
 	sorted.sort (MarkerComparator ());
 
 	list<Marker*>::iterator i = sorted.begin ();
@@ -328,18 +328,18 @@ Editor::update_marker_labels (Canvas::Group* group)
 	list<Marker*>::iterator prev = sorted.end ();
 	list<Marker*>::iterator next = i;
 	++next;
-	
+
 	while (i != sorted.end()) {
 
 		if (prev != sorted.end()) {
 			double const p = frame_to_pixel ((*i)->position() - (*prev)->position());
-			
+
 			if ((*prev)->label_on_left()) {
 				(*i)->set_left_label_limit (p);
 			} else {
 				(*i)->set_left_label_limit (p / 2);
 			}
-				
+
 		}
 
 		if (next != sorted.end()) {
@@ -575,7 +575,7 @@ Editor::LocationMarkers::set_name (const string& str)
 	if (start->type() != Marker::SessionStart) {
 		start->set_name (str);
 	}
-	
+
 	if (end && end->type() != Marker::SessionEnd) {
 		end->set_name (str);
 	}
@@ -732,7 +732,7 @@ void
 Editor::tempo_or_meter_marker_context_menu (GdkEventButton* ev, Canvas::Item* item)
 {
 	marker_menu_item = item;
-	
+
 	MeterMarker* mm;
 	TempoMarker* tm;
 	dynamic_cast_marker_object (marker_menu_item->get_data ("marker"), &mm, &tm);
@@ -746,7 +746,7 @@ Editor::tempo_or_meter_marker_context_menu (GdkEventButton* ev, Canvas::Item* it
 	} else {
 		return;
 	}
-	
+
 	delete tempo_or_meter_marker_menu;
 	build_tempo_or_meter_marker_menu (can_remove);
 	tempo_or_meter_marker_menu->popup (1, ev->time);
@@ -769,12 +769,12 @@ Editor::marker_context_menu (GdkEventButton* ev, Canvas::Item* item)
 		if (transport_marker_menu == 0) {
 			build_range_marker_menu (true);
 		}
-		
+
 		marker_menu_item = item;
 		transport_marker_menu->popup (1, ev->time);
 
 	} else if (loc->is_mark()) {
-		
+
 			delete marker_menu;
 			build_marker_menu (loc);
 
@@ -794,7 +794,7 @@ Editor::marker_context_menu (GdkEventButton* ev, Canvas::Item* item)
 #endif
 			marker_menu_item = item;
 			marker_menu->popup (1, ev->time);
-			
+
 	} else if (loc->is_range_marker()) {
 		if (range_marker_menu == 0) {
 			build_range_marker_menu (false);
@@ -858,7 +858,7 @@ Editor::build_marker_menu (Location* loc)
 		glue_item->set_active ();
 	}
 	glue_item->signal_activate().connect (sigc::mem_fun (*this, &Editor::toggle_marker_menu_glue));
-	
+
 	items.push_back (SeparatorElem());
 
 	items.push_back (MenuElem (_("Remove"), sigc::mem_fun(*this, &Editor::marker_menu_remove)));
@@ -1495,7 +1495,7 @@ void
 Editor::toggle_marker_lines ()
 {
 	_show_marker_lines = !_show_marker_lines;
-	
+
 	for (LocationMarkerMap::iterator i = location_markers.begin(); i != location_markers.end(); ++i) {
 		i->second->set_show_lines (_show_marker_lines);
 	}

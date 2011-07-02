@@ -23,11 +23,12 @@
 #include "ardour/profile.h"
 #include "canvas/text.h"
 #include "canvas/canvas.h"
-#include "editor.h"
 #include "ardour_ui.h"
-#include "verbose_cursor.h"
-#include "utils.h"
+#include "audio_clock.h"
+#include "editor.h"
 #include "editor_drag.h"
+#include "utils.h"
+#include "verbose_cursor.h"
 
 #include "i18n.h"
 
@@ -79,7 +80,7 @@ VerboseCursor::show (double xoffset, double yoffset)
 	if (_visible) {
 		return;
 	}
-	
+
 	_canvas_item->raise_to_top ();
 	_canvas_item->show ();
 	_visible = true;
@@ -131,9 +132,9 @@ VerboseCursor::set_time (framepos_t frame, double x, double y)
 	AudioClock::Mode m;
 
 	if (Profile->get_sae() || Profile->get_small_screen()) {
-		m = ARDOUR_UI::instance()->primary_clock.mode();
+		m = ARDOUR_UI::instance()->primary_clock->mode();
 	} else {
-		m = ARDOUR_UI::instance()->secondary_clock.mode();
+		m = ARDOUR_UI::instance()->secondary_clock->mode();
 	}
 
 	switch (m) {
@@ -185,9 +186,9 @@ VerboseCursor::set_duration (framepos_t start, framepos_t end, double x, double 
 	AudioClock::Mode m;
 
 	if (Profile->get_sae() || Profile->get_small_screen()) {
-		m = ARDOUR_UI::instance()->primary_clock.mode ();
+		m = ARDOUR_UI::instance()->primary_clock->mode ();
 	} else {
-		m = ARDOUR_UI::instance()->secondary_clock.mode ();
+		m = ARDOUR_UI::instance()->secondary_clock->mode ();
 	}
 
 	switch (m) {

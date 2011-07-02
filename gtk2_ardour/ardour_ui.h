@@ -62,7 +62,6 @@
 #include "ardour/utils.h"
 #include "ardour/session_handle.h"
 
-#include "audio_clock.h"
 #include "ardour_dialog.h"
 #include "editing.h"
 #include "ui_config.h"
@@ -86,6 +85,7 @@ class ShuttleControl;
 class Splash;
 class SpeakerDialog;
 class ThemeManager;
+class TimeInfoBox;
 class MidiTracer;
 class WindowProxyBase;
 class GlobalPortMatrixWindow;
@@ -192,10 +192,12 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	void xrun_handler (framepos_t);
 	void create_xrun_marker (framepos_t);
 
-	AudioClock primary_clock;
-	AudioClock secondary_clock;
-	AudioClock preroll_clock;
-	AudioClock postroll_clock;
+	AudioClock* primary_clock;
+	AudioClock* secondary_clock;
+	AudioClock* preroll_clock;
+	AudioClock* postroll_clock;
+
+	TimeInfoBox* time_info_box;
 
 	void store_clock_modes ();
 	void restore_clock_modes ();
@@ -213,7 +215,7 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 		uint32_t how_many,
 		std::string const & name_template
 		) {
-		
+
 		session_add_audio_route (true, input_channels, output_channels, mode, route_group, how_many, name_template);
 	}
 
@@ -224,7 +226,7 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 		uint32_t how_many,
 		std::string const & name_template
 		) {
-		
+
 		session_add_audio_route (false, input_channels, output_channels, ARDOUR::Normal, route_group, how_many, name_template);
 	}
 
@@ -233,7 +235,7 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 		uint32_t how_many,
 		std::string const & name_template
 		) {
-		
+
 		session_add_midi_route (true, route_group, how_many, name_template);
 	}
 
@@ -336,7 +338,7 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 
 	void manage_window (Gtk::Window&);
 
-	AudioClock   big_clock;
+	AudioClock*   big_clock;
 	ActionWindowProxy<Gtk::Window>* big_clock_window;
 	int original_big_clock_width;
 	int original_big_clock_height;
@@ -429,8 +431,6 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 
 	ShuttleControl* shuttle_box;
 
-	Gtkmm2ext::StatefulToggleButton punch_in_button;
-	Gtkmm2ext::StatefulToggleButton punch_out_button;
 	Gtkmm2ext::StatefulToggleButton auto_return_button;
 	Gtkmm2ext::StatefulToggleButton auto_play_button;
 	Gtkmm2ext::StatefulToggleButton auto_input_button;
@@ -610,7 +610,7 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	/* Keyboard Handling */
 
 	ArdourKeyboard* keyboard;
-	
+
 	/* Keymap handling */
 
 	void install_actions ();

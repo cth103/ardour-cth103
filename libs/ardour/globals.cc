@@ -65,6 +65,7 @@
 #include "ardour/audiosource.h"
 #include "ardour/buffer_manager.h"
 #include "ardour/control_protocol_manager.h"
+#include "ardour/dB.h"
 #include "ardour/debug.h"
 #include "ardour/filesystem_paths.h"
 #include "ardour/midi_region.h"
@@ -114,13 +115,13 @@ void ARDOUR::setup_enum_writer ();
 */
 PBD::PropertyChange ARDOUR::bounds_change;
 
-namespace ARDOUR { 
+namespace ARDOUR {
 	namespace Properties {
 
 		/* the envelope and fades are not scalar items and so
 		   currently (2010/02) are not stored using Property.
 		   However, these descriptors enable us to notify
-		   about changes to them via PropertyChange. 
+		   about changes to them via PropertyChange.
 
 		   Declared in ardour/audioregion.h ...
 		*/
@@ -161,7 +162,8 @@ setup_hardware_optimization (bool try_optimization)
 			compute_peak          = x86_sse_compute_peak;
 			find_peaks            = x86_sse_find_peaks;
 			apply_gain_to_buffer  = x86_sse_apply_gain_to_buffer;
-			mix_buffers_with_gain = x86_sse_mix_buffers_with_gain;
+			// mix_buffers_with_gain = x86_sse_mix_buffers_with_gain;
+			mix_buffers_with_gain = default_mix_buffers_with_gain;
 			mix_buffers_no_gain   = x86_sse_mix_buffers_no_gain;
 
 			generic_mix_functions = false;
@@ -202,7 +204,7 @@ setup_hardware_optimization (bool try_optimization)
 
 		info << "No H/W specific optimizations in use" << endmsg;
 	}
-	
+
 	AudioGrapher::Routines::override_compute_peak (compute_peak);
 	AudioGrapher::Routines::override_apply_gain_to_buffer (apply_gain_to_buffer);
 }
@@ -245,7 +247,7 @@ ARDOUR::init (bool use_vst, bool try_optimization)
 
 	PBD::ID::init ();
 	SessionEvent::init_event_pool ();
-	
+
 	make_property_quarks ();
 	SessionObject::make_property_quarks ();
 	Region::make_property_quarks ();
@@ -286,7 +288,7 @@ ARDOUR::init (bool use_vst, bool try_optimization)
 	if (Config->load_state ()) {
 		return -1;
 	}
-        
+
 	Config->set_use_vst (use_vst);
 
 	Profile = new RuntimeProfile;

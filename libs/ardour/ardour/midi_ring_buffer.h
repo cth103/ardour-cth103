@@ -21,9 +21,12 @@
 
 #include <iostream>
 #include <algorithm>
+
+#include "evoral/EventRingBuffer.hpp"
+
 #include "ardour/types.h"
 #include "ardour/buffer.h"
-#include "evoral/EventRingBuffer.hpp"
+#include "ardour/midi_state_tracker.h"
 
 namespace ARDOUR {
 
@@ -50,7 +53,7 @@ public:
 	inline bool read_prefix(T* time, Evoral::EventType* type, uint32_t* size);
 	inline bool read_contents(uint32_t size, uint8_t* buf);
 
-	size_t read(MidiBuffer& dst, framepos_t start, framepos_t end, framecnt_t offset=0);
+	size_t read(MidiBuffer& dst, framepos_t start, framepos_t end, framecnt_t offset=0, bool stop_on_overflow_in_destination=false);
 	void dump(std::ostream& dst);
 
 	/** Set the channel filtering mode.
@@ -80,8 +83,19 @@ protected:
 		return (0x80 <= event_type_byte) && (event_type_byte <= 0xE0);
 	}
 
+	inline bool is_note_on(uint8_t event_type_byte) {
+		// mask out channel information
+		return (event_type_byte & 0xF0) == MIDI_CMD_NOTE_ON;
+	}
+
+	inline bool is_note_off(uint8_t event_type_byte) {
+		// mask out channel information
+		return (event_type_byte & 0xF0) == MIDI_CMD_NOTE_OFF;
+	}
+
 private:
 	volatile uint32_t _channel_mask; // 16 bits mode, 16 bits mask
+	MidiStateTracker _tracker;
 };
 
 

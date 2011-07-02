@@ -213,7 +213,7 @@ Editor::which_grabber_cursor ()
 			boost::shared_ptr<Movable> m = _movable.lock();
 			if (m && m->locked()) {
 				c = _cursors->speaker;
-			} 
+			}
 			break;
 		}
 	}
@@ -379,24 +379,24 @@ Editor::mouse_mode_toggled (MouseMode m)
 	mouse_mode = m;
 
 	instant_save ();
-        
+
 	if (!internal_editing()) {
 		if (mouse_mode != MouseRange && _join_object_range_state == JOIN_OBJECT_RANGE_NONE) {
-                        
+
 			/* in all modes except range and joined object/range, hide the range selection,
 			   show the object (region) selection.
 			*/
-                        
+
 			for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {
 				(*i)->hide_selection ();
 			}
-                        
+
 		} else {
-                        
+
 			/*
 			  in range or object/range mode, show the range selection.
 			*/
-                        
+
 			for (TrackSelection::iterator i = selection->tracks.begin(); i != selection->tracks.end(); ++i) {
 				(*i)->show_selection (selection->time);
 			}
@@ -779,7 +779,7 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 				return true;
 			}
 			break;
-			
+
 		default:
 			break;
 		}
@@ -807,12 +807,12 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 			}
 
 			case FeatureLineItem:
-			{			
+			{
 				if (Keyboard::modifier_state_contains (event->button.state, Keyboard::TertiaryModifier)) {
 					remove_transient(item);
 					return true;
 				}
-				
+
 				_drags->set (new FeatureLineDrag (this, item), event);
 				return true;
 				break;
@@ -830,7 +830,7 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 					/* no region drags in internal edit mode */
 					break;
 				}
-				
+
 				/* click on a normal region view */
 				if (Keyboard::modifier_state_contains (event->button.state, Keyboard::CopyModifier)) {
 					add_region_copy_drag (item, event, clicked_regionview);
@@ -839,7 +839,7 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 				} else {
 					add_region_drag (item, event, clicked_regionview);
 				}
-				
+
 				if (_join_object_range_state == JOIN_OBJECT_RANGE_OBJECT && !selection->regions.empty()) {
 					_drags->add (new SelectionDrag (this, clicked_axisview->get_selection_rect (clicked_selection)->rect, SelectionDrag::SelectionMove));
 				}
@@ -887,7 +887,7 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 					_drags->set (new RubberbandSelectDrag (this, item), event);
 				}
 				break;
-				
+
 			case AutomationTrackItem:
 				/* rubberband drag to select automation points */
 				_drags->set (new RubberbandSelectDrag (this, item), event);
@@ -915,7 +915,7 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 							if (t) {
 								boost::shared_ptr<Playlist> pl = t->playlist ();
 								if (pl) {
-									
+
 									boost::shared_ptr<Region> r = pl->top_region_at (event_frame (event));
 									if (r) {
 										RegionView* rv = rtv->view()->find_view (r);
@@ -1065,7 +1065,7 @@ Editor::button_press_handler_2 (Canvas::Item* item, GdkEvent* event, ItemType it
 				/* no region drags in internal edit mode */
 				return false;
 			}
-			
+
 			if (Keyboard::modifier_state_contains (event->button.state, Keyboard::CopyModifier)) {
 				add_region_copy_drag (item, event, clicked_regionview);
 			} else {
@@ -1501,7 +1501,7 @@ Editor::button_release_handler (Canvas::Item* item, GdkEvent* event, ItemType it
 
 		default:
 			break;
-                        
+
 		}
 
                 /* do any (de)selection operations that should occur on button release */
@@ -1747,7 +1747,7 @@ Editor::enter_handler (Canvas::Item* item, GdkEvent* event, ItemType item_type)
 			set_canvas_cursor ();
 		}
 		break;
-		
+
 	default:
 		break;
 	}
@@ -1817,7 +1817,7 @@ Editor::leave_handler (Canvas::Item* item, GdkEvent* event, ItemType item_type)
 #endif
 
 		_over_region_trim_target = false;
-		
+
 		if (is_drawable()) {
 			set_canvas_cursor (current_canvas_cursor);
 		}
@@ -1840,7 +1840,7 @@ Editor::leave_handler (Canvas::Item* item, GdkEvent* event, ItemType item_type)
 	case RegionViewName:
 		/* see enter_handler() for notes */
 		_over_region_trim_target = false;
-		
+
 		if (!reinterpret_cast<RegionView *> (item->get_data ("regionview"))->name_active()) {
 			if (is_drawable() && mouse_mode == MouseObject) {
 				set_canvas_cursor (current_canvas_cursor);
@@ -2045,7 +2045,7 @@ Editor::motion_handler (Canvas::Item* /*item*/, GdkEvent* event, bool from_autos
 	if (_drags->active ()) {
 		handled = _drags->motion_handler (event, from_autoscroll);
 	}
-	
+
 	if (!handled) {
 		return false;
 	}
@@ -2119,7 +2119,7 @@ Editor::edit_note (Canvas::Item* item)
 
 	d.run ();
 }
-	
+
 
 void
 Editor::visible_order_range (int* low, int* high) const
@@ -2224,7 +2224,7 @@ Editor::point_trim (GdkEvent* event, framepos_t new_bound)
 
 				if (!(*i)->region()->locked()) {
 					(*i)->region()->clear_changes ();
-					(*i)->region()->trim_front (new_bound, this);
+					(*i)->region()->trim_front (new_bound);
 					_session->add_command(new StatefulDiffCommand ((*i)->region()));
 				}
 			}
@@ -2232,7 +2232,7 @@ Editor::point_trim (GdkEvent* event, framepos_t new_bound)
 		} else {
 			if (!rv->region()->locked()) {
 				rv->region()->clear_changes ();
-				rv->region()->trim_front (new_bound, this);
+				rv->region()->trim_front (new_bound);
 				_session->add_command(new StatefulDiffCommand (rv->region()));
 			}
 		}
@@ -2249,7 +2249,7 @@ Editor::point_trim (GdkEvent* event, framepos_t new_bound)
 			{
 				if (!(*i)->region()->locked()) {
 					(*i)->region()->clear_changes();
-					(*i)->region()->trim_end (new_bound, this);
+					(*i)->region()->trim_end (new_bound);
 					_session->add_command(new StatefulDiffCommand ((*i)->region()));
 				}
 			}
@@ -2258,7 +2258,7 @@ Editor::point_trim (GdkEvent* event, framepos_t new_bound)
 
 			if (!rv->region()->locked()) {
 				rv->region()->clear_changes ();
-				rv->region()->trim_end (new_bound, this);
+				rv->region()->trim_end (new_bound);
 				_session->add_command (new StatefulDiffCommand (rv->region()));
 			}
 		}
@@ -2423,7 +2423,7 @@ Editor::add_region_brush_drag (Canvas::Item* item, GdkEvent* event, RegionView* 
 	if (!region_view->region()->playlist()) {
 		return;
 	}
-        
+
 	if (Config->get_edit_mode() == Splice) {
 		return;
 	}
@@ -2552,12 +2552,12 @@ Editor::update_join_object_range_location (double x, double y)
 	   entered_{track,regionview} is not always setup (e.g. if the mouse is over a TimeSelection), and to get a Region
 	   that we're over requires searching the playlist.
 	*/
-	   
+
 	if (join_object_range_button.get_active() == false || (mouse_mode != MouseRange && mouse_mode != MouseObject)) {
 		_join_object_range_state = JOIN_OBJECT_RANGE_NONE;
 		return;
 	}
-	
+
 	if (mouse_mode == MouseObject) {
 		_join_object_range_state = JOIN_OBJECT_RANGE_OBJECT;
 	} else if (mouse_mode == MouseRange) {

@@ -56,46 +56,46 @@ ExportElementFactory::~ExportElementFactory ()
 
 }
 
-ExportElementFactory::TimespanPtr
+ExportTimespanPtr
 ExportElementFactory::add_timespan ()
 {
-	return TimespanPtr (new ExportTimespan (session.get_export_status(), session.frame_rate()));
+	return ExportTimespanPtr (new ExportTimespan (session.get_export_status(), session.frame_rate()));
 }
 
-ExportElementFactory::ChannelConfigPtr
+ExportChannelConfigPtr
 ExportElementFactory::add_channel_config ()
 {
-	return ChannelConfigPtr (new ExportChannelConfiguration (session));
+	return ExportChannelConfigPtr (new ExportChannelConfiguration (session));
 }
 
-ExportElementFactory::FormatPtr
+ExportFormatSpecPtr
 ExportElementFactory::add_format ()
 {
-	return FormatPtr (new ExportFormatSpecification (session));
+	return ExportFormatSpecPtr (new ExportFormatSpecification (session));
 }
 
-ExportElementFactory::FormatPtr
+ExportFormatSpecPtr
 ExportElementFactory::add_format (XMLNode const & state)
 {
-	return FormatPtr (new ExportFormatSpecification (session, state));
+	return ExportFormatSpecPtr (new ExportFormatSpecification (session, state));
 }
 
-ExportElementFactory::FormatPtr
-ExportElementFactory::add_format_copy (FormatPtr other)
+ExportFormatSpecPtr
+ExportElementFactory::add_format_copy (ExportFormatSpecPtr other)
 {
-	return FormatPtr (new ExportFormatSpecification (*other));
+	return ExportFormatSpecPtr (new ExportFormatSpecification (*other));
 }
 
-ExportElementFactory::FilenamePtr
+ExportFilenamePtr
 ExportElementFactory::add_filename ()
 {
-	return FilenamePtr (new ExportFilename (session));
+	return ExportFilenamePtr (new ExportFilename (session));
 }
 
-ExportElementFactory::FilenamePtr
-ExportElementFactory::add_filename_copy (FilenamePtr other)
+ExportFilenamePtr
+ExportElementFactory::add_filename_copy (ExportFilenamePtr other)
 {
-	return FilenamePtr (new ExportFilename (*other));
+	return ExportFilenamePtr (new ExportFilename (*other));
 }
 
 /*** ExportHandler ***/
@@ -118,12 +118,14 @@ ExportHandler::~ExportHandler ()
 }
 
 bool
-ExportHandler::add_export_config (TimespanPtr timespan, ChannelConfigPtr channel_config, FormatPtr format, FilenamePtr filename, boost::shared_ptr<AudioGrapher::BroadcastInfo> broadcast_info)
+ExportHandler::add_export_config (ExportTimespanPtr timespan, ExportChannelConfigPtr channel_config,
+                                  ExportFormatSpecPtr format, ExportFilenamePtr filename,
+                                  BroadcastInfoPtr broadcast_info)
 {
 	FileSpec spec (channel_config, format, filename, broadcast_info);
 	ConfigPair pair (timespan, spec);
 	config_map.insert (pair);
-	
+
 	return true;
 }
 
@@ -133,9 +135,10 @@ ExportHandler::do_export (bool rt)
 	/* Count timespans */
 
 	export_status->init();
-	std::set<TimespanPtr> timespan_set;
+	std::set<ExportTimespanPtr> timespan_set;
 	for (ConfigMap::iterator it = config_map.begin(); it != config_map.end(); ++it) {
 		timespan_set.insert (it->first);
+		export_status->total_frames += it->first->get_length();
 	}
 	export_status->total_timespans = timespan_set.size();
 
@@ -196,9 +199,8 @@ ExportHandler::process_timespan (framecnt_t frames)
 	/* update position */
 
 	framecnt_t frames_to_read = 0;
-	framepos_t const start = current_timespan->get_start();
 	framepos_t const end = current_timespan->get_end();
-	
+
 	bool const last_cycle = (process_position + frames >= end);
 
 	if (last_cycle) {
@@ -210,7 +212,8 @@ ExportHandler::process_timespan (framecnt_t frames)
 	}
 
 	process_position += frames_to_read;
-	export_status->progress = (float) (process_position - start) / (end - start);
+	export_status->processed_frames += frames_to_read;
+	export_status->progress = (float) export_status->processed_frames / export_status->total_frames;
 
 	/* Do actual processing */
 
@@ -222,8 +225,11 @@ ExportHandler::process_normalize ()
 {
 	if (graph_builder->process_normalize ()) {
 		finish_timespan ();
+		export_status->normalizing = false;
+	} else {
+		export_status->normalizing = true;
 	}
-	
+
 	return 0;
 }
 
@@ -246,7 +252,8 @@ struct LocationSortByStart {
 };
 
 void
-ExportHandler::export_cd_marker_file (TimespanPtr timespan, FormatPtr file_format, std::string filename, CDMarkerFormat format)
+ExportHandler::export_cd_marker_file (ExportTimespanPtr timespan, ExportFormatSpecPtr file_format,
+                                      std::string filename, CDMarkerFormat format)
 {
 	string filepath;
 	string basename = Glib::path_get_basename(filename);

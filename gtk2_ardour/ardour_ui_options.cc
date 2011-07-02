@@ -35,6 +35,7 @@
 #include "ardour/osc.h"
 #endif
 
+#include "audio_clock.h"
 #include "ardour_ui.h"
 #include "actions.h"
 #include "gui_thread.h"
@@ -51,7 +52,7 @@ void
 ARDOUR_UI::toggle_keep_tearoffs ()
 {
 	ActionManager::toggle_config_state ("Common", "KeepTearoffs", &RCConfiguration::set_keep_tearoffs, &RCConfiguration::get_keep_tearoffs);
- 
+
 	ARDOUR_UI::toggle_editing_space ();
 }
 
@@ -68,7 +69,7 @@ when the pull up/down setting is non-zero."));
 				return;
 			}
 		}
-                                                                   
+
 		ActionManager::toggle_config_state_foo ("Transport", "ToggleExternalSync", sigc::mem_fun (_session->config, &SessionConfiguration::set_external_sync), sigc::mem_fun (_session->config, &SessionConfiguration::get_external_sync));
 	}
 }
@@ -240,12 +241,12 @@ ARDOUR_UI::show_loop_punch_ruler_and_disallow_hide ()
 	}
 
 	act->set_sensitive (false);
-	
+
 	Glib::RefPtr<ToggleAction> tact = Glib::RefPtr<ToggleAction>::cast_dynamic (act);
 	if (!tact) {
 		return;
 	}
-	
+
 	if (!tact->get_active()) {
 		tact->set_active ();
 	}
@@ -336,7 +337,7 @@ ARDOUR_UI::parameter_changed (std::string p)
 			ActionManager::get_action ("Transport", "ToggleAutoPlay")->set_sensitive (false);
 			ActionManager::get_action ("Transport", "ToggleAutoReturn")->set_sensitive (false);
 		}
-	
+
 	} else if (p == "send-mtc") {
 
 		ActionManager::map_some_state ("options", "SendMTC", &RCConfiguration::get_send_mtc);
@@ -395,9 +396,9 @@ ARDOUR_UI::parameter_changed (std::string p)
 	} else if (p == "show-track-meters") {
 		editor->toggle_meter_updating();
 	} else if (p == "primary-clock-delta-edit-cursor") {
-		primary_clock.set_is_duration (Config->get_primary_clock_delta_edit_cursor());
+		primary_clock->set_is_duration (Config->get_primary_clock_delta_edit_cursor());
 	} else if (p == "secondary-clock-delta-edit-cursor") {
-		secondary_clock.set_is_duration (Config->get_secondary_clock_delta_edit_cursor());
+		secondary_clock->set_is_duration (Config->get_secondary_clock_delta_edit_cursor());
 	}
 }
 
@@ -407,11 +408,11 @@ ARDOUR_UI::reset_main_clocks ()
 	ENSURE_GUI_THREAD (*this, &ARDOUR_UI::reset_main_clocks)
 
 	if (_session) {
-		primary_clock.set (_session->audible_frame(), true);
-		secondary_clock.set (_session->audible_frame(), true);
+		primary_clock->set (_session->audible_frame(), true);
+		secondary_clock->set (_session->audible_frame(), true);
 	} else {
-		primary_clock.set (0, true);
-		secondary_clock.set (0, true);
+		primary_clock->set (0, true);
+		secondary_clock->set (0, true);
 	}
 }
 

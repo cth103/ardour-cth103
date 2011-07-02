@@ -254,7 +254,7 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double thres
 
 	/* Find shortest audible segment */
         framecnt_t shortest_audible = max_framecnt;
-	
+
 	framecnt_t s = _region->start();
 	for (AudioIntervalResult::const_iterator i = silences.begin(); i != silences.end(); ++i) {
 		framecnt_t const dur = i->first - s;
@@ -282,11 +282,11 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double thres
         _silence_text->set_y_position (20);
         
         double ms = (float) shortest/_region->session().frame_rate();
-        
+
         /* ms are now in seconds */
 
         char const * sunits;
-        
+
         if (ms >= 60.0) {
                 sunits = _("minutes");
                 ms /= 60.0;
@@ -305,7 +305,7 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double thres
                 /* ms are now in seconds */
                 double ma = (float) shortest_audible / _region->session().frame_rate();
                 char const * aunits;
-                
+
                 if (ma >= 60.0) {
                         aunits = _("minutes");
                         ma /= 60.0;
@@ -847,7 +847,7 @@ RegionView::trim_front (framepos_t new_bound, bool no_overlap)
 
 	framepos_t const pre_trim_first_frame = _region->first_frame();
 
-	_region->trim_front ((framepos_t) (new_bound * speed), this);
+	_region->trim_front ((framepos_t) (new_bound * speed));
 
 	if (no_overlap) {
 		// Get the next region on the left of this region and shrink/expand it.
@@ -862,7 +862,7 @@ RegionView::trim_front (framepos_t new_bound, bool no_overlap)
 
 		// Only trim region on the left if the first frame has gone beyond the left region's last frame.
 		if (region_left != 0 &&	(region_left->last_frame() > _region->first_frame() || regions_touching)) {
-			region_left->trim_end (_region->first_frame() - 1, this);
+			region_left->trim_end (_region->first_frame() - 1);
 		}
 	}
 
@@ -881,7 +881,7 @@ RegionView::trim_end (framepos_t new_bound, bool no_overlap)
 
 	framepos_t const pre_trim_last_frame = _region->last_frame();
 
-	_region->trim_end ((framepos_t) (new_bound * speed), this);
+	_region->trim_end ((framepos_t) (new_bound * speed));
 
 	if (no_overlap) {
 		// Get the next region on the right of this region and shrink/expand it.
@@ -896,11 +896,11 @@ RegionView::trim_end (framepos_t new_bound, bool no_overlap)
 
 		// Only trim region on the right if the last frame has gone beyond the right region's first frame.
 		if (region_right != 0 && (region_right->first_frame() < _region->last_frame() || regions_touching)) {
-			region_right->trim_front (_region->last_frame() + 1, this);
+			region_right->trim_front (_region->last_frame() + 1);
 		}
 
 		region_changed (ARDOUR::bounds_change);
-			
+
 	} else {
 		region_changed (PropertyChange (ARDOUR::Properties::length));
 	}
@@ -944,7 +944,7 @@ RegionView::trim_contents (framepos_t frame_delta, bool left_direction, bool swa
 		}
 	}
 
-	_region->trim_start ((framepos_t) (new_bound * speed), this);
+	_region->trim_start ((framepos_t) (new_bound * speed));
 	region_changed (PropertyChange (ARDOUR::Properties::start));
 }
 

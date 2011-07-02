@@ -162,7 +162,7 @@ protected:
 	bool                              _valid;
         float                             _mouse_x_fraction;
         float                             _mouse_y_fraction;
-        
+
         void set_mouse_fractions (GdkEvent*);
 
 private:

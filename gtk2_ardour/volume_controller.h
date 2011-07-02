@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 1998-2007 Paul Davis 
+    Copyright (C) 1998-2007 Paul Davis
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 2 of the License, or
@@ -24,29 +24,37 @@
 
 #include "gtkmm2ext/motionfeedback.h"
 
-// march 2010: this exists as a placeholder to add a controllable, but maybe it will
-// end up in MotionFeedback
-
 class VolumeController : public Gtkmm2ext::MotionFeedback
 {
   public:
 	VolumeController (Glib::RefPtr<Gdk::Pixbuf>,
-			  Gtk::Adjustment *adj,
+			  boost::shared_ptr<PBD::Controllable>,
+			  double def,
+			  double step,
+			  double page,
 			  bool with_numeric = true,
                           int image_width = 40,
-                          int image_height = 40);
+                          int image_height = 40,
+			  bool linear = true);
 
         virtual ~VolumeController () {}
-        void set_controllable (boost::shared_ptr<PBD::Controllable> c);
+
+	static void _dB_printer (char buf[32], const boost::shared_ptr<PBD::Controllable>& adj, void* arg);
+
+  protected:
+	double to_control_value (double);
+	double to_display_value (double);
+	double adjust (double nominal_delta);
+
+	double display_value () const;
+	double control_value () const;
 
   private:
-	Gtk::Adjustment *adjustment;
-        PBD::ScopedConnection controllable_connection;
+	bool _linear;
 
-	void adjustment_value_changed ();
-	void controllable_value_changed ();
+	void dB_printer (char buf[32], const boost::shared_ptr<PBD::Controllable>& adj);
 };
 
-#endif // __gtk_ardour_vol_controller_h__		
+#endif // __gtk_ardour_vol_controller_h__
 
 

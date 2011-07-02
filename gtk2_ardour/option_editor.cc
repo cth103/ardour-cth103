@@ -20,9 +20,12 @@
 #include <gtkmm/box.h>
 #include <gtkmm/alignment.h>
 #include "gtkmm2ext/utils.h"
+
 #include "ardour/configuration.h"
+#include "ardour/rc_configuration.h"
 #include "ardour/utils.h"
 #include "ardour/dB.h"
+
 #include "option_editor.h"
 #include "gui_thread.h"
 #include "utils.h"
@@ -134,8 +137,7 @@ EntryOption::activated ()
 
 FaderOption::FaderOption (string const & i, string const & n, sigc::slot<gain_t> g, sigc::slot<bool, gain_t> s)
 	: Option (i, n)
-	// 0.781787 is the value needed for gain to be set to 0.
-	, _db_adjustment (0.781787, 0, 1, 0.01, 0.1)
+	, _db_adjustment (gain_to_slider_position_with_max (1.0, Config->get_max_gain()), 0, 1, 0.01, 0.1)
 	, _get (g)
 	, _set (s)
 {
@@ -156,7 +158,7 @@ FaderOption::FaderOption (string const & i, string const & n, sigc::slot<gain_t>
 	_box.pack_start (*_db_slider, false, false);
 	_box.pack_start (_db_display, false, false);
 	_box.show_all ();
-	
+
 	set_size_request_to_display_given_text (_db_display, "-99.0", 12, 12);
 
 	_db_adjustment.signal_value_changed().connect (sigc::mem_fun (*this, &FaderOption::db_changed));
@@ -166,7 +168,7 @@ void
 FaderOption::set_state_from_config ()
 {
 	gain_t const val = _get ();
-	_db_adjustment.set_value (gain_to_slider_position (val));
+	_db_adjustment.set_value (gain_to_slider_position_with_max (val, Config->get_max_gain ()));
 
 	char buf[16];
 
@@ -175,14 +177,14 @@ FaderOption::set_state_from_config ()
 	} else {
 		snprintf (buf, sizeof (buf), "%.2f", accurate_coefficient_to_dB (val));
 	}
-	
+
 	_db_display.set_text (buf);
 }
 
 void
 FaderOption::db_changed ()
 {
-	_set (slider_position_to_gain (_db_adjustment.get_value ()));
+	_set (slider_position_to_gain_with_max (_db_adjustment.get_value (), Config->get_max_gain()));
 }
 
 void
@@ -219,7 +221,7 @@ ClockOption::set_session (Session* s)
 {
 	_clock.set_session (s);
 }
-	   
+
 OptionEditorPage::OptionEditorPage (Gtk::Notebook& n, std::string const & t)
 	: table (1, 3)
 {
@@ -318,4 +320,4 @@ OptionEditor::set_current_page (string const & p)
 }
 
 
-	
+

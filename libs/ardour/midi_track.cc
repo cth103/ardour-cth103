@@ -57,11 +57,24 @@ MidiTrack::MidiTrack (Session& sess, string name, Route::Flag flag, TrackMode mo
 	, _note_mode(Sustained)
 	, _step_editing (false)
 	, _midi_thru (true)
+	, _input_active (true)
 {
 }
 
 MidiTrack::~MidiTrack ()
 {
+}
+
+int
+MidiTrack::init ()
+{
+	if (Track::init ()) {
+		return -1;
+	}
+
+	_input->changed.connect_same_thread (*this, boost::bind (&MidiTrack::track_input_active, this, _1, _2));
+
+	return 0;
 }
 
 void
@@ -98,7 +111,7 @@ void
 MidiTrack::set_diskstream (boost::shared_ptr<Diskstream> ds)
 {
 	Track::set_diskstream (ds);
-	
+
 	_diskstream->set_track (this);
 	_diskstream->set_destructive (_mode == Destructive);
 
@@ -146,7 +159,11 @@ MidiTrack::_set_state (const XMLNode& node, int version, bool call_base)
 	}
 
 	if ((prop = node.property ("midi-thru")) != 0) {
-		set_midi_thru (prop->value() == "yes");
+		set_midi_thru (string_is_affirmative (prop->value()));
+	}
+
+	if ((prop = node.property ("input-active")) != 0) {
+		set_input_active (string_is_affirmative (prop->value()));
 	}
 
 	XMLNodeList nlist;
@@ -222,6 +239,7 @@ MidiTrack::state(bool full_state)
 	root.add_property ("step-editing", (_step_editing ? "yes" : "no"));
 	root.add_property ("note-mode", enum_2_string (_note_mode));
 	root.add_property ("midi-thru", (_midi_thru ? "yes" : "no"));
+	root.add_property ("input-active", (_input_active ? "yes" : "no"));
 
 	return root;
 }
@@ -399,6 +417,19 @@ MidiTrack::no_roll (pframes_t nframes, framepos_t start_frame, framepos_t end_fr
 }
 
 void
+MidiTrack::realtime_locate ()
+{
+	Glib::RWLock::ReaderLock lm (_processor_lock, Glib::TRY_LOCK);
+	if (!lm.locked ()) {
+		return;
+	}
+
+	for (ProcessorList::iterator i = _processors.begin(); i != _processors.end(); ++i) {
+		(*i)->realtime_locate ();
+	}
+}
+
+void
 MidiTrack::realtime_handle_transport_stopped ()
 {
 	Glib::RWLock::ReaderLock lm (_processor_lock, Glib::TRY_LOCK);
@@ -427,7 +458,7 @@ MidiTrack::push_midi_input_to_step_edit_ringbuffer (framecnt_t nframes)
 			const Evoral::MIDIEvent<framepos_t> ev(*e, false);
 
 			/* note on, since for step edit, note length is determined
-			   elsewhere 
+			   elsewhere
 			*/
 
 			if (ev.is_note_on()) {
@@ -441,13 +472,26 @@ MidiTrack::push_midi_input_to_step_edit_ringbuffer (framecnt_t nframes)
 void
 MidiTrack::write_out_of_band_data (BufferSet& bufs, framepos_t /*start*/, framepos_t /*end*/, framecnt_t nframes)
 {
-	// Append immediate events
 	MidiBuffer& buf (bufs.get_midi (0));
+
+	// Append immediate events
+
 	if (_immediate_events.read_space()) {
-		DEBUG_TRACE (DEBUG::MidiIO, string_compose ("%1 has %2 of immediate events to deliver\n", 
+
+		DEBUG_TRACE (DEBUG::MidiIO, string_compose ("%1 has %2 of immediate events to deliver\n",
 		                                            name(), _immediate_events.read_space()));
+
+		/* write as many of the immediate events as we can, but give "true" as
+		 * the last argument ("stop on overflow in destination") so that we'll
+		 * ship the rest out next time.
+		 *
+		 * the (nframes-1) argument puts all these events at the last
+		 * possible position of the output buffer, so that we do not
+		 * violate monotonicity when writing.
+		 */
+
+		_immediate_events.read (buf, 0, 1, nframes-1, true);
 	}
-	_immediate_events.read (buf, 0, 1, nframes-1); // all stamps = 0
 
 	// MIDI thru: send incoming data "through" output
 	if (_midi_thru && _session.transport_speed() != 0.0f && _input->n_ports().n_midi()) {
@@ -638,7 +682,7 @@ MidiTrack::diskstream_data_recorded (boost::shared_ptr<MidiBuffer> buf, boost::w
 {
 	DataRecorded (buf, src); /* EMIT SIGNAL */
 }
-			       
+
 bool
 MidiTrack::should_monitor () const
 {
@@ -650,3 +694,45 @@ MidiTrack::send_silence () const
 {
 	return false;
 }
+
+bool
+MidiTrack::input_active () const
+{
+	return _input_active;
+}
+
+void
+MidiTrack::set_input_active (bool yn)
+{
+	if (yn != _input_active) {
+		_input_active = yn;
+		map_input_active (yn);
+		InputActiveChanged (); /* EMIT SIGNAL */
+	}
+}
+
+void
+MidiTrack::map_input_active (bool yn)
+{
+	if (!_input) {
+		return;
+	}
+
+	PortSet& ports (_input->ports());
+
+	for (PortSet::iterator p = ports.begin(DataType::MIDI); p != ports.end(DataType::MIDI); ++p) {
+		MidiPort* mp = dynamic_cast<MidiPort*> (&*p);
+		if (yn != mp->input_active()) {
+			mp->set_input_active (yn);
+		}
+	}
+}
+
+void
+MidiTrack::track_input_active (IOChange change, void* /* src */)
+{
+	if (change.type & IOChange::ConfigurationChanged) {
+		map_input_active (_input_active);
+	}
+}
+

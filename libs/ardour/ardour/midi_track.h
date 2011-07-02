@@ -31,7 +31,7 @@ class Session;
 class MidiDiskstream;
 class MidiPlaylist;
 class RouteGroup;
-class SMFSource;	
+class SMFSource;
 
 class MidiTrack : public Track
 {
@@ -39,13 +39,16 @@ public:
 	MidiTrack (Session&, string name, Route::Flag f = Route::Flag (0), TrackMode m = Normal);
 	~MidiTrack ();
 
+	int init ();
+
 	int roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame,
-                  int declick, bool can_record, bool rec_monitors_input, bool& need_butler);
+	          int declick, bool can_record, bool rec_monitors_input, bool& need_butler);
 
 	void realtime_handle_transport_stopped ();
+	void realtime_locate ();
 
 	void use_new_diskstream ();
-        void set_diskstream (boost::shared_ptr<Diskstream>);
+	void set_diskstream (boost::shared_ptr<Diskstream>);
 	void set_record_enabled (bool yn, void *src);
 
 	DataType data_type () const {
@@ -56,7 +59,7 @@ public:
 
 	void freeze_me (InterThreadInfo&);
 	void unfreeze ();
-        
+
 	boost::shared_ptr<Region> bounce (InterThreadInfo&);
 	boost::shared_ptr<Region> bounce_range (
 			framepos_t start, framepos_t end, InterThreadInfo&, bool enable_processing
@@ -87,7 +90,7 @@ public:
 	void set_step_editing (bool yn);
 	MidiRingBuffer<framepos_t>& step_edit_ring_buffer() { return _step_edit_ring_buffer; }
 
-        PBD::Signal1<void,bool> StepEditStatusChange;
+	PBD::Signal1<void,bool> StepEditStatusChange;
 
 	bool midi_thru() const { return _midi_thru; }
 	void set_midi_thru (bool yn);
@@ -101,15 +104,19 @@ public:
 	bool bounceable () const {
 		return false;
 	}
-	
+
 	PBD::Signal2<void, boost::shared_ptr<MidiBuffer>, boost::weak_ptr<MidiSource> > DataRecorded;
+
+	void set_input_active (bool);
+	bool input_active () const;
+	PBD::Signal0<void> InputActiveChanged;
 
 protected:
 	XMLNode& state (bool full);
-	
+
 	int _set_state (const XMLNode&, int, bool call_base);
-        bool should_monitor () const;
-        bool send_silence () const;
+	bool should_monitor () const;
+	bool send_silence () const;
 
   private:
 	boost::shared_ptr<MidiDiskstream> midi_diskstream () const;
@@ -124,6 +131,7 @@ protected:
 	NoteMode                  _note_mode;
 	bool                      _step_editing;
 	bool                      _midi_thru;
+	bool                      _input_active;
 
 	int no_roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame,
 			bool state_changing, bool can_record, bool rec_monitors_input);
@@ -131,6 +139,9 @@ protected:
 
 	void diskstream_data_recorded (boost::shared_ptr<MidiBuffer>, boost::weak_ptr<MidiSource>);
 	PBD::ScopedConnection _diskstream_data_recorded_connection;
+
+	void track_input_active (IOChange, void*);
+	void map_input_active (bool);
 };
 
 } /* namespace ARDOUR*/

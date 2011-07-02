@@ -44,6 +44,7 @@
 #include "speaker_dialog.h"
 #include "sfdb_ui.h"
 #include "theme_manager.h"
+#include "time_info_box.h"
 
 #include "i18n.h"
 
@@ -92,12 +93,13 @@ ARDOUR_UI::set_session (Session *s)
 		}
 	}
 
-	primary_clock.set_session (s);
-	secondary_clock.set_session (s);
-	big_clock.set_session (s);
-	preroll_clock.set_session (s);
-	postroll_clock.set_session (s);
-	
+	primary_clock->set_session (s);
+	secondary_clock->set_session (s);
+	big_clock->set_session (s);
+	preroll_clock->set_session (s);
+	postroll_clock->set_session (s);
+	time_info_box->set_session (s);
+
 	/* sensitize menu bar options that are now valid */
 
 	ActionManager::set_sensitive (ActionManager::session_sensitive_actions, true);

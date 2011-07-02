@@ -20,6 +20,7 @@
 
 #include "pbd/failed_constructor.h"
 
+#include "ardour/audio_buffer.h"
 #include "ardour/internal_return.h"
 #include "ardour/mute_master.h"
 #include "ardour/session.h"
@@ -51,6 +52,21 @@ InternalReturn::run (BufferSet& bufs, framepos_t /*start_frame*/, framepos_t /*e
 			bufs.merge_from ((*i)->get_buffers(), nframes);
 		}
 	}
+
+#if 0
+        if (_session.transport_rolling()) {
+                for (BufferSet::audio_iterator b = bufs.audio_begin(); b != bufs.audio_end(); ++b) {
+                        Sample* p = b->data ();
+                        for (pframes_t n = 0; n < nframes; ++n) {
+				if (p[n] != 0.0) {
+					cerr << "\tnon-zero data received\n";
+					break;
+				}
+                        }
+                }
+        }
+#endif
+
 
 	_active = _pending_active;
 }
@@ -129,4 +145,4 @@ InternalReturn::can_support_io_configuration (const ChanCount& in, ChanCount& ou
 	return true;
 }
 
-	
+

@@ -80,7 +80,7 @@ Editor::initialize_canvas ()
 	_time_bars_canvas = _time_bars_canvas_viewport->canvas ();
 	
 	_verbose_cursor = new VerboseCursor (this);
-	
+
 	/* on the bottom, an image */
 
 	if (Profile->get_sae()) {
@@ -304,7 +304,7 @@ Editor::reset_controls_layout_width ()
         }
 
         /* the controls layout has no horizontal scrolling, its visible
-           width is always equal to the total width of its contents. 
+           width is always equal to the total width of its contents.
         */
 
         controls_layout.property_width() = w;
@@ -318,10 +318,10 @@ Editor::reset_controls_layout_height (int32_t h)
          */
 
         controls_layout.property_height() = h;
-        
+
         /* size request is set elsewhere, see ::track_canvas_allocate() */
 }
-        
+
 bool
 Editor::track_canvas_map_handler (GdkEventAny* /*ev*/)
 {

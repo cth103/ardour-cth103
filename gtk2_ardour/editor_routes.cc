@@ -68,6 +68,8 @@ EditorRoutes::EditorRoutes (Editor* e)
         , selection_countdown (0)
         , name_editable (0)
 {
+	static const int column_width = 22;
+
 	_scroller.add (_display);
 	_scroller.set_policy (POLICY_NEVER, POLICY_AUTOMATIC);
 
@@ -87,15 +89,33 @@ EditorRoutes::EditorRoutes (Editor* e)
 
 	rec_state_column->add_attribute(rec_col_renderer->property_state(), _columns.rec_state);
 	rec_state_column->add_attribute(rec_col_renderer->property_visible(), _columns.is_track);
+
 	rec_state_column->set_sizing(TREE_VIEW_COLUMN_FIXED);
 	rec_state_column->set_alignment(ALIGN_CENTER);
 	rec_state_column->set_expand(false);
-	rec_state_column->set_fixed_width(15);
+	rec_state_column->set_fixed_width(column_width);
+
+	// MIDI Input Active
+
+	CellRendererPixbufMulti* input_active_col_renderer = manage (new CellRendererPixbufMulti());
+	input_active_col_renderer->set_pixbuf (0, ::get_icon("act-disabled"));
+	input_active_col_renderer->set_pixbuf (1, ::get_icon("midi-input-active"));
+	input_active_col_renderer->signal_changed().connect (sigc::mem_fun (*this, &EditorRoutes::on_input_active_changed));
+
+	TreeViewColumn* input_active_column = manage (new TreeViewColumn ("I", *input_active_col_renderer));
+
+	input_active_column->add_attribute(input_active_col_renderer->property_state(), _columns.is_input_active);
+	input_active_column->add_attribute (input_active_col_renderer->property_visible(), _columns.is_midi);
+
+	input_active_column->set_sizing(TREE_VIEW_COLUMN_FIXED);
+	input_active_column->set_alignment(ALIGN_CENTER);
+	input_active_column->set_expand(false);
+	input_active_column->set_fixed_width(column_width);
 
 	// Mute enable toggle
 	CellRendererPixbufMulti* mute_col_renderer = manage (new CellRendererPixbufMulti());
 
-	mute_col_renderer->set_pixbuf (0, ::get_icon("act-disabled"));
+	mute_col_renderer->set_pixbuf (0, ::get_icon("mute-disabled"));
 	mute_col_renderer->set_pixbuf (1, ::get_icon("muted-by-others"));
 	mute_col_renderer->set_pixbuf (2, ::get_icon("mute-enabled"));
 	mute_col_renderer->signal_changed().connect (sigc::mem_fun (*this, &EditorRoutes::on_tv_mute_enable_toggled));
@@ -111,7 +131,7 @@ EditorRoutes::EditorRoutes (Editor* e)
 	// Solo enable toggle
 	CellRendererPixbufMulti* solo_col_renderer = manage (new CellRendererPixbufMulti());
 
-	solo_col_renderer->set_pixbuf (0, ::get_icon("act-disabled"));
+	solo_col_renderer->set_pixbuf (0, ::get_icon("solo-disabled"));
 	solo_col_renderer->set_pixbuf (1, ::get_icon("solo-enabled"));
 	solo_col_renderer->set_pixbuf (3, ::get_icon("soloed-by-others"));
 	solo_col_renderer->signal_changed().connect (sigc::mem_fun (*this, &EditorRoutes::on_tv_solo_enable_toggled));
@@ -122,13 +142,13 @@ EditorRoutes::EditorRoutes (Editor* e)
 	solo_state_column->set_sizing(TREE_VIEW_COLUMN_FIXED);
 	solo_state_column->set_alignment(ALIGN_CENTER);
 	solo_state_column->set_expand(false);
-	solo_state_column->set_fixed_width(15);
+	solo_state_column->set_fixed_width(column_width);
 
 	// Solo isolate toggle
 	CellRendererPixbufMulti* solo_iso_renderer = manage (new CellRendererPixbufMulti());
 
-	solo_iso_renderer->set_pixbuf (0, ::get_icon("act-disabled"));
-	solo_iso_renderer->set_pixbuf (1, ::get_icon("solo-isolated"));
+	solo_iso_renderer->set_pixbuf (0, ::get_icon("solo-isolate-disabled"));
+	solo_iso_renderer->set_pixbuf (1, ::get_icon("solo-isolate-enabled"));
 	solo_iso_renderer->signal_changed().connect (sigc::mem_fun (*this, &EditorRoutes::on_tv_solo_isolate_toggled));
 
 	TreeViewColumn* solo_isolate_state_column = manage (new TreeViewColumn("SI", *solo_iso_renderer));
@@ -137,13 +157,13 @@ EditorRoutes::EditorRoutes (Editor* e)
 	solo_isolate_state_column->set_sizing(TREE_VIEW_COLUMN_FIXED);
 	solo_isolate_state_column->set_alignment(ALIGN_CENTER);
 	solo_isolate_state_column->set_expand(false);
-	solo_isolate_state_column->set_fixed_width(22);
+	solo_isolate_state_column->set_fixed_width(column_width);
 
 	// Solo safe toggle
 	CellRendererPixbufMulti* solo_safe_renderer = manage (new CellRendererPixbufMulti ());
 
-	solo_safe_renderer->set_pixbuf (0, ::get_icon("act-disabled"));
-	solo_safe_renderer->set_pixbuf (1, ::get_icon("solo-enabled"));
+	solo_safe_renderer->set_pixbuf (0, ::get_icon("solo-safe-disabled"));
+	solo_safe_renderer->set_pixbuf (1, ::get_icon("solo-safe-enabled"));
 	solo_safe_renderer->signal_changed().connect (sigc::mem_fun (*this, &EditorRoutes::on_tv_solo_safe_toggled));
 
 	TreeViewColumn* solo_safe_state_column = manage (new TreeViewColumn(_("SS"), *solo_safe_renderer));
@@ -151,19 +171,18 @@ EditorRoutes::EditorRoutes (Editor* e)
 	solo_safe_state_column->set_sizing(TREE_VIEW_COLUMN_FIXED);
 	solo_safe_state_column->set_alignment(ALIGN_CENTER);
 	solo_safe_state_column->set_expand(false);
-	solo_safe_state_column->set_fixed_width(22);
+	solo_safe_state_column->set_fixed_width(column_width);
 
+	_display.append_column (*input_active_column);
 	_display.append_column (*rec_state_column);
 	_display.append_column (*mute_state_column);
 	_display.append_column (*solo_state_column);
 	_display.append_column (*solo_isolate_state_column);
 	_display.append_column (*solo_safe_state_column);
-	
-        int colnum = _display.append_column (_("Name"), _columns.text);
-	TreeViewColumn* c = _display.get_column (colnum-1);
-        c->set_data ("i_am_the_tab_column", (void*) 0xfeedface);
-	_display.append_column (_("V"), _columns.visible);
-	
+
+        _name_column = _display.append_column (_("Name"), _columns.text) - 1;
+	_visible_column = _display.append_column (_("V"), _columns.visible) - 1;
+
 	_display.set_headers_visible (true);
 	_display.set_name ("TrackListDisplay");
 	_display.get_selection()->set_mode (SELECTION_SINGLE);
@@ -173,12 +192,12 @@ EditorRoutes::EditorRoutes (Editor* e)
 	_display.set_size_request (100, -1);
 	_display.add_object_drag (_columns.route.index(), "routes");
 
-	CellRendererText* name_cell = dynamic_cast<CellRendererText*> (_display.get_column_cell_renderer (5));
+	CellRendererText* name_cell = dynamic_cast<CellRendererText*> (_display.get_column_cell_renderer (_name_column));
 
 	assert (name_cell);
         name_cell->signal_editing_started().connect (sigc::mem_fun (*this, &EditorRoutes::name_edit_started));
 
-	TreeViewColumn* name_column = _display.get_column (5);
+	TreeViewColumn* name_column = _display.get_column (_name_column);
 
 	assert (name_column);
 
@@ -191,21 +210,21 @@ EditorRoutes::EditorRoutes (Editor* e)
 	name_cell->signal_edited().connect (sigc::mem_fun (*this, &EditorRoutes::name_edit));
 
 	// Set the visible column cell renderer to radio toggle
-	CellRendererToggle* visible_cell = dynamic_cast<CellRendererToggle*> (_display.get_column_cell_renderer (6));
+	CellRendererToggle* visible_cell = dynamic_cast<CellRendererToggle*> (_display.get_column_cell_renderer (_visible_column));
 
 	visible_cell->property_activatable() = true;
 	visible_cell->property_radio() = false;
 	visible_cell->signal_toggled().connect (sigc::mem_fun (*this, &EditorRoutes::visible_changed));
-	
-	TreeViewColumn* visible_col = dynamic_cast<TreeViewColumn*> (_display.get_column (6));
+
+	TreeViewColumn* visible_col = dynamic_cast<TreeViewColumn*> (_display.get_column (_visible_column));
 	visible_col->set_expand(false);
 	visible_col->set_sizing(TREE_VIEW_COLUMN_FIXED);
 	visible_col->set_fixed_width(30);
 	visible_col->set_alignment(ALIGN_CENTER);
-	
+
 	_model->signal_row_deleted().connect (sigc::mem_fun (*this, &EditorRoutes::route_deleted));
 	_model->signal_rows_reordered().connect (sigc::mem_fun (*this, &EditorRoutes::reordered));
-	
+
 	_display.signal_button_press_event().connect (sigc::mem_fun (*this, &EditorRoutes::button_press), false);
 	_scroller.signal_key_press_event().connect (sigc::mem_fun(*this, &EditorRoutes::key_press), false);
 
@@ -254,8 +273,8 @@ EditorRoutes::enter_notify (GdkEventCrossing*)
 	if (name_editable) {
 		return true;
 	}
-	
-        /* arm counter so that ::selection_filter() will deny selecting anything for the 
+
+        /* arm counter so that ::selection_filter() will deny selecting anything for the
            next two attempts to change selection status.
         */
         selection_countdown = 2;
@@ -292,6 +311,24 @@ EditorRoutes::set_session (Session* s)
 }
 
 void
+EditorRoutes::on_input_active_changed (std::string const & path_string)
+{
+	// Get the model row that has been toggled.
+	Gtk::TreeModel::Row row = *_model->get_iter (Gtk::TreeModel::Path (path_string));
+
+	TimeAxisView* tv = row[_columns.tv];
+	RouteTimeAxisView *rtv = dynamic_cast<RouteTimeAxisView*> (tv);
+
+	if (rtv) {
+		boost::shared_ptr<MidiTrack> mt;
+		mt = rtv->midi_track();
+		if (mt) {
+			mt->set_input_active (!mt->input_active());
+		}
+	}
+}
+
+void
 EditorRoutes::on_tv_rec_enable_changed (std::string const & path_string)
 {
 	// Get the model row that has been toggled.
@@ -315,7 +352,7 @@ EditorRoutes::on_tv_mute_enable_toggled (std::string const & path_string)
 
 	TimeAxisView *tv = row[_columns.tv];
 	RouteTimeAxisView *rtv = dynamic_cast<RouteTimeAxisView*> (tv);
-        
+
 	if (rtv != 0) {
 		boost::shared_ptr<RouteList> rl (new RouteList);
 		rl->push_back (rtv->route());
@@ -439,8 +476,7 @@ EditorRoutes::redisplay ()
 			position += tv->show_at (position, n, &_editor->edit_controls_vbox);
 			tv->clip_to_viewport ();
 		} else {
-			tv->set_marked_for_display (false);
-			tv->hide ();
+			tv->set_visibility (false);
 		}
 
 		n++;
@@ -477,7 +513,7 @@ EditorRoutes::route_deleted (Gtk::TreeModel::Path const &)
 	if (!_session || _session->deletion_in_progress()) {
 		return;
 	}
-		
+
         /* this could require an order reset & sync */
 	_session->set_remote_control_ids();
 	_ignore_reorder = true;
@@ -518,6 +554,8 @@ EditorRoutes::routes_added (list<RouteTimeAxisView*> routes)
 
 	for (list<RouteTimeAxisView*>::iterator x = routes.begin(); x != routes.end(); ++x) {
 
+		boost::shared_ptr<MidiTrack> midi_trk = boost::dynamic_pointer_cast<MidiTrack> ((*x)->route());
+
 		row = *(_model->append ());
 
 		row[_columns.text] = (*x)->route()->name();
@@ -525,6 +563,15 @@ EditorRoutes::routes_added (list<RouteTimeAxisView*> routes)
 		row[_columns.tv] = *x;
 		row[_columns.route] = (*x)->route ();
 		row[_columns.is_track] = (boost::dynamic_pointer_cast<Track> ((*x)->route()) != 0);
+
+		if (midi_trk) {
+			row[_columns.is_input_active] = midi_trk->input_active ();
+			row[_columns.is_midi] = true;
+		} else {
+			row[_columns.is_input_active] = false;
+			row[_columns.is_midi] = false;
+		}
+
 		row[_columns.mute_state] = (*x)->route()->muted();
 		row[_columns.solo_state] = RouteUI::solo_visual_state ((*x)->route());
 		row[_columns.solo_isolate_state] = (*x)->route()->solo_isolated();
@@ -553,6 +600,7 @@ EditorRoutes::routes_added (list<RouteTimeAxisView*> routes)
 		if ((*x)->is_midi_track()) {
 			boost::shared_ptr<MidiTrack> t = boost::dynamic_pointer_cast<MidiTrack> ((*x)->route());
 			t->StepEditStatusChange.connect (*this, MISSING_INVALIDATOR, boost::bind (&EditorRoutes::update_rec_display, this), gui_context());
+			t->InputActiveChanged.connect (*this, MISSING_INVALIDATOR, boost::bind (&EditorRoutes::update_input_active_display, this), gui_context());
 		}
 
 		(*x)->route()->mute_changed.connect (*this, MISSING_INVALIDATOR, boost::bind (&EditorRoutes::update_mute_display, this), gui_context());
@@ -567,6 +615,7 @@ EditorRoutes::routes_added (list<RouteTimeAxisView*> routes)
 	update_solo_display (true);
 	update_solo_isolate_display ();
 	update_solo_safe_display ();
+	update_input_active_display ();
 	resume_redisplay ();
 	_redisplay_does_not_sync_order_keys = false;
 }
@@ -733,7 +782,7 @@ EditorRoutes::sync_order_keys (string const & src)
 		for (map<int, int>::const_iterator i = new_order.begin(); i != new_order.end(); ++i) {
 			co.push_back (i->second);
 		}
-		
+
 		_model->reorder (co);
 		_redisplay_does_not_reset_order_keys = false;
 	}
@@ -801,13 +850,13 @@ EditorRoutes::set_all_audio_midi_visibility (int tracks, bool yn)
 	suspend_redisplay ();
 
 	for (i = rows.begin(); i != rows.end(); ++i) {
-	  
+
 		TreeModel::Row row = (*i);
 		TimeAxisView* tv = row[_columns.tv];
-		
+
 		AudioTimeAxisView* atv;
 		MidiTimeAxisView* mtv;
-		
+
 		if (tv == 0) {
 			continue;
 		}
@@ -910,9 +959,9 @@ EditorRoutes::key_press (GdkEventKey* ev)
                 if (name_editable) {
                         name_editable->editing_done ();
                         name_editable = 0;
-                } 
+                }
 
-                col = _display.get_column (5); // select&focus on name column
+                col = _display.get_column (_name_column); // select&focus on name column
 
                 if (Keyboard::modifier_state_equals (ev->state, Keyboard::TertiaryModifier)) {
                         treeview_select_previous (_display, _model, col);
@@ -1002,22 +1051,22 @@ EditorRoutes::button_press (GdkEventButton* ev)
 		show_menu ();
 		return true;
 	}
-	
+
 	//Scroll editor canvas to selected track
 	if (Keyboard::modifier_state_equals (ev->state, Keyboard::PrimaryModifier)) {
-		
+
 		TreeModel::Path path;
 		TreeViewColumn *tvc;
 		int cell_x;
 		int cell_y;
-		
+
 		_display.get_path_at_pos ((int) ev->x, (int) ev->y, path, tvc, cell_x, cell_y);
 
 		// Get the model row.
 		Gtk::TreeModel::Row row = *_model->get_iter (path);
-		
+
 		TimeAxisView *tv = row[_columns.tv];
-		
+
 		int y_pos = tv->y_position();
 		
 		// Clamp the y pos so that we do not extend beyond the canvas full height.
@@ -1030,7 +1079,7 @@ EditorRoutes::button_press (GdkEventButton* ev)
 			_editor->reset_y_origin (y_pos);
 		}
 	}
-	
+
 	return false;
 }
 
@@ -1237,6 +1286,25 @@ EditorRoutes::move_selected_tracks (bool up)
 }
 
 void
+EditorRoutes::update_input_active_display ()
+{
+	TreeModel::Children rows = _model->children();
+	TreeModel::Children::iterator i;
+
+	for (i = rows.begin(); i != rows.end(); ++i) {
+		boost::shared_ptr<Route> route = (*i)[_columns.route];
+
+		if (boost::dynamic_pointer_cast<Track> (route)) {
+			boost::shared_ptr<MidiTrack> mt = boost::dynamic_pointer_cast<MidiTrack> (route);
+			
+			if (mt) {
+				(*i)[_columns.is_input_active] = mt->input_active();
+			}
+		}
+	}
+}
+
+void
 EditorRoutes::update_rec_display ()
 {
 	TreeModel::Children rows = _model->children();
@@ -1259,7 +1327,7 @@ EditorRoutes::update_rec_display ()
 			} else {
 				(*i)[_columns.rec_state] = 0;
 			}
-		
+
 			(*i)[_columns.name_editable] = !route->record_enabled ();
 		}
 	}
@@ -1384,7 +1452,7 @@ EditorRoutes::show_tracks_with_regions_at_playhead ()
 	}
 
 	suspend_redisplay ();
-	
+
 	TreeModel::Children rows = _model->children ();
 	for (TreeModel::Children::iterator i = rows.begin(); i != rows.end(); ++i) {
 		TimeAxisView* tv = (*i)[_columns.tv];

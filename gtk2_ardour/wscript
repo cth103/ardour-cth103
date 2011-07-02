@@ -123,6 +123,7 @@ gtk2_ardour_sources = [
         'main.cc',
         'marker.cc',
         'midi_automation_line.cc',
+        'midi_channel_dialog.cc',
         'midi_channel_selector.cc',
         'midi_cut_buffer.cc',
         'midi_list_editor.cc',
@@ -208,6 +209,7 @@ gtk2_ardour_sources = [
         'time_axis_view.cc',
         'time_axis_view_item.cc',
         'time_fx_dialog.cc',
+        'time_info_box.cc',
         'time_selection.cc',
         'track_selection.cc',
         'track_view_list.cc',
@@ -417,7 +419,8 @@ def build(bld):
                 'MASSIVE' : '60'
         }
 
- # Set up font substitution dictionary
+    # Set up font substitution dictionary
+    # @FONT_XXXX@
     for style in ['', 'BOLD', 'ITALIC']:
         for sizename,points in iter(font_sizes.items()):
             if (len (style)):
@@ -430,6 +433,12 @@ def build(bld):
             dark_rc_subst_dict[key] = fontstyle
             light_rc_subst_dict[key] = fontstyle
 
+    # @FONT_SIZE_XXXX@
+    for sizename,points in iter(font_sizes.items()):
+            key = "_".join (['FONT_SIZE',sizename])
+            dark_rc_subst_dict[key] = points
+            light_rc_subst_dict[key] = points
+
     # RC files
     dark_rc_subst_dict['COLOR_SCHEME'] = build_color_scheme(
         'gtk2_ardour/ardour3_ui_dark.rc.in', 'ARDOUR_DARK')
@@ -439,15 +448,44 @@ def build(bld):
     light_rc_subst_dict['COLPREFIX'] = 'ARDOUR_LIGHT'
 
     obj              = bld.new_task_gen('subst')
-    obj.source       = 'ardour3_ui_dark.rc.in'
+    obj.source       = [ 'ardour3_ui_dark.rc.in' ]
     obj.target       = 'ardour3_ui_dark.rc'
     obj.dict         = dark_rc_subst_dict
     obj.install_path = os.path.join(bld.env['CONFIGDIR'], 'ardour3')
 
     obj              = bld.new_task_gen('subst')
-    obj.source       = 'ardour3_ui_light.rc.in'
+    obj.source       = [ 'ardour3_ui_light.rc.in' ]
     obj.target       = 'ardour3_ui_light.rc'
     obj.dict         = light_rc_subst_dict
+    obj.install_path = os.path.join(bld.env['CONFIGDIR'], 'ardour3')
+
+    obj              = bld.new_task_gen('subst')
+    obj.source       = [ 'ardour3_styles.rc.in' ]
+    obj.target       = 'ardour3_dark_styles.rc'
+    obj.dict         = dark_rc_subst_dict
+    obj.install_path = os.path.join(bld.env['CONFIGDIR'], 'ardour3')
+
+    obj              = bld.new_task_gen('subst')
+    obj.source       = [ 'ardour3_styles.rc.in' ]
+    obj.target       = 'ardour3_light_styles.rc'
+    obj.dict         = light_rc_subst_dict
+    obj.install_path = os.path.join(bld.env['CONFIGDIR'], 'ardour3')
+
+    obj              = bld.new_task_gen('subst')
+    obj.source       = [ 'ardour3_fonts.rc.in' ]
+    obj.target       = 'ardour3_dark_fonts.rc'
+    obj.dict         = dark_rc_subst_dict
+    obj.install_path = os.path.join(bld.env['CONFIGDIR'], 'ardour3')
+
+    obj              = bld.new_task_gen('subst')
+    obj.source       = [ 'ardour3_fonts.rc.in' ]
+    obj.target       = 'ardour3_light_fonts.rc'
+    obj.dict         = light_rc_subst_dict
+    obj.install_path = os.path.join(bld.env['CONFIGDIR'], 'ardour3')
+
+    obj              = bld.new_task_gen('copy')
+    obj.source       = [ 'ardour3_widget_list.rc' ]
+    obj.target       = 'ardour3_widgets.rc'
     obj.install_path = os.path.join(bld.env['CONFIGDIR'], 'ardour3')
 
     # Menus
@@ -490,7 +528,9 @@ def build(bld):
 
     # Default UI configuration
     bld.install_files('${CONFIGDIR}/ardour3', 'ardour3_ui_default.conf')
-
+    # Generic widget style mappings
+    bld.install_files('${CONFIGDIR}/ardour3', 'ardour3_widgets.rc')
+    
     # Default export stuff
     bld.install_files('${CONFIGDIR}/ardour3/export', 'export/*.format')
 

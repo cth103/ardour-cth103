@@ -176,6 +176,7 @@
         <menuitem action='select-prev-route'/>
       </menu>	   
       <separator/>
+      <menuitem action='editor-delete'/>
       <menuitem action='editor-crop'/>
       <menuitem action='split-region'/>
       <menuitem action='split-region-at-transients'/>
@@ -313,7 +314,6 @@
         <menuitem action='track-height-larger'/>
         <menuitem action='track-height-large'/>
         <menuitem action='track-height-normal'/>
-        <menuitem action='track-height-smaller'/>
         <menuitem action='track-height-small'/>
       </menu>
       <menuitem action='track-record-enable-toggle'/>
@@ -328,16 +328,16 @@
       <separator/>
 
       <menu action="PrimaryClockMenu">
+        <menuitem action="primary-clock-timecode"/>
         <menuitem action="primary-clock-bbt"/>
         <menuitem action="primary-clock-minsec"/>
         <menuitem action="primary-clock-samples"/>
-        <menuitem action="primary-clock-off"/>
       </menu>
       <menu action="SecondaryClockMenu">
+        <menuitem action="secondary-clock-timecode"/>
         <menuitem action="secondary-clock-bbt"/>
         <menuitem action="secondary-clock-minsec"/>
         <menuitem action="secondary-clock-samples"/>
-        <menuitem action="secondary-clock-off"/>
       </menu>
 
       <separator/>

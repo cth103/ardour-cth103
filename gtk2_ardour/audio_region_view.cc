@@ -174,7 +174,6 @@ AudioRegionView::init (Gdk::Color const & basic_color, bool wfd)
 		fade_position_line->set_outline_color (0xBBBBBBAA);
 		fade_position_line->set_y0 (7);
 		fade_position_line->set_y1 (_height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1);
-
 		fade_position_line->hide();
 	}
 
@@ -383,11 +382,10 @@ AudioRegionView::region_resized (const PropertyChange& what_changed)
 				}
 			}
 		}
-		
+
 		/* hide transient lines that extend beyond the region end */
 
 		list<std::pair<framepos_t, Canvas::Line*> >::iterator l;
-		
 		for (l = feature_lines.begin(); l != feature_lines.end(); ++l) {
 			if (l->first > _region->length() - 1) {
 				l->second->hide();
@@ -411,7 +409,7 @@ AudioRegionView::reset_width_dependent_items (double pixel_width)
 		}
 		else {
 			fade_in_handle->show();
-			fade_out_handle->show();		  
+			fade_out_handle->show();
 		}
 	}
 
@@ -421,7 +419,7 @@ AudioRegionView::reset_width_dependent_items (double pixel_width)
 	list<std::pair<framepos_t, Canvas::Line*> >::iterator l;
 
 	for (i = analysis_features.begin(), l = feature_lines.begin(); i != analysis_features.end() && l != feature_lines.end(); ++i, ++l) {
-	  
+
 		float x_pos = trackview.editor().frame_to_pixel (*i);
 
 		(*l).first = *i;
@@ -430,7 +428,7 @@ AudioRegionView::reset_width_dependent_items (double pixel_width)
 			Canvas::Duple (x_pos, _height - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 1)
 			);
 	}
-	
+
 	reset_fade_shapes ();
 }
 
@@ -503,10 +501,9 @@ AudioRegionView::set_height (gdouble height)
 	}
 
 	reset_fade_shapes ();
-	
+
 	/* Update hights for any active feature lines */
 	list<std::pair<framepos_t, Canvas::Line*> >::iterator l;
-	
 	for (l = feature_lines.begin(); l != feature_lines.end(); ++l) {
 
 		float pos_x = trackview.editor().frame_to_pixel((*l).first);
@@ -1000,7 +997,7 @@ AudioRegionView::add_gain_point_event (Canvas::Item *item, GdkEvent *ev)
 
 	gain_line->view_to_model_coord (x, y);
 
-	/* XXX STATEFUL: can't convert to stateful diff until we 
+	/* XXX STATEFUL: can't convert to stateful diff until we
 	   can represent automation data with it.
 	*/
 
@@ -1230,7 +1227,7 @@ AudioRegionView::set_frame_color ()
 	}
 
 	TimeAxisViewItem::set_frame_color ();
-        
+
         uint32_t wc;
         uint32_t fc;
 
@@ -1362,7 +1359,7 @@ AudioRegionView::transients_changed ()
 
 		canvas_item->raise_to_top ();
 		canvas_item->show ();
-		
+
 		canvas_item->set_data ("regionview", this);
 		canvas_item->Event.connect (sigc::bind (sigc::mem_fun (PublicEditor::instance(), &PublicEditor::canvas_feature_line_event), canvas_item, this));
 		
@@ -1377,7 +1374,6 @@ AudioRegionView::transients_changed ()
 
 	AnalysisFeatureList::const_iterator i;
 	list<std::pair<framepos_t, Canvas::Line*> >::iterator l;
-	
 	for (i = analysis_features.begin(), l = feature_lines.begin(); i != analysis_features.end() && l != feature_lines.end(); ++i, ++l) {
 
 		float *pos = new float;
@@ -1389,7 +1385,7 @@ AudioRegionView::transients_changed ()
 			);
 		
 		(*l).second->set_data ("position", pos);
-		
+
 		(*l).first = *i;
 	}
 }
@@ -1403,16 +1399,16 @@ AudioRegionView::update_transient(float /*old_pos*/, float new_pos)
 	for (l = feature_lines.begin(); l != feature_lines.end(); ++l) {
 
 		/* Line has been updated in drag so we compare to new_pos */
-		
+
 		float* pos = (float*) (*l).second->get_data ("position");
-		
-		if (rint(new_pos) == rint(*pos)) { 
-		  
+
+		if (rint(new_pos) == rint(*pos)) {
+
 		    framepos_t old_frame = (*l).first;
 		    framepos_t new_frame = trackview.editor().pixel_to_frame (new_pos);
 
 		    _region->update_transient (old_frame, new_frame);
-		    
+
 		    break;
 		}
 	}
@@ -1430,7 +1426,7 @@ AudioRegionView::remove_transient(float pos)
 		float *line_pos = (float*) (*l).second->get_data ("position");
 
 		if (rint(pos) == rint(*line_pos)) {
-		    _region->remove_transient ((*l).first);   
+		    _region->remove_transient ((*l).first);
 		    break;
 		}
 	}

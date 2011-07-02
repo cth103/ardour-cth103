@@ -146,7 +146,7 @@ MidiDiskstream::non_realtime_locate (framepos_t position)
 	if (_write_source) {
 		_write_source->set_timeline_position (position);
 	}
-	seek(position, false);
+	seek (position, false);
 }
 
 
@@ -170,7 +170,7 @@ MidiDiskstream::non_realtime_input_change ()
 				                         _n_channels, input_change_pending.type)
 				      << endmsg;
 			}
-			
+
 			if (ni == 0) {
 				_source_port = 0;
 			} else {
@@ -522,7 +522,7 @@ MidiDiskstream::process (framepos_t transport_frame, pframes_t nframes, bool can
 	}
 
 	if (nominally_recording || rec_nframes) {
-		
+
 		// Pump entire port buffer into the ring buffer (FIXME: split cycles?)
 		MidiBuffer& buf = _source_port->get_midi_buffer(nframes);
 		for (MidiBuffer::iterator i = buf.begin(); i != buf.end(); ++i) {
@@ -532,6 +532,10 @@ MidiDiskstream::process (framepos_t transport_frame, pframes_t nframes, bool can
 		}
 
 		if (buf.size() != 0) {
+			/* XXX this needs fixing - realtime new() call for
+			   every time we get MIDI data in a process callback!
+			*/
+
 			/* Make a copy of this data and emit it for the GUI to see */
 			boost::shared_ptr<MidiBuffer> copy (new MidiBuffer (buf.capacity ()));
 			for (MidiBuffer::iterator i = buf.begin(); i != buf.end(); ++i) {
@@ -820,7 +824,7 @@ MidiDiskstream::do_refill ()
 	//	<< frames_written - frames_read << endl;
 
 	to_read = (framecnt_t) min ((framecnt_t) to_read, (framecnt_t) (max_framepos - file_frame));
- 
+
 	if (read (file_frame, to_read, reversed)) {
 		ret = -1;
 	}
@@ -901,7 +905,6 @@ MidiDiskstream::transport_stopped_wallclock (struct tm& /*when*/, time_t /*twhen
 	MidiRegion::SourceList srcs;
 	MidiRegion::SourceList::iterator src;
 	vector<CaptureInfo*>::iterator ci;
-	bool mark_write_completed = false;
 
 	finish_capture (true);
 
@@ -1070,9 +1073,7 @@ MidiDiskstream::transport_stopped_wallclock (struct tm& /*when*/, time_t /*twhen
 				_write_source.reset();
 			}
  		}
-		
 
-		mark_write_completed = true;
 	}
 
 	use_new_write_source (0);
@@ -1286,7 +1287,7 @@ MidiDiskstream::use_new_write_source (uint32_t n)
 	if (!_session.writable() || !recordable()) {
 		return 1;
 	}
-	
+
 	assert(n == 0);
 
 	_write_source.reset();
@@ -1366,7 +1367,7 @@ MidiDiskstream::set_align_style_from_io ()
 		return;
 	}
 
-	/* XXX Not sure what, if anything we can do with MIDI 
+	/* XXX Not sure what, if anything we can do with MIDI
 	   as far as capture alignment etc.
 	*/
 
@@ -1413,8 +1414,8 @@ MidiDiskstream::get_playback (MidiBuffer& dst, framepos_t start, framepos_t end)
 
 #ifndef NDEBUG
 	DEBUG_TRACE (DEBUG::MidiDiskstreamIO, string_compose (
-		             "%1 MDS pre-read read from %2 write to %3\n", _name, 
-		             _playback_buf->get_read_ptr(), _playback_buf->get_write_ptr()));
+		             "%1 MDS pre-read read %4..%5 from %2 write to %3\n", _name,
+		             _playback_buf->get_read_ptr(), _playback_buf->get_write_ptr(), start, end));
 //        cerr << "================\n";
 //        _playback_buf->dump (cerr);
 //        cerr << "----------------\n";

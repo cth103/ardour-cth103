@@ -147,7 +147,7 @@ NoteBase::show_channel_selector ()
 {
 #if 0	
 	if (_channel_selector_widget == 0) {
-	  
+
 	  	if(_region.channel_selector_scoped_note() != 0){
 		    _region.channel_selector_scoped_note()->hide_channel_selector();
 		    _region.set_channel_selector_scoped_note(0);
@@ -171,7 +171,7 @@ NoteBase::show_channel_selector ()
 		_channel_selector_widget->property_width() = 100;
 		_channel_selector_widget->raise_to_top();
 		_channel_selector_widget->show();
-		
+
 		_region.set_channel_selector_scoped_note(this);
 	} else {
 		hide_channel_selector();
@@ -200,10 +200,10 @@ NoteBase::set_selected(bool selected)
 
 	_selected = selected;
 	set_fill_color (base_color ());
-        
+
 	if (_selected) {
 		set_outline_color(calculate_outline(ARDOUR_UI::config()->canvasvar_MidiNoteSelected.get()));
-		
+
 		if(_region.channel_selector_scoped_note() != 0){
 		    _region.channel_selector_scoped_note()->hide_channel_selector();
 		    _region.set_channel_selector_scoped_note(0);
@@ -235,7 +235,7 @@ NoteBase::base_color()
 			                         SCALE_USHORT_TO_UINT8_T(color.get_red()),
 			                         SCALE_USHORT_TO_UINT8_T(color.get_green()),
 			                         SCALE_USHORT_TO_UINT8_T(color.get_blue()),
-			                         opacity), 
+			                         opacity),
 		                         ARDOUR_UI::config()->canvasvar_MidiNoteSelected.get(), 0.5);
 	}
 

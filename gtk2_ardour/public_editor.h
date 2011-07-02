@@ -57,7 +57,7 @@ namespace Gtk {
 	class Menu;
 }
 
-namespace Gtkmm2ext { 
+namespace Gtkmm2ext {
         class TearOff;
 }
 
@@ -209,7 +209,7 @@ class PublicEditor : public Gtk::Window, public PBD::StatefulDestructible {
 
 	/** Open main export dialog */
 	virtual void export_audio () = 0;
-	
+
 	/** Open stem export dialog */
 	virtual void stem_export () = 0;
 
@@ -294,7 +294,7 @@ class PublicEditor : public Gtk::Window, public PBD::StatefulDestructible {
 	sigc::signal<void,framepos_t> UpdateAllTransportClocks;
 
         static sigc::signal<void> DropDownKeys;
-        
+
 	Glib::RefPtr<Gtk::ActionGroup> editor_actions;
 	Glib::RefPtr<Gtk::ActionGroup> _region_actions;
 
@@ -367,7 +367,7 @@ class PublicEditor : public Gtk::Window, public PBD::StatefulDestructible {
 
 	virtual TrackViewList axis_views_from_routes (boost::shared_ptr<ARDOUR::RouteList>) const = 0;
 	virtual TrackViewList const & get_track_views () = 0;
-	
+
 	virtual Gtkmm2ext::TearOff* mouse_mode_tearoff () const = 0;
 	virtual Gtkmm2ext::TearOff* tools_tearoff () const = 0;
 
@@ -381,7 +381,7 @@ class PublicEditor : public Gtk::Window, public PBD::StatefulDestructible {
 	virtual void save_canvas_state () = 0;
 
 	virtual void get_pointer_position (double &, double &) const = 0;
-	
+
 	/// Singleton instance, set up by Editor::Editor()
 
 	static PublicEditor* _instance;

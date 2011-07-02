@@ -57,7 +57,7 @@ EditorSummary::EditorSummary (Editor* e)
 	Region::RegionPropertyChanged.connect (region_property_connection, invalidator (*this), boost::bind (&CairoWidget::set_dirty, this), gui_context());
 	_editor->playhead_cursor->PositionChanged.connect (position_connection, invalidator (*this), ui_bind (&EditorSummary::playhead_position_changed, this, _1), gui_context());
 
-	add_events (Gdk::POINTER_MOTION_MASK);	
+	add_events (Gdk::POINTER_MOTION_MASK);
 }
 
 /** Connect to a session.
@@ -152,7 +152,7 @@ EditorSummary::render (cairo_t* cr)
 	}
 
 	/* compute start and end points for the summary */
-	
+
 	framecnt_t const session_length = _session->current_end_frame() - _session->current_start_frame ();
 	double const theoretical_start = _session->current_start_frame() - session_length * _overhang_fraction;
 	_start = theoretical_start > 0 ? theoretical_start : 0;
@@ -165,7 +165,7 @@ EditorSummary::render (cairo_t* cr)
 			++N;
 		}
 	}
-	
+
 	if (N == 0) {
 		_track_height = 16;
 	} else {
@@ -193,7 +193,7 @@ EditorSummary::render (cairo_t* cr)
 		cairo_move_to (cr, 0, y + _track_height / 2);
 		cairo_line_to (cr, _width, y + _track_height / 2);
 		cairo_stroke (cr);
-		
+
 		StreamView* s = (*i)->view ();
 
 		if (s) {
@@ -205,7 +205,7 @@ EditorSummary::render (cairo_t* cr)
 						       y + _track_height / 2
 						       ));
 		}
-		
+
 		y += _track_height;
 	}
 
@@ -360,7 +360,7 @@ EditorSummary::get_editor (pair<double, double>* x, pair<double, double>* y) con
 {
 	assert (x);
 	assert (y);
-	
+
 	x->first = (_editor->leftmost_position () - _start) * _x_scale;
 	x->second = x->first + _editor->current_page_frames() * _x_scale;
 
@@ -382,7 +382,7 @@ EditorSummary::get_position (double x, double y) const
 	int y_edge_size = (_view_rectangle_y.second - _view_rectangle_y.first) / 4;
 	y_edge_size = min (y_edge_size, 8);
 	y_edge_size = max (y_edge_size, 1);
-	
+
 	bool const near_left = (std::abs (x - _view_rectangle_x.first) < x_edge_size);
 	bool const near_right = (std::abs (x - _view_rectangle_x.second) < x_edge_size);
  	bool const near_top = (std::abs (y - _view_rectangle_y.first) < y_edge_size);
@@ -531,7 +531,7 @@ EditorSummary::on_button_release_event (GdkEventButton*)
 	_zoom_dragging = false;
 	_editor->_dragging_playhead = false;
 	_editor->set_follow_playhead (_old_follow_playhead, false);
-	
+
 	return true;
 }
 
@@ -604,7 +604,7 @@ EditorSummary::set_editor (double const x, double const y)
 
 		return;
 	}
-	
+
 	set_editor_x (x);
 	set_editor_y (y);
 }
@@ -620,7 +620,7 @@ EditorSummary::set_editor (pair<double,double> const & x, double const y)
 		/* see comment in other set_editor () */
 		return;
 	}
-	
+
 	set_editor_x (x);
 	set_editor_y (y);
 }
@@ -666,11 +666,11 @@ EditorSummary::set_editor_x (pair<double, double> const & x)
 		((x.second - x.first) / _x_scale) /
 		_editor->frame_to_unit (_editor->current_page_frames())
 		);
-	
+
 	if (nx != _editor->get_current_zoom ()) {
 		cout << "reset zoom from " << _editor->get_current_zoom() << " to " << nx << "\n";
 		_editor->reset_zoom (nx);
-	}	
+	}
 }
 
 /** Set the top of the y range visible in the editor.
@@ -689,7 +689,7 @@ EditorSummary::set_editor_y (double const y)
 	if (y2 > full_editor_height) {
 		y1 -= y2 - full_editor_height;
 	}
-	
+
 	if (y1 < 0) {
 		y1 = 0;
 	}
@@ -721,7 +721,7 @@ EditorSummary::set_editor_y (pair<double, double> const & y)
 	double partial_height = 0;
 	/* Height of any tracks that are fully in the desired range */
 	double scale_height = 0;
-	
+
 	_editor->_routes->suspend_redisplay ();
 
 	for (TrackViewList::const_iterator i = _editor->track_views.begin(); i != _editor->track_views.end(); ++i) {
@@ -729,7 +729,7 @@ EditorSummary::set_editor_y (pair<double, double> const & y)
 		if ((*i)->hidden()) {
 			continue;
 		}
-		
+
 		double const h = (*i)->effective_height ();
 		total_height += h;
 
@@ -759,7 +759,7 @@ EditorSummary::set_editor_y (pair<double, double> const & y)
 	yc = y;
 
 	/* Scale complete tracks within the range to make it fit */
-	
+
 	for (TrackViewList::const_iterator i = _editor->track_views.begin(); i != _editor->track_views.end(); ++i) {
 
 		if ((*i)->hidden()) {
@@ -775,7 +775,7 @@ EditorSummary::set_editor_y (pair<double, double> const & y)
 	}
 
 	_editor->_routes->resume_redisplay ();
-	
+
         set_editor_y (y.first);
 }
 
@@ -792,11 +792,11 @@ EditorSummary::summary_y_to_editor (double y) const
 {
 	double ey = 0;
 	for (TrackViewList::const_iterator i = _editor->track_views.begin (); i != _editor->track_views.end(); ++i) {
-		
+
 		if ((*i)->hidden()) {
 			continue;
 		}
-		
+
 		double const h = (*i)->effective_height ();
 		if (y < _track_height) {
 			/* in this track */
@@ -815,7 +815,7 @@ EditorSummary::editor_y_to_summary (double y) const
 {
 	double sy = 0;
 	for (TrackViewList::const_iterator i = _editor->track_views.begin (); i != _editor->track_views.end(); ++i) {
-		
+
 		if ((*i)->hidden()) {
 			continue;
 		}

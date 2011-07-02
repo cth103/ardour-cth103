@@ -124,6 +124,7 @@ libardour_sources = [
         'midi_model.cc',
         'midi_patch_manager.cc',
         'midi_playlist.cc',
+        'midi_playlist_source.cc',
         'midi_port.cc',
         'midi_region.cc',
         'midi_ring_buffer.cc',
@@ -456,4 +457,4 @@ def shutdown():
     autowaf.shutdown()
 
 def i18n(bld):
-    autowaf.build_i18n (bld, '..', 'libs/ardour', APPNAME, libardour_sources)
+    autowaf.build_i18n (bld, '.', 'libs/ardour', APPNAME, libardour_sources)

@@ -66,18 +66,18 @@ void
 TimeAxisViewItem::set_constant_heights ()
 {
         NAME_FONT = get_font_for_style (X_("TimeAxisViewItemName"));
-        
+
         Gtk::Window win;
         Gtk::Label foo;
         win.add (foo);
-        
+
         Glib::RefPtr<Pango::Layout> layout = foo.create_pango_layout (X_("Hg")); /* ascender + descender */
         int width = 0;
         int height = 0;
-        
-        layout->set_font_description (*NAME_FONT);
+
+        layout->set_font_description (NAME_FONT);
         Gtkmm2ext::get_ink_pixel_size (layout, width, height);
-        
+
         NAME_HEIGHT = height;
         NAME_Y_OFFSET = height + 3.5;
         NAME_HIGHLIGHT_SIZE = height + 2;
@@ -704,14 +704,14 @@ TimeAxisViewItem::set_frame_color()
 	if (!frame) {
 		return;
 	}
-	
+
 	if (_selected) {
 
                 f = ARDOUR_UI::config()->canvasvar_SelectedFrameBase.get();
 
 		if (fill_opacity) {
                         f = UINT_RGBA_CHANGE_A (f, fill_opacity);
-		} 
+		}
 
                 if (!rect_visible) {
                         f = UINT_RGBA_CHANGE_A (f, 0);
@@ -722,7 +722,7 @@ TimeAxisViewItem::set_frame_color()
 		if (_recregion) {
 			f = ARDOUR_UI::config()->canvasvar_RecordingRect.get();
 		} else {
-                        
+
 			if (high_enough_for_name && !Config->get_color_regions_using_track_color()) {
 				f = ARDOUR_UI::config()->canvasvar_FrameBase.get();
 			} else {
@@ -747,7 +747,7 @@ TimeAxisViewItem::set_frame_color()
                 } else {
                         f = ARDOUR_UI::config()->canvasvar_TimeAxisFrame.get();
                 }
-                
+
                 if (!rect_visible) {
                         f = UINT_RGBA_CHANGE_A (f, 64);
                 }
@@ -887,16 +887,16 @@ TimeAxisViewItem::reset_name_width (double /*pixel_width*/)
 
 	if (pixbuf_holds_full_name && (it_width >= pb_width + NAME_X_OFFSET)) {
 		/*
-		  we've previously had the full name length showing 
+		  we've previously had the full name length showing
 		  and its still showing.
 		*/
 		return;
 	}
-	
+
 	if (pb_width > it_width - NAME_X_OFFSET) {
 		pb_width = it_width - NAME_X_OFFSET;
 	}
-	
+
 	if (it_width <= NAME_X_OFFSET) {
 		wide_enough_for_name = false;
 	} else {
@@ -938,7 +938,7 @@ TimeAxisViewItem::update_name_pixbuf_visibility ()
 	if (!name_pixbuf) {
 		return;
 	}
-	
+
 	if (wide_enough_for_name && high_enough_for_name) {
 		name_pixbuf->show ();
 	} else {

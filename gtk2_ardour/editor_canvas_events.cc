@@ -294,7 +294,7 @@ Editor::canvas_stream_view_event (GdkEvent *event, Canvas::Item* item, RouteTime
 	case GDK_LEAVE_NOTIFY:
 		set_entered_track (0);
 		break;
-		
+
 	default:
 		break;
 	}

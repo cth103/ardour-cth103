@@ -120,7 +120,7 @@ public:
 	}
 
 	void check_record_layers (boost::shared_ptr<ARDOUR::Region>, ARDOUR::framepos_t);
-	
+
 	sigc::signal<void, RegionView*> RegionViewAdded;
 	sigc::signal<void> RegionViewRemoved;
 
@@ -185,7 +185,7 @@ protected:
 	*/
 	framepos_t _new_rec_layer_time;
 	void setup_new_rec_layer_time (boost::shared_ptr<ARDOUR::Region>);
-	
+
 private:
 	void update_coverage_frames ();
 };

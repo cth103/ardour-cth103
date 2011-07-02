@@ -140,7 +140,7 @@ Auditioner::audition_current_playlist ()
 
 	/* force a panner reset now that we have all channels */
 
-	_main_outs->panner_shell()->configure_io (ChanCount (DataType::AUDIO, _diskstream->n_channels().n_audio()), 
+	_main_outs->panner_shell()->configure_io (ChanCount (DataType::AUDIO, _diskstream->n_channels().n_audio()),
                                                   ChanCount (DataType::AUDIO, n_outputs().n_audio()));
 
 	g_atomic_int_set (&_auditioning, 1);
@@ -166,7 +166,7 @@ Auditioner::audition_region (boost::shared_ptr<Region> region)
 	/* copy it */
 
 	boost::shared_ptr<AudioRegion> the_region (boost::dynamic_pointer_cast<AudioRegion> (RegionFactory::create (region)));
-	the_region->set_position (0, this);
+	the_region->set_position (0);
 
 	_diskstream->playlist()->drop_regions ();
 	_diskstream->playlist()->add_region (the_region, 0, 1);
@@ -182,7 +182,7 @@ Auditioner::audition_region (boost::shared_ptr<Region> region)
 		Glib::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
 
 		if (configure_processors (&ps)) {
-			error << string_compose (_("Cannot setup auditioner processing flow for %1 channels"), 
+			error << string_compose (_("Cannot setup auditioner processing flow for %1 channels"),
 						 _diskstream->n_channels()) << endmsg;
 			return;
 		}
@@ -276,7 +276,7 @@ Auditioner::output_changed (IOChange change, void* /*src*/)
 	}
 }
 
-ChanCount 
+ChanCount
 Auditioner::input_streams () const
 {
         /* auditioner never has any inputs - its channel configuration
@@ -285,7 +285,7 @@ Auditioner::input_streams () const
 
         if (audio_diskstream()) {
                 return audio_diskstream()->n_channels();
-        } 
+        }
 
         return ChanCount ();
 }

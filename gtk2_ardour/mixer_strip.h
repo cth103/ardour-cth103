@@ -37,6 +37,7 @@
 #include "gtkmm2ext/auto_spin.h"
 #include "gtkmm2ext/click_box.h"
 #include "gtkmm2ext/bindable_button.h"
+#include "gtkmm2ext/stateful_button.h"
 
 #include "pbd/stateful.h"
 
@@ -178,11 +179,16 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 	Gtk::Label  diskstream_label;
 
 	Gtk::Button input_button;
+	Gtkmm2ext::StatefulToggleButton* midi_input_enable_button;
+	Gtk::HBox   input_button_box;
 	Gtk::Label  input_label;
 	Gtk::Button output_button;
 	Gtk::Label  output_label;
 
 	std::string longest_label;
+
+	void midi_input_status_changed ();
+	void midi_input_toggled ();
 
 	gint    mark_update_safe ();
 	guint32 mode_switch_in_progress;
@@ -271,10 +277,10 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 	void engine_stopped();
 
 	void switch_io (boost::shared_ptr<ARDOUR::Route>);
-	
+
 	void set_current_delivery (boost::shared_ptr<ARDOUR::Delivery>);
 	boost::shared_ptr<ARDOUR::Delivery> _current_delivery;
-	
+
 	void drop_send ();
 	PBD::ScopedConnection send_gone_connection;
 

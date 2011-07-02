@@ -47,7 +47,7 @@ using namespace std;
 using namespace ARDOUR;
 using namespace PBD;
 
-namespace ARDOUR { 
+namespace ARDOUR {
 	namespace Properties {
 		PBD::PropertyDescriptor<bool> muted;
 		PBD::PropertyDescriptor<bool> opaque;
@@ -74,7 +74,7 @@ namespace ARDOUR {
 		PBD::PropertyDescriptor<PositionLockStyle> position_lock_style;
 	}
 }
-	
+
 PBD::Signal2<void,boost::shared_ptr<ARDOUR::Region>,const PropertyChange&> Region::RegionPropertyChanged;
 
 void
@@ -280,14 +280,14 @@ Region::Region (boost::shared_ptr<const Region> other)
 	/* sync pos is relative to start of file. our start-in-file is now zero,
 	   so set our sync position to whatever the the difference between
 	   _start and _sync_pos was in the other region.
-			   
+
 	   result is that our new sync pos points to the same point in our source(s)
 	   as the sync in the other region did in its source(s).
-			   
+
 	   since we start at zero in our source(s), it is not possible to use a sync point that
 	   is before the start. reset it to _start if that was true in the other region.
 	*/
-			
+
 	if (other->sync_marked()) {
 		if (other->_start < other->_sync_position) {
 			/* sync pos was after the start point of the other region */
@@ -346,12 +346,12 @@ Region::Region (boost::shared_ptr<const Region> other, frameoffset_t offset)
 	use_sources (other->_sources);
 
 	_start = other->_start + offset;
-		
+
 	/* if the other region had a distinct sync point
 	   set, then continue to use it as best we can.
 	   otherwise, reset sync point back to start.
 	*/
-		
+
 	if (other->sync_marked()) {
 		if (other->_sync_position < _start) {
 			_sync_marked = false;
@@ -433,7 +433,7 @@ Region::set_name (const std::string& str)
 }
 
 void
-Region::set_length (framecnt_t len, void */*src*/)
+Region::set_length (framecnt_t len)
 {
 	//cerr << "Region::set_length() len = " << len << endl;
 	if (locked()) {
@@ -519,7 +519,7 @@ Region::at_natural_position () const
 }
 
 void
-Region::move_to_natural_position (void *src)
+Region::move_to_natural_position ()
 {
 	boost::shared_ptr<Playlist> pl (playlist());
 
@@ -530,7 +530,7 @@ Region::move_to_natural_position (void *src)
 	boost::shared_ptr<Region> whole_file_region = get_parent();
 
 	if (whole_file_region) {
-		set_position (whole_file_region->position() + _start, src);
+		set_position (whole_file_region->position() + _start);
 	}
 }
 
@@ -551,19 +551,19 @@ Region::set_position_lock_style (PositionLockStyle ps)
 	if (_position_lock_style != ps) {
 
 		boost::shared_ptr<Playlist> pl (playlist());
-		
+
 		if (!pl) {
 			return;
 		}
-		
+
 		_position_lock_style = ps;
-		
+
 		if (_position_lock_style == MusicTime) {
 			_session.tempo_map().bbt_time (_position, _bbt_time);
 		}
 
 		send_change (Properties::position_lock_style);
-		
+
 	}
 }
 
@@ -587,7 +587,7 @@ Region::update_position_after_tempo_map_change ()
 }
 
 void
-Region::set_position (framepos_t pos, void* /*src*/)
+Region::set_position (framepos_t pos)
 {
 	if (!can_move()) {
 		return;
@@ -628,7 +628,7 @@ Region::set_position_internal (framepos_t pos, bool allow_bbt_recompute)
 }
 
 void
-Region::set_position_on_top (framepos_t pos, void* /*src*/)
+Region::set_position_on_top (framepos_t pos)
 {
 	if (locked()) {
 		return;
@@ -659,7 +659,7 @@ Region::recompute_position_from_lock_style ()
 }
 
 void
-Region::nudge_position (frameoffset_t n, void* /*src*/)
+Region::nudge_position (frameoffset_t n)
 {
 	if (locked()) {
 		return;
@@ -700,7 +700,7 @@ Region::set_ancestral_data (framepos_t s, framecnt_t l, float st, float sh)
 }
 
 void
-Region::set_start (framepos_t pos, void* /*src*/)
+Region::set_start (framepos_t pos)
 {
 	if (locked() || position_locked()) {
 		return;
@@ -726,7 +726,7 @@ Region::set_start (framepos_t pos, void* /*src*/)
 }
 
 void
-Region::trim_start (framepos_t new_position, void */*src*/)
+Region::trim_start (framepos_t new_position)
 {
 	if (locked() || position_locked()) {
 		return;
@@ -753,7 +753,7 @@ Region::trim_start (framepos_t new_position, void */*src*/)
 		} else {
 			new_start = _start + start_shift;
 		}
-		
+
 	} else {
 		return;
 	}
@@ -770,25 +770,25 @@ Region::trim_start (framepos_t new_position, void */*src*/)
 }
 
 void
-Region::trim_front (framepos_t new_position, void *src)
+Region::trim_front (framepos_t new_position)
 {
-	modify_front (new_position, false, src);
+	modify_front (new_position, false);
 }
 
 void
-Region::cut_front (framepos_t new_position, void *src)
+Region::cut_front (framepos_t new_position)
 {
-	modify_front (new_position, true, src);
+	modify_front (new_position, true);
 }
 
 void
-Region::cut_end (framepos_t new_endpoint, void *src)
+Region::cut_end (framepos_t new_endpoint)
 {
-	modify_end (new_endpoint, true, src);
+	modify_end (new_endpoint, true);
 }
 
 void
-Region::modify_front (framepos_t new_position, bool reset_fade, void *src)
+Region::modify_front (framepos_t new_position, bool reset_fade)
 {
 	if (locked()) {
 		return;
@@ -804,7 +804,7 @@ Region::modify_front (framepos_t new_position, bool reset_fade, void *src)
 	}
 
 	if (new_position < end) { /* can't trim it zero or negative length */
-		
+
 		framecnt_t newlen = 0;
 		framepos_t delta = 0;
 
@@ -812,7 +812,7 @@ Region::modify_front (framepos_t new_position, bool reset_fade, void *src)
 			/* can't trim it back past where source position zero is located */
 			new_position = max (new_position, source_zero);
 		}
-		
+
 		if (new_position > _position) {
 			newlen = _length - (new_position - _position);
 			delta = -1 * (new_position - _position);
@@ -820,17 +820,17 @@ Region::modify_front (framepos_t new_position, bool reset_fade, void *src)
 			newlen = _length + (_position - new_position);
 			delta = _position - new_position;
 		}
-		
-		trim_to_internal (new_position, newlen, src);
-		
+
+		trim_to_internal (new_position, newlen);
+
 		if (reset_fade) {
 			_right_of_split = true;
 		}
-	
+
 		if (!property_changes_suspended()) {
 			recompute_at_start ();
 		}
-		
+
 		if (_transients.size() > 0){
 			adjust_transients(delta);
 		}
@@ -838,14 +838,14 @@ Region::modify_front (framepos_t new_position, bool reset_fade, void *src)
 }
 
 void
-Region::modify_end (framepos_t new_endpoint, bool reset_fade, void* /*src*/)
+Region::modify_end (framepos_t new_endpoint, bool reset_fade)
 {
 	if (locked()) {
 		return;
 	}
 
 	if (new_endpoint > _position) {
-		trim_to_internal (_position, new_endpoint - _position +1, this);
+		trim_to_internal (_position, new_endpoint - _position +1);
 		if (reset_fade) {
 			_left_of_split = true;
 		}
@@ -860,19 +860,19 @@ Region::modify_end (framepos_t new_endpoint, bool reset_fade, void* /*src*/)
  */
 
 void
-Region::trim_end (framepos_t new_endpoint, void* src)
+Region::trim_end (framepos_t new_endpoint)
 {
-	modify_end (new_endpoint, false, src);
+	modify_end (new_endpoint, false);
 }
 
 void
-Region::trim_to (framepos_t position, framecnt_t length, void *src)
+Region::trim_to (framepos_t position, framecnt_t length)
 {
 	if (locked()) {
 		return;
 	}
 
-	trim_to_internal (position, length, src);
+	trim_to_internal (position, length);
 
 	if (!property_changes_suspended()) {
 		recompute_at_start ();
@@ -881,7 +881,7 @@ Region::trim_to (framepos_t position, framecnt_t length, void *src)
 }
 
 void
-Region::trim_to_internal (framepos_t position, framecnt_t length, void */*src*/)
+Region::trim_to_internal (framepos_t position, framecnt_t length)
 {
 	framepos_t new_start;
 
@@ -929,7 +929,7 @@ Region::trim_to_internal (framepos_t position, framecnt_t length, void */*src*/)
 	 *    length in beats from (1) but at the new position, which is wrong if the region
 	 *    straddles a tempo/meter change.
 	 */
-	
+
 	if (_position != position) {
 		if (!property_changes_suspended()) {
 			_last_position = _position;
@@ -937,7 +937,7 @@ Region::trim_to_internal (framepos_t position, framecnt_t length, void */*src*/)
 		set_position_internal (position, true);
 		what_changed.add (Properties::position);
 	}
-	
+
 	if (_length != length) {
 		if (!property_changes_suspended()) {
 			_last_length = _length;
@@ -1206,15 +1206,19 @@ Region::state ()
 		node->add_property (buf2, buf);
 	}
 
-	if (max_source_level() > 0) {
-		
+	/* Only store nested sources for the whole-file region that acts
+	   as the parent/root of all regions using it.
+	*/
+
+	if (_whole_file && max_source_level() > 0) {
+
 		XMLNode* nested_node = new XMLNode (X_("NestedSource"));
-		
+
 		/* region is compound - get its playlist and
 		   store that before we list the region that
 		   needs it ...
 		*/
-		
+
 		for (SourceList::const_iterator s = _sources.begin(); s != _sources.end(); ++s) {
 			nested_node->add_child_nocopy ((*s)->get_state ());
 		}
@@ -1248,17 +1252,8 @@ int
 Region::_set_state (const XMLNode& node, int /*version*/, PropertyChange& what_changed, bool send)
 {
 	const XMLProperty* prop;
-	const XMLNodeList& nlist = node.children();
 
-	for (XMLNodeConstIterator niter = nlist.begin(); niter != nlist.end(); ++niter) {
-
-		XMLNode *child = (*niter);
-
-		if (child->name () == "Extra") {
-			delete _extra_xml;
-			_extra_xml = new XMLNode (*child);
-		}
-	}
+	Stateful::save_extra_xml (node);
 
 	what_changed = set_values (node);
 
@@ -1286,7 +1281,7 @@ Region::_set_state (const XMLNode& node, int /*version*/, PropertyChange& what_c
 	if (_stretch == 0.0f) {
 		_stretch = 1.0f;
 	}
-	
+
 	if (_shift == 0.0f) {
 		_shift = 1.0f;
 	}
@@ -1294,14 +1289,14 @@ Region::_set_state (const XMLNode& node, int /*version*/, PropertyChange& what_c
 	if (send) {
 		send_change (what_changed);
 	}
-	
+
 	/* Quick fix for 2.x sessions when region is muted */
 	if ((prop = node.property (X_("flags")))) {
 		if (string::npos != prop->value().find("Muted")){
 			set_muted (true);
 		}
 	}
-	
+
 
 	return 0;
 }
@@ -1335,7 +1330,7 @@ Region::send_change (const PropertyChange& what_changed)
 	Stateful::send_change (what_changed);
 
 	if (!Stateful::frozen()) {
-		
+
 		/* Try and send a shared_pointer unless this is part of the constructor.
 		   If so, do nothing.
 		*/
@@ -1433,7 +1428,7 @@ Region::source_equivalent (boost::shared_ptr<const Region> other) const
 {
 	if (!other)
 		return false;
-	
+
 	if ((_sources.size() != other->_sources.size()) ||
 	    (_master_sources.size() != other->_master_sources.size())) {
 		return false;
@@ -1464,7 +1459,7 @@ Region::source_string () const
 
 	stringstream res;
 	res << _sources.size() << ":";
-	
+
 	SourceList::const_iterator i;
 
 	for (i = _sources.begin(); i != _sources.end(); ++i) {
@@ -1605,7 +1600,7 @@ Region::invalidate_transients ()
 {
 	_valid_transients = false;
 	_transients.clear ();
-	
+
 	send_change (PropertyChange (Properties::valid_transients));
 }
 
@@ -1656,7 +1651,7 @@ Region::can_trim () const
 		return ct;
 	}
 
-	/* if not locked, we can always move the front later, and the end earlier 
+	/* if not locked, we can always move the front later, and the end earlier
 	 */
 
 	ct = CanTrim (ct | FrontTrimLater | EndTrimEarlier);
@@ -1673,7 +1668,7 @@ Region::can_trim () const
 
 	return ct;
 }
-                      
+
 uint32_t
 Region::max_source_level () const
 {

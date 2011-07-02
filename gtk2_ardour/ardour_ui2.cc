@@ -32,6 +32,7 @@
 #include "pbd/error.h"
 #include "pbd/basename.h"
 #include "pbd/fastlog.h"
+#include <gtkmm2ext/cairocell.h>
 #include <gtkmm2ext/utils.h>
 #include <gtkmm2ext/click_box.h>
 #include <gtkmm2ext/tearoff.h>
@@ -54,6 +55,7 @@
 #include "global_port_matrix.h"
 #include "location_ui.h"
 #include "rc_option_editor.h"
+#include "time_info_box.h"
 
 #include "i18n.h"
 
@@ -134,8 +136,6 @@ ARDOUR_UI::setup_tooltips ()
 	set_tip (auto_return_button, _("Return to last playback start when stopped"));
 	set_tip (auto_play_button, _("Start playback after any locate"));
 	set_tip (auto_input_button, _("Be sensible about input monitoring"));
-	set_tip (punch_in_button, _("Start recording at auto-punch start"));
-	set_tip (punch_out_button, _("Stop recording at auto-punch end"));
 	set_tip (click_button, _("Enable/Disable audio click"));
 	set_tip (time_master_button, string_compose (_("Does %1 control the time?"), PROGRAM_NAME));
 	set_tip (solo_alert_button, _("When active, something is soloed.\nClick to de-solo everything"));
@@ -195,7 +195,7 @@ XMLNode*
 ARDOUR_UI::tearoff_settings (const char* name) const
 {
 	XMLNode* ui_node = Config->extra_xml(X_("UI"));
-        
+
 	if (ui_node) {
 		XMLNode* tearoff_node = ui_node->child (X_("Tearoffs"));
 		if (tearoff_node) {
@@ -248,8 +248,6 @@ ARDOUR_UI::setup_transport ()
 	auto_return_button.set_name ("TransportButton");
 	auto_play_button.set_name ("TransportButton");
 	auto_input_button.set_name ("TransportButton");
-	punch_in_button.set_name ("TransportButton");
-	punch_out_button.set_name ("TransportButton");
 	click_button.set_name ("TransportButton");
 	time_master_button.set_name ("TransportButton");
 	sync_button.set_name ("TransportSyncButton");
@@ -318,26 +316,21 @@ ARDOUR_UI::setup_transport ()
 	ARDOUR_UI::Clock.connect (sigc::bind (sigc::mem_fun (primary_clock, &AudioClock::set), 'p'));
 	ARDOUR_UI::Clock.connect (sigc::bind (sigc::mem_fun (secondary_clock, &AudioClock::set), 's'));
 
-	primary_clock.ValueChanged.connect (sigc::mem_fun(*this, &ARDOUR_UI::primary_clock_value_changed));
-	secondary_clock.ValueChanged.connect (sigc::mem_fun(*this, &ARDOUR_UI::secondary_clock_value_changed));
-	big_clock.ValueChanged.connect (sigc::mem_fun(*this, &ARDOUR_UI::big_clock_value_changed));
+	primary_clock->ValueChanged.connect (sigc::mem_fun(*this, &ARDOUR_UI::primary_clock_value_changed));
+	secondary_clock->ValueChanged.connect (sigc::mem_fun(*this, &ARDOUR_UI::secondary_clock_value_changed));
+	big_clock->ValueChanged.connect (sigc::mem_fun(*this, &ARDOUR_UI::big_clock_value_changed));
 
 	ActionManager::get_action ("Transport", "ToggleAutoReturn")->connect_proxy (auto_return_button);
 	ActionManager::get_action ("Transport", "ToggleAutoPlay")->connect_proxy (auto_play_button);
 	ActionManager::get_action ("Transport", "ToggleAutoInput")->connect_proxy (auto_input_button);
-	ActionManager::get_action ("Transport", "ToggleClick")->connect_proxy (click_button);
-	ActionManager::get_action ("Transport", "TogglePunchIn")->connect_proxy (punch_in_button);
-	ActionManager::get_action ("Transport", "TogglePunchOut")->connect_proxy (punch_out_button);
-
-	click_button.signal_button_press_event().connect (sigc::mem_fun (*this, &ARDOUR_UI::click_button_clicked), false);
 
 	preroll_button.set_name ("TransportButton");
 	postroll_button.set_name ("TransportButton");
 
-	preroll_clock.set_mode (AudioClock::MinSec);
-	preroll_clock.set_name ("TransportClockDisplay");
-	postroll_clock.set_mode (AudioClock::MinSec);
-	postroll_clock.set_name ("TransportClockDisplay");
+	preroll_clock->set_mode (AudioClock::MinSec);
+	preroll_clock->set_name ("TransportClockDisplay");
+	postroll_clock->set_mode (AudioClock::MinSec);
+	postroll_clock->set_name ("TransportClockDisplay");
 
 	/* alerts */
 
@@ -385,17 +378,14 @@ ARDOUR_UI::setup_transport ()
 	transport_hbox->pack_start (rec_button, false, false, 6);
 
 	HBox* clock_box = manage (new HBox);
-	clock_box->pack_start (primary_clock, false, false);
+	clock_box->set_border_width (2);
+	primary_clock->set_border_width (2);
+	clock_box->pack_start (*primary_clock, false, false);
 	if (!ARDOUR::Profile->get_small_screen()) {
-		clock_box->pack_start (secondary_clock, false, false);
+		secondary_clock->set_border_width (2);
+		clock_box->pack_start (*secondary_clock, false, false);
 	}
 
-	if (!Profile->get_sae()) {
-		VBox* time_controls_box = manage (new VBox);
-		time_controls_box->pack_start (sync_button, false, false);
-		time_controls_box->pack_start (time_master_button, false, false);
-		clock_box->pack_start (*time_controls_box, false, false, 1);
-	}
 
 	shuttle_box = new ShuttleControl;
 	shuttle_box->show ();
@@ -408,14 +398,29 @@ ARDOUR_UI::setup_transport ()
 	transport_vbox->pack_start (*shuttle_box, false, false, 0);
 
 	transport_tearoff_hbox.pack_start (*transport_vbox, false, false, 0);
-	transport_tearoff_hbox.pack_start (*clock_box, false, false, 0);
+
+	Table* time_controls_table = manage (new Table (2, 2));
+	time_controls_table->set_col_spacings (6);
+	time_controls_table->attach (sync_button, 0, 1, 0, 1, Gtk::AttachOptions(FILL|EXPAND), Gtk::AttachOptions(0));
+	time_controls_table->attach (time_master_button, 0, 1, 1, 2, Gtk::AttachOptions(FILL|EXPAND), Gtk::AttachOptions(0));
+
+	w = manage (new Image (get_icon (X_("metronome"))));
+	w->show ();
+	click_button.add (*w);
+
+	ActionManager::get_action ("Transport", "ToggleClick")->connect_proxy (click_button);
+
+	click_button.signal_button_press_event().connect (sigc::mem_fun (*this, &ARDOUR_UI::click_button_clicked), false);
+	
+	time_controls_table->attach (click_button, 1, 2, 0, 2, Gtk::AttachOptions(FILL|EXPAND), FILL);
+
+	transport_tearoff_hbox.pack_start (*clock_box, false, false);
+	transport_tearoff_hbox.pack_start (*time_controls_table, false, false, 4);
+
+	time_info_box = manage (new TimeInfoBox);
+	transport_tearoff_hbox.pack_start (*time_info_box, false, false);
 
 	HBox* toggle_box = manage(new HBox);
-
-	VBox* punch_box = manage (new VBox);
-	punch_box->pack_start (punch_in_button, false, false);
-	punch_box->pack_start (punch_out_button, false, false);
-	toggle_box->pack_start (*punch_box, false, false);
 
 	VBox* auto_box = manage (new VBox);
 	auto_box->pack_start (auto_play_button, false, false);
@@ -426,7 +431,7 @@ ARDOUR_UI::setup_transport ()
 
 	VBox* io_box = manage (new VBox);
 	io_box->pack_start (auto_input_button, false, false);
-	io_box->pack_start (click_button, false, false);
+	//io_box->pack_start (click_button, false, false);
         if (!Profile->get_small_screen()) {
                 toggle_box->pack_start (*io_box, false, false);
         }

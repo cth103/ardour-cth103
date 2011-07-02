@@ -53,7 +53,7 @@ bool                          Delivery::panners_legal = false;
 
 /* deliver to an existing IO object */
 
-Delivery::Delivery (Session& s, boost::shared_ptr<IO> io, boost::shared_ptr<Pannable> pannable, 
+Delivery::Delivery (Session& s, boost::shared_ptr<IO> io, boost::shared_ptr<Pannable> pannable,
                     boost::shared_ptr<MuteMaster> mm, const string& name, Role r)
 	: IOProcessor(s, boost::shared_ptr<IO>(), (role_requires_output_ports (r) ? io : boost::shared_ptr<IO>()), name)
 	, _role (r)
@@ -64,7 +64,10 @@ Delivery::Delivery (Session& s, boost::shared_ptr<IO> io, boost::shared_ptr<Pann
 	, no_panner_reset (false)
         , scnt (0)
 {
-	_panshell = boost::shared_ptr<PannerShell>(new PannerShell (_name, _session, pannable));
+	if (pannable) {
+		_panshell = boost::shared_ptr<PannerShell>(new PannerShell (_name, _session, pannable));
+	}
+
 	_display_to_user = false;
 
 	if (_output) {
@@ -86,7 +89,10 @@ Delivery::Delivery (Session& s, boost::shared_ptr<Pannable> pannable, boost::sha
 	, no_panner_reset (false)
         , scnt (0)
 {
-	_panshell = boost::shared_ptr<PannerShell>(new PannerShell (_name, _session, pannable));
+	if (pannable) {
+		_panshell = boost::shared_ptr<PannerShell>(new PannerShell (_name, _session, pannable));
+	}
+
 	_display_to_user = false;
 
 	if (_output) {
@@ -99,7 +105,7 @@ Delivery::Delivery (Session& s, boost::shared_ptr<Pannable> pannable, boost::sha
 
 Delivery::~Delivery()
 {
-	DEBUG_TRACE (DEBUG::Destruction, string_compose ("delivery %1 destructor\n", _name));        
+	DEBUG_TRACE (DEBUG::Destruction, string_compose ("delivery %1 destructor\n", _name));
 	delete _output_buffers;
 }
 
@@ -214,7 +220,7 @@ Delivery::configure_io (ChanCount in, ChanCount out)
 		}
 
 	}
-	
+
 	if (!Processor::configure_io (in, out)) {
 		return false;
 	}
@@ -280,7 +286,9 @@ Delivery::run (BufferSet& bufs, framepos_t start_frame, framepos_t end_frame, pf
 		Amp::apply_simple_gain (bufs, nframes, tgain);
 	}
 
-        panner = _panshell->panner();
+	if (_panshell) {
+		panner = _panshell->panner();
+	}
 
 #if 0
         if (_session.transport_rolling()) {
@@ -298,7 +306,7 @@ Delivery::run (BufferSet& bufs, framepos_t start_frame, framepos_t end_frame, pf
 #endif
 
 	if (panner && !panner->bypassed()) {
-                
+
 		// Use the panner to distribute audio to output port buffers
 
 		_panshell->run (bufs, output_buffers(), start_frame, end_frame, nframes);
@@ -339,7 +347,10 @@ Delivery::state (bool full_state)
 	}
 
 	node.add_property("role", enum_2_string(_role));
-	node.add_child_nocopy (_panshell->state (full_state));
+
+	if (_panshell) {
+		node.add_child_nocopy (_panshell->state (full_state));
+	}
 
 	return node;
 }
@@ -362,7 +373,7 @@ Delivery::set_state (const XMLNode& node, int version)
 
 	XMLNode* pan_node = node.child (X_("Panner"));
 
-	if (pan_node) {
+	if (pan_node && _panshell) {
 		_panshell->set_state (*pan_node, version);
 	}
 
@@ -372,13 +383,16 @@ Delivery::set_state (const XMLNode& node, int version)
 }
 
 void
+Delivery::unpan ()
+{
+	/* caller must hold process lock */
+
+	_panshell.reset ();
+}
+
+void
 Delivery::reset_panner ()
 {
-        if (_role == Listen) {
-                /* monitor out gets no panner */
-                return;
-        }
-
 	if (panners_legal) {
 		if (!no_panner_reset) {
 
@@ -390,11 +404,13 @@ Delivery::reset_panner ()
 				ntargets = _configured_output.n_audio();
 			}
 
-			_panshell->configure_io (ChanCount (DataType::AUDIO, pans_required()), ChanCount (DataType::AUDIO, ntargets));
-
-                        if (_role == Main) {
-                                _panshell->pannable()->set_panner (_panshell->panner());
-                        }
+			if (_panshell) {
+				_panshell->configure_io (ChanCount (DataType::AUDIO, pans_required()), ChanCount (DataType::AUDIO, ntargets));
+				
+				if (_role == Main) {
+					_panshell->pannable()->set_panner (_panshell->panner());
+				}
+			}
 		}
 
 	} else {
@@ -414,11 +430,13 @@ Delivery::panners_became_legal ()
 		ntargets = _configured_output.n_audio();
 	}
 
-	_panshell->configure_io (ChanCount (DataType::AUDIO, pans_required()), ChanCount (DataType::AUDIO, ntargets));
-
-        if (_role == Main) {
-                _panshell->pannable()->set_panner (_panshell->panner());
-        }
+	if (_panshell) {
+		_panshell->configure_io (ChanCount (DataType::AUDIO, pans_required()), ChanCount (DataType::AUDIO, ntargets));
+		
+		if (_role == Main) {
+			_panshell->pannable()->set_panner (_panshell->panner());
+		}
+	}
 
 	panner_legal_c.disconnect ();
 	return 0;
@@ -458,7 +476,7 @@ Delivery::flush_buffers (framecnt_t nframes, framepos_t time)
 	/* io_lock, not taken: function must be called from Session::process() calltree */
 
 	PortSet& ports (_output->ports());
-        
+
 	for (PortSet::iterator i = ports.begin(); i != ports.end(); ++i) {
 		(*i).flush_buffers (nframes, time);
 	}
@@ -468,13 +486,28 @@ void
 Delivery::transport_stopped (framepos_t now)
 {
         Processor::transport_stopped (now);
-        _panshell->pannable()->transport_stopped (now);
+
+	if (_panshell) {
+		_panshell->pannable()->transport_stopped (now);
+	}
 
         if (_output) {
                 PortSet& ports (_output->ports());
-                
+
                 for (PortSet::iterator i = ports.begin(); i != ports.end(); ++i) {
                         (*i).transport_stopped ();
+                }
+        }
+}
+
+void
+Delivery::realtime_locate ()
+{
+        if (_output) {
+                PortSet& ports (_output->ports());
+
+                for (PortSet::iterator i = ports.begin(); i != ports.end(); ++i) {
+                        (*i).realtime_locate ();
                 }
         }
 }
@@ -497,7 +530,7 @@ Delivery::target_gain ()
 	}
 
         MuteMaster::MutePoint mp = MuteMaster::Main; // stupid gcc uninit warning
-        
+
         switch (_role) {
         case Main:
                 mp = MuteMaster::Main;
@@ -517,17 +550,17 @@ Delivery::target_gain ()
         }
 
         gain_t desired_gain = _mute_master->mute_gain_at (mp);
-        
+
         if (_role == Listen && _session.monitor_out() && !_session.listening()) {
-                
+
                 /* nobody is soloed, and this delivery is a listen-send to the
                    control/monitor/listen bus, we should be silent since
                    it gets its signal from the master out.
                 */
-                
+
                 desired_gain = 0.0;
-                
-        } 
+
+        }
 
 	return desired_gain;
 }
@@ -562,5 +595,10 @@ Delivery::output_changed (IOChange change, void* /*src*/)
 boost::shared_ptr<Panner>
 Delivery::panner () const
 {
-        return _panshell->panner();
+	if (_panshell) {
+		return _panshell->panner();
+	} else {
+		return boost::shared_ptr<Panner>();
+	}
 }
+

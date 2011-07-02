@@ -40,6 +40,7 @@
 #include "ardour/route.h"
 #include "ardour/route_group.h"
 #include "ardour/audio_track.h"
+#include "ardour/midi_track.h"
 #include "ardour/pannable.h"
 #include "ardour/panner.h"
 #include "ardour/panner_shell.h"
@@ -89,6 +90,7 @@ MixerStrip::MixerStrip (Mixer_UI& mx, Session* sess, bool in_mixer)
 	, middle_button_table (1, 2)
 	, bottom_button_table (1, 2)
 	, meter_point_label (_("pre"))
+	, midi_input_enable_button (0)
 {
 	init ();
 
@@ -113,6 +115,7 @@ MixerStrip::MixerStrip (Mixer_UI& mx, Session* sess, boost::shared_ptr<Route> rt
 	, middle_button_table (1, 2)
 	, bottom_button_table (1, 2)
 	, meter_point_label (_("pre"))
+	, midi_input_enable_button (0)
 {
 	init ();
 	set_route (rt);
@@ -153,8 +156,7 @@ MixerStrip::init ()
 	input_button.add (input_label);
 	input_button.set_name ("MixerIOButton");
 	input_label.set_name ("MixerIOButtonLabel");
-
-	Gtkmm2ext::set_size_request_to_display_given_text (input_button, longest_label.c_str(), 4, 4);
+	input_button_box.pack_start (input_button, true, true);
 
 	output_label.set_text (_("Output"));
 	ARDOUR_UI::instance()->set_tip (&output_button, _("Button 1 to choose outputs from a port matrix, button 3 to select inputs from a menu"), "");
@@ -203,12 +205,12 @@ MixerStrip::init ()
 
 	_iso_label = manage (new Label (_("iso")));
 	_safe_label = manage (new Label (_("lock")));
-        
+
 	_iso_label->set_name (X_("SoloLEDLabel"));
 	_safe_label->set_name (X_("SoloLEDLabel"));
 
 	_iso_label->show ();
-	_safe_label->show (); 
+	_safe_label->show ();
 
         solo_led_table.set_spacings (0);
         solo_led_table.set_border_width (1);
@@ -227,7 +229,7 @@ MixerStrip::init ()
 	button_table.set_spacings (0);
 
 	button_table.attach (name_button, 0, 1, 0, 1);
-	button_table.attach (input_button, 0, 1, 1, 2);
+	button_table.attach (input_button_box, 0, 1, 1, 2);
 	button_table.attach (_invert_button_box, 0, 1, 2, 3);
 
 	middle_button_table.set_homogeneous (true);
@@ -399,6 +401,30 @@ MixerStrip::set_route (boost::shared_ptr<Route> rt)
 		global_vpacker.pack_start (*spacer, false, false);
 	}
 
+	if (is_midi_track()) {
+		if (midi_input_enable_button == 0) {
+			Image* img = manage (new Image (get_icon (X_("midi_socket_small"))));
+			midi_input_enable_button = manage (new StatefulToggleButton);
+			midi_input_enable_button->set_name ("MixerMidiInputEnableButton");
+			midi_input_enable_button->set_image (*img);
+			midi_input_enable_button->signal_toggled().connect (sigc::mem_fun (*this, &MixerStrip::midi_input_toggled));
+			ARDOUR_UI::instance()->set_tip (midi_input_enable_button, _("Enable/Disable MIDI input"));
+		} else {
+			input_button_box.remove (*midi_input_enable_button);
+		}
+		/* get current state */
+		midi_input_status_changed ();
+		input_button_box.pack_start (*midi_input_enable_button, false, false);
+		/* follow changes */
+		midi_track()->InputActiveChanged.connect (route_connections, invalidator (*this), boost::bind (&MixerStrip::midi_input_status_changed, this), gui_context());
+	} else {
+		if (midi_input_enable_button) {
+			/* removal from the container will delete it */
+			input_button_box.remove (*midi_input_enable_button);
+			midi_input_enable_button = 0;
+		}
+	}
+
 	if (is_audio_track()) {
 		boost::shared_ptr<AudioTrack> at = audio_track();
 		at->FreezeChange.connect (route_connections, invalidator (*this), boost::bind (&MixerStrip::map_frozen, this), gui_context());
@@ -411,13 +437,13 @@ MixerStrip::set_route (boost::shared_ptr<Route> rt)
 	}
 
 	if (is_track ()) {
-		
+
 		below_panner_box.pack_start (*rec_enable_button);
 		rec_enable_button->set_sensitive (_session->writable());
 		rec_enable_button->show();
 
 	} else {
-		
+
 		/* non-master bus */
 
 		if (!_route->is_master()) {
@@ -486,8 +512,7 @@ MixerStrip::set_route (boost::shared_ptr<Route> rt)
 	meter_point_label.show();
 	diskstream_button.show();
 	diskstream_label.show();
-	input_button.show();
-	input_label.show();
+	input_button_box.show_all();
 	output_button.show();
 	output_label.show();
 	name_label.show();
@@ -589,14 +614,14 @@ MixerStrip::set_width_enum (Width w, void* owner)
 
 		_iso_label->hide ();
 		_safe_label->hide ();
-		
+
 		Gtkmm2ext::set_size_request_to_display_given_text (name_button, longest_label.c_str(), 2, 2);
 		set_size_request (max (50, gpm.get_gm_width()), -1);
 		break;
 	}
 
 	processor_box.set_width (w);
-	
+
 	update_input_display ();
 	update_output_display ();
 	route_group_changed ();
@@ -656,7 +681,7 @@ MixerStrip::output_press (GdkEventButton *ev)
 		boost::shared_ptr<ARDOUR::BundleList> b = _session->bundles ();
 
 		/* give user bundles first chance at being in the menu */
-		
+
 		for (ARDOUR::BundleList::iterator i = b->begin(); i != b->end(); ++i) {
 			if (boost::dynamic_pointer_cast<UserBundle> (*i)) {
 				maybe_add_bundle_to_output_menu (*i, current);
@@ -668,7 +693,7 @@ MixerStrip::output_press (GdkEventButton *ev)
 				maybe_add_bundle_to_output_menu (*i, current);
 			}
 		}
-		
+
 		boost::shared_ptr<ARDOUR::RouteList> routes = _session->get_routes ();
 		RouteList copy = *routes;
 		copy.sort (RouteCompareByName ());
@@ -695,7 +720,7 @@ void
 MixerStrip::edit_output_configuration ()
 {
 	if (output_selector == 0) {
-		
+
 		boost::shared_ptr<Send> send;
 		boost::shared_ptr<IO> output;
 
@@ -704,11 +729,11 @@ MixerStrip::edit_output_configuration ()
 				output = send->output();
 			} else {
 				output = _route->output ();
-			} 
+			}
 		} else {
 			output = _route->output ();
 		}
-		
+
 		output_selector = new IOSelectorWindow (_session, output);
 	}
 
@@ -748,7 +773,7 @@ MixerStrip::input_press (GdkEventButton *ev)
 		return true;
 	}
 
-	if (_session->actively_recording() && _route->record_enabled()) 
+	if (_session->actively_recording() && _route->record_enabled())
 		return true;
 
 	switch (ev->button) {
@@ -768,7 +793,7 @@ MixerStrip::input_press (GdkEventButton *ev)
 		boost::shared_ptr<ARDOUR::BundleList> b = _session->bundles ();
 
 		/* give user bundles first chance at being in the menu */
-		
+
 		for (ARDOUR::BundleList::iterator i = b->begin(); i != b->end(); ++i) {
 			if (boost::dynamic_pointer_cast<UserBundle> (*i)) {
 				maybe_add_bundle_to_input_menu (*i, current);
@@ -780,7 +805,7 @@ MixerStrip::input_press (GdkEventButton *ev)
 				maybe_add_bundle_to_input_menu (*i, current);
 			}
 		}
-		
+
 		boost::shared_ptr<ARDOUR::RouteList> routes = _session->get_routes ();
 		RouteList copy = *routes;
 		copy.sort (RouteCompareByName ());
@@ -887,7 +912,7 @@ MixerStrip::maybe_add_bundle_to_output_menu (boost::shared_ptr<Bundle> b, ARDOUR
 	}
 
 	output_menu_bundles.push_back (b);
-	
+
 	MenuList& citems = output_menu.items();
 
 	std::string n = b->name ();
@@ -1022,7 +1047,7 @@ MixerStrip::update_io_button (boost::shared_ptr<ARDOUR::Route> route, Width widt
 		} else {
 			port = route->output()->nth (io_index);
 		}
-		
+
 		port_connections.clear ();
 		port->get_connections(port_connections);
 		io_connection_count = 0;
@@ -1195,12 +1220,12 @@ MixerStrip::comment_editor_done_editing ()
 	ignore_toggle = true;
 	_comment_menu_item->set_active (false);
 	ignore_toggle = false;
-	
+
 	string const str = comment_area->get_buffer()->get_text();
 	if (str == _route->comment ()) {
 		return;
 	}
-	
+
 	_route->set_comment (str, this);
 }
 
@@ -1210,7 +1235,7 @@ MixerStrip::toggle_comment ()
 	if (ignore_toggle) {
 		return;
 	}
-	
+
 	if (comment_window == 0) {
 		setup_comment_editor ();
 	}
@@ -1511,7 +1536,7 @@ MixerStrip::reset_strip_style ()
 		gpm.set_fader_name ("SendStripBase");
 
 	} else {
-		
+
 		if (is_midi_track()) {
 			if (_route->active()) {
 				set_name ("MidiTrackStripBase");
@@ -1539,7 +1564,7 @@ MixerStrip::reset_strip_style ()
 				gpm.set_meter_strip_name ("AudioBusMetricsInactive");
 			}
 			gpm.set_fader_name ("AudioBusFader");
-			
+
 			/* (no MIDI busses yet) */
 		}
 	}
@@ -1786,7 +1811,6 @@ MixerStrip::on_key_press_event (GdkEventKey* ev)
 		break;
 
 	case GDK_r:
-                cerr << "Stole that r\n";
 		rec_enable_press (&fake);
 		return true;
 		break;
@@ -1839,7 +1863,6 @@ MixerStrip::on_key_release_event (GdkEventKey* ev)
 		break;
 
 	case GDK_r:
-		cerr << "Stole that r\n";
 		rec_enable_release (&fake);
 		return true;
 		break;
@@ -1890,4 +1913,26 @@ void
 MixerStrip::hide_things ()
 {
 	processor_box.hide_things ();
+}
+
+void
+MixerStrip::midi_input_toggled ()
+{
+	boost::shared_ptr<MidiTrack> mt = midi_track ();
+
+	if (!mt) {
+		return;
+	}
+
+	mt->set_input_active (midi_input_enable_button->get_active());
+}
+
+void
+MixerStrip::midi_input_status_changed ()
+{
+	if (midi_input_enable_button) {
+		boost::shared_ptr<MidiTrack> mt = midi_track ();
+		assert (mt);
+		midi_input_enable_button->set_active (mt->input_active ());
+	}
 }

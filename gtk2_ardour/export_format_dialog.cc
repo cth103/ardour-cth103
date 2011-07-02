@@ -405,7 +405,7 @@ ExportFormatDialog::init_format_table ()
 		row[sample_rate_cols.ptr] = *it;
 		row[sample_rate_cols.color] = "white";
 		row[sample_rate_cols.label] = (*it)->name();
-		
+
 		WeakSampleRatePtr ptr (*it);
 		(*it)->SelectChanged.connect (*this, invalidator (*this), ui_bind (&ExportFormatDialog::change_sample_rate_selection, this, _1, ptr), gui_context());
 		(*it)->CompatibleChanged.connect (*this, invalidator (*this), ui_bind (&ExportFormatDialog::change_sample_rate_compatibility, this, _1, ptr), gui_context());
@@ -493,7 +493,7 @@ ExportFormatDialog::update_compatibility_selection (std::string const & path)
 {
 
 	Gtk::TreeModel::iterator iter = compatibility_view.get_model ()->get_iter (path);
-	ExportFormatManager::CompatPtr ptr = iter->get_value (compatibility_cols.ptr);
+	ExportFormatCompatibilityPtr ptr = iter->get_value (compatibility_cols.ptr);
 	bool state = iter->get_value (compatibility_cols.selected);
 
 	iter->set_value (compatibility_cols.selected, state);
@@ -553,7 +553,7 @@ ExportFormatDialog::change_compatibility_selection (bool select, WeakCompatPtr c
 {
 	++applying_changes_from_engine;
 
-	ExportFormatManager::CompatPtr ptr = compat.lock();
+	ExportFormatCompatibilityPtr ptr = compat.lock();
 
 	for (Gtk::ListStore::Children::iterator it = compatibility_list->children().begin(); it != compatibility_list->children().end(); ++it) {
 		if (it->get_value (compatibility_cols.ptr) == ptr) {
@@ -576,7 +576,7 @@ ExportFormatDialog::change_format_selection (bool select, WeakFormatPtr format)
 {
 	change_selection<ExportFormat, FormatCols> (select, format, format_list, format_view, format_cols);
 
-	ExportFormatManager::FormatPtr ptr = format.lock();
+	ExportFormatPtr ptr = format.lock();
 
 	if (select && ptr) {
 		change_encoding_options (ptr);
@@ -780,9 +780,6 @@ ExportFormatDialog::update_time (AnyTime & time, AudioClock const & clock)
 		time.type = AnyTime::Frames;
 		time.frames = frames;
 		break;
-	  case AudioClock::Off:
-		silence_end_checkbox.set_active (false);
-		return;
 	}
 }
 
@@ -801,7 +798,7 @@ ExportFormatDialog::update_tagging_selection ()
 }
 
 void
-ExportFormatDialog::change_encoding_options (ExportFormatManager::FormatPtr ptr)
+ExportFormatDialog::change_encoding_options (ExportFormatPtr ptr)
 {
 	empty_encoding_option_table ();
 

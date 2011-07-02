@@ -46,21 +46,21 @@ using namespace std;
 using namespace ARDOUR;
 using namespace PBD;
 
-AudioPlaylistSource::AudioPlaylistSource (Session& s, const ID& orig, const std::string& name, boost::shared_ptr<AudioPlaylist> p, 
+AudioPlaylistSource::AudioPlaylistSource (Session& s, const ID& orig, const std::string& name, boost::shared_ptr<AudioPlaylist> p,
 					  uint32_t chn, frameoffset_t begin, framecnt_t len, Source::Flag flags)
 	: Source (s, DataType::AUDIO, name)
-	, AudioSource (s, name)
 	, PlaylistSource (s, orig, name, p, DataType::AUDIO, begin, len, flags)
+	, AudioSource (s, name)
 	, _playlist_channel (chn)
 {
 	AudioSource::_length = len;
-	ensure_buffers_for_level (_level);
+	ensure_buffers_for_level (_level, _session.frame_rate());
 }
 
 AudioPlaylistSource::AudioPlaylistSource (Session& s, const XMLNode& node)
 	: Source (s, node)
-	, AudioSource (s, node)
 	, PlaylistSource (s, node)
+	, AudioSource (s, node)
 {
 	/* PlaylistSources are never writable, renameable, removable or destructive */
 	_flags = Flag (_flags & ~(Writable|CanRename|Removable|RemovableIfEmpty|RemoveAtDestroy|Destructive));
@@ -68,10 +68,12 @@ AudioPlaylistSource::AudioPlaylistSource (Session& s, const XMLNode& node)
 	/* ancestors have already called ::set_state() in their XML-based
 	   constructors.
 	*/
-	
+
 	if (set_state (node, Stateful::loading_state_version, false)) {
 		throw failed_constructor ();
 	}
+
+	AudioSource::_length = _playlist_length;
 }
 
 AudioPlaylistSource::~AudioPlaylistSource ()
@@ -94,26 +96,26 @@ AudioPlaylistSource::get_state ()
 	return node;
 }
 
-	
 int
-AudioPlaylistSource::set_state (const XMLNode& node, int version) 
+AudioPlaylistSource::set_state (const XMLNode& node, int version)
 {
 	return set_state (node, version, true);
 }
 
 int
-AudioPlaylistSource::set_state (const XMLNode& node, int version, bool with_descendants) 
+AudioPlaylistSource::set_state (const XMLNode& node, int version, bool with_descendants)
 {
 	if (with_descendants) {
-		if (Source::set_state (node, version) || 
-		    AudioSource::set_state (node, version) ||
-		    PlaylistSource::set_state (node, version)) {
+		if (Source::set_state (node, version) ||
+		    PlaylistSource::set_state (node, version) ||
+		    AudioSource::set_state (node, version)) {
 			return -1;
 		}
 	}
 
 	const XMLProperty* prop;
 	pair<framepos_t,framepos_t> extent = _playlist->get_extent();
+
 	AudioSource::_length = extent.second - extent.first;
 
 	if ((prop = node.property (X_("channel"))) == 0) {
@@ -122,19 +124,18 @@ AudioPlaylistSource::set_state (const XMLNode& node, int version, bool with_desc
 
 	sscanf (prop->value().c_str(), "%" PRIu32, &_playlist_channel);
 
-	ensure_buffers_for_level (_level);
+	ensure_buffers_for_level (_level, _session.frame_rate());
 
 	return 0;
 }
 
-framecnt_t 
+framecnt_t
 AudioPlaylistSource::read_unlocked (Sample* dst, framepos_t start, framecnt_t cnt) const
 {
-	Sample* sbuf;
-	gain_t* gbuf;
+	boost::shared_ptr<Sample> sbuf;
+	boost::shared_ptr<gain_t> gbuf;
 	framecnt_t to_read;
 	framecnt_t to_zero;
-	pair<framepos_t,framepos_t> extent = _playlist->get_extent();
 
 	/* we must be careful not to read beyond the end of our "section" of
 	 * the playlist, because otherwise we may read data that exists, but
@@ -149,7 +150,7 @@ AudioPlaylistSource::read_unlocked (Sample* dst, framepos_t start, framecnt_t cn
 		to_zero = 0;
 	}
 
-	{ 
+	{
 		/* Don't need to hold the lock for the actual read, and
 		   actually, we cannot, but we do want to interlock
 		   with any changes to the list of buffers caused
@@ -160,7 +161,7 @@ AudioPlaylistSource::read_unlocked (Sample* dst, framepos_t start, framecnt_t cn
 		gbuf = _gain_buffers[_level-1];
 	}
 
-	boost::dynamic_pointer_cast<AudioPlaylist>(_playlist)->read (dst, sbuf, gbuf, start+_playlist_offset, to_read, _playlist_channel);
+	boost::dynamic_pointer_cast<AudioPlaylist>(_playlist)->read (dst, sbuf.get(), gbuf.get(), start+_playlist_offset, to_read, _playlist_channel);
 
 	if (to_zero) {
 		memset (dst+to_read, 0, sizeof (Sample) * to_zero);
@@ -169,8 +170,8 @@ AudioPlaylistSource::read_unlocked (Sample* dst, framepos_t start, framecnt_t cn
 	return cnt;
 }
 
-framecnt_t 
-AudioPlaylistSource::write_unlocked (Sample *src, framecnt_t cnt) 
+framecnt_t
+AudioPlaylistSource::write_unlocked (Sample *src, framecnt_t cnt)
 {
 	fatal << string_compose (_("programming error: %1"), "AudioPlaylistSource::write() called - should be impossible") << endmsg;
 	/*NOTREACHED*/
@@ -225,4 +226,5 @@ AudioPlaylistSource::peak_path (string /*audio_path_IGNORED*/)
 {
 	return _peak_path;
 }
+
 

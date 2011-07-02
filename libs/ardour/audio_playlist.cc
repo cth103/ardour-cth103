@@ -54,7 +54,7 @@ CrossfadeListProperty::CrossfadeListProperty (AudioPlaylist& pl)
         : SequenceProperty<std::list<boost::shared_ptr<Crossfade> > > (Properties::crossfades.property_id, boost::bind (&AudioPlaylist::update, &pl, _1))
         , _playlist (pl)
 {
-	
+
 }
 
 CrossfadeListProperty::CrossfadeListProperty (CrossfadeListProperty const & p)
@@ -109,7 +109,9 @@ AudioPlaylist::AudioPlaylist (Session& session, const XMLNode& node, bool hidden
 	add_property (_crossfades);
 
 	in_set_state++;
-	set_state (node, Stateful::loading_state_version);
+	if (set_state (node, Stateful::loading_state_version)) {
+		throw failed_constructor();
+	}
 	in_set_state--;
 }
 
@@ -125,7 +127,7 @@ AudioPlaylist::AudioPlaylist (boost::shared_ptr<const AudioPlaylist> other, stri
 	, _crossfades (*this)
 {
 	add_property (_crossfades);
-	
+
 	RegionList::const_iterator in_o  = other->regions.begin();
 	RegionList::iterator in_n = regions.begin();
 
@@ -170,7 +172,7 @@ AudioPlaylist::AudioPlaylist (boost::shared_ptr<const AudioPlaylist> other, fram
 {
 	RegionLock rlock2 (const_cast<AudioPlaylist*> (other.get()));
 	in_set_state++;
-	
+
 	add_property (_crossfades);
 
 	framepos_t const end = start + cnt - 1;
@@ -188,9 +190,6 @@ AudioPlaylist::AudioPlaylist (boost::shared_ptr<const AudioPlaylist> other, fram
 
 		framecnt_t fade_in = 64;
 		framecnt_t fade_out = 64;
-		framepos_t position;
-		framecnt_t len;
-		frameoffset_t offset;
 
 		switch (region->coverage (start, end)) {
 		case OverlapNone:
@@ -210,29 +209,22 @@ AudioPlaylist::AudioPlaylist (boost::shared_ptr<const AudioPlaylist> other, fram
 		}
 
 		case OverlapStart: {
-			position = region->position() - start;
-			len = end - region->position();
-
 			if (end > region->position() + region->fade_in()->back()->when)
 				fade_in = region->fade_in()->back()->when;  //end is after fade-in, preserve the fade-in
 			if (end > region->last_frame() - region->fade_out()->back()->when)
 				fade_out = region->fade_out()->back()->when - ( region->last_frame() - end );  //end is inside the fadeout, preserve the fades endpoint
 			break;
 		}
-		
-		case OverlapEnd: {
-			position = 0;
-			offset = start - region->position();
-			len = region->length() - offset;
 
+		case OverlapEnd: {
 			if (start < region->last_frame() - region->fade_out()->back()->when)  //start is before fade-out, preserve the fadeout
 				fade_out = region->fade_out()->back()->when;
-			
+
 			if (start < region->position() + region->fade_in()->back()->when)
 				fade_in = region->fade_in()->back()->when - (start - region->position());  //end is inside the fade-in, preserve the fade-in endpoint
 			break;
 		}
-		
+
 		case OverlapExternal:
 			fade_in = region->fade_in()->back()->when;
 			fade_out = region->fade_out()->back()->when;
@@ -268,6 +260,9 @@ AudioPlaylist::read (Sample *buf, Sample *mixdown_buffer, float *gain_buffer, fr
 		     framecnt_t cnt, unsigned chan_n)
 {
 	framecnt_t ret = cnt;
+
+	DEBUG_TRACE (DEBUG::AudioPlayback, string_compose ("Playlist %1 read @ %2 for %3, channel %4, regions %5 xfades %6\n",
+							   name(), start, cnt, chan_n, regions.size(), _crossfades.size()));
 
 	/* optimizing this memset() away involves a lot of conditionals
 	   that may well cause more of a hit due to cache misses
@@ -315,9 +310,15 @@ AudioPlaylist::read (Sample *buf, Sample *mixdown_buffer, float *gain_buffer, fr
                 }
 	}
 
+	DEBUG_TRACE (DEBUG::AudioPlayback, string_compose ("Checking %1 xfades\n", _crossfades.size()));
+
 	for (Crossfades::iterator i = _crossfades.begin(); i != _crossfades.end(); ++i) {
+		DEBUG_TRACE (DEBUG::AudioPlayback, string_compose ("%1 check xfade between %2 and %3 ...\n",
+								   name(), (*i)->out()->name(), (*i)->in()->name()));
 		if ((*i)->coverage (start, end) != OverlapNone) {
 			relevant_xfades[(*i)->upper_layer()].push_back (*i);
+			DEBUG_TRACE (DEBUG::AudioPlayback, string_compose ("\t\txfade is relevant, place on layer %1\n",
+									   (*i)->upper_layer()));
 		}
 	}
 
@@ -334,6 +335,8 @@ AudioPlaylist::read (Sample *buf, Sample *mixdown_buffer, float *gain_buffer, fr
 
 	for (vector<uint32_t>::iterator l = relevant_layers.begin(); l != relevant_layers.end(); ++l) {
 
+		DEBUG_TRACE (DEBUG::AudioPlayback, string_compose ("read for layer %1\n", *l));
+
 		vector<boost::shared_ptr<Region> > r (relevant_regions[*l]);
 		vector<boost::shared_ptr<Crossfade> >& x (relevant_xfades[*l]);
 
@@ -347,6 +350,7 @@ AudioPlaylist::read (Sample *buf, Sample *mixdown_buffer, float *gain_buffer, fr
 		}
 
 		for (vector<boost::shared_ptr<Crossfade> >::iterator i = x.begin(); i != x.end(); ++i) {
+                        DEBUG_TRACE (DEBUG::AudioPlayback, string_compose ("read from xfade between %1 & %2\n", (*i)->out()->name(), (*i)->in()->name()));
 			(*i)->read_at (buf, mixdown_buffer, gain_buffer, start, cnt, chan_n);
 
 			/* don't JACK up _read_data_count, since its the same data as we just
@@ -716,7 +720,9 @@ AudioPlaylist::set_state (const XMLNode& node, int version)
 
 	in_set_state++;
 
-	Playlist::set_state (node, version);
+	if (Playlist::set_state (node, version)) {
+		return -1;
+	}
 
 	freeze ();
 
@@ -976,9 +982,9 @@ struct crossfade_triple {
 };
 
 void
-AudioPlaylist::copy_dependents (const vector<TwoRegions>& old_and_new, boost::shared_ptr<Playlist> other)
+AudioPlaylist::copy_dependents (const vector<TwoRegions>& old_and_new, Playlist* other) const
 {
-	boost::shared_ptr<AudioPlaylist> other_audio = boost::dynamic_pointer_cast<AudioPlaylist>(other);
+	AudioPlaylist* other_audio = dynamic_cast<AudioPlaylist*>(other);
 
 	if (!other_audio) {
 		return;
@@ -1000,28 +1006,28 @@ AudioPlaylist::copy_dependents (const vector<TwoRegions>& old_and_new, boost::sh
 
 	for (vector<TwoRegions>::const_iterator on = old_and_new.begin(); on != old_and_new.end(); ++on) {
 
-		for (Crossfades::iterator i = _crossfades.begin(); i != _crossfades.end(); ++i) {
+		for (Crossfades::const_iterator i = _crossfades.begin(); i != _crossfades.end(); ++i) {
 
 			if ((*i)->in() == on->first) {
-				
+
 				CrossfadeInfo::iterator cf;
 
 				if ((cf = crossfade_info.find (*i)) != crossfade_info.end()) {
 
-					/* already have a record for the old fade-in region, 
+					/* already have a record for the old fade-in region,
 					   so note the new fade-in region
 					*/
-					
+
 					cf->second.new_in = on->second;
-					
+
 				} else {
-					
+
 					/* add a record of this crossfade, keeping an association
 					   with the new fade-in region
 					*/
-					
+
 					crossfade_triple ct;
-					
+
 					ct.old_in = on->first;
 					ct.new_in = on->second;
 
@@ -1029,21 +1035,21 @@ AudioPlaylist::copy_dependents (const vector<TwoRegions>& old_and_new, boost::sh
 				}
 
 			} else if ((*i)->out() == on->first) {
-				
+
 				/* this old region is the fade-out region of this crossfade */
-				
+
 				CrossfadeInfo::iterator cf;
-				
+
 				if ((cf = crossfade_info.find (*i)) != crossfade_info.end()) {
-					
+
 					/* already have a record for this crossfade, so just keep
 					   an association for the new fade out region
 					*/
-					
+
 					cf->second.new_out = on->second;
 
 				} else {
-					
+
 					/* add a record of this crossfade, keeping an association
 					   with the new fade-in region
 					*/
@@ -1060,24 +1066,24 @@ AudioPlaylist::copy_dependents (const vector<TwoRegions>& old_and_new, boost::sh
 	}
 
 	for (CrossfadeInfo::iterator ci = crossfade_info.begin(); ci != crossfade_info.end(); ++ci) {
-		
+
 		/* for each crossfade that involves at least two of the old regions,
 		   create a new identical crossfade with the new regions
 		*/
-		
+
 		if (!ci->second.new_in || !ci->second.new_out) {
 			continue;
 		}
 
-		boost::shared_ptr<Crossfade> new_xfade (new Crossfade (ci->first, 
+		boost::shared_ptr<Crossfade> new_xfade (new Crossfade (ci->first,
 								       boost::dynamic_pointer_cast<AudioRegion>(ci->second.new_in),
 								       boost::dynamic_pointer_cast<AudioRegion>(ci->second.new_out)));
-		
+
 		/* add it at the right position - which must be at the start
 		 * of the fade-in region
 		 */
 
-		new_xfade->set_position (ci->second.new_in->position(), this);
+		new_xfade->set_position (ci->second.new_in->position());
 		other_audio->add_crossfade (new_xfade);
 	}
 }
@@ -1166,11 +1172,11 @@ AudioPlaylist::pre_uncombine (vector<boost::shared_ptr<Region> >& originals, boo
 		ar->set_scale_amplitude (ar->scale_amplitude() * cr->scale_amplitude());
 
 		if (i == originals.begin()) {
-			
+
 			/* copy the compound region's fade in back into the first
 			   original region.
 			*/
-			
+
 			if (cr->fade_in()->back()->when <= ar->length()) {
 				/* don't do this if the fade is longer than the
 				 * region
@@ -1178,13 +1184,13 @@ AudioPlaylist::pre_uncombine (vector<boost::shared_ptr<Region> >& originals, boo
 				ar->set_fade_in (cr->fade_in());
 			}
 
-			
+
 		} else if (*i == originals.back()) {
 
 			/* copy the compound region's fade out back into the last
 			   original region.
 			*/
-			
+
 			if (cr->fade_out()->back()->when <= ar->length()) {
 				/* don't do this if the fade is longer than the
 				 * region

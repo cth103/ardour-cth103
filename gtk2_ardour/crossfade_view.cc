@@ -176,7 +176,7 @@ CrossfadeView::redraw_curves ()
 
 	/* Hence the number of points that we will render */
 	int32_t const npoints = editor.frame_to_pixel (max_frames - min_frames);
-	
+
 	if (!_visible || !crossfade->active() || npoints < 3) {
 		fade_in->hide();
 		fade_out->hide();
@@ -295,7 +295,7 @@ CrossfadeView::horizontal_position_changed ()
 	   the other case where the horizontal position change will uncover `undrawn'
 	   sections).
 	*/
-	
+
 	if (!_all_in_view) {
 		redraw_curves ();
 	}

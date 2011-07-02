@@ -1,9 +1,9 @@
 #include "pbd/convert.h"
 #include "pbd/error.h"
+#include "pbd/locale_guard.h"
 #include "pbd/xml++.h"
 
 #include "ardour/amp.h"
-#include "ardour/dB.h"
 #include "ardour/debug.h"
 #include "ardour/audio_buffer.h"
 #include "ardour/monitor_processor.h"
@@ -35,10 +35,13 @@ MonitorProcessor::MonitorProcessor (Session& s)
         , _cut_all_ptr (new MPControl<bool> (false, _("monitor cut"), Controllable::Toggle))
         , _mono_ptr (new MPControl<bool> (false, _("monitor mono"), Controllable::Toggle))
         , _dim_level_ptr (new MPControl<volatile gain_t> 
-                          (0.2, _("monitor mono"), Controllable::Flag (0), 0.0f, 1.0f))
+			  /* default is -12dB, range is -20dB to 0dB */
+                          (dB_to_coefficient(-12.0), _("monitor dim level"), Controllable::Flag (0), 
+			   dB_to_coefficient(-20.0), dB_to_coefficient (0.0)))
         , _solo_boost_level_ptr (new MPControl<volatile gain_t> 
-                                 (1.0, _("monitor mono"), Controllable::Flag (0), 1.0f, 3.0f))
-          
+				 /* default is 0dB, range is 0dB to +20dB */
+                                 (dB_to_coefficient(0.0), _("monitor solo boost level"), Controllable::Flag (0), 
+				  dB_to_coefficient(0.0), dB_to_coefficient(10.0)))
         , _dim_all_control (_dim_all_ptr)
         , _cut_all_control (_cut_all_ptr)
         , _mono_control (_mono_ptr)
@@ -108,7 +111,7 @@ MonitorProcessor::set_state (const XMLNode& node, int version)
                       << endmsg;
                 return -1;
         }
-        
+
         allocate_channels (atoi (prop->value()));
 
         if ((prop = node.property (X_("dim-level"))) != 0) {
@@ -150,7 +153,7 @@ MonitorProcessor::set_state (const XMLNode& node, int version)
                                       << endmsg;
                                 return -1;
                         }
-                        
+
                         if (chn >= _channels.size()) {
                                 error << string_compose (X_("programming error: %1"), X_("MonitorProcessor XML settings has an illegal channel count"))
                                       << endmsg;
@@ -185,7 +188,7 @@ MonitorProcessor::set_state (const XMLNode& node, int version)
                         }
                 }
         }
-        
+
         /* reset solo cnt */
 
         solo_cnt = 0;
@@ -195,20 +198,21 @@ MonitorProcessor::set_state (const XMLNode& node, int version)
                         solo_cnt++;
                 }
         }
-        
+
         return 0;
 }
 
 XMLNode&
 MonitorProcessor::state (bool full)
 {
+	LocaleGuard lg (X_("POSIX"));
         XMLNode& node (Processor::state (full));
         char buf[64];
 
 	/* this replaces any existing "type" property */
 
 	node.add_property (X_("type"), X_("monitor"));
-        
+
         snprintf (buf, sizeof(buf), "%.12g", _dim_level.val());
         node.add_property (X_("dim-level"), buf);
 
@@ -218,7 +222,7 @@ MonitorProcessor::state (bool full)
         node.add_property (X_("cut-all"), (_cut_all ? "yes" : "no"));
         node.add_property (X_("dim-all"), (_dim_all ? "yes" : "no"));
         node.add_property (X_("mono"), (_mono ? "yes" : "no"));
-        
+
         uint32_t limit = _channels.size();
 
         snprintf (buf, sizeof (buf), "%u", limit);
@@ -232,12 +236,12 @@ MonitorProcessor::state (bool full)
 
                 snprintf (buf, sizeof (buf), "%u", chn);
                 chn_node->add_property ("id", buf);
-                
+
                 chn_node->add_property (X_("cut"), (*x)->cut == 1.0f ? "no" : "yes");
                 chn_node->add_property (X_("invert"), (*x)->polarity == 1.0f ? "no" : "yes");
                 chn_node->add_property (X_("dim"), (*x)->dim ? "yes" : "no");
                 chn_node->add_property (X_("solo"), (*x)->soloed ? "yes" : "no");
-                
+
                 node.add_child_nocopy (*chn_node);
         }
 
@@ -251,7 +255,7 @@ MonitorProcessor::run (BufferSet& bufs, framepos_t /*start_frame*/, framepos_t /
         gain_t target_gain;
         gain_t dim_level_this_time = _dim_level;
         gain_t global_cut = (_cut_all ? 0.0f : 1.0f);
-        gain_t global_dim = (_dim_all ? dim_level_this_time : 1.0f);
+        gain_t global_dim = (_dim_all ? dim_level_this_time : 1.0);
         gain_t solo_boost;
 
         if (_session.listening() || _session.soloing()) {
@@ -265,7 +269,7 @@ MonitorProcessor::run (BufferSet& bufs, framepos_t /*start_frame*/, framepos_t /
                 /* don't double-scale by both track dim and global dim coefficients */
 
                 gain_t dim_level = (global_dim == 1.0 ? (_channels[chn]->dim ? dim_level_this_time : 1.0) : 1.0);
-
+		
                 if (_channels[chn]->soloed) {
                         target_gain = _channels[chn]->polarity * _channels[chn]->cut * dim_level * global_cut * global_dim * solo_boost;
                 } else {
@@ -331,7 +335,7 @@ MonitorProcessor::configure_io (ChanCount in, ChanCount out)
         return Processor::configure_io (in, out);
 }
 
-bool 
+bool
 MonitorProcessor::can_support_io_configuration (const ChanCount& in, ChanCount& out) const
 {
 	out = in;
@@ -346,7 +350,7 @@ MonitorProcessor::set_polarity (uint32_t chn, bool invert)
         } else {
                 _channels[chn]->polarity = 1.0f;
         }
-}       
+}
 
 void
 MonitorProcessor::set_dim (uint32_t chn, bool yn)
@@ -369,7 +373,7 @@ MonitorProcessor::set_solo (uint32_t chn, bool solo)
 {
         if (solo != _channels[chn]->soloed) {
                 _channels[chn]->soloed = solo;
-                
+
                 if (solo) {
                         solo_cnt++;
                 } else {
@@ -404,27 +408,27 @@ MonitorProcessor::display_to_user () const
         return false;
 }
 
-bool 
+bool
 MonitorProcessor::soloed (uint32_t chn) const
 {
         return _channels[chn]->soloed;
 }
 
 
-bool 
+bool
 MonitorProcessor::inverted (uint32_t chn) const
 {
         return _channels[chn]->polarity < 0.0f;
 }
 
 
-bool 
+bool
 MonitorProcessor::cut (uint32_t chn) const
 {
         return _channels[chn]->cut == 0.0f;
 }
 
-bool 
+bool
 MonitorProcessor::dimmed (uint32_t chn) const
 {
         return _channels[chn]->dim;
@@ -490,12 +494,12 @@ MonitorProcessor::ChannelRecord::ChannelRecord (uint32_t chn)
 	, dim_ptr (new MPControl<bool> (false, string_compose (_("dim control"), chn), PBD::Controllable::Toggle))
 	, polarity_ptr (new MPControl<gain_t> (1.0, string_compose (_("polarity control"), chn), PBD::Controllable::Toggle))
 	, soloed_ptr (new MPControl<bool> (false, string_compose (_("solo control"), chn), PBD::Controllable::Toggle))
-	  
+
 	, cut_control (cut_ptr)
 	, dim_control (dim_ptr)
 	, polarity_control (polarity_ptr)
 	, soloed_control (soloed_ptr)
-	  
+
 	, cut (*cut_ptr)
 	, dim (*dim_ptr)
 	, polarity (*polarity_ptr)

@@ -111,8 +111,6 @@ class RouteUI : public virtual AxisView
 	XMLNode *xml_node;
 	void ensure_xml_node ();
 
-	virtual XMLNode* get_automation_child_xml_node (Evoral::Parameter);
-
 	bool mute_press(GdkEventButton*);
 	bool mute_release(GdkEventButton*);
 	bool solo_press(GdkEventButton*);
@@ -184,7 +182,7 @@ class RouteUI : public virtual AxisView
 	Gtk::CheckMenuItem *step_edit_item;
 	void toggle_step_edit ();
 	virtual void step_edit_changed (bool);
-        
+
 	virtual void polarity_changed ();
 
 	Gtk::CheckMenuItem *denormal_menu_item;
@@ -230,10 +228,10 @@ class RouteUI : public virtual AxisView
 	void relabel_solo_button ();
 
 	struct SoloMuteRelease {
-	    SoloMuteRelease (bool was_active) 
+	    SoloMuteRelease (bool was_active)
 	    : active (was_active)
 	    , exclusive (false) {}
-	    
+
 	    boost::shared_ptr<ARDOUR::RouteList> routes;
 	    boost::shared_ptr<ARDOUR::RouteList> routes_on;
 	    boost::shared_ptr<ARDOUR::RouteList> routes_off;
@@ -250,7 +248,7 @@ class RouteUI : public virtual AxisView
 	void invert_toggled (uint32_t, BindableToggleButton *);
 	void invert_menu_toggled (uint32_t);
 	bool invert_press (GdkEventButton *);
-	
+
 	int _i_am_the_modifier;
 	std::list<BindableToggleButton*> _invert_buttons;
 	Gtk::Menu* _invert_menu;

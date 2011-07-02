@@ -266,7 +266,7 @@ Marker::Marker (PublicEditor& ed, Canvas::Group& parent, guint32 rgba, const str
 	Glib::RefPtr<Pango::Layout> layout = foo.create_pango_layout (X_("Hg")); /* ascender + descender */
 	int width;
 
-	layout->set_font_description (*name_font);
+	layout->set_font_description (name_font);
 	Gtkmm2ext::get_ink_pixel_size (layout, width, name_height);
 
 	name_pixbuf = new Canvas::Pixbuf (group);
@@ -329,7 +329,7 @@ Marker::setup_line ()
 
 			_line->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_marker_event), mark, this));
 		}
-		
+
                 /* work out where to start the line from so that it extends from the top of the canvas */
 		double yo = 0;
                 double xo = 0;
@@ -384,7 +384,7 @@ void
 Marker::setup_name_display ()
 {
 	double limit = DBL_MAX;
-	
+
 	if (label_on_left ()) {
 		limit = _left_label_limit;
 	} else {
@@ -392,7 +392,7 @@ Marker::setup_name_display ()
 	}
 
 	/* Work out how wide the name can be */
-	int name_width = min ((double) pixel_width (_name, *name_font) + 2, limit);
+	int name_width = min ((double) pixel_width (_name, name_font) + 2, limit);
 	if (name_width == 0) {
 		name_width = 1;
 	}
@@ -433,7 +433,7 @@ void
 Marker::show ()
 {
 	_shown = true;
-	
+
         group->show ();
 	setup_line ();
 }
@@ -442,7 +442,7 @@ void
 Marker::hide ()
 {
 	_shown = false;
-	
+
 	group->hide ();
 	setup_line ();
 }
@@ -472,7 +472,7 @@ Marker::set_left_label_limit (double p)
 	if (_left_label_limit < 0) {
 		_left_label_limit = 0;
 	}
-	
+
 	if (label_on_left ()) {
 		setup_name_display ();
 	}
@@ -487,7 +487,7 @@ Marker::set_right_label_limit (double p)
 	if (_right_label_limit < 0) {
 		_right_label_limit = 0;
 	}
-	
+
 	if (!label_on_left ()) {
 		setup_name_display ();
 	}

@@ -101,7 +101,7 @@ public:
 
 	void set_frame_color();
 	void color_handler ();
-        
+
 	void show_step_edit_cursor (Evoral::MusicalTime pos);
 	void move_step_edit_cursor (Evoral::MusicalTime pos);
 	void hide_step_edit_cursor ();
@@ -261,19 +261,26 @@ public:
 	void change_velocities (bool up, bool fine, bool allow_smush);
 	void transpose (bool up, bool fine, bool allow_smush);
 	void nudge_notes (bool forward);
+	void channel_edit ();
 
 	void show_list_editor ();
 
 	void selection_as_notelist (Notes& selected, bool allow_all_if_none_selected = false);
 
 	void enable_display (bool);
+<<<<<<< HEAD
 	
 	void set_channel_selector_scoped_note(NoteBase* note){ _channel_selection_scoped_note = note; }
 	NoteBase* channel_selector_scoped_note(){  return _channel_selection_scoped_note; }
+=======
+
+	void set_channel_selector_scoped_note(ArdourCanvas::CanvasNoteEvent* note){ _channel_selection_scoped_note = note; }
+	ArdourCanvas::CanvasNoteEvent* channel_selector_scoped_note(){  return _channel_selection_scoped_note; }
+>>>>>>> origin/master
 
 	void trim_front_starting ();
 	void trim_front_ending ();
-        
+
 protected:
 	/** Allows derived types to specify their visibility requirements
 	 * to the TimeAxisViewItem parent class.
@@ -318,7 +325,7 @@ private:
 	void midi_channel_mode_changed(ARDOUR::ChannelMode mode, uint16_t mask);
 	void midi_patch_settings_changed(std::string model, std::string custom_device_mode);
 
-	void change_note_channel (NoteBase *, int8_t);
+	void change_note_channel (NoteBase *, int8_t, bool relative=false);
 	void change_note_velocity(NoteBase* ev, int8_t vel, bool relative=false);
 	void change_note_note(NoteBase* ev, int8_t note, bool relative=false);
 	void change_note_time(NoteBase* ev, ARDOUR::MidiModel::TimeType, bool relative=false);
@@ -362,6 +369,7 @@ private:
 	Note*                                _ghost_note;
 	double                               _last_ghost_x;
 	double                               _last_ghost_y;
+<<<<<<< HEAD
         double                               _drag_start_x;
         double                               _drag_start_y;
         double                               _last_x;
@@ -372,6 +380,18 @@ private:
         Evoral::MusicalTime                  _step_edit_cursor_position;
 	NoteBase*	     _channel_selection_scoped_note;
 	
+=======
+	double                               _drag_start_x;
+	double                               _drag_start_y;
+	double                               _last_x;
+	double                               _last_y;
+	ArdourCanvas::SimpleRect*            _drag_rect;
+	ArdourCanvas::SimpleRect*            _step_edit_cursor;
+	Evoral::MusicalTime                  _step_edit_cursor_width;
+	Evoral::MusicalTime                  _step_edit_cursor_position;
+	ArdourCanvas::CanvasNoteEvent*	     _channel_selection_scoped_note;
+
+>>>>>>> origin/master
 
 	/** A group used to temporarily reparent _note_group to during start trims, so
 	 *  that the notes don't move with the parent region view.

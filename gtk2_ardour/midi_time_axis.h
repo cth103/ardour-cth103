@@ -66,11 +66,10 @@ class MidiTimeAxisView : public RouteTimeAxisView
 	/* overridden from parent to store display state */
 	guint32 show_at (double y, int& nth, Gtk::VBox *parent);
 	void set_height (uint32_t);
-	void hide ();
 
         void enter_internal_edit_mode ();
         void leave_internal_edit_mode ();
-        
+
 	boost::shared_ptr<ARDOUR::MidiRegion> add_region (ARDOUR::framepos_t, ARDOUR::framecnt_t, bool);
 
 	void show_all_automation (bool apply_to_selection = false);
@@ -90,7 +89,7 @@ class MidiTimeAxisView : public RouteTimeAxisView
 		return _midi_patch_settings_changed;
 	}
 
-        
+
 	const MidiMultipleChannelSelector& channel_selector() { return _channel_selector; }
 
 	Gtk::CheckMenuItem* automation_child_menu_item (Evoral::Parameter);
@@ -101,7 +100,7 @@ class MidiTimeAxisView : public RouteTimeAxisView
 	void first_idle ();
 
 	uint8_t get_channel_for_add () const;
-	
+
   protected:
 	void start_step_editing ();
 	void stop_step_editing ();
@@ -109,6 +108,7 @@ class MidiTimeAxisView : public RouteTimeAxisView
   private:
 	sigc::signal<void, std::string, std::string>  _midi_patch_settings_changed;
 
+	void hide ();
 	void model_changed();
 	void custom_device_mode_changed();
 

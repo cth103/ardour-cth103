@@ -36,16 +36,16 @@ public:
 
 	void move_selected_tracks (bool);
 	void show_track_in_display (TimeAxisView &);
-	
+
 	void suspend_redisplay () {
 		_no_redisplay = true;
 	}
-	
+
 	void resume_redisplay () {
 		_no_redisplay = false;
 		redisplay ();
 	}
-	
+
 	void redisplay ();
 	void update_visibility ();
 	void routes_added (std::list<RouteTimeAxisView*> routes);
@@ -59,6 +59,7 @@ public:
 private:
 
 	void initial_display ();
+	void on_input_active_changed (std::string const &);
 	void on_tv_rec_enable_changed (std::string const &);
 	void on_tv_mute_enable_toggled (std::string const &);
 	void on_tv_solo_enable_toggled (std::string const &);
@@ -77,6 +78,7 @@ private:
 	void update_solo_display (bool);
 	void update_solo_isolate_display ();
 	void update_solo_safe_display ();
+	void update_input_active_display ();
 	void set_all_tracks_visibility (bool);
 	void set_all_audio_midi_visibility (int, bool);
 	void show_all_routes ();
@@ -88,11 +90,11 @@ private:
 	void show_all_miditracks ();
 	void hide_all_miditracks ();
 	void show_tracks_with_regions_at_playhead ();
-	
+
 	void display_drag_data_received (
 		Glib::RefPtr<Gdk::DragContext> const &, gint, gint, Gtk::SelectionData const &, guint, guint
 		);
-	
+
 	void track_list_reorder (Gtk::TreeModel::Path const &, Gtk::TreeModel::iterator const & iter, int* new_order);
 	bool selection_filter (Glib::RefPtr<Gtk::TreeModel> const &, Gtk::TreeModel::Path const &, bool);
 	void name_edit (std::string const &, std::string const &);
@@ -111,9 +113,11 @@ private:
 			add (tv);
 			add (route);
 			add (name_editable);
+			add (is_input_active);
+			add (is_midi);
 		}
-		
-		Gtk::TreeModelColumn<std::string>  text;
+
+		Gtk::TreeModelColumn<std::string>    text;
 		Gtk::TreeModelColumn<bool>           visible;
 		Gtk::TreeModelColumn<uint32_t>       rec_state;
 		Gtk::TreeModelColumn<uint32_t>       mute_state;
@@ -124,20 +128,24 @@ private:
 		Gtk::TreeModelColumn<TimeAxisView*>  tv;
 		Gtk::TreeModelColumn<boost::shared_ptr<ARDOUR::Route> >  route;
 		Gtk::TreeModelColumn<bool>           name_editable;
+		Gtk::TreeModelColumn<bool>           is_input_active;
+		Gtk::TreeModelColumn<bool>           is_midi;
 	};
 
 	Gtk::ScrolledWindow _scroller;
 	Gtkmm2ext::DnDTreeView<boost::shared_ptr<ARDOUR::Route> > _display;
 	Glib::RefPtr<Gtk::ListStore> _model;
 	ModelColumns _columns;
-	
+	int _name_column;
+	int _visible_column;
+
 	bool _ignore_reorder;
 	bool _no_redisplay;
 	bool _redisplay_does_not_sync_order_keys;
 	bool _redisplay_does_not_reset_order_keys;
-	
+
 	Gtk::Menu* _menu;
-        Gtk::Widget* old_focus; 
+        Gtk::Widget* old_focus;
         uint32_t selection_countdown;
         Gtk::CellEditable* name_editable;
 

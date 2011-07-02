@@ -219,7 +219,7 @@ ExportFormatSpecification::ExportFormatSpecification (ExportFormatSpecification 
 
 	set_silence_beginning (other.silence_beginning_time());
 	set_silence_end (other.silence_end_time());
-	
+
 	set_extension(other.extension());
 }
 
@@ -519,7 +519,7 @@ ExportFormatSpecification::description ()
 	} else if (_trim_beginning) {
 		desc += _("trim start, ");
 	} else if (_trim_end) {
-		desc += "trim end, ";
+		desc += _("trim end, ");
 	}
 
 	desc += _format_name + ", ";

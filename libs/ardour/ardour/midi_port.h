@@ -43,8 +43,11 @@ class MidiPort : public Port {
 
 	void flush_buffers (pframes_t nframes, framepos_t time);
 	void transport_stopped ();
+	void realtime_locate ();
+	void reset ();
 
-	size_t raw_buffer_size (pframes_t nframes) const;
+	bool input_active() const { return _input_active; }
+	void set_input_active (bool yn);
 
 	Buffer& get_buffer (pframes_t nframes) {
 		return get_midi_buffer (nframes);
@@ -59,10 +62,11 @@ class MidiPort : public Port {
 
   private:
 	MidiBuffer* _buffer;
-	bool _has_been_mixed_down;
-	bool _resolve_in_process;
+	bool        _has_been_mixed_down;
+	bool        _resolve_required;
+	bool        _input_active;
 
-	MidiStateTracker _midi_state_tracker;
+	void resolve_notes (void* jack_buffer, MidiBuffer::TimeType when);
 };
 
 } // namespace ARDOUR

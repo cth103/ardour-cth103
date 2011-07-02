@@ -224,11 +224,11 @@ RouteTimeAxisView::RouteTimeAxisView (PublicEditor& ed, Session* sess, boost::sh
 	ColorsChanged.connect (sigc::mem_fun (*this, &RouteTimeAxisView::color_handler));
 
 	PropertyList* plist = new PropertyList();
-	
+
 	plist->add (ARDOUR::Properties::edit, true);
 	plist->add (ARDOUR::Properties::mute, true);
 	plist->add (ARDOUR::Properties::solo, true);
-	
+
 	route_group_menu = new RouteGroupMenu (_session, plist);
 
 	gm.get_gain_slider().signal_scroll_event().connect(sigc::mem_fun(*this, &RouteTimeAxisView::controls_ebox_scroll), false);
@@ -283,7 +283,7 @@ RouteTimeAxisView::route_group_click (GdkEventButton *ev)
 
 	WeakRouteList r;
 	r.push_back (route ());
-	
+
 	route_group_menu->build (r);
 	route_group_menu->menu()->popup (ev->button, ev->time);
 
@@ -357,19 +357,6 @@ RouteTimeAxisView::set_state (const XMLNode& node, int version)
 		set_layer_display (LayerDisplay (string_2_enum (prop->value(), _view->layer_display ())));
 	}
 
-	for (iter = kids.begin(); iter != kids.end(); ++iter) {
-		if ((*iter)->name() == AutomationTimeAxisView::state_node_name) {
-			if ((prop = (*iter)->property ("automation-id")) != 0) {
-
-				Evoral::Parameter param = ARDOUR::EventTypeMap::instance().new_parameter(prop->value());
-				bool show = ((prop = (*iter)->property ("shown")) != 0) && string_is_affirmative (prop->value());
-				create_automation_child(param, show);
-			} else {
-				warning << "Automation child has no ID" << endmsg;
-			}
-		}
-	}
-
 	return 0;
 }
 
@@ -391,18 +378,18 @@ RouteTimeAxisView::build_automation_action_menu (bool for_selection)
 	MenuList& items = automation_action_menu->items();
 
 	automation_action_menu->set_name ("ArdourContextMenu");
-	
+
 	items.push_back (MenuElem (_("Show All Automation"),
 				   sigc::bind (sigc::mem_fun (*this, &RouteTimeAxisView::show_all_automation), for_selection)));
-	
+
 	items.push_back (MenuElem (_("Show Existing Automation"),
 				   sigc::bind (sigc::mem_fun (*this, &RouteTimeAxisView::show_existing_automation), for_selection)));
-	
+
 	items.push_back (MenuElem (_("Hide All Automation"),
 				   sigc::bind (sigc::mem_fun (*this, &RouteTimeAxisView::hide_all_automation), for_selection)));
 
 	items.push_back (SeparatorElem ());
-	
+
 	/* Attach the plugin submenu. It may have previously been used elsewhere,
 	   so it was detached above */
 
@@ -477,7 +464,7 @@ RouteTimeAxisView::build_display_menu ()
 		   as well as inconsistent (presumably due to the RadioMenuItem::Group).  Then when you
 		   select the active one, no toggled signal is emitted so nothing happens.
 		*/
-		
+
 		layers_items.push_back (RadioMenuElem (layers_group, _("Overlaid")));
 		RadioMenuItem* i = dynamic_cast<RadioMenuItem*> (&layers_items.back ());
 		i->set_active (overlaid != 0 && stacked == 0);
@@ -493,7 +480,7 @@ RouteTimeAxisView::build_display_menu ()
 		i->signal_activate().connect (sigc::bind (sigc::mem_fun (*this, &RouteTimeAxisView::set_layer_display), Stacked, true));
 		i->set_active (overlaid == 0 && stacked != 0);
 		i->set_inconsistent (overlaid != 0 && stacked != 0);
-		
+
 		items.push_back (MenuElem (_("Layers"), *layers_menu));
 
 		if (!Profile->get_sae()) {
@@ -501,7 +488,7 @@ RouteTimeAxisView::build_display_menu ()
 			Menu* alignment_menu = manage (new Menu);
 			MenuList& alignment_items = alignment_menu->items();
 			alignment_menu->set_name ("ArdourContextMenu");
-			
+
 			RadioMenuItem::Group align_group;
 
 			/* Same verbose hacks as for the layering options above */
@@ -565,12 +552,12 @@ RouteTimeAxisView::build_display_menu ()
 
                                 alignment_items.push_back (RadioMenuElem (align_group, _("Automatic (based on I/O connections)")));
                                 i = dynamic_cast<RadioMenuItem*> (&alignment_items.back());
-                                i->set_active (automatic != 0 && existing == 0 && capture == 0); 
+                                i->set_active (automatic != 0 && existing == 0 && capture == 0);
                                 i->signal_activate().connect (sigc::bind (sigc::mem_fun(*this, &RouteTimeAxisView::set_align_choice), i, Automatic, true));
 
                                 switch (first_track->alignment_choice()) {
                                 case Automatic:
-                                        switch (first_track->alignment_style()) { 
+                                        switch (first_track->alignment_style()) {
                                         case ExistingMaterial:
                                                 alignment_items.push_back (MenuElem (_("(Currently: Existing Material)")));
                                                 break;
@@ -582,12 +569,12 @@ RouteTimeAxisView::build_display_menu ()
                                 default:
                                         break;
                                 }
-                                
+
                                 alignment_items.push_back (RadioMenuElem (align_group, _("Align With Existing Material")));
                                 i = dynamic_cast<RadioMenuItem*> (&alignment_items.back());
                                 i->set_active (existing != 0 && capture == 0 && automatic == 0);
                                 i->signal_activate().connect (sigc::bind (sigc::mem_fun(*this, &RouteTimeAxisView::set_align_choice), i, UseExistingMaterial, true));
-                                
+
                                 alignment_items.push_back (RadioMenuElem (align_group, _("Align With Capture Time")));
                                 i = dynamic_cast<RadioMenuItem*> (&alignment_items.back());
                                 i->set_active (existing == 0 && capture != 0 && automatic == 0);
@@ -614,7 +601,7 @@ RouteTimeAxisView::build_display_menu ()
 				if (!r || !r->is_track ()) {
 					continue;
 				}
-				
+
 				switch (r->track()->mode()) {
 				case Normal:
 					++normal;
@@ -673,7 +660,7 @@ RouteTimeAxisView::build_display_menu ()
 		if (r.empty ()) {
 			r.push_back (route ());
 		}
-		
+
 		route_group_menu->build (r);
 		items.push_back (MenuElem (_("Route Group"), *route_group_menu->menu ()));
 
@@ -730,7 +717,7 @@ RouteTimeAxisView::set_track_mode (TrackMode mode, bool apply_to_selection)
 		bool needs_bounce;
 
 		if (!track()->can_use_mode (mode, needs_bounce)) {
-			
+
 			if (!needs_bounce) {
 				/* cannot be done */
 				return;
@@ -739,11 +726,11 @@ RouteTimeAxisView::set_track_mode (TrackMode mode, bool apply_to_selection)
 				return;
 			}
 		}
-		
+
 		track()->set_mode (mode);
-		
+
 		rec_enable_button->remove ();
-		
+
 		switch (mode) {
 		case ARDOUR::NonLayered:
 		case ARDOUR::Normal:
@@ -753,7 +740,7 @@ RouteTimeAxisView::set_track_mode (TrackMode mode, bool apply_to_selection)
 			rec_enable_button->add (*(manage (new Image (::get_icon (X_("record_tape_red"))))));
 			break;
 		}
-		
+
 		rec_enable_button->show_all ();
 	}
 }
@@ -857,9 +844,7 @@ RouteTimeAxisView::set_height (uint32_t h)
 	xml_node->add_property ("height", buf);
 
 	if (height >= preset_height (HeightNormal)) {
-		
-		_controls_padding_table.set_row_spacings (2);
-		
+
 		reset_meter();
 
 		gm.get_gain_slider().show();
@@ -879,9 +864,7 @@ RouteTimeAxisView::set_height (uint32_t h)
 			playlist_button.show();
 		}
 
-	} else if (height >= preset_height (HeightSmaller)) {
-
-		_controls_padding_table.set_row_spacings (2);
+	} else {
 
 		reset_meter();
 
@@ -902,10 +885,6 @@ RouteTimeAxisView::set_height (uint32_t h)
 			playlist_button.hide ();
 		}
 
-	} else {
-
-		_controls_padding_table.set_row_spacings (0);
-	
 	}
 
 	if (height_changed && !no_redraw) {
@@ -918,7 +897,7 @@ void
 RouteTimeAxisView::set_color (Gdk::Color const & c)
 {
 	RouteUI::set_color (c);
-	
+
 	if (_view) {
 		_view->apply_color (_color, StreamView::RegionColor);
 	}
@@ -1381,14 +1360,23 @@ RouteTimeAxisView::cut_copy_clear (Selection& selection, CutCopyOp op)
         playlist->clear_owned_changes ();
 
 	switch (op) {
-	case Cut:
-		if ((what_we_got = playlist->cut (time)) != 0) {
-			_editor.get_cut_buffer().add (what_we_got);
-
+	case Delete:
+		if (playlist->cut (time) != 0) {
                         vector<Command*> cmds;
                         playlist->rdiff (cmds);
                         _session->add_commands (cmds);
 			
+                        _session->add_command (new StatefulDiffCommand (playlist));
+		}
+		break;
+		
+	case Cut:
+		if ((what_we_got = playlist->cut (time)) != 0) {
+			_editor.get_cut_buffer().add (what_we_got);
+                        vector<Command*> cmds;
+                        playlist->rdiff (cmds);
+                        _session->add_commands (cmds);
+
                         _session->add_command (new StatefulDiffCommand (playlist));
 		}
 		break;
@@ -1481,19 +1469,19 @@ RouteTimeAxisView::build_playlist_menu ()
         /* sort the playlists */
         PlaylistSorter cmp;
         sort (playlists_tr.begin(), playlists_tr.end(), cmp);
-        
+
         /* add the playlists to the menu */
         for (vector<boost::shared_ptr<Playlist> >::iterator i = playlists_tr.begin(); i != playlists_tr.end(); ++i) {
                 playlist_items.push_back (RadioMenuElem (playlist_group, (*i)->name()));
                 RadioMenuItem *item = static_cast<RadioMenuItem*>(&playlist_items.back());
                 item->signal_toggled().connect(sigc::bind (sigc::mem_fun (*this, &RouteTimeAxisView::use_playlist), item, boost::weak_ptr<Playlist> (*i)));
-                
+
                 if (tr->playlist()->id() == (*i)->id()) {
                         item->set_active();
-                        
+
 		}
 	}
-        
+
 	playlist_items.push_back (SeparatorElem());
 	playlist_items.push_back (MenuElem (_("Rename..."), sigc::mem_fun(*this, &RouteTimeAxisView::rename_current_playlist)));
 	playlist_items.push_back (SeparatorElem());
@@ -1632,7 +1620,7 @@ RouteTimeAxisView::toggle_automation_track (const Evoral::Parameter& param)
 {
 	boost::shared_ptr<AutomationTimeAxisView> track = automation_child (param);
 	Gtk::CheckMenuItem* menu = automation_child_menu_item (param);
-	
+
 	if (!track) {
 		/* it doesn't exist yet, so we don't care about the button state: just add it */
 		create_automation_child (param, true);
@@ -1640,14 +1628,14 @@ RouteTimeAxisView::toggle_automation_track (const Evoral::Parameter& param)
 		assert (menu);
 		bool yn = menu->get_active();
 		if (track->set_visibility (menu->get_active()) && yn) {
-			
+
 			/* we made it visible, now trigger a redisplay. if it was hidden, then automation_track_hidden()
 			   will have done that for us.
 			*/
-			
+
 			if (!no_redraw) {
 				_route->gui_changed (X_("track_height"), (void *) 0); /* EMIT_SIGNAL */
-			} 
+			}
 		}
 	}
 }
@@ -1662,9 +1650,6 @@ RouteTimeAxisView::automation_track_hidden (Evoral::Parameter param)
 	}
 
 	Gtk::CheckMenuItem* menu = automation_child_menu_item (param);
-
-	// if Evoral::Parameter::operator< doesn't obey strict weak ordering, we may crash here....
-	track->get_state_node()->add_property (X_("shown"), X_("no"));
 
 	if (menu && !_hidden) {
 		ignore_toggle = true;
@@ -1685,42 +1670,40 @@ RouteTimeAxisView::show_all_automation (bool apply_to_selection)
 		_editor.get_selection().tracks.foreach_route_time_axis (boost::bind (&RouteTimeAxisView::show_all_automation, _1, false));
 	} else {
 		no_redraw = true;
-		
+
 		/* Show our automation */
-		
+
 		for (AutomationTracks::iterator i = _automation_tracks.begin(); i != _automation_tracks.end(); ++i) {
-			i->second->set_marked_for_display (true);
-			i->second->canvas_display()->show();
-			i->second->get_state_node()->add_property ("shown", X_("yes"));
-			
+			i->second->set_visibility (true);
+
 			Gtk::CheckMenuItem* menu = automation_child_menu_item (i->first);
-			
+
 			if (menu) {
 				menu->set_active(true);
 			}
 		}
-		
-		
+
+
 		/* Show processor automation */
-		
+
 		for (list<ProcessorAutomationInfo*>::iterator i = processor_automation.begin(); i != processor_automation.end(); ++i) {
 			for (vector<ProcessorAutomationNode*>::iterator ii = (*i)->lines.begin(); ii != (*i)->lines.end(); ++ii) {
 				if ((*ii)->view == 0) {
 					add_processor_automation_curve ((*i)->processor, (*ii)->what);
 				}
-				
+
 				(*ii)->menu_item->set_active (true);
 			}
 		}
-		
+
 		no_redraw = false;
-		
+
 		/* Redraw */
-		
+
 		_route->gui_changed ("track_height", (void *) 0); /* EMIT_SIGNAL */
 	}
 }
-	
+
 void
 RouteTimeAxisView::show_existing_automation (bool apply_to_selection)
 {
@@ -1728,25 +1711,22 @@ RouteTimeAxisView::show_existing_automation (bool apply_to_selection)
 		_editor.get_selection().tracks.foreach_route_time_axis (boost::bind (&RouteTimeAxisView::show_existing_automation, _1, false));
 	} else {
 		no_redraw = true;
-		
+
 		/* Show our automation */
-		
+
 		for (AutomationTracks::iterator i = _automation_tracks.begin(); i != _automation_tracks.end(); ++i) {
 			if (i->second->has_automation()) {
-				i->second->set_marked_for_display (true);
-				i->second->canvas_display()->show();
-				i->second->get_state_node()->add_property ("shown", X_("yes"));
-				
+				i->second->set_visibility (true);
+
 				Gtk::CheckMenuItem* menu = automation_child_menu_item (i->first);
 				if (menu) {
 					menu->set_active(true);
 				}
 			}
 		}
-		
-		
+
 		/* Show processor automation */
-		
+
 		for (list<ProcessorAutomationInfo*>::iterator i = processor_automation.begin(); i != processor_automation.end(); ++i) {
 			for (vector<ProcessorAutomationNode*>::iterator ii = (*i)->lines.begin(); ii != (*i)->lines.end(); ++ii) {
 				if ((*ii)->view != 0 && (*i)->processor->control((*ii)->what)->list()->size() > 0) {
@@ -1754,9 +1734,9 @@ RouteTimeAxisView::show_existing_automation (bool apply_to_selection)
 				}
 			}
 		}
-		
+
 		no_redraw = false;
-		
+
 		_route->gui_changed ("track_height", (void *) 0); /* EMIT_SIGNAL */
 	}
 }
@@ -1770,27 +1750,25 @@ RouteTimeAxisView::hide_all_automation (bool apply_to_selection)
 		no_redraw = true;
 
 		/* Hide our automation */
-		
+
 		for (AutomationTracks::iterator i = _automation_tracks.begin(); i != _automation_tracks.end(); ++i) {
-			i->second->set_marked_for_display (false);
-			i->second->hide ();
-			i->second->get_state_node()->add_property ("shown", X_("no"));
-			
+			i->second->set_visibility (false);
+
 			Gtk::CheckMenuItem* menu = automation_child_menu_item (i->first);
-			
+
 			if (menu) {
 				menu->set_active (false);
 			}
 		}
-		
+
 		/* Hide processor automation */
-		
+
 		for (list<ProcessorAutomationInfo*>::iterator i = processor_automation.begin(); i != processor_automation.end(); ++i) {
 			for (vector<ProcessorAutomationNode*>::iterator ii = (*i)->lines.begin(); ii != (*i)->lines.end(); ++ii) {
 				(*ii)->menu_item->set_active (false);
 			}
 		}
-		
+
 		no_redraw = false;
 		_route->gui_changed ("track_height", (void *) 0); /* EMIT_SIGNAL */
 	}
@@ -1803,7 +1781,7 @@ RouteTimeAxisView::region_view_added (RegionView* rv)
 	/* XXX need to find out if automation children have automationstreamviews. If yes, no ghosts */
 	for (Children::iterator i = children.begin(); i != children.end(); ++i) {
 		boost::shared_ptr<AutomationTimeAxisView> atv;
-		
+
 		if ((atv = boost::dynamic_pointer_cast<AutomationTimeAxisView> (*i)) != 0) {
 			atv->add_ghost(rv);
 		}
@@ -1853,25 +1831,6 @@ RouteTimeAxisView::find_processor_automation_node (boost::shared_ptr<Processor> 
 	return 0;
 }
 
-static string
-legalize_for_xml_node (string str)
-{
-	string::size_type pos;
-	string legal_chars = "abcdefghijklmnopqrtsuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_=:";
-	string legal;
-
-	legal = str;
-	pos = 0;
-
-	while ((pos = legal.find_first_not_of (legal_chars, pos)) != string::npos) {
-		legal.replace (pos, 1, "_");
-		pos += 1;
-	}
-
-	return legal;
-}
-
-
 void
 RouteTimeAxisView::add_processor_automation_curve (boost::shared_ptr<Processor> processor, Evoral::Parameter what)
 {
@@ -1892,37 +1851,21 @@ RouteTimeAxisView::add_processor_automation_curve (boost::shared_ptr<Processor> 
 		return;
 	}
 
-	name = processor->describe_parameter (what);
-
-	/* create a string that is a legal XML node name that can be used to refer to this redirect+port combination */
-
-	/* FIXME: ew */
-
-	char state_name[256];
-	snprintf (state_name, sizeof (state_name), "%s-%" PRIu32, legalize_for_xml_node (processor->name()).c_str(), what.id());
-
 	boost::shared_ptr<AutomationControl> control
-			= boost::dynamic_pointer_cast<AutomationControl>(processor->control(what, true));
-
+		= boost::dynamic_pointer_cast<AutomationControl>(processor->control(what, true));
+	
 	pan->view = boost::shared_ptr<AutomationTimeAxisView>(
 		new AutomationTimeAxisView (_session, _route, processor, control, control->parameter (),
-					    _editor, *this, false, parent_canvas, name, state_name));
+					    _editor, *this, false, parent_canvas, 
+					    processor->describe_parameter (what), processor->name()));
 
 	pan->view->Hiding.connect (sigc::bind (sigc::mem_fun(*this, &RouteTimeAxisView::processor_automation_track_hidden), pan, processor));
 
-	if (!pan->view->marked_for_display()) {
-		pan->view->hide ();
-	} else {
-		pan->menu_item->set_active (true);
-	}
-
-	add_child (pan->view);
+	add_automation_child (control->parameter(), pan->view, pan->view->marked_for_display ());
 
 	if (_view) {
 		_view->foreach_regionview (sigc::mem_fun(*pan->view.get(), &TimeAxisView::add_ghost));
 	}
-
-	processor->mark_automation_visible (what, true);
 }
 
 void
@@ -1931,8 +1874,6 @@ RouteTimeAxisView::processor_automation_track_hidden (RouteTimeAxisView::Process
 	if (!_hidden) {
 		pan->menu_item->set_active (false);
 	}
-
-	i->mark_automation_visible (pan->what, false);
 
 	if (!no_redraw) {
 		_route->gui_changed ("track_height", (void *) 0); /* EMIT_SIGNAL */
@@ -1943,21 +1884,24 @@ void
 RouteTimeAxisView::add_existing_processor_automation_curves (boost::weak_ptr<Processor> p)
 {
 	boost::shared_ptr<Processor> processor (p.lock ());
+
 	if (!processor) {
 		return;
 	}
 
-	set<Evoral::Parameter> s;
-	boost::shared_ptr<AutomationLine> al;
+	set<Evoral::Parameter> existing;
 
-	processor->what_has_visible_data (s);
+	processor->what_has_data (existing);
 
-	for (set<Evoral::Parameter>::iterator i = s.begin(); i != s.end(); ++i) {
+	for (set<Evoral::Parameter>::iterator i = existing.begin(); i != existing.end(); ++i) {
+		
+		Evoral::Parameter param (*i);
+		boost::shared_ptr<AutomationLine> al;
 
-		if ((al = find_processor_automation_curve (processor, *i)) != 0) {
+		if ((al = find_processor_automation_curve (processor, param)) != 0) {
 			al->queue_reset ();
 		} else {
-			add_processor_automation_curve (processor, (*i));
+			add_processor_automation_curve (processor, param);
 		}
 	}
 }
@@ -1974,19 +1918,16 @@ RouteTimeAxisView::add_automation_child (Evoral::Parameter param, boost::shared_
 
 	track->Hiding.connect (sigc::bind (sigc::mem_fun (*this, &RouteTimeAxisView::automation_track_hidden), param));
 
-	bool hideit = (!show);
+	_automation_tracks[param] = track;
 
 	if ((node = track->get_state_node()) != 0) {
 		if  ((prop = node->property ("shown")) != 0) {
-			if (string_is_affirmative (prop->value())) {
-				hideit = false;
-			}
+			/* existing state overrides "show" argument */
+			show = string_is_affirmative (prop->value());
 		}
 	}
 
-	_automation_tracks[param] = track;
-
-	track->set_visibility (!hideit);
+	track->set_visibility (show);
 
 	if (!no_redraw) {
 		_route->gui_changed ("track_height", (void *) 0); /* EMIT_SIGNAL */
@@ -2012,14 +1953,20 @@ RouteTimeAxisView::add_processor_to_subplugin_menu (boost::weak_ptr<Processor> p
 		return;
 	}
 
+	/* we use this override to veto the Amp processor from the plugin menu,
+	   as its automation lane can be accessed using the special "Fader" menu
+	   option
+	*/
+
+	if (boost::dynamic_pointer_cast<Amp> (processor) != 0) {
+		return;
+	}
+
 	using namespace Menu_Helpers;
 	ProcessorAutomationInfo *rai;
 	list<ProcessorAutomationInfo*>::iterator x;
 
 	const std::set<Evoral::Parameter>& automatable = processor->what_can_be_automated ();
-	std::set<Evoral::Parameter> has_visible_automation;
-
-	processor->what_has_visible_data(has_visible_automation);
 
 	if (automatable.empty()) {
 		return;
@@ -2052,6 +1999,9 @@ RouteTimeAxisView::add_processor_to_subplugin_menu (boost::weak_ptr<Processor> p
 
 	items.clear ();
 
+	std::set<Evoral::Parameter> has_visible_automation;
+	AutomationTimeAxisView::what_has_visible_automation (processor, has_visible_automation);
+
 	for (std::set<Evoral::Parameter>::const_iterator i = automatable.begin(); i != automatable.end(); ++i) {
 
 		ProcessorAutomationNode* pan;
@@ -2061,7 +2011,7 @@ RouteTimeAxisView::add_processor_to_subplugin_menu (boost::weak_ptr<Processor> p
 
 		items.push_back (CheckMenuElem (name));
 		mitem = dynamic_cast<CheckMenuItem*> (&items.back());
-
+		
 		_subplugin_menu_map[*i] = mitem;
 
 		if (has_visible_automation.find((*i)) != has_visible_automation.end()) {
@@ -2108,24 +2058,12 @@ RouteTimeAxisView::processor_menu_item_toggled (RouteTimeAxisView::ProcessorAuto
 	}
 
 	if (pan->view && showit != pan->view->marked_for_display()) {
-
-		if (showit) {
-			pan->view->set_marked_for_display (true);
-			pan->view->canvas_display()->show();
-			pan->view->canvas_background()->show();
-		} else {
-			rai->processor->mark_automation_visible (pan->what, true);
-			pan->view->set_marked_for_display (false);
-			pan->view->hide ();
-		}
-
+		pan->view->set_visibility (showit);
 		redraw = true;
-
 	}
 
 	if (redraw && !no_redraw) {
 		 _route->gui_changed ("track_height", (void *) 0); /* EMIT_SIGNAL */
-
 	}
 }
 
@@ -2209,11 +2147,11 @@ RouteTimeAxisView::set_layer_display (LayerDisplay d, bool apply_to_selection)
 	if (apply_to_selection) {
 		_editor.get_selection().tracks.foreach_route_time_axis (boost::bind (&RouteTimeAxisView::set_layer_display, _1, d, false));
 	} else {
-		
+
 		if (_view) {
 			_view->set_layer_display (d);
 		}
-		
+
 		ensure_xml_node ();
 		xml_node->add_property (N_("layer-display"), enum_2_string (d));
 	}
@@ -2437,7 +2375,7 @@ RouteTimeAxisView::automation_child_menu_item (Evoral::Parameter param)
 	if (i != _main_automation_menu_map.end()) {
 		return i->second;
 	}
-	
+
 	i = _subplugin_menu_map.find (param);
 	if (i != _subplugin_menu_map.end()) {
 		return i->second;
@@ -2466,7 +2404,7 @@ RouteTimeAxisView::create_gain_automation_child (const Evoral::Parameter& param,
 	if (_view) {
 		_view->foreach_regionview (sigc::mem_fun (*gain_track.get(), &TimeAxisView::add_ghost));
 	}
-	
+
 	add_automation_child (Evoral::Parameter(GainAutomation), gain_track, show);
 }
 
@@ -2479,7 +2417,12 @@ void add_region_to_list (RegionView* rv, Playlist::RegionList* l)
 RegionView*
 RouteTimeAxisView::combine_regions ()
 {
-	assert (is_track());
+	/* as of may 2011, we do not offer uncombine for MIDI tracks
+	 */
+
+	if (!is_audio_track()) {
+		return 0;
+	}
 
 	if (!_view) {
 		return 0;
@@ -2493,20 +2436,24 @@ RouteTimeAxisView::combine_regions ()
 	if (selected_regions.size() < 2) {
 		return 0;
 	}
-	
+
 	playlist->clear_changes ();
 	boost::shared_ptr<Region> compound_region = playlist->combine (selected_regions);
 
 	_session->add_command (new StatefulDiffCommand (playlist));
 	/* make the new region be selected */
-	
+
 	return _view->find_view (compound_region);
 }
 
 void
 RouteTimeAxisView::uncombine_regions ()
 {
-	assert (is_track());
+	/* as of may 2011, we do not offer uncombine for MIDI tracks
+	 */
+	if (!is_audio_track()) {
+		return;
+	}
 
 	if (!_view) {
 		return;

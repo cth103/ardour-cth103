@@ -141,9 +141,6 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 
 	bool touched (double top, double bot);
 
-	/** Hide this TrackView */
-	virtual void hide ();
-
 	/** @return true if hidden, otherwise false */
 	bool hidden () const { return _hidden; }
 
@@ -206,10 +203,6 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 	void set_parent (TimeAxisView& p);
 	bool has_state () const;
 
-	/* call this on the parent */
-
-	virtual XMLNode* get_automation_child_xml_node (Evoral::Parameter) { return 0; }
-
 	virtual LayerDisplay layer_display () const { return Overlaid; }
 	virtual StreamView* view () const { return 0; }
 
@@ -219,19 +212,18 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 	SelectionRect* get_selection_rect(uint32_t id);
 
 	static uint32_t preset_height (Height);
-	
+
   protected:
 	/* The Standard LHS Controls */
-	Gtk::HBox     controls_hbox;
-	Gtk::Table    controls_table;
-	Gtk::Table   _controls_padding_table;
-	Gtk::EventBox controls_ebox;
-	Gtk::VBox     controls_vbox;
-	Gtk::VBox     time_axis_vbox;
-	Gtk::DrawingArea resizer;
-	Gtk::HBox     resizer_box;
-	Gtk::HBox     name_hbox;
-	Gtk::Frame    name_frame;
+	Gtk::HBox             controls_hbox;
+	Gtk::Table            controls_table;
+	Gtk::EventBox         controls_ebox;
+	Gtk::VBox             controls_vbox;
+	Gtk::VBox             time_axis_vbox;
+	Gtk::DrawingArea      resizer;
+	Gtk::HBox             resizer_box;
+	Gtk::HBox             name_hbox;
+	Gtk::Frame            name_frame;
  	Gtkmm2ext::FocusEntry name_entry;
 
 	uint32_t height;  /* in canvas units */
@@ -292,6 +284,9 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 	void remove_child (boost::shared_ptr<TimeAxisView>);
 	void add_child (boost::shared_ptr<TimeAxisView>);
 
+	virtual void hide ();
+	virtual void show ();
+
 	/* selection display */
 
 	Canvas::Group      *selection_group;
@@ -331,7 +326,7 @@ private:
 
 	void compute_heights ();
 	static uint32_t extra_height;
-	static uint32_t smaller_height;
+	static uint32_t small_height;
 
 	static int const _max_order;
 

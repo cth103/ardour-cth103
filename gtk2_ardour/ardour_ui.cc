@@ -131,52 +131,50 @@ bool could_be_a_valid_path (const string& path);
 
 ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 
-	: Gtkmm2ext::UI (PROGRAM_NAME, argcp, argvp),
+	: Gtkmm2ext::UI (PROGRAM_NAME, argcp, argvp)
 
-	  primary_clock (X_("primary"), false, X_("TransportClockDisplay"), true, true, false, true),
-	  secondary_clock (X_("secondary"), false, X_("SecondaryClockDisplay"), true, true, false, true),
-	  preroll_clock (X_("preroll"), false, X_("PreRollClock"), true, false, true),
-	  postroll_clock (X_("postroll"), false, X_("PostRollClock"), true, false, true),
+	, primary_clock (new AudioClock (X_("primary"), false, X_("TransportClockDisplay"), true, true, false, true))
+	, secondary_clock (new AudioClock (X_("secondary"), false, X_("SecondaryClockDisplay"), true, true, false, true))
+	, preroll_clock (new AudioClock (X_("preroll"), false, X_("PreRollClock"), true, false, true))
+	, postroll_clock (new AudioClock (X_("postroll"), false, X_("PostRollClock"), true, false, true))
 
 	  /* preroll stuff */
 
-	  preroll_button (_("pre\nroll")),
-	  postroll_button (_("post\nroll")),
+	, preroll_button (_("pre\nroll"))
+	, postroll_button (_("post\nroll"))
 
 	  /* big clock */
 
-	  big_clock (X_("bigclock"), false, "BigClockNonRecording", true, true, false, false),
+	, big_clock (new AudioClock (X_("bigclock"), false, "BigClockNonRecording", true, true, false, false))
 
 	  /* transport */
 
-	  roll_controllable (new TransportControllable ("transport roll", *this, TransportControllable::Roll)),
-	  stop_controllable (new TransportControllable ("transport stop", *this, TransportControllable::Stop)),
-	  goto_start_controllable (new TransportControllable ("transport goto start", *this, TransportControllable::GotoStart)),
-	  goto_end_controllable (new TransportControllable ("transport goto end", *this, TransportControllable::GotoEnd)),
-	  auto_loop_controllable (new TransportControllable ("transport auto loop", *this, TransportControllable::AutoLoop)),
-	  play_selection_controllable (new TransportControllable ("transport play selection", *this, TransportControllable::PlaySelection)),
-	  rec_controllable (new TransportControllable ("transport rec-enable", *this, TransportControllable::RecordEnable)),
+	, roll_controllable (new TransportControllable ("transport roll", *this, TransportControllable::Roll))
+	, stop_controllable (new TransportControllable ("transport stop", *this, TransportControllable::Stop))
+	, goto_start_controllable (new TransportControllable ("transport goto start", *this, TransportControllable::GotoStart))
+	, goto_end_controllable (new TransportControllable ("transport goto end", *this, TransportControllable::GotoEnd))
+	, auto_loop_controllable (new TransportControllable ("transport auto loop", *this, TransportControllable::AutoLoop))
+	, play_selection_controllable (new TransportControllable ("transport play selection", *this, TransportControllable::PlaySelection))
+	, rec_controllable (new TransportControllable ("transport rec-enable", *this, TransportControllable::RecordEnable))
 
-	  roll_button (roll_controllable),
-	  stop_button (stop_controllable),
-	  goto_start_button (goto_start_controllable),
-	  goto_end_button (goto_end_controllable),
-	  auto_loop_button (auto_loop_controllable),
-	  play_selection_button (play_selection_controllable),
-	  rec_button (rec_controllable),
+	, roll_button (roll_controllable)
+	, stop_button (stop_controllable)
+	, goto_start_button (goto_start_controllable)
+	, goto_end_button (goto_end_controllable)
+	, auto_loop_button (auto_loop_controllable)
+	, play_selection_button (play_selection_controllable)
+	, rec_button (rec_controllable)
 
-	  punch_in_button (_("Punch In")),
-	  punch_out_button (_("Punch Out")),
-	  auto_return_button (_("Auto Return")),
-	  auto_play_button (_("Auto Play")),
-	  auto_input_button (_("Auto Input")),
-	  click_button (_("Click")),
-	  time_master_button (_("time\nmaster")),
+	, auto_return_button (_("Auto Return"))
+	, auto_play_button (_("Auto Play"))
+	, auto_input_button (_("Auto Input"))
+	  // , click_button (_("Click"))
+	, time_master_button (_("time\nmaster"))
 
-	  auditioning_alert_button (_("AUDITION")),
-	  solo_alert_button (_("SOLO")),
-	  
-	  error_log_button (_("Errors"))
+	, auditioning_alert_button (_("AUDITION"))
+	, solo_alert_button (_("SOLO"))
+
+	, error_log_button (_("Errors"))
 
 {
 	using namespace Gtk::Menu_Helpers;
@@ -259,7 +257,7 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 	ARDOUR::Session::AskAboutSampleRateMismatch.connect_same_thread (forever_connections, boost::bind (&ARDOUR_UI::sr_mismatch_dialog, this, _1, _2));
 
 	/* handle requests to quit (coming from JACK session) */
-	
+
 	ARDOUR::Session::Quit.connect (forever_connections, MISSING_INVALIDATOR, ui_bind (&ARDOUR_UI::finish, this), gui_context ());
 
 	/* handle requests to deal with missing files */
@@ -309,11 +307,11 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 	TimeAxisViewItem::set_constant_heights ();
 
 	/* The following must happen after ARDOUR::init() so that Config is set up */
-	
+
 	location_ui = new ActionWindowProxy<LocationUIWindow> (X_("locations"), Config->extra_xml (X_("UI")), X_("ToggleLocations"));
 	big_clock_window = new ActionWindowProxy<Gtk::Window> (X_("bigclock"), Config->extra_xml (X_("UI")), X_("ToggleBigClock"));
 	speaker_config_window = new ActionWindowProxy<SpeakerDialog> (X_("speakerconf"), Config->extra_xml (X_("UI")), X_("toggle-speaker-config"));
-	
+
 	for (ARDOUR::DataType::iterator i = ARDOUR::DataType::begin(); i != ARDOUR::DataType::end(); ++i) {
 		_global_port_matrix[*i] = new ActionWindowProxy<GlobalPortMatrixWindow> (
 			string_compose ("GlobalPortMatrix-%1", (*i).to_string()),
@@ -327,7 +325,7 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 	SpeakerDialog* s = new SpeakerDialog ();
 	s->signal_unmap().connect (sigc::bind (sigc::ptr_fun (&ActionManager::uncheck_toggleaction), X_("<Actions>/Common/toggle-speaker-config")));
 	speaker_config_window->set (s);
-	
+
 	starting.connect (sigc::mem_fun(*this, &ARDOUR_UI::startup));
 	stopping.connect (sigc::mem_fun(*this, &ARDOUR_UI::shutdown));
 }
@@ -340,7 +338,7 @@ ARDOUR_UI::run_startup (bool should_be_new, string load_template)
 	_startup = new ArdourStartup ();
 
 	XMLNode* audio_setup = Config->extra_xml ("AudioSetup");
-	
+
 	if (audio_setup && _startup->engine_control()) {
 		_startup->engine_control()->set_state (*audio_setup);
 	}
@@ -409,7 +407,7 @@ ARDOUR_UI::post_engine ()
 	if (setup_windows ()) {
 		throw failed_constructor ();
 	}
-	
+
 	check_memory_locking();
 
 	/* this is the first point at which all the keybindings are available */
@@ -442,11 +440,11 @@ ARDOUR_UI::post_engine ()
 	/* set default clock modes */
 
 	if (Profile->get_sae()) {
-		primary_clock.set_mode (AudioClock::BBT);
-		secondary_clock.set_mode (AudioClock::MinSec);
+		primary_clock->set_mode (AudioClock::BBT);
+		secondary_clock->set_mode (AudioClock::MinSec);
 	}  else {
-		primary_clock.set_mode (AudioClock::Timecode);
-		secondary_clock.set_mode (AudioClock::BBT);
+		primary_clock->set_mode (AudioClock::Timecode);
+		secondary_clock->set_mode (AudioClock::BBT);
 	}
 
 	/* start the time-of-day-clock */
@@ -712,7 +710,7 @@ ARDOUR_UI::startup ()
 	for (ARDOUR::DataType::iterator i = ARDOUR::DataType::begin(); i != ARDOUR::DataType::end(); ++i) {
 		add_window_proxy (_global_port_matrix[*i]);
 	}
-	
+
 	BootMessage (string_compose (_("%1 is ready for use"), PROGRAM_NAME));
 }
 
@@ -998,12 +996,8 @@ void
 ARDOUR_UI::update_buffer_load ()
 {
 	char buf[64];
-	uint32_t c, p;
 
 	if (_session) {
-		c = _session->capture_load ();
-		p = _session->playback_load ();
-
 		snprintf (buf, sizeof (buf), _("Buffers p:%" PRIu32 "%% c:%" PRIu32 "%%"),
 			  _session->playback_load(), _session->capture_load());
 		buffer_load_label.set_text (buf);
@@ -1588,7 +1582,7 @@ ARDOUR_UI::transport_record (bool roll)
 	//cerr << "ARDOUR_UI::transport_record () called roll = " << roll << " _session->record_status() = " << _session->record_status() << endl;
 }
 
-void 
+void
 ARDOUR_UI::transport_roll ()
 {
 	if (!_session) {
@@ -1637,7 +1631,7 @@ ARDOUR_UI::transport_roll ()
 void
 ARDOUR_UI::toggle_roll (bool with_abort, bool roll_out_of_bounded_mode)
 {
-	
+
 	if (!_session) {
 		return;
 	}
@@ -1664,7 +1658,7 @@ ARDOUR_UI::toggle_roll (bool with_abort, bool roll_out_of_bounded_mode)
 		/* drop out of loop/range playback but leave transport rolling */
 		if (_session->get_play_loop()) {
 			if (Config->get_seamless_loop()) {
-				/* the disk buffers contain copies of the loop - we can't 
+				/* the disk buffers contain copies of the loop - we can't
 				   just keep playing, so stop the transport. the user
 				   can restart as they wish.
 				*/
@@ -1677,8 +1671,8 @@ ARDOUR_UI::toggle_roll (bool with_abort, bool roll_out_of_bounded_mode)
 		} else if (_session->get_play_range ()) {
 			affect_transport = false;
 			_session->request_play_range (0, true);
-		} 
-	} 
+		}
+	}
 
 	if (affect_transport) {
 		if (rolling) {
@@ -1687,7 +1681,7 @@ ARDOUR_UI::toggle_roll (bool with_abort, bool roll_out_of_bounded_mode)
 			if (join_play_range_button.get_active()) {
 				_session->request_play_range (&editor->get_selection().time, true);
 			}
-			
+
 			_session->request_transport_speed (1.0f);
 		}
 	}
@@ -1699,25 +1693,25 @@ ARDOUR_UI::toggle_session_auto_loop ()
 	if (!_session) {
 		return;
 	}
-	
+
 	if (_session->get_play_loop()) {
 
 		if (_session->transport_rolling()) {
-		  
+
 			Location * looploc = _session->locations()->auto_loop_location();
-			
+
 			if (looploc) {
 				_session->request_locate (looploc->start(), true);
 				_session->request_play_loop (false);
 			}
-			
+
 		} else {
 			_session->request_play_loop (false);
 		}
 	} else {
-		
+
 	  Location * looploc = _session->locations()->auto_loop_location();
-		
+
 		if (looploc) {
 			_session->request_play_loop (true);
 		}
@@ -1837,13 +1831,13 @@ ARDOUR_UI::map_transport_state ()
 			auto_loop_button.set_visual_state (0);
 
 		} else if (_session->get_play_loop ()) {
-			
+
 			auto_loop_button.set_visual_state (1);
 			play_selection_button.set_visual_state (0);
 			roll_button.set_visual_state (0);
 
 		} else {
-			
+
 			roll_button.set_visual_state (1);
 			play_selection_button.set_visual_state (0);
 			auto_loop_button.set_visual_state (0);
@@ -2081,7 +2075,7 @@ ARDOUR_UI::snapshot_session (bool switch_to_it)
 		char timebuf[128];
 		time_t n;
 		struct tm local_time;
-		
+
 		time (&n);
 		localtime_r (&n, &local_time);
 		strftime (timebuf, sizeof(timebuf), "%FT%T", &local_time);
@@ -2151,7 +2145,7 @@ ARDOUR_UI::save_state (const string & name, bool switch_to_it)
 	}
 
 	_session->add_extra_xml (*node);
-	
+
 	save_state_canfail (name, switch_to_it);
 }
 
@@ -2183,7 +2177,7 @@ void
 ARDOUR_UI::primary_clock_value_changed ()
 {
 	if (_session) {
-		_session->request_locate (primary_clock.current_time ());
+		_session->request_locate (primary_clock->current_time ());
 	}
 }
 
@@ -2191,7 +2185,7 @@ void
 ARDOUR_UI::big_clock_value_changed ()
 {
 	if (_session) {
-		_session->request_locate (big_clock.current_time ());
+		_session->request_locate (big_clock->current_time ());
 	}
 }
 
@@ -2199,7 +2193,7 @@ void
 ARDOUR_UI::secondary_clock_value_changed ()
 {
 	if (_session) {
-		_session->request_locate (secondary_clock.current_time ());
+		_session->request_locate (secondary_clock->current_time ());
 	}
 }
 
@@ -2564,7 +2558,7 @@ ARDOUR_UI::get_session_parameters (bool quit_on_cancel, bool should_be_new, stri
 				/* not connected to the AudioEngine, so quit to avoid an infinite loop */
 				exit (1);
 			}
-			
+
 			if (!ARDOUR_COMMAND_LINE::immediate_save.empty()) {
 				_session->save_state (ARDOUR_COMMAND_LINE::immediate_save, false);
 				exit (1);
@@ -2997,7 +2991,7 @@ ARDOUR_UI::cleanup ()
 				(Gtk::ButtonsType)(Gtk::BUTTONS_NONE));
 
 	checker.set_title (_("Clean-up"));
-	
+
 	checker.set_secondary_text(_("Clean-up is a destructive operation.\n\
 ALL undo/redo information will be lost if you clean-up.\n\
 Clean-up will move all unused files to a \"dead\" location."));
@@ -3188,7 +3182,7 @@ ARDOUR_UI::editor_settings () const
 	} else {
 		node = Config->instant_xml(X_("Editor"));
 	}
-	
+
 	if (!node) {
 		if (getenv("ARDOUR_INSTANT_XML_PATH")) {
 			node = Config->instant_xml(getenv("ARDOUR_INSTANT_XML_PATH"));
@@ -3414,19 +3408,19 @@ void
 ARDOUR_UI::update_transport_clocks (framepos_t pos)
 {
 	if (Config->get_primary_clock_delta_edit_cursor()) {
-		primary_clock.set (pos, false, editor->get_preferred_edit_position(), 1);
+		primary_clock->set (pos, false, editor->get_preferred_edit_position(), 1);
 	} else {
-		primary_clock.set (pos, 0, true);
+		primary_clock->set (pos, 0, true);
 	}
 
 	if (Config->get_secondary_clock_delta_edit_cursor()) {
-		secondary_clock.set (pos, false, editor->get_preferred_edit_position(), 2);
+		secondary_clock->set (pos, false, editor->get_preferred_edit_position(), 2);
 	} else {
-		secondary_clock.set (pos);
+		secondary_clock->set (pos);
 	}
 
 	if (big_clock_window->get()) {
-		big_clock.set (pos);
+		big_clock->set (pos);
 	}
 }
 
@@ -3460,9 +3454,9 @@ ARDOUR_UI::record_state_changed ()
 	bool const h = _session->have_rec_enabled_track ();
 
 	if (r == Session::Recording && h)  {
-		big_clock.set_widget_name ("BigClockRecording");
+		big_clock->set_widget_name ("BigClockRecording");
 	} else {
-		big_clock.set_widget_name ("BigClockNonRecording");
+		big_clock->set_widget_name ("BigClockNonRecording");
 	}
 }
 
@@ -3487,14 +3481,18 @@ ARDOUR_UI::store_clock_modes ()
 	XMLNode* node = new XMLNode(X_("ClockModes"));
 
 	for (vector<AudioClock*>::iterator x = AudioClock::clocks.begin(); x != AudioClock::clocks.end(); ++x) {
-		node->add_property ((*x)->name().c_str(), enum_2_string ((*x)->mode()));
+		XMLNode* child = new XMLNode (X_("Clock"));
+		
+		child->add_property (X_("name"), (*x)->name());
+		child->add_property (X_("mode"), enum_2_string ((*x)->mode()));
+		child->add_property (X_("on"), ((*x)->off() ? X_("no") : X_("yes")));
+
+		node->add_child_nocopy (*child);
 	}
 
 	_session->add_extra_xml (*node);
 	_session->set_dirty ();
 }
-
-
 
 ARDOUR_UI::TransportControllable::TransportControllable (std::string name, ARDOUR_UI& u, ToggleType tp)
 	: Controllable (name), ui (u), type(tp)

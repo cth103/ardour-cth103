@@ -99,11 +99,11 @@ class Marker : public sigc::trackable
 	}
 
 	bool label_on_left () const;
-	
+
   protected:
 	PublicEditor& editor;
 
-	Pango::FontDescription* name_font;
+	Pango::FontDescription name_font;
 
 	Canvas::Group* _parent;
 	Canvas::Group *group;

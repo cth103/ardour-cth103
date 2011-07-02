@@ -74,8 +74,9 @@ public:
 
 	void flush_buffers (framecnt_t nframes, framepos_t time);
 	void no_outs_cuz_we_no_monitor(bool);
-	void cycle_start (pframes_t);
+	virtual void cycle_start (pframes_t);
 	void transport_stopped (framepos_t frame);
+	void realtime_locate ();
 
 	BufferSet& output_buffers() { return *_output_buffers; }
 
@@ -94,6 +95,7 @@ public:
 	boost::shared_ptr<PannerShell> panner_shell() const { return _panshell; }
 	boost::shared_ptr<Panner> panner() const;
 
+	void unpan ();
 	void reset_panner ();
 	void defer_pan_reset ();
 	void allow_pan_reset ();
@@ -108,7 +110,7 @@ public:
 	boost::shared_ptr<MuteMaster> _mute_master;
 	bool         no_panner_reset;
 	boost::shared_ptr<PannerShell> _panshell;
-        framecnt_t   scnt;
+	framecnt_t   scnt;
 
 	static bool panners_legal;
 	static PBD::Signal0<int>            PannersLegal;

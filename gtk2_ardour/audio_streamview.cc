@@ -163,7 +163,7 @@ RegionView*
 AudioStreamView::add_region_view_internal (boost::shared_ptr<Region> r, bool wait_for_waves, bool recording)
 {
 	RegionView *region_view = create_region_view (r, wait_for_waves, recording);
-	
+
 	if (region_view == 0) {
 		return 0;
 	}
@@ -483,8 +483,8 @@ AudioStreamView::setup_rec_box ()
 							+ _trackview.track()->get_captured_frames(rec_regions.size()-1);
 				}
 
-				PropertyList plist; 
-				
+				PropertyList plist;
+
 				plist.add (Properties::start, start);
 				plist.add (Properties::length, 1);
 				plist.add (Properties::name, string());
@@ -494,7 +494,7 @@ AudioStreamView::setup_rec_box ()
 					boost::dynamic_pointer_cast<AudioRegion>(RegionFactory::create (sources, plist, false)));
 
 				assert(region);
-				region->set_position (_trackview.session()->transport_frame(), this);
+				region->set_position (_trackview.session()->transport_frame());
 				rec_regions.push_back (make_pair(region, (RegionView*) 0));
 			}
 
@@ -636,11 +636,11 @@ AudioStreamView::update_rec_regions (framepos_t start, framecnt_t cnt)
 	if (!Config->get_show_waveforms_while_recording ()) {
 		return;
 	}
-	
+
 	uint32_t n = 0;
-	
+
 	for (list<pair<boost::shared_ptr<Region>,RegionView*> >::iterator iter = rec_regions.begin(); iter != rec_regions.end(); n++) {
-		
+
 		list<pair<boost::shared_ptr<Region>,RegionView*> >::iterator tmp = iter;
 		++tmp;
 
@@ -651,29 +651,29 @@ AudioStreamView::update_rec_regions (framepos_t start, framecnt_t cnt)
 			iter = tmp;
 			continue;
 		}
-		
+
 		boost::shared_ptr<AudioRegion> region = boost::dynamic_pointer_cast<AudioRegion>(iter->first);
-		
+
 		if (!region) {
 			iter = tmp;
 			continue;
 		}
-		
+
 		framecnt_t origlen = region->length();
 
 		if (region == rec_regions.back().first && rec_active) {
-			
+
 			if (last_rec_data_frame > region->start()) {
-				
+
 				framecnt_t nlen = last_rec_data_frame - region->start();
-				
+
 				if (nlen != region->length()) {
 
 					region->suspend_property_changes ();
-					region->set_position (_trackview.track()->get_capture_start_frame(n), this);
-					region->set_length (nlen, this);
+					region->set_position (_trackview.track()->get_capture_start_frame(n));
+					region->set_length (nlen);
 					region->resume_property_changes ();
-					
+
 					if (origlen == 1) {
 						/* our special initial length */
 						add_region_view_internal (region, false, true);
@@ -681,7 +681,7 @@ AudioStreamView::update_rec_regions (framepos_t start, framecnt_t cnt)
 					}
 
 					check_record_layers (region, (region->position() - region->start() + start + cnt));
-					
+
 					/* also update rect */
 					Canvas::Rectangle * rect = rec_rects[n].rectangle;
 					gdouble xend = _trackview.editor().frame_to_pixel (region->position() + region->length());
@@ -689,16 +689,16 @@ AudioStreamView::update_rec_regions (framepos_t start, framecnt_t cnt)
 				}
 
 			} else {
-				
+
 				framecnt_t nlen = _trackview.track()->get_captured_frames(n);
-				
+
 				if (nlen != region->length()) {
-					
+
 					if (region->source_length(0) >= region->start() + nlen) {
 
 						region->suspend_property_changes ();
-						region->set_position (_trackview.track()->get_capture_start_frame(n), this);
-						region->set_length (nlen, this);
+						region->set_position (_trackview.track()->get_capture_start_frame(n));
+						region->set_length (nlen);
 						region->resume_property_changes ();
 
 						if (origlen == 1) {
@@ -843,7 +843,7 @@ void
 AudioStreamView::horizontal_position_changed ()
 {
 	/* we only `draw' the bit of the curve that is visible, so we need to update here */
-	
+
 	for (CrossfadeViewList::iterator i = crossfade_views.begin(); i != crossfade_views.end(); ++i) {
 		i->second->horizontal_position_changed ();
 	}

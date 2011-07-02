@@ -61,7 +61,7 @@ class LV2PluginUI : public PlugUIBase, public Gtk::VBox
   private:
 
 	void parameter_changed (uint32_t, float);
-	
+
 	boost::shared_ptr<ARDOUR::LV2Plugin> _lv2;
 	std::vector<int> _output_ports;
 	sigc::connection _screen_update_connection;
@@ -87,6 +87,7 @@ class LV2PluginUI : public PlugUIBase, public Gtk::VBox
 			const void* buffer);
 
 	void lv2ui_instantiate(const std::string& title);
+	void lv2ui_free();
 
 	void parameter_update(uint32_t, float);
 	bool configure_handler (GdkEventConfigure*);

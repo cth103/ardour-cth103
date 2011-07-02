@@ -21,8 +21,11 @@
 #include "pbd/failed_constructor.h"
 
 #include "ardour/amp.h"
+#include "ardour/audio_buffer.h"
 #include "ardour/internal_send.h"
 #include "ardour/meter.h"
+#include "ardour/panner.h"
+#include "ardour/panner_shell.h"
 #include "ardour/route.h"
 #include "ardour/session.h"
 
@@ -41,7 +44,7 @@ InternalSend::InternalSend (Session& s, boost::shared_ptr<Pannable> p, boost::sh
                 }
         }
 
-	_amp->set_gain (0, this);
+	init_gain ();
 }
 
 InternalSend::~InternalSend ()
@@ -51,17 +54,29 @@ InternalSend::~InternalSend ()
 	}
 }
 
+void
+InternalSend::init_gain ()
+{
+	if (_role == Listen) {
+		/* send to monitor bus is always at unity */
+		_amp->set_gain (1.0, this);
+	} else {
+		/* aux sends start at -inf dB */
+		_amp->set_gain (0, this);
+	}
+}
+
 int
 InternalSend::use_target (boost::shared_ptr<Route> sendto)
 {
 	if (_send_to) {
 		_send_to->remove_send_from_internal_return (this);
 	}
-	
+
         _send_to = sendto;
 
         _send_to->add_send_to_internal_return (this);
-        
+
         set_name (sendto->name());
         _send_to_id = _send_to->id();
 
@@ -72,7 +87,6 @@ InternalSend::use_target (boost::shared_ptr<Route> sendto)
 
         return 0;
 }
-
 
 void
 InternalSend::send_to_going_away ()
@@ -94,7 +108,18 @@ InternalSend::run (BufferSet& bufs, framepos_t start_frame, framepos_t end_frame
 	// in-place, which a send must never do.
 
 	assert(mixbufs.available() >= bufs.count());
-	mixbufs.read_from (bufs, nframes);
+
+	boost::shared_ptr<Panner> panner;
+	
+	if (_panshell) {
+		panner = _panshell->panner();
+	}
+	
+	if (panner && !panner->bypassed()) {
+		_panshell->run (bufs, mixbufs, start_frame, end_frame, nframes);
+	} else {
+		mixbufs.read_from (bufs, nframes);
+	}
 
 	/* gain control */
 
@@ -106,7 +131,7 @@ InternalSend::run (BufferSet& bufs, framepos_t start_frame, framepos_t end_frame
 
 		Amp::apply_gain (mixbufs, nframes, _current_gain, tgain);
 		_current_gain = tgain;
-                
+
 	} else if (tgain == 0.0) {
 
 		/* we were quiet last time, and we're still supposed to be quiet.
@@ -128,8 +153,6 @@ InternalSend::run (BufferSet& bufs, framepos_t start_frame, framepos_t end_frame
 
 	_amp->run (mixbufs, start_frame, end_frame, nframes, true);
 
-	/* XXX NEED TO PAN */
-
 	/* consider metering */
 
 	if (_metering) {
@@ -139,6 +162,20 @@ InternalSend::run (BufferSet& bufs, framepos_t start_frame, framepos_t end_frame
 			_meter->run (mixbufs, start_frame, end_frame, nframes, true);
 		}
 	}
+
+#if 0
+        if (_session.transport_rolling()) {
+                for (BufferSet::audio_iterator b = mixbufs.audio_begin(); b != mixbufs.audio_end(); ++b) {
+                        Sample* p = b->data ();
+                        for (pframes_t n = 0; n < nframes; ++n) {
+				if (p[n] != 0.0) {
+					cerr << "\tnon-zero data SENT to " << b->data() << endl;
+					break;
+				}
+                        }
+                }
+        }
+#endif
 
 	/* target will pick up our output when it is ready */
 
@@ -182,9 +219,13 @@ InternalSend::get_state()
 }
 
 int
-InternalSend::set_our_state (const XMLNode& node, int /*version*/)
+InternalSend::set_state (const XMLNode& node, int version)
 {
 	const XMLProperty* prop;
+
+	Send::set_state (node, version);
+
+	init_gain ();
 
 	if ((prop = node.property ("target")) != 0) {
 
@@ -203,13 +244,6 @@ InternalSend::set_our_state (const XMLNode& node, int /*version*/)
 	}
 
 	return 0;
-}
-
-int
-InternalSend::set_state (const XMLNode& node, int version)
-{
-	Send::set_state (node, version);
-	return set_our_state (node, version);
 }
 
 int
@@ -281,3 +315,27 @@ InternalSend::send_to_property_changed (const PropertyChange& what_changed)
 		set_name (_send_to->name ());
 	}
 }
+
+void
+InternalSend::set_can_pan (bool yn)
+{
+	boost::shared_ptr<Panner> panner;
+
+	if (_panshell) {
+		panner = _panshell->panner ();
+	}
+
+	if (panner) {
+		panner->set_bypassed (!yn);
+	}
+}
+
+void
+InternalSend::cycle_start (pframes_t nframes)
+{
+	Delivery::cycle_start (nframes);
+
+	for (BufferSet::audio_iterator b = mixbufs.audio_begin(); b != mixbufs.audio_end(); ++b) {
+		(*b).prepare ();
+	}
+}	

@@ -81,7 +81,7 @@ RBEffect::run (boost::shared_ptr<Region> r, Progress*)
 	framepos_t pos = 0;
 	framecnt_t avail = 0;
 	boost::shared_ptr<AudioRegion> result;
-	
+
 	cerr << "RBEffect: source region: position = " << region->position()
 	     << ", start = " << region->start()
 	     << ", length = " << region->length()
@@ -355,7 +355,7 @@ RBEffect::run (boost::shared_ptr<Region> r, Progress*)
 					  stretch,
 					  shift);
 		(*x)->set_master_sources (region->master_sources());
-		(*x)->set_length( (*x)->length() * stretch, this);
+		(*x)->set_length( (*x)->length() * stretch);
 	}
 
 	/* stretch region gain envelope */
