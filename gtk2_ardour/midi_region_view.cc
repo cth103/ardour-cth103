@@ -1875,7 +1875,7 @@ MidiRegionView::next_patch (PatchChange& patch)
 }
 
 void
-MidiRegionView::previous_bank (CanvasPatchChange& patch)
+MidiRegionView::previous_bank (PatchChange& patch)
 {
 	if (patch.patch()->program() < 127) {
 		MIDI::Name::PatchPrimaryKey key;
@@ -1894,7 +1894,7 @@ MidiRegionView::previous_bank (CanvasPatchChange& patch)
 }
 
 void
-MidiRegionView::next_bank (CanvasPatchChange& patch)
+MidiRegionView::next_bank (PatchChange& patch)
 {
 	if (patch.patch()->program() > 0) {
 		MIDI::Name::PatchPrimaryKey key;
@@ -2536,18 +2536,13 @@ MidiRegionView::commit_resizing (NoteBase* primary, bool at_front, double delta_
 	start_note_diff_command (_("resize notes"));
 
 	for (std::vector<NoteResizeData *>::iterator i = _resize_data.begin(); i != _resize_data.end(); ++i) {
-<<<<<<< HEAD
 		Note*  canvas_note = (*i)->note;
 		Rectangle*  resize_rect = (*i)->resize_rect;
-=======
-		CanvasNote*  canvas_note = (*i)->canvas_note;
-		SimpleRect*  resize_rect = (*i)->resize_rect;
 
 		/* Get the new x position for this resize, which is in pixels relative
 		 * to the region position.
 		 */
 		
->>>>>>> origin/master
 		double current_x;
 
 		if (at_front) {
@@ -3312,18 +3307,10 @@ MidiRegionView::update_ghost_note (double x, double y)
 
 	_last_ghost_x = x;
 	_last_ghost_y = y;
-<<<<<<< HEAD
 	
 	_note_group->canvas_to_item (x, y);
-	framepos_t const f = snap_pixel_to_frame (x);
-=======
-
-	_note_group->w2i (x, y);
-
 	PublicEditor& editor = trackview.editor ();
-	
 	framepos_t const unsnapped_frame = editor.pixel_to_frame (x);
->>>>>>> origin/master
 
 	bool success;
 	Evoral::MusicalTime grid_beats = editor.get_grid_type_as_beats (success, unsnapped_frame);

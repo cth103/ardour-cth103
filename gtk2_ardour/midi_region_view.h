@@ -151,8 +151,8 @@ public:
 	 */
 	void next_patch (PatchChange &);
 
-	void previous_bank (ArdourCanvas::CanvasPatchChange &);
-	void next_bank (ArdourCanvas::CanvasPatchChange &);
+	void previous_bank (PatchChange &);
+	void next_bank (PatchChange &);
 
 	/** Displays all patch change events in the region as flags on the canvas.
 	 */

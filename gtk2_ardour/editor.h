@@ -688,7 +688,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void add_selection_context_items (Gtk::Menu_Helpers::MenuList&);
 	Gtk::MenuItem* _popup_region_menu_item;
 
-	void popup_control_point_context_menu (ArdourCanvas::Item *, GdkEvent *);
+	void popup_control_point_context_menu (Canvas::Item *, GdkEvent *);
 	Gtk::Menu _control_point_context_menu;
 
 	void handle_new_route (ARDOUR::RouteList&);

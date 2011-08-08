@@ -88,6 +88,7 @@
 #include "audio_region_view.h"
 #include "audio_streamview.h"
 #include "audio_time_axis.h"
+#include "automation_time_axis.h"
 #include "utils.h"
 #include "crossfade_view.h"
 #include "editing.h"
@@ -124,10 +125,11 @@
 #include "rhythm_ferret.h"
 #include "selection.h"
 #include "sfdb_ui.h"
-#include "simpleline.h"
-#include "tempo_lines.h"
 #include "time_axis_view.h"
 #include "utils.h"
+#include "editor.h"
+#include "editor_cursors.h"
+#include "debug.h"
 
 #include "i18n.h"
 
@@ -4900,10 +4902,10 @@ Editor::handle_new_route (RouteList& routes)
 		DataType dt = route->input()->default_type();
 
 		if (dt == ARDOUR::DataType::AUDIO) {
-			rtv = new AudioTimeAxisView (*this, _session, *track_canvas);
+			rtv = new AudioTimeAxisView (*this, _session, *_track_canvas);
 			rtv->set_route (route);
 		} else if (dt == ARDOUR::DataType::MIDI) {
-			rtv = new MidiTimeAxisView (*this, _session, *track_canvas);
+			rtv = new MidiTimeAxisView (*this, _session, *_track_canvas);
 			rtv->set_route (route);
 		} else {
 			throw unknown_type();
@@ -5534,7 +5536,7 @@ Editor::save_canvas_state ()
 }
 
 void
-Editor::popup_control_point_context_menu (ArdourCanvas::Item* item, GdkEvent* event)
+Editor::popup_control_point_context_menu (Canvas::Item* item, GdkEvent* event)
 {
 	using namespace Menu_Helpers;
 	
