@@ -89,6 +89,7 @@ class TimeInfoBox;
 class MidiTracer;
 class WindowProxyBase;
 class GlobalPortMatrixWindow;
+class GUIObjectState;
 
 namespace Gtkmm2ext {
 	class TearOff;
@@ -191,6 +192,8 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	void halt_on_xrun_message ();
 	void xrun_handler (framepos_t);
 	void create_xrun_marker (framepos_t);
+
+	GUIObjectState* gui_object_state;
 
 	AudioClock* primary_clock;
 	AudioClock* secondary_clock;
@@ -519,6 +522,10 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	Gtk::EventBox sample_rate_box;
 	void update_sample_rate (ARDOUR::framecnt_t);
 
+	Gtk::Label    format_label;
+	Gtk::EventBox format_box;
+	void update_format ();
+	
 	gint every_second ();
 	gint every_point_one_seconds ();
 	gint every_point_zero_one_seconds ();
@@ -570,6 +577,7 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	guint32  last_key_press_time;
 
 	void snapshot_session (bool switch_to_it);
+	void rename_session ();
 
 	Mixer_UI   *mixer;
 	int         create_mixer ();
@@ -672,6 +680,7 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	void toggle_use_osc ();
 
 	void parameter_changed (std::string);
+	void session_parameter_changed (std::string);
 
 	bool first_idle ();
 

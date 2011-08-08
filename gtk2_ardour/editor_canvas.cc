@@ -297,10 +297,15 @@ Editor::track_canvas_viewport_size_allocated ()
 void
 Editor::reset_controls_layout_width ()
 {
-        gint w = edit_controls_vbox.get_width();
+	GtkRequisition req;
+	gint w;
+
+	edit_controls_vbox.size_request (req);
+	w = req.width;
 
         if (_group_tabs->is_mapped()) {
-                w += _group_tabs->get_width();
+		_group_tabs->size_request (req);
+                w += req.width;
         }
 
         /* the controls layout has no horizontal scrolling, its visible
@@ -656,6 +661,22 @@ Editor::entered_track_canvas (GdkEventCrossing */*ev*/)
 }
 
 /** Called when the main vertical_adjustment has changed */
+void
+Editor::ensure_time_axis_view_is_visible (const TimeAxisView& tav)
+{
+	double begin = tav.y_position();
+
+	double v = vertical_adjustment.get_value ();
+
+	if (begin < v || begin + tav.current_height() > v + _canvas_height - canvas_timebars_vsize) {
+		/* try to put the TimeAxisView roughly central */
+		if (begin >= _canvas_height/2.0) {
+			begin -= _canvas_height/2.0;
+		}
+		vertical_adjustment.set_value (begin);
+	}
+}
+
 void
 Editor::tie_vertical_scrolling ()
 {

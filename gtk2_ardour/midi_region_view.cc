@@ -83,8 +83,10 @@ using namespace Editing;
 using namespace Canvas;
 using Gtkmm2ext::Keyboard;
 
+#define MIDI_BP_ZERO ((Config->get_first_midi_bank_is_zero())?0:1)
+
 MidiRegionView::MidiRegionView (Canvas::Group *parent, RouteTimeAxisView &tv,
-				boost::shared_ptr<MidiRegion> r, double spu, Gdk::Color const & basic_color)
+                                boost::shared_ptr<MidiRegion> r, double spu, Gdk::Color const & basic_color)
 	: RegionView (parent, tv, r, spu, basic_color)
 	, _force_channel(-1)
 	, _last_channel_selection(0xFFFF)
@@ -116,6 +118,7 @@ MidiRegionView::MidiRegionView (Canvas::Group *parent, RouteTimeAxisView &tv,
 	_note_transform_index = _note_group->add_transform (Transform (Duple (1, 1), Duple (0, 0)));
 	PublicEditor::DropDownKeys.connect (sigc::mem_fun (*this, &MidiRegionView::drop_down_keys));
 
+	Config->ParameterChanged.connect (*this, invalidator (*this), ui_bind (&MidiRegionView::parameter_changed, this, _1), gui_context());
 	connect_to_diskstream ();
 }
 
@@ -150,6 +153,16 @@ MidiRegionView::MidiRegionView (Canvas::Group *parent, RouteTimeAxisView &tv,
 	PublicEditor::DropDownKeys.connect (sigc::mem_fun (*this, &MidiRegionView::drop_down_keys));
 
 	connect_to_diskstream ();
+}
+
+void
+MidiRegionView::parameter_changed (std::string const & p)
+{
+	if (p == "diplay-first-midi-bank-as-zero") {
+		if (_enable_display) {
+			redisplay_model();
+		}
+	}
 }
 
 MidiRegionView::MidiRegionView (const MidiRegionView& other)
@@ -274,6 +287,7 @@ MidiRegionView::init (Gdk::Color const & basic_color, bool wfd)
 	                                       ui_bind(&MidiRegionView::snap_changed, this),
 	                                       gui_context());
 
+	Config->ParameterChanged.connect (*this, invalidator (*this), ui_bind (&MidiRegionView::parameter_changed, this, _1), gui_context());
 	connect_to_diskstream ();
 }
 
@@ -716,12 +730,25 @@ MidiRegionView::key_press (GdkEventKey* ev)
 
 	} else if (ev->keyval == GDK_Tab) {
 
-		if (Keyboard::modifier_state_equals (ev->state, Keyboard::PrimaryModifier)) {
-			goto_previous_note ();
+		if (Keyboard::modifier_state_contains (ev->state, Keyboard::PrimaryModifier)) {
+			goto_previous_note (Keyboard::modifier_state_contains (ev->state, Keyboard::TertiaryModifier));
 		} else {
-			goto_next_note ();
+			goto_next_note (Keyboard::modifier_state_contains (ev->state, Keyboard::TertiaryModifier));
 		}
 		return true;
+
+	} else if (ev->keyval == GDK_ISO_Left_Tab) {
+
+		/* Shift-TAB generates ISO Left Tab, for some reason */
+
+		if (Keyboard::modifier_state_contains (ev->state, Keyboard::PrimaryModifier)) {
+			goto_previous_note (Keyboard::modifier_state_contains (ev->state, Keyboard::TertiaryModifier));
+		} else {
+			goto_next_note (Keyboard::modifier_state_contains (ev->state, Keyboard::TertiaryModifier));
+		}
+		return true;
+
+
 
 	} else if (ev->keyval == GDK_Up) {
 
@@ -1157,6 +1184,7 @@ MidiRegionView::display_patch_changes ()
 		if (chn_mask & (1<<i)) {
 			display_patch_changes_on_channel (i);
 		}
+		/* TODO gray-out patch instad of not displaying it */
 	}
 }
 
@@ -1179,8 +1207,8 @@ MidiRegionView::display_patch_changes_on_channel (uint8_t channel)
 			add_canvas_patch_change (*i, patch->name());
 		} else {
 			char buf[16];
-			/* program and bank numbers are zero-based: convert to one-based */
-			snprintf (buf, 16, "%d\n%d", (*i)->program() + 1, (*i)->bank() + 1);
+			/* program and bank numbers are zero-based: convert to one-based: MIDI_BP_ZERO */
+			snprintf (buf, 16, "%d %d", (*i)->program() + MIDI_BP_ZERO , (*i)->bank() + MIDI_BP_ZERO);
 			add_canvas_patch_change (*i, buf);
 		}
 	}
@@ -1847,6 +1875,44 @@ MidiRegionView::next_patch (PatchChange& patch)
 }
 
 void
+MidiRegionView::previous_bank (CanvasPatchChange& patch)
+{
+	if (patch.patch()->program() < 127) {
+		MIDI::Name::PatchPrimaryKey key;
+		get_patch_key_at (patch.patch()->time(), patch.patch()->channel(), key);
+		if (key.lsb > 0) {
+			key.lsb--;
+			change_patch_change (patch, key);
+		} else {
+			if (key.msb > 0) {
+				key.lsb = 127;
+				key.msb--;
+				change_patch_change (patch, key);
+			}
+		}
+	}
+}
+
+void
+MidiRegionView::next_bank (CanvasPatchChange& patch)
+{
+	if (patch.patch()->program() > 0) {
+		MIDI::Name::PatchPrimaryKey key;
+		get_patch_key_at (patch.patch()->time(), patch.patch()->channel(), key);
+		if (key.lsb < 127) {
+			key.lsb++;
+			change_patch_change (patch, key);
+		} else {
+			if (key.msb < 127) {
+				key.lsb = 0;
+				key.msb++;
+				change_patch_change (patch, key);
+			}
+		}
+	}
+}
+
+void
 MidiRegionView::maybe_remove_deleted_note_from_selection (NoteBase* cne)
 {
 	if (_selection.empty()) {
@@ -2072,15 +2138,6 @@ MidiRegionView::note_selected(NoteBase* ev, bool add, bool extend)
 				add_to_selection (*i);
 			}
 
-#if 0
-			/* if events were guaranteed to be time sorted, we could do this.
-			   but as of sept 10th 2009, they no longer are.
-			*/
-
-			if ((*i)->note()->time() > latest) {
-				break;
-			}
-#endif
 		}
 	}
 }
@@ -2479,8 +2536,18 @@ MidiRegionView::commit_resizing (NoteBase* primary, bool at_front, double delta_
 	start_note_diff_command (_("resize notes"));
 
 	for (std::vector<NoteResizeData *>::iterator i = _resize_data.begin(); i != _resize_data.end(); ++i) {
+<<<<<<< HEAD
 		Note*  canvas_note = (*i)->note;
 		Rectangle*  resize_rect = (*i)->resize_rect;
+=======
+		CanvasNote*  canvas_note = (*i)->canvas_note;
+		SimpleRect*  resize_rect = (*i)->resize_rect;
+
+		/* Get the new x position for this resize, which is in pixels relative
+		 * to the region position.
+		 */
+		
+>>>>>>> origin/master
 		double current_x;
 
 		if (at_front) {
@@ -2497,7 +2564,10 @@ MidiRegionView::commit_resizing (NoteBase* primary, bool at_front, double delta_
 			}
 		}
 
-		current_x = snap_pixel_to_frame (current_x);
+		/* Convert that to a frame within the region */
+		current_x = snap_pixel_to_frame (current_x) + _region->start ();
+
+		/* and then to beats */
 		current_x = frames_to_beats (current_x);
 
 		if (at_front && current_x < canvas_note->note()->end_time()) {
@@ -2925,7 +2995,8 @@ void
 MidiRegionView::patch_entered (PatchChange* ev)
 {
 	ostringstream s;
-	s << ((int) ev->patch()->program() + 1) << ":" << (ev->patch()->bank() + 1);
+	/* XXX should get patch name if we can */
+	s << _("Bank:") << (ev->patch()->bank() + MIDI_BP_ZERO) << '\n' << _("Program:") << ((int) ev->patch()->program()) + MIDI_BP_ZERO << '\n' << _("Channel:") << ((int) ev->patch()->channel() + 1);
 	show_verbose_cursor (s.str(), 10, 20);
 }
 
@@ -3153,9 +3224,8 @@ MidiRegionView::time_sort_events ()
 }
 
 void
-MidiRegionView::goto_next_note ()
+MidiRegionView::goto_next_note (bool add_to_selection)
 {
-	// framepos_t pos = -1;
 	bool use_next = false;
 
 	if (_events.back()->selected()) {
@@ -3169,8 +3239,11 @@ MidiRegionView::goto_next_note ()
 			use_next = true;
 			continue;
 		} else if (use_next) {
-			unique_select (*i);
-			// pos = _region->position() + beats_to_frames ((*i)->note()->time());
+			if (!add_to_selection) {
+				unique_select (*i);
+			} else {
+				note_selected (*i, true, false);
+			}
 			return;
 		}
 	}
@@ -3182,9 +3255,8 @@ MidiRegionView::goto_next_note ()
 }
 
 void
-MidiRegionView::goto_previous_note ()
+MidiRegionView::goto_previous_note (bool add_to_selection)
 {
-	// framepos_t pos = -1;
 	bool use_next = false;
 
 	if (_events.front()->selected()) {
@@ -3198,8 +3270,11 @@ MidiRegionView::goto_previous_note ()
 			use_next = true;
 			continue;
 		} else if (use_next) {
-			unique_select (*i);
-			// pos = _region->position() + beats_to_frames ((*i)->note()->time());
+			if (!add_to_selection) {
+				unique_select (*i);
+			} else {
+				note_selected (*i, true, false);
+			}
 			return;
 		}
 	}
@@ -3237,18 +3312,40 @@ MidiRegionView::update_ghost_note (double x, double y)
 
 	_last_ghost_x = x;
 	_last_ghost_y = y;
+<<<<<<< HEAD
 	
 	_note_group->canvas_to_item (x, y);
 	framepos_t const f = snap_pixel_to_frame (x);
+=======
+
+	_note_group->w2i (x, y);
+
+	PublicEditor& editor = trackview.editor ();
+	
+	framepos_t const unsnapped_frame = editor.pixel_to_frame (x);
+>>>>>>> origin/master
 
 	bool success;
-	Evoral::MusicalTime beats = trackview.editor().get_grid_type_as_beats (success, f);
+	Evoral::MusicalTime grid_beats = editor.get_grid_type_as_beats (success, unsnapped_frame);
 
 	if (!success) {
-		beats = 1;
+		grid_beats = 1;
 	}
 
-	double length = frames_to_beats (snap_frame_to_frame (f + beats_to_frames (beats)) - f);
+	framecnt_t const grid_frames = beats_to_frames (grid_beats);
+
+	framepos_t f;
+
+	if (unsnapped_frame < grid_frames / 2) {
+		f = snap_frame_to_frame (unsnapped_frame);
+	} else {
+		/* snap to half the grid spacing behind the mouse pointer;
+		   this makes the snapped note time more intuitive
+		*/
+		f = snap_frame_to_frame (unsnapped_frame - grid_frames / 2);
+	}
+
+	double length = frames_to_beats (snap_frame_to_frame (f + grid_frames) - f);
 
 	_ghost_note->note()->set_time (frames_to_beats (f + _region->start()));
 	_ghost_note->note()->set_length (length);

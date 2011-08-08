@@ -22,6 +22,7 @@
 
 #include "ardour/amp.h"
 #include "ardour/audio_buffer.h"
+#include "ardour/internal_return.h"
 #include "ardour/internal_send.h"
 #include "ardour/meter.h"
 #include "ardour/panner.h"
@@ -77,6 +78,9 @@ InternalSend::use_target (boost::shared_ptr<Route> sendto)
 
         _send_to->add_send_to_internal_return (this);
 
+	mixbufs.ensure_buffers (_send_to->internal_return()->input_streams(), _session.get_block_size());
+	mixbufs.set_count (_send_to->internal_return()->input_streams());
+
         set_name (sendto->name());
         _send_to_id = _send_to->id();
 
@@ -109,13 +113,7 @@ InternalSend::run (BufferSet& bufs, framepos_t start_frame, framepos_t end_frame
 
 	assert(mixbufs.available() >= bufs.count());
 
-	boost::shared_ptr<Panner> panner;
-	
-	if (_panshell) {
-		panner = _panshell->panner();
-	}
-	
-	if (panner && !panner->bypassed()) {
+	if (_panshell && !_panshell->bypassed()) {
 		_panshell->run (bufs, mixbufs, start_frame, end_frame, nframes);
 	} else {
 		mixbufs.read_from (bufs, nframes);
@@ -163,20 +161,6 @@ InternalSend::run (BufferSet& bufs, framepos_t start_frame, framepos_t end_frame
 		}
 	}
 
-#if 0
-        if (_session.transport_rolling()) {
-                for (BufferSet::audio_iterator b = mixbufs.audio_begin(); b != mixbufs.audio_end(); ++b) {
-                        Sample* p = b->data ();
-                        for (pframes_t n = 0; n < nframes; ++n) {
-				if (p[n] != 0.0) {
-					cerr << "\tnon-zero data SENT to " << b->data() << endl;
-					break;
-				}
-                        }
-                }
-        }
-#endif
-
 	/* target will pick up our output when it is ready */
 
   out:
@@ -186,7 +170,10 @@ InternalSend::run (BufferSet& bufs, framepos_t start_frame, framepos_t end_frame
 int
 InternalSend::set_block_size (pframes_t nframes)
 {
-	mixbufs.ensure_buffers (_configured_input, nframes);
+	if (_send_to) {
+		mixbufs.ensure_buffers (_send_to->internal_return()->input_streams(), nframes);
+	}
+
         return 0;
 }
 
@@ -223,9 +210,9 @@ InternalSend::set_state (const XMLNode& node, int version)
 {
 	const XMLProperty* prop;
 
-	Send::set_state (node, version);
-
 	init_gain ();
+
+	Send::set_state (node, version);
 
 	if ((prop = node.property ("target")) != 0) {
 
@@ -319,14 +306,8 @@ InternalSend::send_to_property_changed (const PropertyChange& what_changed)
 void
 InternalSend::set_can_pan (bool yn)
 {
-	boost::shared_ptr<Panner> panner;
-
 	if (_panshell) {
-		panner = _panshell->panner ();
-	}
-
-	if (panner) {
-		panner->set_bypassed (!yn);
+		_panshell->set_bypassed (!yn);
 	}
 }
 

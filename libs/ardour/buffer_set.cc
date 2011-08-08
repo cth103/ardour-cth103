@@ -23,7 +23,9 @@
 
 #include <iostream>
 #include <algorithm>
+
 #include "pbd/compose.h"
+
 #include "ardour/buffer.h"
 #include "ardour/buffer_set.h"
 #include "ardour/debug.h"
@@ -87,31 +89,33 @@ BufferSet::clear()
 /** Set up this BufferSet so that its data structures mirror a PortSet's buffers.
  *  This is quite expensive and not RT-safe, so it should not be called in a process context;
  *  get_jack_port_addresses() will fill in a structure set up by this method.
+ *
+ *  XXX: this *is* called in a process context; I'm not sure quite what `should not' means above.
  */
 void
 BufferSet::attach_buffers (PortSet& ports)
 {
-	clear();
+	const ChanCount& count (ports.count());
+
+	clear ();
 
 	for (DataType::iterator t = DataType::begin(); t != DataType::end(); ++t) {
-		_buffers.push_back(BufferVec());
+		_buffers.push_back (BufferVec());
 		BufferVec& v = _buffers[*t];
-
-		for (PortSet::iterator p = ports.begin(*t); p != ports.end(*t); ++p) {
-			assert(p->type() == *t);
-			v.push_back (0);
-		}
+		v.assign (count.n (*t), (Buffer*) 0);
 	}
 
 	_count = ports.count();
 	_available = ports.count();
+
 
 	_is_mirror = true;
 }
 
 /** Write the JACK port addresses from a PortSet into our data structures.  This
  *  call assumes that attach_buffers() has already been called for the same PortSet.
- *  Does not allocate, so RT-safe.
+ *  Does not allocate, so RT-safe BUT you can only call Port::get_buffer() from
+ *  the process() callback tree anyway, so this has to be called in RT context.
  */
 void
 BufferSet::get_jack_port_addresses (PortSet& ports, framecnt_t nframes)

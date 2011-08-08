@@ -70,13 +70,6 @@ RouteUI::RouteUI (ARDOUR::Session* sess)
 	init ();
 }
 
-RouteUI::RouteUI (boost::shared_ptr<ARDOUR::Route> rt, ARDOUR::Session* sess)
-	: AxisView(sess)
-{
-	init ();
-	set_route (rt);
-}
-
 RouteUI::~RouteUI()
 {
 	_route.reset (); /* drop reference to route, so that it can be cleaned up */
@@ -93,7 +86,6 @@ void
 RouteUI::init ()
 {
 	self_destruct = true;
-	xml_node = 0;
 	mute_menu = 0;
 	solo_menu = 0;
 	sends_menu = 0;
@@ -172,11 +164,6 @@ RouteUI::reset ()
 
 	delete mute_menu;
 	mute_menu = 0;
-
-	if (xml_node) {
-		/* do not delete the node - its owned by the route */
-		xml_node = 0;
-	}
 
 	denormal_menu_item = 0;
 }
@@ -1278,62 +1265,29 @@ RouteUI::set_color (const Gdk::Color & c)
 
 	_color = c;
 
-	ensure_xml_node ();
 	snprintf (buf, sizeof (buf), "%d:%d:%d", c.get_red(), c.get_green(), c.get_blue());
-	xml_node->add_property ("color", buf);
-
+	set_gui_property ("color", buf);
 	_route->gui_changed ("color", (void *) 0); /* EMIT_SIGNAL */
-}
-
-
-void
-RouteUI::ensure_xml_node ()
-{
-	if (xml_node == 0) {
-		if ((xml_node = _route->extra_xml ("GUI")) == 0) {
-			xml_node = new XMLNode ("GUI");
-			_route->add_extra_xml (*xml_node);
-		} else {
-			/* the Route has one; it may have been loaded */
-			if (Stateful::loading_state_version != 0 && Stateful::loading_state_version < 3000) {
-				/* the GUI extra XML is in 2.X format; we must convert it to the new
-				   format to avoid problems later
-				*/
-
-				XMLNode* new_xml_node = new XMLNode (X_("GUI"));
-				XMLPropertyList old_gui_props = xml_node->properties ();
-				for (XMLPropertyIterator i = old_gui_props.begin(); i != old_gui_props.end(); ++i) {
-					new_xml_node->add_property ((*i)->name().c_str (), (*i)->value().c_str ());
-				}
-
-				/* we can't fix up the automation track nodes,
-				 * because the data is no longer stored
-				 * per-route, but per Controllable.
-				 */
-
-				_route->add_extra_xml (*new_xml_node);
-				xml_node = new_xml_node;
-			}
-		}
-	}
 }
 
 int
 RouteUI::set_color_from_route ()
 {
-	XMLProperty *prop;
+	const string str = gui_property ("color");
 
-	RouteUI::ensure_xml_node ();
-
-	if ((prop = xml_node->property ("color")) != 0) {
-		int r, g, b;
-		sscanf (prop->value().c_str(), "%d:%d:%d", &r, &g, &b);
-		_color.set_red(r);
-		_color.set_green(g);
-		_color.set_blue(b);
-		return 0;
+	if (str.empty()) {
+		return 1;
 	}
-	return 1;
+
+	int r, g, b;
+
+	sscanf (str.c_str(), "%d:%d:%d", &r, &g, &b);
+
+	_color.set_red (r);
+	_color.set_green (g);
+	_color.set_blue (b);
+
+	return 0;
 }
 
 void
@@ -1395,11 +1349,32 @@ RouteUI::idle_remove_this_route (RouteUI *rui)
 	return false;
 }
 
+/** @return true if this name should be used for the route, otherwise false */
+bool
+RouteUI::verify_new_route_name (const std::string& name)
+{
+	if (name.find (':') == string::npos) {
+		return true;
+	}
+	
+	MessageDialog colon_msg (
+		_("The use of colons (':') is discouraged in track and bus names.\nDo you want to use this new name?"),
+		false, MESSAGE_QUESTION, BUTTONS_NONE
+		);
+	
+	colon_msg.add_button (_("Use the new name"), Gtk::RESPONSE_ACCEPT);
+	colon_msg.add_button (_("Re-edit the name"), Gtk::RESPONSE_CANCEL);
+
+	return (colon_msg.run () == Gtk::RESPONSE_ACCEPT);
+}
+
 void
 RouteUI::route_rename ()
 {
 	ArdourPrompter name_prompter (true);
 	string result;
+	bool done = false;
+
 	if (is_track()) {
 		name_prompter.set_title (_("Rename Track"));
 	} else {
@@ -1411,13 +1386,25 @@ RouteUI::route_rename ()
 	name_prompter.set_response_sensitive (Gtk::RESPONSE_ACCEPT, false);
 	name_prompter.show_all ();
 
-	switch (name_prompter.run ()) {
-	case Gtk::RESPONSE_ACCEPT:
-                name_prompter.get_result (result);
-                if (result.length()) {
-			_route->set_name (result);
+	while (!done) {
+		switch (name_prompter.run ()) {
+		case Gtk::RESPONSE_ACCEPT:
+			name_prompter.get_result (result);
+			name_prompter.hide ();
+			if (result.length()) {
+				if (verify_new_route_name (result)) {
+					_route->set_name (result);
+					done = true;
+				} else {
+					/* back to name prompter */
+				}
+
+			} else {
+				/* nothing entered, just get out of here */
+				done = true;
+			}
+			break;
 		}
-		break;
 	}
 
 	return;
@@ -1786,4 +1773,12 @@ RouteUI::set_invert_sensitive (bool yn)
         for (list<BindableToggleButton*>::iterator b = _invert_buttons.begin(); b != _invert_buttons.end(); ++b) {
                 (*b)->set_sensitive (yn);
         }
+}
+
+void
+RouteUI::request_redraw ()
+{
+	if (_route) {
+		_route->gui_changed ("track_height", (void *) 0); /* EMIT_SIGNAL */
+	}
 }

@@ -297,27 +297,6 @@ ARDOUR_UI::setup_session_options ()
 	_session->config.map_parameters (pc);
 }
 
-#if 0
-void
-ARDOUR_UI::handle_sync_change ()
-{
-	if (!_session) {
-		return;
-	}
-	if (!_session->config.get_external_sync()) {
-		sync_button.set_label (_("Internal"));
-		ActionManager::get_action ("Transport", "ToggleAutoPlay")->set_sensitive (true);
-		ActionManager::get_action ("Transport", "ToggleAutoReturn")->set_sensitive (true);
-	} else {
-		sync_button.set_label (_("External"));
-		/* XXX need to make auto-play is off as well as insensitive */
-		ActionManager::get_action ("Transport", "ToggleAutoPlay")->set_sensitive (false);
-		ActionManager::get_action ("Transport", "ToggleAutoReturn")->set_sensitive (false);
-	}
-
-}
-#endif
-
 void
 ARDOUR_UI::parameter_changed (std::string p)
 {
@@ -399,6 +378,14 @@ ARDOUR_UI::parameter_changed (std::string p)
 		primary_clock->set_is_duration (Config->get_primary_clock_delta_edit_cursor());
 	} else if (p == "secondary-clock-delta-edit-cursor") {
 		secondary_clock->set_is_duration (Config->get_secondary_clock_delta_edit_cursor());
+	}
+}
+
+void
+ARDOUR_UI::session_parameter_changed (std::string p)
+{
+	if (p == "native-file-data-format" || p == "native-file-header-format") {
+		update_format ();
 	}
 }
 

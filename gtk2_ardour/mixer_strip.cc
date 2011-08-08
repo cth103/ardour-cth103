@@ -127,7 +127,6 @@ MixerStrip::init ()
 	input_selector = 0;
 	output_selector = 0;
 	group_menu = 0;
-	_marked_for_display = false;
 	route_ops_menu = 0;
 	ignore_comment_edit = false;
 	ignore_toggle = false;
@@ -407,7 +406,8 @@ MixerStrip::set_route (boost::shared_ptr<Route> rt)
 			midi_input_enable_button = manage (new StatefulToggleButton);
 			midi_input_enable_button->set_name ("MixerMidiInputEnableButton");
 			midi_input_enable_button->set_image (*img);
-			midi_input_enable_button->signal_toggled().connect (sigc::mem_fun (*this, &MixerStrip::midi_input_toggled));
+			midi_input_enable_button->signal_button_press_event().connect (sigc::mem_fun (*this, &MixerStrip::input_active_button_press), false);
+			midi_input_enable_button->signal_button_release_event().connect (sigc::mem_fun (*this, &MixerStrip::input_active_button_release), false);
 			ARDOUR_UI::instance()->set_tip (midi_input_enable_button, _("Enable/Disable MIDI input"));
 		} else {
 			input_button_box.remove (*midi_input_enable_button);
@@ -526,25 +526,11 @@ MixerStrip::set_route (boost::shared_ptr<Route> rt)
 void
 MixerStrip::set_stuff_from_route ()
 {
-	XMLProperty *prop;
-
-	ensure_xml_node ();
-
 	/* if width is not set, it will be set by the MixerUI or editor */
 
-	if ((prop = xml_node->property ("strip-width")) != 0) {
-		set_width_enum (Width (string_2_enum (prop->value(), _width)), this);
-	}
-
-	if ((prop = xml_node->property ("shown-mixer")) != 0) {
-		if (prop->value() == "no") {
-			_marked_for_display = false;
-		} else {
-			_marked_for_display = true;
-		}
-	} else {
-		/* backwards compatibility */
-		_marked_for_display = true;
+	string str = gui_property ("strip-width");
+	if (!str.empty()) {
+		set_width_enum (Width (string_2_enum (str, _width)), this);
 	}
 }
 
@@ -560,12 +546,10 @@ MixerStrip::set_width_enum (Width w, void* owner)
 
 	_width_owner = owner;
 
-	ensure_xml_node ();
-
 	_width = w;
 
 	if (_width_owner == this) {
-		xml_node->add_property ("strip-width", enum_2_string (_width));
+		set_gui_property ("strip-width", enum_2_string (_width));
 	}
 
 	set_button_names ();
@@ -634,12 +618,10 @@ MixerStrip::set_packed (bool yn)
 {
 	_packed = yn;
 
-	ensure_xml_node ();
-
 	if (_packed) {
-		xml_node->add_property ("shown-mixer", "yes");
+		set_gui_property ("visible", true);
 	} else {
-		xml_node->add_property ("shown-mixer", "no");
+		set_gui_property ("visible", false);
 	}
 }
 
@@ -1915,16 +1897,40 @@ MixerStrip::hide_things ()
 	processor_box.hide_things ();
 }
 
-void
-MixerStrip::midi_input_toggled ()
+bool
+MixerStrip::input_active_button_press (GdkEventButton* ev)
+{
+	/* nothing happens on press */
+	return true;
+}
+
+bool
+MixerStrip::input_active_button_release (GdkEventButton* ev)
 {
 	boost::shared_ptr<MidiTrack> mt = midi_track ();
 
 	if (!mt) {
-		return;
+		return true;
 	}
 
-	mt->set_input_active (midi_input_enable_button->get_active());
+	if (mt->input_active()) {
+		if (Keyboard::modifier_state_contains (ev->state, Keyboard::ModifierMask (Keyboard::PrimaryModifier|Keyboard::SecondaryModifier))) {
+			/* turn all other tracks using this input off */
+			_session->set_exclusive_input_active (mt, false);
+		} else {
+			mt->set_input_active (false);
+		}
+
+	} else {
+		if (Keyboard::modifier_state_contains (ev->state, Keyboard::ModifierMask (Keyboard::PrimaryModifier|Keyboard::SecondaryModifier))) {
+			/* turn all other tracks using this input on */
+			_session->set_exclusive_input_active (mt, true);
+		} else {
+			mt->set_input_active (true);
+		}
+	}
+
+	return true;
 }
 
 void
@@ -1935,4 +1941,10 @@ MixerStrip::midi_input_status_changed ()
 		assert (mt);
 		midi_input_enable_button->set_active (mt->input_active ());
 	}
+}
+
+string
+MixerStrip::state_id () const
+{
+	return string_compose ("strip %1", _route->id().to_s());
 }

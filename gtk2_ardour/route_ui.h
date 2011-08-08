@@ -77,6 +77,8 @@ class RouteUI : public virtual AxisView
 
 	boost::shared_ptr<ARDOUR::Route> _route;
 
+	void request_redraw ();
+
 	virtual void set_color (const Gdk::Color & c);
 	void choose_color ();
 
@@ -107,9 +109,6 @@ class RouteUI : public virtual AxisView
 	Gtk::Menu* mute_menu;
 	Gtk::Menu* solo_menu;
 	Gtk::Menu* sends_menu;
-
-	XMLNode *xml_node;
-	void ensure_xml_node ();
 
 	bool mute_press(GdkEventButton*);
 	bool mute_release(GdkEventButton*);
@@ -221,6 +220,7 @@ class RouteUI : public virtual AxisView
         virtual void stop_step_editing() {}
 
         void set_invert_sensitive (bool);
+	bool verify_new_route_name (const std::string& name);
 
   private:
 	void check_rec_enable_sensitivity ();

@@ -35,6 +35,8 @@
 #include "ardour/utils.h"
 
 #include "public_editor.h"
+#include "ardour_ui.h"
+#include "gui_object.h"
 #include "axis_view.h"
 #include "i18n.h"
 
@@ -49,7 +51,6 @@ AxisView::AxisView (ARDOUR::Session* sess)
 	: SessionHandlePtr (sess)
 {
 	_selected = false;
-	_marked_for_display = false;
 }
 
 AxisView::~AxisView()
@@ -94,4 +95,38 @@ AxisView::unique_random_color()
 
 		/* XXX need throttle here to make sure we don't spin for ever */
 	}
+}
+
+string
+AxisView::gui_property (const string& property_name) const
+{
+	return gui_object_state().get_string (state_id(), property_name);
+}
+
+bool
+AxisView::marked_for_display () const
+{
+	string const v = gui_property ("visible");
+	return (v == "" || string_is_affirmative (v));
+}
+
+bool
+AxisView::set_marked_for_display (bool yn)
+{
+	if (yn != marked_for_display()) {
+		if (yn) {
+			set_gui_property ("visible", true);
+		} else {
+			set_gui_property ("visible", false);
+		}
+		return true; // things changed
+	}
+
+	return false;
+}
+
+GUIObjectState&
+AxisView::gui_object_state() 
+{
+	return *ARDOUR_UI::instance()->gui_object_state;
 }

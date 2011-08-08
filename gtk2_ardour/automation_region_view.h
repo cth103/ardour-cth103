@@ -45,7 +45,7 @@ public:
 	                     double initial_frames_per_pixel,
 	                     Gdk::Color const & basic_color);
 
-	~AutomationRegionView() {}
+	~AutomationRegionView();
 
 	void init (Gdk::Color const & basic_color, bool wfd);
 

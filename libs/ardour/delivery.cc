@@ -233,8 +233,6 @@ Delivery::configure_io (ChanCount in, ChanCount out)
 void
 Delivery::run (BufferSet& bufs, framepos_t start_frame, framepos_t end_frame, pframes_t nframes, bool result_required)
 {
-        boost::shared_ptr<Panner> panner;
-
 	assert (_output);
 
 	PortSet& ports (_output->ports());
@@ -276,6 +274,7 @@ Delivery::run (BufferSet& bufs, framepos_t start_frame, framepos_t end_frame, pf
 
 		_output->silence (nframes);
 		if (result_required) {
+			bufs.set_count (output_buffers().count ());
 			Amp::apply_simple_gain (bufs, nframes, 0.0);
 		}
 		goto out;
@@ -286,31 +285,17 @@ Delivery::run (BufferSet& bufs, framepos_t start_frame, framepos_t end_frame, pf
 		Amp::apply_simple_gain (bufs, nframes, tgain);
 	}
 
-	if (_panshell) {
-		panner = _panshell->panner();
-	}
-
-#if 0
-        if (_session.transport_rolling()) {
-                cerr << name() << " first value written : " << scnt << endl;
-                for (BufferSet::audio_iterator b = bufs.audio_begin(); b != bufs.audio_end(); ++b) {
-                        Sample* p = b->data ();
-                        float s = (float) scnt;
-                        for (pframes_t n = 0; n < nframes; ++n) {
-                                p[n] =  s * 0.001;
-                                s += 1.0;
-                        }
-                }
-                scnt += nframes;
-        }
-#endif
-
-	if (panner && !panner->bypassed()) {
+	if (_panshell && !_panshell->bypassed() && _panshell->panner()) {
 
 		// Use the panner to distribute audio to output port buffers
 
 		_panshell->run (bufs, output_buffers(), start_frame, end_frame, nframes);
 
+		// MIDI data will not have been delivered by the panner
+
+		if (bufs.count().n_midi() > 0 && ports.count().n_midi () > 0) {
+			_output->copy_to_outputs (bufs, DataType::MIDI, nframes, 0);
+		}
 
 	} else {
 
@@ -349,7 +334,7 @@ Delivery::state (bool full_state)
 	node.add_property("role", enum_2_string(_role));
 
 	if (_panshell) {
-		node.add_child_nocopy (_panshell->state (full_state));
+		node.add_child_nocopy (_panshell->get_state ());
 	}
 
 	return node;
@@ -371,7 +356,7 @@ Delivery::set_state (const XMLNode& node, int version)
 		// std::cerr << this << ' ' << _name << " NO ROLE INFO\n";
 	}
 
-	XMLNode* pan_node = node.child (X_("Panner"));
+	XMLNode* pan_node = node.child (X_("PannerShell"));
 
 	if (pan_node && _panshell) {
 		_panshell->set_state (*pan_node, version);
@@ -582,6 +567,8 @@ Delivery::set_name (const std::string& name)
 
 	return ret;
 }
+
+bool ignore_output_change = false;
 
 void
 Delivery::output_changed (IOChange change, void* /*src*/)

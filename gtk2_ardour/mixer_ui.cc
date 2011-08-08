@@ -330,7 +330,7 @@ Mixer_UI::add_strip (RouteList& routes)
 
 		TreeModel::Row row = *(track_model->append());
 		row[track_columns.text] = route->name();
-		row[track_columns.visible] = strip->marked_for_display();
+		row[track_columns.visible] = strip->route()->is_master() ? true : strip->marked_for_display();
 		row[track_columns.route] = route;
 		row[track_columns.strip] = strip;
 
@@ -747,15 +747,14 @@ Mixer_UI::redisplay_track_list ()
 			continue;
 		}
 
-		bool visible = (*i)[track_columns.visible];
+		if (!strip_redisplay_does_not_reset_order_keys) {
+			strip->route()->set_order_key (N_("signal"), order);
+		}
+
+		bool const visible = (*i)[track_columns.visible];
 
 		if (visible) {
-			strip->set_marked_for_display (true);
-			strip->route()->set_order_key (N_("signal"), order);
-
-			if (!strip_redisplay_does_not_reset_order_keys) {
-				strip->route()->set_order_key (N_("signal"), order);
-			}
+			strip->set_gui_property ("visible", true);
 
 			if (strip->packed()) {
 
@@ -773,12 +772,11 @@ Mixer_UI::redisplay_track_list ()
 					strip_packer.pack_start (*strip, false, false);
 				}
 				strip->set_packed (true);
-				//strip->show();
 			}
 
 		} else {
 
-			strip->set_marked_for_display (false);
+			strip->set_gui_property ("visible", false);
 
 			if (strip->route()->is_master() || strip->route()->is_monitor()) {
 				/* do nothing, these cannot be hidden */
@@ -797,8 +795,9 @@ Mixer_UI::redisplay_track_list ()
 
 	// Resigc::bind all of the midi controls automatically
 
-	if (auto_rebinding)
+	if (auto_rebinding) {
 		auto_rebind_midi_controls ();
+	}
 
 	_group_tabs->set_dirty ();
 }

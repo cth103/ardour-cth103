@@ -732,7 +732,7 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 				if (dynamic_cast<MidiTimeAxisView*> (clicked_axisview)) {
 					_drags->set (new RegionCreateDrag (this, item, clicked_axisview), event);
 					return true;
-				}
+				} 
 			} else {
 				_drags->set (new SelectionDrag (this, item, SelectionDrag::CreateSelection), event);
 				return true;
@@ -889,9 +889,17 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 				break;
 
 			case AutomationTrackItem:
-				/* rubberband drag to select automation points */
-				_drags->set (new RubberbandSelectDrag (this, item), event);
+			{
+				TimeAxisView* parent = clicked_axisview->get_parent ();
+				if (parent && dynamic_cast<MidiTimeAxisView*> (parent)) {
+					/* create a MIDI region so that we have somewhere to put automation */
+					_drags->set (new RegionCreateDrag (this, item, parent), event);
+				} else {
+					/* rubberband drag to select automation points */
+					_drags->set (new RubberbandSelectDrag (this, item), event);
+				}
 				break;
+			}
 
 			case SelectionItem:
 			{
@@ -1328,6 +1336,10 @@ Editor::button_release_handler (Canvas::Item* item, GdkEvent* event, ItemType it
 				popup_track_context_menu (1, event->button.time, item_type, false);
 				break;
 
+			case ControlPointItem:
+				popup_control_point_context_menu (item, event);
+				break;
+
 #ifdef WITH_CMT
 			case ImageFrameItem:
 				popup_imageframe_edit_menu(1, event->button.time, item, true) ;
@@ -1377,11 +1389,7 @@ Editor::button_release_handler (Canvas::Item* item, GdkEvent* event, ItemType it
 			break;
 
 		case ControlPointItem:
-			if (eff == MouseGain) {
-				remove_gain_control_point (item, event);
-			} else {
-				remove_control_point (item, event);
-			}
+			remove_control_point (item);
 			break;
 
 		case NoteItem:
@@ -2054,8 +2062,8 @@ Editor::motion_handler (Canvas::Item* /*item*/, GdkEvent* event, bool from_autos
 	return true;
 }
 
-void
-Editor::remove_gain_control_point (Canvas::Item*item, GdkEvent* /*event*/)
+bool
+Editor::can_remove_control_point (Canvas::Item* item)
 {
 	ControlPoint* control_point;
 
@@ -2064,18 +2072,24 @@ Editor::remove_gain_control_point (Canvas::Item*item, GdkEvent* /*event*/)
 		/*NOTREACHED*/
 	}
 
-	// We shouldn't remove the first or last gain point
-	if (control_point->line().is_last_point(*control_point) ||
-		control_point->line().is_first_point(*control_point)) {
-		return;
+	AutomationLine& line = control_point->line ();
+	if (dynamic_cast<AudioRegionGainLine*> (&line)) {
+		/* we shouldn't remove the first or last gain point in region gain lines */
+		if (line.is_last_point(*control_point) || line.is_first_point(*control_point)) {
+			return false;
+		}
 	}
 
-	control_point->line().remove_point (*control_point);
+	return true;
 }
 
 void
-Editor::remove_control_point (Canvas::Item* item, GdkEvent* /*event*/)
+Editor::remove_control_point (Canvas::Item* item)
 {
+	if (!can_remove_control_point (item)) {
+		return;
+	}
+
 	ControlPoint* control_point;
 
 	if ((control_point = reinterpret_cast<ControlPoint *> (item->get_data ("control_point"))) == 0) {

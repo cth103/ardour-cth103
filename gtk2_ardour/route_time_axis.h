@@ -73,8 +73,10 @@ class RouteGroupMenu;
 class RouteTimeAxisView : public RouteUI, public TimeAxisView
 {
 public:
- 	RouteTimeAxisView (PublicEditor&, ARDOUR::Session*, boost::shared_ptr<ARDOUR::Route>, Canvas::Canvas& canvas);
+ 	RouteTimeAxisView (PublicEditor&, ARDOUR::Session*, Canvas::Canvas& canvas);
  	virtual ~RouteTimeAxisView ();
+
+	void set_route (boost::shared_ptr<ARDOUR::Route>);
 
 	void show_selection (TimeSelection&);
 	void set_button_names ();
@@ -139,6 +141,8 @@ public:
 	void io_changed (ARDOUR::IOChange, void *);
 	void meter_changed ();
 	void effective_gain_display () { gm.effective_gain_display(); }
+
+	std::string state_id() const;
 
 	static void setup_slider_pix ();
 
@@ -243,6 +247,8 @@ protected:
 
 	void create_gain_automation_child (const Evoral::Parameter &, bool);
 
+	void setup_processor_menu_and_curves ();
+
 	boost::shared_ptr<AutomationTimeAxisView> gain_track;
 
 	StreamView*           _view;
@@ -273,6 +279,9 @@ protected:
 
 	void set_track_mode (ARDOUR::TrackMode, bool apply_to_selection = false);
 
+	/** Information about all automatable processor parameters that apply to
+	 *  this route.  The Amp processor is not included in this list.
+	 */
 	std::list<ProcessorAutomationInfo*> processor_automation;
 
 	typedef std::vector<boost::shared_ptr<AutomationLine> > ProcessorAutomationCurves;

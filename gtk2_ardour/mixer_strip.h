@@ -118,6 +118,8 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 	static sigc::signal<void,boost::shared_ptr<ARDOUR::Route> > SwitchIO;
 	static PBD::Signal1<void,MixerStrip*> CatchDeletion;
 
+	std::string state_id() const;
+
   protected:
 	friend class Mixer_UI;
 	void set_packed (bool yn);
@@ -188,7 +190,8 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 	std::string longest_label;
 
 	void midi_input_status_changed ();
-	void midi_input_toggled ();
+	bool input_active_button_press (GdkEventButton*);
+	bool input_active_button_release (GdkEventButton*);
 
 	gint    mark_update_safe ();
 	guint32 mode_switch_in_progress;

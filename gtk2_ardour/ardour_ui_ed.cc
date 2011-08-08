@@ -147,6 +147,10 @@ ARDOUR_UI::install_actions ()
 	ActionManager::session_sensitive_actions.push_back (act);
 	ActionManager::write_sensitive_actions.push_back (act);
 
+	act = ActionManager::register_action (main_actions, X_("Rename"), _("Rename..."), sigc::mem_fun(*this, &ARDOUR_UI::rename_session));
+	ActionManager::session_sensitive_actions.push_back (act);
+	ActionManager::write_sensitive_actions.push_back (act);
+
 	act = ActionManager::register_action (main_actions, X_("SaveTemplate"), _("Save Template..."),  sigc::mem_fun(*this, &ARDOUR_UI::save_template));
 	ActionManager::session_sensitive_actions.push_back (act);
 
@@ -538,6 +542,10 @@ ARDOUR_UI::build_menu_bar ()
 	sample_rate_box.set_name ("SampleRate");
 	sample_rate_label.set_name ("SampleRate");
 
+	format_box.add (format_label);
+	format_box.set_name ("Format");
+	format_label.set_name ("Format");
+
 #ifndef TOP_MENUBAR
  	menu_hbox.pack_start (*menu_bar, false, false);
 #else
@@ -555,6 +563,7 @@ ARDOUR_UI::build_menu_bar ()
 	menu_hbox.pack_end (cpu_load_box, false, false, 4);
 	menu_hbox.pack_end (buffer_load_box, false, false, 4);
 	menu_hbox.pack_end (sample_rate_box, false, false, 4);
+	menu_hbox.pack_end (format_box, false, false, 4);
 
 	menu_bar_base.set_name ("MainMenuBar");
 	menu_bar_base.add (menu_hbox);
@@ -597,7 +606,6 @@ ARDOUR_UI::setup_clock ()
 	big_clock_window->get()->add (*big_clock);
 
 	big_clock_window->get()->set_title (_("Big Clock"));
-	big_clock_window->get()->set_type_hint (Gdk::WINDOW_TYPE_HINT_UTILITY);
 	big_clock_window->get()->signal_realize().connect (sigc::mem_fun (*this, &ARDOUR_UI::big_clock_realized));
 	big_clock_window->get()->signal_unmap().connect (sigc::bind (sigc::ptr_fun(&ActionManager::uncheck_toggleaction), X_("<Actions>/Common/ToggleBigClock")));
 	big_clock_window->get()->signal_key_press_event().connect (sigc::bind (sigc::ptr_fun (relay_key_press), big_clock_window->get()), false);
@@ -745,8 +753,8 @@ ARDOUR_UI::save_ardour_state ()
 	Config->save_state();
 	ui_config->save_state ();
 
-	XMLNode enode(static_cast<Stateful*>(editor)->get_state());
-	XMLNode mnode(mixer->get_state());
+	XMLNode& enode (static_cast<Stateful*>(editor)->get_state());
+	XMLNode& mnode (mixer->get_state());
 
 	if (_session) {
 		_session->add_instant_xml (enode);

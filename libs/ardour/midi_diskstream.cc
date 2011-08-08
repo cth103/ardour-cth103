@@ -74,7 +74,6 @@ MidiDiskstream::MidiDiskstream (Session &sess, const string &name, Diskstream::F
 	, _playback_buf(0)
 	, _capture_buf(0)
 	, _source_port(0)
-	, _last_flush_frame(0)
 	, _note_mode(Sustained)
 	, _frames_written_to_ringbuffer(0)
 	, _frames_read_from_ringbuffer(0)
@@ -95,7 +94,6 @@ MidiDiskstream::MidiDiskstream (Session& sess, const XMLNode& node)
 	, _playback_buf(0)
 	, _capture_buf(0)
 	, _source_port(0)
-	, _last_flush_frame(0)
 	, _note_mode(Sustained)
 	, _frames_written_to_ringbuffer(0)
 	, _frames_read_from_ringbuffer(0)
@@ -202,7 +200,9 @@ MidiDiskstream::non_realtime_input_change ()
 		seek (_session.transport_frame());
 	}
 
-	_last_flush_frame = _session.transport_frame();
+	if (_write_source) {
+		_write_source->set_last_write_end (_session.transport_frame());
+	}
 }
 
 int
@@ -528,6 +528,21 @@ MidiDiskstream::process (framepos_t transport_frame, pframes_t nframes, bool can
 		for (MidiBuffer::iterator i = buf.begin(); i != buf.end(); ++i) {
 			const Evoral::MIDIEvent<MidiBuffer::TimeType> ev(*i, false);
 			assert(ev.buffer());
+#ifndef NDEBUG
+			if (DEBUG::MidiIO & PBD::debug_bits) {
+				const uint8_t* __data = ev.buffer();
+				DEBUG_STR_DECL(a);
+				DEBUG_STR_APPEND(a, string_compose ("mididiskstream %1 capture event @ %2 + %3 sz %4 ", this, ev.time(), transport_frame, ev.size()));
+				for (size_t i=0; i < ev.size(); ++i) {
+					DEBUG_STR_APPEND(a,hex);
+					DEBUG_STR_APPEND(a,"0x");
+					DEBUG_STR_APPEND(a,(int)__data[i]);
+					DEBUG_STR_APPEND(a,' ');
+				}
+				DEBUG_STR_APPEND(a,'\n');
+				DEBUG_TRACE (DEBUG::MidiIO, DEBUG_STR(a).str());
+			}
+#endif
 			_capture_buf->write(ev.time() + transport_frame, ev.type(), ev.size(), ev.buffer());
 		}
 
@@ -845,20 +860,23 @@ MidiDiskstream::do_refill ()
 int
 MidiDiskstream::do_flush (RunContext /*context*/, bool force_flush)
 {
-	uint32_t to_write;
-	int32_t ret = 0;
+	framecnt_t to_write;
 	framecnt_t total;
+	int32_t ret = 0;
+
+	if (!_write_source) {
+		return 0;
+	}
+
+	assert (!destructive());
 
 	_write_data_count = 0;
 
-	total = _session.transport_frame() - _last_flush_frame;
+	total = _session.transport_frame() - _write_source->last_write_end();
 
-	if (_last_flush_frame > _session.transport_frame() || _last_flush_frame < capture_start_frame) {
-		_last_flush_frame = _session.transport_frame();
-	}
-
-	if (total == 0 || _capture_buf->read_space() == 0
-			|| (!force_flush && (total < disk_io_chunk_frames && was_recording))) {
+	if (total == 0 || 
+	    _capture_buf->read_space() == 0 || 
+	    (!force_flush && (total < disk_io_chunk_frames) && was_recording)) {
 		goto out;
 	}
 
@@ -877,19 +895,18 @@ MidiDiskstream::do_flush (RunContext /*context*/, bool force_flush)
 		ret = 1;
 	}
 
-	to_write = disk_io_chunk_frames;
+	if (force_flush) {
+		/* push out everything we have, right now */
+		to_write = max_framecnt;
+	} else {
+		to_write = disk_io_chunk_frames;
+	}
 
-	assert(!destructive());
-
-	if (record_enabled() &&
-	    ((_session.transport_frame() - _last_flush_frame > disk_io_chunk_frames) ||
-	     force_flush)) {
-		if ((!_write_source) || _write_source->midi_write (*_capture_buf, get_capture_start_frame (0), to_write) != to_write) {
+	if (record_enabled() && ((total > disk_io_chunk_frames) || force_flush)) {
+		if (_write_source->midi_write (*_capture_buf, get_capture_start_frame (0), to_write) != to_write) {
 			error << string_compose(_("MidiDiskstream %1: cannot write to disk"), _id) << endmsg;
 			return -1;
-		} else {
-			_last_flush_frame = _session.transport_frame();
-		}
+		} 
 	}
 
 out:
@@ -962,17 +979,17 @@ MidiDiskstream::transport_stopped_wallclock (struct tm& /*when*/, time_t /*twhen
 			_write_source->set_timeline_position (capture_info.front()->start);
 			_write_source->set_captured_for (_name);
 
+			/* set length in beats to entire capture length */
+
+			BeatsFramesConverter converter (_session.tempo_map(), capture_info.front()->start);
+			const double total_capture_beats = converter.from (total_capture);
+			_write_source->set_length_beats (total_capture_beats);
+
 			/* flush to disk: this step differs from the audio path,
 			   where all the data is already on disk.
 			*/
 
-			_write_source->mark_streaming_write_completed ();
-
-			/* set length in beats to entire capture length */
-
-			BeatsFramesConverter converter (_session.tempo_map(), capture_info.front()->start);
-			const double total_capture_beats = converter.from(total_capture);
-			_write_source->set_length_beats(total_capture_beats);
+			_write_source->mark_midi_streaming_write_completed (Evoral::Sequence<Evoral::MusicalTime>::ResolveStuckNotes, total_capture_beats);
 
 			/* we will want to be able to keep (over)writing the source
 			   but we don't want it to be removable. this also differs

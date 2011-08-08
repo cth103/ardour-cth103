@@ -97,10 +97,9 @@ using namespace Editing;
 static const uint32_t MIDI_CONTROLS_BOX_MIN_HEIGHT = 162;
 static const uint32_t KEYBOARD_MIN_HEIGHT = 140;
 
-MidiTimeAxisView::MidiTimeAxisView (PublicEditor& ed, Session* sess,
-				    boost::shared_ptr<Route> rt, Canvas::Canvas& canvas)
+MidiTimeAxisView::MidiTimeAxisView (PublicEditor& ed, Session* sess, Canvas::Canvas& canvas)
 	: AxisView(sess) // virtually inherited
-	, RouteTimeAxisView(ed, sess, rt, canvas)
+	, RouteTimeAxisView(ed, sess, canvas)
 	, _ignore_signals(false)
 	, _range_scroomer(0)
 	, _piano_roll_header(0)
@@ -116,6 +115,13 @@ MidiTimeAxisView::MidiTimeAxisView (PublicEditor& ed, Session* sess,
 	, controller_menu (0)
         , _step_editor (0)
 {
+}
+
+void
+MidiTimeAxisView::set_route (boost::shared_ptr<Route> rt)
+{
+	RouteTimeAxisView::set_route (rt);
+
 	subplugin_menu.set_name ("ArdourContextMenu");
 
 	_view = new MidiStreamView (*this);
@@ -135,10 +141,6 @@ MidiTimeAxisView::MidiTimeAxisView (PublicEditor& ed, Session* sess,
 	/* map current state of the route */
 
 	processors_changed (RouteProcessorChange ());
-
-	ensure_xml_node ();
-
-	set_state (*xml_node, Stateful::loading_state_version);
 
 	_route->processors_changed.connect (*this, invalidator (*this), ui_bind (&MidiTimeAxisView::processors_changed, this, _1), gui_context());
 
@@ -209,22 +211,39 @@ MidiTimeAxisView::MidiTimeAxisView (PublicEditor& ed, Session* sess,
 	_channel_selector.mode_changed.connect(
 		sigc::mem_fun(*this, &MidiTimeAxisView::set_channel_mode));
 
-	XMLProperty *prop;
-	if ((prop = xml_node->property ("color-mode")) != 0) {
-		_color_mode = ColorMode (string_2_enum(prop->value(), _color_mode));
+	string prop = gui_property ("color-mode");
+	if (!prop.empty()) {
+		_color_mode = ColorMode (string_2_enum(prop, _color_mode));
 		if (_color_mode == ChannelColors) {
 			_channel_selector.set_channel_colors (NoteBase::midi_channel_colors);
 		}
 	}
 
-	if ((prop = xml_node->property ("note-mode")) != 0) {
-		_note_mode = NoteMode (string_2_enum(prop->value(), _note_mode));
+	set_color_mode (_color_mode, true, false);
+
+	prop = gui_property ("note-mode");
+	if (!prop.empty()) {
+		_note_mode = NoteMode (string_2_enum (prop, _note_mode));
 		if (_percussion_mode_item) {
 			_percussion_mode_item->set_active (_note_mode == Percussive);
 		}
 	}
 
-	set_color_mode (_color_mode, true, false);
+	/* Look for any GUI object state nodes that represent automation children that should exist, and create
+	 * the children.
+	 */
+	
+	GUIObjectState& gui_state = gui_object_state ();
+	for (GUIObjectState::StringPropertyMap::const_iterator i = gui_state.begin(); i != gui_state.end(); ++i) {
+		PBD::ID route_id;
+		bool has_parameter;
+		Evoral::Parameter parameter (0, 0, 0);
+
+		bool const p = AutomationTimeAxisView::parse_state_id (i->first, route_id, has_parameter, parameter);
+		if (p && route_id == _route->id () && has_parameter) {
+			create_automation_child (parameter, string_is_affirmative (gui_object_state().get_string (i->first, X_("visible"))));
+		}
+	}
 }
 
 void
@@ -299,25 +318,6 @@ MidiTimeAxisView::midi_view()
 	return dynamic_cast<MidiStreamView*>(_view);
 }
 
-guint32
-MidiTimeAxisView::show_at (double y, int& nth, Gtk::VBox *parent)
-{
-	ensure_xml_node ();
-	xml_node->add_property ("shown-editor", "yes");
-
-	guint32 ret = TimeAxisView::show_at (y, nth, parent);
-	return ret;
-}
-
-void
-MidiTimeAxisView::hide ()
-{
-	ensure_xml_node ();
-	xml_node->add_property ("shown-editor", "no");
-
-	TimeAxisView::hide ();
-}
-
 void
 MidiTimeAxisView::set_height (uint32_t h)
 {
@@ -328,17 +328,21 @@ MidiTimeAxisView::set_height (uint32_t h)
 	} else {
 		_midi_controls_box.hide();
 	}
-
+	
 	if (height >= KEYBOARD_MIN_HEIGHT) {
-		if (is_track() && _range_scroomer)
+		if (is_track() && _range_scroomer) {
 			_range_scroomer->show();
-		if (is_track() && _piano_roll_header)
+		}
+		if (is_track() && _piano_roll_header) {
 			_piano_roll_header->show();
+		}
 	} else {
-		if (is_track() && _range_scroomer)
+		if (is_track() && _range_scroomer) {
 			_range_scroomer->hide();
-		if (is_track() && _piano_roll_header)
+		}
+		if (is_track() && _piano_roll_header) {
 			_piano_roll_header->hide();
+		}
 	}
 }
 
@@ -752,7 +756,7 @@ MidiTimeAxisView::set_note_mode(NoteMode mode)
 	if (_note_mode != mode || midi_track()->note_mode() != mode) {
 		_note_mode = mode;
 		midi_track()->set_note_mode(mode);
-		xml_node->add_property ("note-mode", enum_2_string(_note_mode));
+		set_gui_property ("note-mode", enum_2_string(_note_mode));
 		_view->redisplay_track();
 	}
 }
@@ -771,7 +775,7 @@ MidiTimeAxisView::set_color_mode (ColorMode mode, bool force, bool redisplay)
 	}
 
 	_color_mode = mode;
-	xml_node->add_property ("color-mode", enum_2_string(_color_mode));
+	set_gui_property ("color-mode", enum_2_string(_color_mode));
 	if (redisplay) {
 		_view->redisplay_track();
 	}
@@ -825,7 +829,7 @@ MidiTimeAxisView::show_existing_automation (bool apply_to_selection)
 			const set<Evoral::Parameter> params = midi_track()->midi_playlist()->contained_automation();
 
 			for (set<Evoral::Parameter>::const_iterator i = params.begin(); i != params.end(); ++i) {
-				create_automation_child(*i, true);
+				create_automation_child (*i, true);
 			}
 		}
 
@@ -852,10 +856,10 @@ MidiTimeAxisView::create_automation_child (const Evoral::Parameter& param, bool 
 		 * since it will have been set visible by default.
 		 */
 
-		existing->second->set_visibility (show);
-		
-		if (!no_redraw) {
-			_route->gui_changed ("track_height", (void *) 0); /* EMIT_SIGNAL */
+		cerr << "show existing auto track: " << show << " noredraw " << no_redraw << endl;
+
+		if (existing->second->set_marked_for_display (show) && !no_redraw) {
+			request_redraw ();
 		}
 
 		return;
@@ -1034,9 +1038,9 @@ MidiTimeAxisView::set_channel_mode (ChannelMode, uint16_t)
 				/* channel not in use. hiding it will trigger RouteTimeAxisView::automation_track_hidden()
 				   which will cause a redraw. We don't want one per channel, so block that with no_redraw.
 				 */
-				changed = track->set_visibility (false) || changed;
+				changed = track->set_marked_for_display (false) || changed;
 			} else {
-				changed = track->set_visibility (true) || changed;
+				changed = track->set_marked_for_display (true) || changed;
 			}
 		}
 	}
@@ -1051,7 +1055,7 @@ MidiTimeAxisView::set_channel_mode (ChannelMode, uint16_t)
 	controller_menu = 0;
 
 	if (changed) {
-		_route->gui_changed ("track_height", this);
+		request_redraw ();
 	}
 }
 

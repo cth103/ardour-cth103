@@ -267,7 +267,7 @@ IO::remove_port (Port* port, void* src)
 
 		if (change.type != IOChange::NoChange) {
 			changed (change, src);
-			_session.set_dirty ();
+			_buffers.attach_buffers (_ports);
 		}
 	}
 
@@ -279,6 +279,8 @@ IO::remove_port (Port* port, void* src)
 		return -1;
 	}
 
+	_session.set_dirty ();
+	
 	return 0;
 }
 
@@ -309,7 +311,7 @@ IO::add_port (string destination, void* src, DataType type)
 			/* Create a new port */
 
 			string portname = build_legal_port_name (type);
-
+			
 			if (_direction == Input) {
 				if ((our_port = _session.engine().register_input_port (type, portname)) == 0) {
 					error << string_compose(_("IO: cannot register input port %1"), portname) << endmsg;
@@ -325,16 +327,15 @@ IO::add_port (string destination, void* src, DataType type)
 			change.before = _ports.count ();
 			_ports.add (our_port);
 		}
-
+		
 		PortCountChanged (n_ports()); /* EMIT SIGNAL */
-
-		// pan_changed (src); /* EMIT SIGNAL */
 		change.type = IOChange::ConfigurationChanged;
 		change.after = _ports.count ();
 		changed (change, src); /* EMIT SIGNAL */
+		_buffers.attach_buffers (_ports);
 	}
 
-	if (destination.length()) {
+	if (!destination.empty()) {
 		if (our_port->connect (destination)) {
 			return -1;
 		}
@@ -365,13 +366,14 @@ IO::disconnect (void* src)
 }
 
 /** Caller must hold process lock */
-bool
-IO::ensure_ports_locked (ChanCount count, bool clear, void* /*src*/)
+int
+IO::ensure_ports_locked (ChanCount count, bool clear, bool& changed)
 {
 	assert (!AudioEngine::instance()->process_lock().trylock());
 
 	Port* port = 0;
-	bool  changed    = false;
+
+	changed    = false;
 
 	for (DataType::iterator t = DataType::begin(); t != DataType::end(); ++t) {
 
@@ -431,7 +433,7 @@ IO::ensure_ports_locked (ChanCount count, bool clear, void* /*src*/)
 		}
 	}
 
-	return changed;
+	return 0;
 }
 
 /** Caller must hold process lock */
@@ -452,7 +454,9 @@ IO::ensure_ports (ChanCount count, bool clear, void* src)
 
 	{
 		Glib::Mutex::Lock im (io_lock);
-		changed = ensure_ports_locked (count, clear, src);
+		if (ensure_ports_locked (count, clear, changed)) {
+			return -1;
+		}
 	}
 
 	if (changed) {
@@ -534,6 +538,9 @@ IO::state (bool /*full_state*/)
 		node->add_child_nocopy (*pnode);
 	}
 
+	snprintf (buf, sizeof (buf), "%" PRId64, _user_latency);
+	node->add_property (X_("user-latency"), buf);
+	
 	return *node;
 }
 
@@ -594,6 +601,9 @@ IO::set_state (const XMLNode& node, int version)
 		ConnectingLegal.connect_same_thread (connection_legal_c, boost::bind (&IO::connecting_became_legal, this));
 	}
 
+	if ((prop = node.property ("user-latency")) != 0) {
+		_user_latency = atoi (prop->value ());
+	}
 
 	return 0;
 }
@@ -1291,7 +1301,12 @@ IO::build_legal_port_name (DataType type)
 	char buf1[name_size+1];
 	char buf2[name_size+1];
 
-	snprintf (buf1, name_size+1, ("%.*s/%s"), limit, _name.val().c_str(), suffix.c_str());
+	/* colons are illegal in port names, so fix that */
+
+	string nom = _name.val();
+	replace_all (nom, ":", ";");
+
+	snprintf (buf1, name_size+1, ("%.*s/%s"), limit, nom.c_str(), suffix.c_str());
 
 	int port_number = find_port_hole (buf1);
 	snprintf (buf2, name_size+1, "%s %d", buf1, port_number);
@@ -1519,6 +1534,19 @@ IO::connected_to (boost::shared_ptr<const IO> other) const
 	return false;
 }
 
+bool
+IO::connected_to (const string& str) const
+{
+	for (PortSet::const_iterator i = _ports.begin(); i != _ports.end(); ++i) {
+		if (i->connected_to (str)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/** Caller must hold process lock */
 void
 IO::process_input (boost::shared_ptr<Processor> proc, framepos_t start_frame, framepos_t end_frame, pframes_t nframes)
 {

@@ -1986,7 +1986,6 @@ Session::add_routes (RouteList& new_routes, bool auto_connect, bool save)
 		boost::shared_ptr<RouteList> r = writer.get_copy ();
 		r->insert (r->end(), new_routes.begin(), new_routes.end());
 
-
 		/* if there is no control out and we're not in the middle of loading,
 		   resort the graph here. if there is a control out, we will resort
 		   toward the end of this method. if we are in the middle of loading,
@@ -2332,10 +2331,16 @@ Session::route_solo_changed (bool self_solo_change, void* /*src*/, boost::weak_p
 		delta = -1;
 	}
 
+	RouteGroup* rg = route->route_group ();
+	bool leave_group_alone = (rg && rg->is_active() && rg->is_solo());
+
 	if (delta == 1 && Config->get_exclusive_solo()) {
-		/* new solo: disable all other solos */
+		
+		/* new solo: disable all other solos, but not the group if its solo-enabled */
+
 		for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
-			if ((*i) == route || (*i)->solo_isolated() || (*i)->is_master() || (*i)->is_monitor() || (*i)->is_hidden()) {
+			if ((*i) == route || (*i)->solo_isolated() || (*i)->is_master() || (*i)->is_monitor() || (*i)->is_hidden() ||
+			    (leave_group_alone && ((*i)->route_group() == rg))) {
 				continue;
 			}
 			(*i)->set_solo (false, this);
@@ -2350,7 +2355,8 @@ Session::route_solo_changed (bool self_solo_change, void* /*src*/, boost::weak_p
 		bool via_sends_only;
 		bool in_signal_flow;
 
-		if ((*i) == route || (*i)->solo_isolated() || (*i)->is_master() || (*i)->is_monitor() || (*i)->is_hidden()) {
+		if ((*i) == route || (*i)->solo_isolated() || (*i)->is_master() || (*i)->is_monitor() || (*i)->is_hidden() ||
+		    (leave_group_alone && ((*i)->route_group() == rg))) {
 			continue;
 		}
 
@@ -2464,6 +2470,62 @@ Session::io_name_is_legal (const std::string& name)
 	}
 
 	return true;
+}
+
+void
+Session::set_exclusive_input_active (boost::shared_ptr<Route> rt, bool others_on)
+{
+	RouteList rl;
+	vector<string> connections;
+
+	PortSet& ps (rt->input()->ports());
+
+	for (PortSet::iterator p = ps.begin(); p != ps.end(); ++p) {
+		p->get_connections (connections);
+	}
+
+	for (vector<string>::iterator s = connections.begin(); s != connections.end(); ++s) {
+		routes_using_input_from (*s, rl);
+	}
+
+	/* scan all relevant routes to see if others are on or off */
+
+	bool others_are_already_on = false;
+
+	for (RouteList::iterator r = rl.begin(); r != rl.end(); ++r) {
+		if ((*r) != rt) {
+			boost::shared_ptr<MidiTrack> mt = boost::dynamic_pointer_cast<MidiTrack> (*r);
+			if (mt) {
+				if (mt->input_active()) {
+					others_are_already_on = true;
+					break;
+				}
+			}
+		}
+	}
+
+	/* globally reverse other routes */
+
+	for (RouteList::iterator r = rl.begin(); r != rl.end(); ++r) {
+		if ((*r) != rt) {
+			boost::shared_ptr<MidiTrack> mt = boost::dynamic_pointer_cast<MidiTrack> (*r);
+			if (mt) {
+				mt->set_input_active (!others_are_already_on);
+			}
+		}
+	}
+}
+
+void
+Session::routes_using_input_from (const string& str, RouteList& rl)
+{
+	boost::shared_ptr<RouteList> r = routes.reader ();
+
+	for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
+		if ((*i)->input()->connected_to (str)) {
+			rl.push_back (*i);
+		}
+	}
 }
 
 boost::shared_ptr<Route>

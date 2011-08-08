@@ -64,8 +64,10 @@ class AutomationTimeAxisView;
 class AudioTimeAxisView : public RouteTimeAxisView
 {
   public:
- 	AudioTimeAxisView (PublicEditor&, ARDOUR::Session*, boost::shared_ptr<ARDOUR::Route>, Canvas::Canvas& canvas);
+ 	AudioTimeAxisView (PublicEditor&, ARDOUR::Session*, Canvas::Canvas& canvas);
  	virtual ~AudioTimeAxisView ();
+
+	void set_route (boost::shared_ptr<ARDOUR::Route>);
 
 	AudioStreamView* audio_view();
 

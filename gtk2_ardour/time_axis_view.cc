@@ -76,6 +76,9 @@ TimeAxisView::TimeAxisView (ARDOUR::Session* sess, PublicEditor& ed, TimeAxisVie
 	, _y_position (0)
 	, _editor (ed)
 	, _order (0)
+	, _preresize_cursor (0)
+	, _have_preresize_cursor (false)
+	, _ghost_group (0)
 {
 	if (extra_height == 0) {
 		compute_heights ();
@@ -100,7 +103,6 @@ TimeAxisView::TimeAxisView (ARDOUR::Session* sess, PublicEditor& ed, TimeAxisVie
 	height = 0;
 	_effective_height = 0;
 	parent = rent;
-	_has_state = false;
 	last_name_entry_key_press_event = 0;
 	name_packing = NamePackingBits (0);
 	_resize_drag_start = -1;
@@ -139,37 +141,29 @@ TimeAxisView::TimeAxisView (ARDOUR::Session* sess, PublicEditor& ed, TimeAxisVie
 	controls_table.show_all ();
 	controls_table.set_no_show_all ();
 
-	resizer.set_size_request (10, 6);
-	resizer.set_name ("ResizeHandle");
-	resizer.signal_expose_event().connect (sigc::mem_fun (*this, &TimeAxisView::resizer_expose));
-	resizer.signal_button_press_event().connect (sigc::mem_fun (*this, &TimeAxisView::resizer_button_press));
-	resizer.signal_button_release_event().connect (sigc::mem_fun (*this, &TimeAxisView::resizer_button_release));
-	resizer.signal_motion_notify_event().connect (sigc::mem_fun (*this, &TimeAxisView::resizer_motion));
-
-	resizer.set_events (Gdk::BUTTON_PRESS_MASK|
-			Gdk::BUTTON_RELEASE_MASK|
-			Gdk::POINTER_MOTION_MASK|
-			Gdk::SCROLL_MASK);
-
-	resizer_box.pack_start (resizer, false, false);
-	resizer.show ();
-	resizer_box.show();
-
 	HSeparator* separator = manage (new HSeparator());
 
 	controls_vbox.pack_start (controls_table, false, false);
-	controls_vbox.pack_end (resizer_box, false, false);
 	controls_vbox.show ();
 
 	//controls_ebox.set_name ("TimeAxisViewControlsBaseUnselected");
 	controls_ebox.add (controls_vbox);
-	controls_ebox.add_events (BUTTON_PRESS_MASK|BUTTON_RELEASE_MASK|SCROLL_MASK);
+	controls_ebox.add_events (Gdk::BUTTON_PRESS_MASK|
+				  Gdk::BUTTON_RELEASE_MASK|
+				  Gdk::POINTER_MOTION_MASK|
+				  Gdk::ENTER_NOTIFY_MASK|
+				  Gdk::LEAVE_NOTIFY_MASK|
+				  Gdk::SCROLL_MASK);
 	controls_ebox.set_flags (CAN_FOCUS);
 
-	controls_ebox.signal_button_release_event().connect (sigc::mem_fun (*this, &TimeAxisView::controls_ebox_button_release));
 	controls_ebox.signal_scroll_event().connect (sigc::mem_fun (*this, &TimeAxisView::controls_ebox_scroll), true);
+	controls_ebox.signal_button_press_event().connect (sigc::mem_fun (*this, &TimeAxisView::controls_ebox_button_press));
+	controls_ebox.signal_button_release_event().connect (sigc::mem_fun (*this, &TimeAxisView::controls_ebox_button_release));
+	controls_ebox.signal_motion_notify_event().connect (sigc::mem_fun (*this, &TimeAxisView::controls_ebox_motion));
+	controls_ebox.signal_leave_notify_event().connect (sigc::mem_fun (*this, &TimeAxisView::controls_ebox_leave));
+	controls_ebox.show ();
 
-	controls_hbox.pack_start (controls_ebox, false, false);
+	controls_hbox.pack_start (controls_ebox, true, true);
 	controls_hbox.show ();
 
 	time_axis_vbox.pack_start (controls_hbox, true, true);
@@ -217,6 +211,38 @@ TimeAxisView::~TimeAxisView()
 	delete _size_menu;
 }
 
+void
+TimeAxisView::hide ()
+{
+	if (_hidden) {
+		return;
+	}
+
+	_canvas_display->hide ();
+	_canvas_background->hide ();
+
+	if (control_parent) {
+		control_parent->remove (time_axis_vbox);
+		control_parent = 0;
+	}
+
+	_y_position = -1;
+	_hidden = true;
+
+	/* now hide children */
+
+	for (Children::iterator i = children.begin(); i != children.end(); ++i) {
+		(*i)->hide ();
+	}
+
+	/* if its hidden, it cannot be selected */
+	_editor.get_selection().remove (this);
+	/* and neither can its regions */
+	_editor.get_selection().remove_regions (this);
+
+	Hiding ();
+}
+
 /** Display this TimeAxisView as the nth component of the parent box, at y.
 *
 * @param y y position.
@@ -247,22 +273,21 @@ TimeAxisView::show_at (double y, int& nth, VBox *parent)
 	_canvas_background->raise_to_top ();
 	_canvas_display->raise_to_top ();
 
-	if (_marked_for_display) {
-		time_axis_vbox.show ();
-		controls_ebox.show ();
-		_canvas_background->show ();
-	}
+	_canvas_background->show ();
+	_canvas_display->show ();
 
 	_hidden = false;
 
 	_effective_height = current_height ();
 
-	/* now show children */
+	/* now show relevant children */
 
 	for (Children::iterator i = children.begin(); i != children.end(); ++i) {
-		if ((*i)->_canvas_display->visible ()) {
+		if ((*i)->marked_for_display()) {
 			++nth;
 			_effective_height += (*i)->show_at (y + _effective_height, nth, parent);
+		} else {
+			(*i)->hide ();
 		}
 	}
 
@@ -322,8 +347,101 @@ TimeAxisView::controls_ebox_scroll (GdkEventScroll* ev)
 }
 
 bool
+TimeAxisView::controls_ebox_button_press (GdkEventButton* event)
+{
+	if (maybe_set_cursor (event->y) > 0) {
+		_resize_drag_start = event->y_root;
+	}
+
+	return true;
+}
+
+void
+TimeAxisView::idle_resize (uint32_t h)
+{
+	set_height (h);
+}
+
+
+bool
+TimeAxisView::controls_ebox_motion (GdkEventMotion* ev)
+{
+	if (_resize_drag_start >= 0) {
+		/* (ab)use the DragManager to do autoscrolling; adjust the event coordinates
+		   into the world coordinate space that DragManager::motion_handler is expecting,
+		   and then fake a DragManager motion event so that when maybe_autoscroll
+		   asks DragManager for the current pointer position it will get the correct
+		   answers.
+		*/
+		int tx, ty;
+		controls_ebox.translate_coordinates (*control_parent, ev->x, ev->y, tx, ty);
+		ev->y = ty - _editor.get_trackview_group_vertical_offset();
+		_editor.drags()->motion_handler ((GdkEvent *) ev, false);
+		_editor.maybe_autoscroll (false, true);
+
+		/* now do the actual TAV resize */
+                int32_t const delta = (int32_t) floor (ev->y_root - _resize_drag_start);
+                _editor.add_to_idle_resize (this, delta);
+                _resize_drag_start = ev->y_root;
+        } else {
+		/* not dragging but ... */
+		maybe_set_cursor (ev->y);
+	}
+
+	return true;
+}
+
+bool
+TimeAxisView::controls_ebox_leave (GdkEventCrossing* ev)
+{
+	if (_have_preresize_cursor) {
+		gdk_window_set_cursor (controls_ebox.get_window()->gobj(), _preresize_cursor);
+		_have_preresize_cursor = false;
+	}
+	return true;
+}
+
+bool
+TimeAxisView::maybe_set_cursor (int y)
+{
+	/* XXX no Gtkmm Gdk::Window::get_cursor() */
+	Glib::RefPtr<Gdk::Window> win = controls_ebox.get_window();
+
+	if (y > (gint) floor (controls_ebox.get_height() * 0.75)) {
+
+		/* y-coordinate in lower 25% */
+
+		if (!_have_preresize_cursor) {
+			_preresize_cursor = gdk_window_get_cursor (win->gobj());
+			_have_preresize_cursor = true;
+			win->set_cursor (Gdk::Cursor(Gdk::SB_V_DOUBLE_ARROW));
+		}
+
+		return 1;
+
+	} else if (_have_preresize_cursor) {
+		gdk_window_set_cursor (win->gobj(), _preresize_cursor);
+		_have_preresize_cursor = false;
+
+		return -1;
+	}
+
+	return 0;
+}
+
+bool
 TimeAxisView::controls_ebox_button_release (GdkEventButton* ev)
 {
+	if (_resize_drag_start >= 0) {
+		if (_have_preresize_cursor) {
+			gdk_window_set_cursor (controls_ebox.get_window()->gobj(), _preresize_cursor);
+			_preresize_cursor = 0;
+			_have_preresize_cursor = false;
+		}
+		_editor.stop_canvas_autoscroll ();
+		_resize_drag_start = -1;
+	}
+
 	switch (ev->button) {
 	case 1:
 		selection_click (ev);
@@ -344,44 +462,6 @@ TimeAxisView::selection_click (GdkEventButton* ev)
 	_editor.set_selected_track (*this, op, false);
 }
 
-void
-TimeAxisView::show ()
-{
-	canvas_display()->show();
-	canvas_background()->show();
-}
-
-void
-TimeAxisView::hide ()
-{
-	if (_hidden) {
-		return;
-	}
-
-	_canvas_display->hide ();
-	_canvas_background->hide ();
-
-	if (control_parent) {
-		control_parent->remove (time_axis_vbox);
-		control_parent = 0;
-	}
-
-	_y_position = -1;
-	_hidden = true;
-
-	/* now hide children */
-
-	for (Children::iterator i = children.begin(); i != children.end(); ++i) {
-		(*i)->hide ();
-	}
-
-	/* if its hidden, it cannot be selected */
-	_editor.get_selection().remove (this);
-	/* and neither can its regions */
-	_editor.get_selection().remove_regions (this);
-
-	Hiding ();
-}
 
 /** Steps through the defined heights for this TrackView.
  *  @param coarser true if stepping should decrease in size, otherwise false.
@@ -442,6 +522,10 @@ TimeAxisView::set_height (uint32_t h)
 	time_axis_vbox.property_height_request () = h;
 	height = h;
 
+	char buf[32];
+	snprintf (buf, sizeof (buf), "%u", height);
+	set_gui_property ("height", buf);
+
 	for (list<GhostRegion*>::iterator i = ghosts.begin(); i != ghosts.end(); ++i) {
 		(*i)->set_height ();
 	}
@@ -474,13 +558,25 @@ TimeAxisView::name_entry_key_release (GdkEventKey* ev)
 		name_entry_changed ();
 		TrackViewList const & allviews = _editor.get_track_views ();
 		TrackViewList::const_iterator i = find (allviews.begin(), allviews.end(), this);
+
 		if (ev->keyval == GDK_Tab) {
 			if (i != allviews.end()) {
 				do {
 					if (++i == allviews.end()) {
 						return true;
 					}
-				} while((*i)->hidden());
+
+					RouteTimeAxisView* rtav = dynamic_cast<RouteTimeAxisView*>(*i);
+
+					if (rtav && rtav->route()->record_enabled()) {
+						continue;
+					}
+
+					if (!(*i)->hidden()) {
+						break;
+					}
+
+				} while (true);
 			}
 		} else {
 			if (i != allviews.begin()) {
@@ -488,12 +584,27 @@ TimeAxisView::name_entry_key_release (GdkEventKey* ev)
 					if (i == allviews.begin()) {
 						return true;
 					}
+
 					--i;
-				} while ((*i)->hidden());
+
+					RouteTimeAxisView* rtav = dynamic_cast<RouteTimeAxisView*>(*i);
+
+					if (rtav && rtav->route()->record_enabled()) {
+						continue;
+					}
+
+					if (!(*i)->hidden()) {
+						break;
+					}
+
+				} while (true);
 			}
 		}
 
-		(*i)->name_entry.grab_focus();
+		if ((i != allviews.end()) && (*i != this) && !(*i)->hidden()) {
+			(*i)->name_entry.grab_focus();
+			_editor.ensure_time_axis_view_is_visible (**i);
+		}
 	}
 	return true;
 
@@ -639,8 +750,6 @@ TimeAxisView::set_selected (bool yn)
 			(*i)->set_selected (false);
 		}
 	}
-
-	resizer.queue_draw ();
 }
 
 void
@@ -945,84 +1054,6 @@ TimeAxisView::set_parent (TimeAxisView& p)
 	parent = &p;
 }
 
-bool
-TimeAxisView::has_state () const
-{
-	return _has_state;
-}
-
-TimeAxisView*
-TimeAxisView::get_parent_with_state ()
-{
-	if (parent == 0) {
-		return 0;
-	}
-
-	if (parent->has_state()) {
-		return parent;
-	}
-
-	return parent->get_parent_with_state ();
-}
-
-
-XMLNode&
-TimeAxisView::get_state ()
-{
-	/* XXX: is this method used? */
-
-	XMLNode* node = new XMLNode ("TAV-" + name());
-	char buf[32];
-
-	snprintf (buf, sizeof(buf), "%u", height);
-	node->add_property ("height", buf);
-	node->add_property ("marked-for-display", (_marked_for_display ? "1" : "0"));
-	return *node;
-}
-
-int
-TimeAxisView::set_state (const XMLNode& node, int /*version*/)
-{
-	const XMLProperty *prop;
-
-	/* XXX: I think this might be vestigial */
-	if ((prop = node.property ("marked-for-display")) != 0) {
-		_marked_for_display = (prop->value() == "1");
-	}
-
-	if ((prop = node.property ("shown-editor")) != 0) {
-		_marked_for_display = string_is_affirmative (prop->value ());
-	}
-
-	if ((prop = node.property ("track-height")) != 0) {
-
-		if (prop->value() == "largest") {
-			set_height_enum (HeightLargest);
-		} else if (prop->value() == "large") {
-			set_height_enum (HeightLarge);
-		} else if (prop->value() == "larger") {
-			set_height_enum (HeightLarger);
-		} else if (prop->value() == "normal") {
-			set_height_enum (HeightNormal);
-		} else if (prop->value() == "smaller" || prop->value() == "small") {
-			set_height_enum (HeightSmall);
-		} else {
-			error << string_compose(_("unknown track height name \"%1\" in XML GUI information"), prop->value()) << endmsg;
-			set_height_enum (HeightNormal);
-		}
-
-	} else if ((prop = node.property ("height")) != 0) {
-
-		set_height (atoi (prop->value()));
-
-	} else {
-
-		set_height_enum (HeightNormal);
-	}
-
-	return 0;
-}
-
 void
 TimeAxisView::reset_height ()
 {
@@ -1041,9 +1072,8 @@ TimeAxisView::compute_heights ()
 	Gtk::Table one_row_table (1, 8);
 	Button* buttons[5];
 	const int border_width = 2;
-	extra_height = (2 * border_width)
-		//+ 2   // 2 pixels for the hseparator between TimeAxisView control areas
-		+ 6; // resizer button (3 x 2 pixel elements + 2 x 2 pixel gaps)
+
+	extra_height = (2 * border_width);
 
 	window.add (one_row_table);
 
@@ -1186,106 +1216,6 @@ TimeAxisView::covers_y_position (double y)
 	return std::make_pair ((TimeAxisView *) 0, 0);
 }
 
-bool
-TimeAxisView::resizer_button_press (GdkEventButton* event)
-{
-	_resize_drag_start = event->y_root;
-	return true;
-}
-
-bool
-TimeAxisView::resizer_button_release (GdkEventButton*)
-{
-	_editor.stop_canvas_autoscroll ();
-	_resize_drag_start = -1;
-	return true;
-}
-
-void
-TimeAxisView::idle_resize (uint32_t h)
-{
-	set_height (h);
-}
-
-bool
-TimeAxisView::resizer_motion (GdkEventMotion* ev)
-{
-	if (_resize_drag_start >= 0) {
-		/* (ab)use the DragManager to do autoscrolling; adjust the event coordinates
-		   into the world coordinate space that DragManager::motion_handler is expecting,
-		   and then fake a DragManager motion event so that when maybe_autoscroll
-		   asks DragManager for the current pointer position it will get the correct
-		   answers.
-		*/
-		int tx, ty;
-		resizer.translate_coordinates (*control_parent, ev->x, ev->y, tx, ty);
-		ev->y = ty - _editor.get_trackview_group_vertical_offset();
-		_editor.drags()->motion_handler ((GdkEvent *) ev, false);
-		_editor.maybe_autoscroll (false, true);
-
-		/* now do the actual TAV resize */
-                int32_t const delta = (int32_t) floor (ev->y_root - _resize_drag_start);
-                _editor.add_to_idle_resize (this, delta);
-                _resize_drag_start = ev->y_root;
-        }
-
-	return true;
-}
-
-bool
-TimeAxisView::resizer_expose (GdkEventExpose* event)
-{
-	int w, h, x, y, d;
-	Glib::RefPtr<Gdk::Window> win (resizer.get_window());
-	Glib::RefPtr<Gdk::GC> dark (resizer.get_style()->get_fg_gc (STATE_NORMAL));
-	Glib::RefPtr<Gdk::GC> light (resizer.get_style()->get_bg_gc (STATE_NORMAL));
-
-	win->draw_rectangle (controls_ebox.get_style()->get_bg_gc(STATE_NORMAL),
-			true,
-			event->area.x,
-			event->area.y,
-			event->area.width,
-			event->area.height);
-
-	win->get_geometry (x, y, w, h, d);
-
-	/* handle/line #1 */
-
-	win->draw_line (dark, 0, 0, w - 2, 0);
-	win->draw_point (dark, 0, 1);
-	win->draw_line (light, 1, 1, w - 1, 1);
-	win->draw_point (light, w - 1, 0);
-
-	/* handle/line #2 */
-
-	win->draw_line (dark, 0, 4, w - 2, 4);
-	win->draw_point (dark, 0, 5);
-	win->draw_line (light, 1, 5, w - 1, 5);
-	win->draw_point (light, w - 1, 4);
-
-	/* use vertical resize mouse cursor */
-	win->set_cursor(Gdk::Cursor(Gdk::SB_V_DOUBLE_ARROW));
-
-	return true;
-}
-
-bool
-TimeAxisView::set_visibility (bool yn)
-{
-	if (yn != marked_for_display()) {
-		if (yn) {
-			set_marked_for_display (true);
-			show ();
-		} else {
-			set_marked_for_display (false);
-			hide ();
-		}
-		return true; // things changed
-	}
-
-	return false;
-}
-
 
 uint32_t
 TimeAxisView::preset_height (Height h)
@@ -1342,4 +1272,18 @@ TimeAxisView::build_size_menu ()
 	items.push_back (MenuElem (_("Large"),   sigc::bind (sigc::mem_fun (*this, &TimeAxisView::set_height_enum), HeightLarge, true)));
 	items.push_back (MenuElem (_("Normal"),  sigc::bind (sigc::mem_fun (*this, &TimeAxisView::set_height_enum), HeightNormal, true)));
 	items.push_back (MenuElem (_("Small"),   sigc::bind (sigc::mem_fun (*this, &TimeAxisView::set_height_enum), HeightSmall, true)));
+}
+
+void
+TimeAxisView::reset_visual_state ()
+{
+	/* this method is not required to trigger a global redraw */
+
+	string str = gui_property ("height");
+
+	if (!str.empty()) {
+		set_height (atoi (str));
+	} else {
+		set_height (preset_height (HeightNormal));
+	}
 }

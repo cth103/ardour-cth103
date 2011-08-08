@@ -19,6 +19,9 @@
 
 #include <utility>
 #include <gtkmm2ext/barcontroller.h>
+#include <gtkmm2ext/utils.h>
+#include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "pbd/memento_command.h"
 #include "pbd/stacktrace.h"
@@ -52,7 +55,6 @@ using namespace Editing;
 
 Pango::FontDescription AutomationTimeAxisView::name_font;
 bool AutomationTimeAxisView::have_name_font = false;
-const string AutomationTimeAxisView::state_node_name = "AutomationChild";
 
 
 /** \a a the automatable object this time axis is to display data for.
@@ -135,7 +137,17 @@ AutomationTimeAxisView::AutomationTimeAxisView (
 	ARDOUR_UI::instance()->set_tip(auto_button, _("automation state"));
 	ARDOUR_UI::instance()->set_tip(hide_button, _("hide track"));
 
+	string str = gui_property ("height");
+	if (!str.empty()) {
+		set_height (atoi (str));
+	} else {
+		set_height (preset_height (HeightNormal));
+	}
+
 	/* rearrange the name display */
+
+	controls_table.remove (name_hbox);
+	controls_table.attach (name_hbox, 1, 6, 0, 1,  Gtk::FILL|Gtk::EXPAND,  Gtk::FILL|Gtk::EXPAND, 3, 0);
 
 	/* we never show these for automation tracks, so make
 	   life easier and remove them.
@@ -143,15 +155,10 @@ AutomationTimeAxisView::AutomationTimeAxisView (
 
 	hide_name_entry();
 
-	/* keep the parameter name short */
-
-	string shortpname = _name;
-	int ignore_width;
-	shortpname = fit_to_pixels (_name, 60, name_font, ignore_width, true);
-
-	name_label.set_text (shortpname);
+	name_label.set_text (_name);
 	name_label.set_alignment (Gtk::ALIGN_CENTER, Gtk::ALIGN_CENTER);
         name_label.set_name (X_("TrackParameterName"));
+	name_label.set_ellipsize (Pango::ELLIPSIZE_END);
 
 	string tipname = nomparent;
 	if (!tipname.empty()) {
@@ -162,8 +169,7 @@ AutomationTimeAxisView::AutomationTimeAxisView (
 
 	/* add the buttons */
 	controls_table.attach (hide_button, 0, 1, 0, 1, Gtk::FILL|Gtk::EXPAND, Gtk::FILL|Gtk::EXPAND);
-
-	controls_table.attach (auto_button, 5, 8, 0, 1, Gtk::FILL|Gtk::EXPAND, Gtk::FILL|Gtk::EXPAND);
+	controls_table.attach (auto_button, 6, 8, 0, 1, Gtk::FILL|Gtk::EXPAND, Gtk::FILL|Gtk::EXPAND);
 
 	if (_controller) {
 		/* add bar controller */
@@ -178,12 +184,6 @@ AutomationTimeAxisView::AutomationTimeAxisView (
 	controls_base_selected_name = X_("AutomationTrackControlsBaseSelected");
 	controls_base_unselected_name = X_("AutomationTrackControlsBase");
 	controls_ebox.set_name (controls_base_unselected_name);
-
-	XMLNode* xml_node = get_state_node ();
-
-	if (xml_node) {
-		set_state (*xml_node, Stateful::loading_state_version);
-	}
 
 	/* ask for notifications of any new RegionViews */
 	if (show_regions) {
@@ -222,6 +222,7 @@ AutomationTimeAxisView::AutomationTimeAxisView (
 
 AutomationTimeAxisView::~AutomationTimeAxisView ()
 {
+	delete _view;
 }
 
 void
@@ -396,18 +397,6 @@ AutomationTimeAxisView::set_height (uint32_t h)
 	uint32_t const normal = preset_height (HeightNormal);
 	bool const changed_between_small_and_normal = ( (height < normal && h >= normal) || (height >= normal || h < normal) );
 
-	TimeAxisView* state_parent = get_parent_with_state ();
-	assert(state_parent);
-	XMLNode* xml_node = 0;
-
-	if (_control) {
-		xml_node = _control->extra_xml ("GUI");
-	} else {
-		/* XXX we need somewhere to store GUI info for per-region
-		 * automation 
-		 */
-	}
-
 	TimeAxisView::set_height (h);
 	_base_rect->set_y1 (h);
 
@@ -418,12 +407,6 @@ AutomationTimeAxisView::set_height (uint32_t h)
 	if (_view) {
 		_view->set_height(h);
 		_view->update_contents_height();
-	}
-
-	char buf[32];
-	snprintf (buf, sizeof (buf), "%u", height);
-	if (xml_node) {
-		xml_node->add_property ("height", buf);
 	}
 
 	if (changed_between_small_and_normal || first_call_to_set_height) {
@@ -476,12 +459,12 @@ AutomationTimeAxisView::set_frames_per_pixel (double fpp)
 void
 AutomationTimeAxisView::hide_clicked ()
 {
-	// LAME fix for refreshing the hide button
 	hide_button.set_sensitive(false);
-
 	set_marked_for_display (false);
-	hide ();
-
+	RouteTimeAxisView* rtv = dynamic_cast<RouteTimeAxisView*>(parent);
+	if (rtv) {
+		rtv->request_redraw ();
+	}
 	hide_button.set_sensitive(true);
 }
 
@@ -944,59 +927,28 @@ AutomationTimeAxisView::color_handler ()
 }
 
 int
-AutomationTimeAxisView::set_state (const XMLNode& node, int version)
+AutomationTimeAxisView::set_state_2X (const XMLNode& node, int /*version*/)
 {
-	TimeAxisView::set_state (node, version);
-
-	if (version < 3000) {
-		return set_state_2X (node, version);
-	}
-
-	XMLProperty const * prop = node.property ("shown");
-
-	if (prop) {
-		set_visibility (string_is_affirmative (prop->value()));
-	} else {
-		set_visibility (false);
+	if (node.name() == X_("gain") && _parameter == Evoral::Parameter (GainAutomation)) {
+		XMLProperty const * shown = node.property (X_("shown"));
+		if (shown) {
+			bool yn = string_is_affirmative (shown->value ());
+			if (yn) {
+				_canvas_display->show (); /* FIXME: necessary? show_at? */
+			}
+			set_gui_property ("visible", yn);
+		} else {
+			set_gui_property ("visible", false);
+		}
 	}
 
 	return 0;
 }
 
 int
-AutomationTimeAxisView::set_state_2X (const XMLNode& node, int /*version*/)
+AutomationTimeAxisView::set_state (const XMLNode& node, int /*version*/)
 {
-	if (node.name() == X_("gain") && _parameter == Evoral::Parameter (GainAutomation)) {
-		XMLProperty const * shown = node.property (X_("shown"));
-		if (shown && string_is_affirmative (shown->value ())) {
-			set_marked_for_display (true);
-			_canvas_display->show (); /* FIXME: necessary? show_at? */
-		}
-	}
-
-	if (!_marked_for_display) {
-		hide ();
-	}
-
 	return 0;
-}
-
-XMLNode*
-AutomationTimeAxisView::get_state_node ()
-{
-	if (_control) {
-		return _control->extra_xml ("GUI", true);
-	}
-	return 0;
-}
-
-void
-AutomationTimeAxisView::update_extra_xml_shown (bool shown)
-{
-	XMLNode* xml_node = get_state_node();
-	if (xml_node) {
-		xml_node->add_property ("shown", shown ? "yes" : "no");
-	}
 }
 
 void
@@ -1030,36 +982,6 @@ AutomationTimeAxisView::what_has_visible_automation (const boost::shared_ptr<Aut
 	}
 }
 
-guint32
-AutomationTimeAxisView::show_at (double y, int& nth, Gtk::VBox *parent)
-{
-	if (!_canvas_display->visible ()) {
-		update_extra_xml_shown (true);
-	}
-
-	return TimeAxisView::show_at (y, nth, parent);
-}
-
-void
-AutomationTimeAxisView::show ()
-{
-	if (!_canvas_display->visible ()) {
-		update_extra_xml_shown (true);
-	}
-
-	return TimeAxisView::show ();
-}
-
-void
-AutomationTimeAxisView::hide ()
-{
-	if (_canvas_display->visible ()) {
-		update_extra_xml_shown (false);
-	}
-
-	TimeAxisView::hide ();
-}
-
 /** @return true if this view has any automation data to display */
 bool
 AutomationTimeAxisView::has_automation () const
@@ -1079,4 +1001,68 @@ AutomationTimeAxisView::lines () const
 	}
 
 	return lines;
+}
+
+string
+AutomationTimeAxisView::state_id() const
+{
+	if (_control) {
+		return string_compose ("automation %1", _control->id().to_s());
+	} else {
+		assert (_parameter);
+		return string_compose ("automation %1 %2/%3/%4", 
+				       _route->id(), 
+				       _parameter.type(),
+				       _parameter.id(),
+				       (int) _parameter.channel());
+	}
+}
+
+/** Given a state id string, see if it is one generated by
+ *  this class.  If so, parse it into its components.
+ *  @param state_id State ID string to parse.
+ *  @param route_id Filled in with the route's ID if the state ID string is parsed.
+ *  @param has_parameter Filled in with true if the state ID has a parameter, otherwise false.
+ *  @param parameter Filled in with the state ID's parameter, if it has one.
+ *  @return true if this is a state ID generated by this class, otherwise false.
+ */
+
+bool
+AutomationTimeAxisView::parse_state_id (
+	string const & state_id,
+	PBD::ID & route_id,
+	bool & has_parameter,
+	Evoral::Parameter & parameter)
+{
+	stringstream s;
+	s << state_id;
+
+	string a, b, c;
+	s >> a >> b >> c;
+
+	if (a != X_("automation")) {
+		return false;
+	}
+
+	route_id = PBD::ID (b);
+
+	if (c.empty ()) {
+		has_parameter = false;
+		return true;
+	}
+
+	has_parameter = true;
+
+	vector<string> p;
+	boost::split (p, c, boost::is_any_of ("/"));
+
+	assert (p.size() == 3);
+
+	parameter = Evoral::Parameter (
+		boost::lexical_cast<int> (p[0]),
+		boost::lexical_cast<int> (p[2]),
+		boost::lexical_cast<int> (p[1])
+		);
+
+	return true;
 }

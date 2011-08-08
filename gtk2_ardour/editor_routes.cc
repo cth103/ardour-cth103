@@ -79,10 +79,10 @@ EditorRoutes::EditorRoutes (Editor* e)
 	// Record enable toggle
 	CellRendererPixbufMulti* rec_col_renderer = manage (new CellRendererPixbufMulti());
 
-	rec_col_renderer->set_pixbuf (0, ::get_icon("act-disabled"));
-	rec_col_renderer->set_pixbuf (1, ::get_icon("rec-in-progress"));
-	rec_col_renderer->set_pixbuf (2, ::get_icon("rec-enabled"));
-	rec_col_renderer->set_pixbuf (3, ::get_icon("step-editing"));
+	rec_col_renderer->set_pixbuf (0, ::get_icon("record-normal-disabled"));
+	rec_col_renderer->set_pixbuf (1, ::get_icon("record-normal-in-progress"));
+	rec_col_renderer->set_pixbuf (2, ::get_icon("record-normal-enabled"));
+	rec_col_renderer->set_pixbuf (3, ::get_icon("record-step"));
 	rec_col_renderer->signal_changed().connect (sigc::mem_fun (*this, &EditorRoutes::on_tv_rec_enable_changed));
 
 	TreeViewColumn* rec_state_column = manage (new TreeViewColumn("R", *rec_col_renderer));
@@ -98,7 +98,7 @@ EditorRoutes::EditorRoutes (Editor* e)
 	// MIDI Input Active
 
 	CellRendererPixbufMulti* input_active_col_renderer = manage (new CellRendererPixbufMulti());
-	input_active_col_renderer->set_pixbuf (0, ::get_icon("act-disabled"));
+	input_active_col_renderer->set_pixbuf (0, ::get_icon("midi-input-inactive"));
 	input_active_col_renderer->set_pixbuf (1, ::get_icon("midi-input-active"));
 	input_active_col_renderer->signal_changed().connect (sigc::mem_fun (*this, &EditorRoutes::on_input_active_changed));
 
@@ -468,20 +468,18 @@ EditorRoutes::redisplay ()
 			route->set_order_key (N_ ("editor"), n);
 		}
 
-		bool visible = (*i)[_columns.visible];
+		bool visible = tv->marked_for_display ();
 
 		/* show or hide the TimeAxisView */
 		if (visible) {
-			tv->set_marked_for_display (true);
 			position += tv->show_at (position, n, &_editor->edit_controls_vbox);
 			tv->clip_to_viewport ();
 		} else {
-			tv->set_visibility (false);
+			tv->hide ();
 		}
 
 		n++;
 	}
-
 
 	/* whenever we go idle, update the track view list to reflect the new order.
 	   we can't do this here, because we could mess up something that is traversing
@@ -534,14 +532,16 @@ EditorRoutes::visible_changed (std::string const & path)
 		TimeAxisView* tv = (*iter)[_columns.tv];
 		if (tv) {
 			bool visible = (*iter)[_columns.visible];
-			(*iter)[_columns.visible] = !visible;
+
+			if (tv->set_marked_for_display (!visible)) {
+				_redisplay_does_not_reset_order_keys = true;
+				_session->set_remote_control_ids();
+				update_visibility ();
+				redisplay ();
+				_redisplay_does_not_reset_order_keys = false;
+			}
 		}
 	}
-
-	_redisplay_does_not_reset_order_keys = true;
-	_session->set_remote_control_ids();
-	redisplay ();
-	_redisplay_does_not_reset_order_keys = false;
 }
 
 void
@@ -700,7 +700,6 @@ EditorRoutes::update_visibility ()
 	for (i = rows.begin(); i != rows.end(); ++i) {
 		TimeAxisView *tv = (*i)[_columns.tv];
 		(*i)[_columns.visible] = tv->marked_for_display ();
-		cerr << "marked " << tv->name() << " for display = " << tv->marked_for_display() << endl;
 	}
 
 	resume_redisplay ();
@@ -714,12 +713,12 @@ EditorRoutes::hide_track_in_display (TimeAxisView& tv)
 
 	for (i = rows.begin(); i != rows.end(); ++i) {
 		if ((*i)[_columns.tv] == &tv) {
+			tv.set_marked_for_display (false);
 			(*i)[_columns.visible] = false;
+			redisplay ();
 			break;
 		}
 	}
-
-	redisplay ();
 }
 
 void
@@ -728,14 +727,15 @@ EditorRoutes::show_track_in_display (TimeAxisView& tv)
 	TreeModel::Children rows = _model->children();
 	TreeModel::Children::iterator i;
 
+
 	for (i = rows.begin(); i != rows.end(); ++i) {
 		if ((*i)[_columns.tv] == &tv) {
+			tv.set_marked_for_display (true);
 			(*i)[_columns.visible] = true;
+			redisplay ();
 			break;
 		}
 	}
-
-	redisplay ();
 }
 
 void
@@ -782,6 +782,8 @@ EditorRoutes::sync_order_keys (string const & src)
 		for (map<int, int>::const_iterator i = new_order.begin(); i != new_order.end(); ++i) {
 			co.push_back (i->second);
 		}
+
+		assert (co.size() == _model->children().size ());
 
 		_model->reorder (co);
 		_redisplay_does_not_reset_order_keys = false;

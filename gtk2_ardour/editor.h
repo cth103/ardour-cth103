@@ -106,6 +106,7 @@ class ControlPoint;
 class CrossfadeView;
 class DragManager;
 class GroupedButtons;
+class GUIObjectState;
 class Marker;
 class MidiRegionView;
 class MixerStrip;
@@ -373,6 +374,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void show_window ();
 
+	void ensure_time_axis_view_is_visible (const TimeAxisView& tav);
 	void scroll_tracks_down_line ();
 	void scroll_tracks_up_line ();
 
@@ -472,11 +474,13 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	typedef std::pair<TimeAxisView*,XMLNode*> TAVState;
 
 	struct VisualState {
+	    VisualState();
+	    ~VisualState ();
 	    double              y_position;
 	    double              frames_per_pixel;
-	    framepos_t         leftmost_frame;
+	    framepos_t          leftmost_frame;
 	    Editing::ZoomFocus  zoom_focus;
-	    std::list<TAVState> track_states;
+	    GUIObjectState*     gui_state;
 	};
 
 	std::list<VisualState*> undo_visual_stack;
@@ -535,6 +539,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	Gtk::HPaned   edit_pane;
 	Gtk::VPaned   editor_summary_pane;
+
+	bool idle_reset_vertical_pane_position (int);
 
 	Gtk::EventBox meter_base;
 	Gtk::HBox     meter_box;
@@ -681,6 +687,9 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void add_crossfade_context_items (AudioStreamView*, boost::shared_ptr<ARDOUR::Crossfade>, Gtk::Menu_Helpers::MenuList&, bool many);
 	void add_selection_context_items (Gtk::Menu_Helpers::MenuList&);
 	Gtk::MenuItem* _popup_region_menu_item;
+
+	void popup_control_point_context_menu (ArdourCanvas::Item *, GdkEvent *);
+	Gtk::Menu _control_point_context_menu;
 
 	void handle_new_route (ARDOUR::RouteList&);
 	void timeaxisview_deleted (TimeAxisView *);
@@ -1333,8 +1342,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void region_view_item_click (AudioRegionView&, GdkEventButton*);
 
-	void remove_gain_control_point (Canvas::Item*, GdkEvent*);
-	void remove_control_point (Canvas::Item*, GdkEvent*);
+	bool can_remove_control_point (Canvas::Item *);
+	void remove_control_point (Canvas::Item *);
 
 	void mouse_brush_insert_region (RegionView*, framepos_t pos);
 

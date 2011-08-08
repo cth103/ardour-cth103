@@ -91,6 +91,7 @@ typedef uint64_t microseconds_t;
 #include "engine_dialog.h"
 #include "gain_meter.h"
 #include "global_port_matrix.h"
+#include "gui_object.h"
 #include "gui_thread.h"
 #include "keyboard.h"
 #include "location_ui.h"
@@ -133,6 +134,7 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 
 	: Gtkmm2ext::UI (PROGRAM_NAME, argcp, argvp)
 
+	, gui_object_state (new GUIObjectState)
 	, primary_clock (new AudioClock (X_("primary"), false, X_("TransportClockDisplay"), true, true, false, true))
 	, secondary_clock (new AudioClock (X_("secondary"), false, X_("SecondaryClockDisplay"), true, true, false, true))
 	, preroll_clock (new AudioClock (X_("preroll"), false, X_("PreRollClock"), true, false, true))
@@ -292,7 +294,6 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 	/* we like keyboards */
 
 	keyboard = new ArdourKeyboard(*this);
-
 
 	XMLNode* node = ARDOUR_UI::instance()->keyboard_settings();
 	if (node) {
@@ -982,6 +983,57 @@ ARDOUR_UI::update_sample_rate (framecnt_t)
 	}
 
 	sample_rate_label.set_text (buf);
+}
+
+void
+ARDOUR_UI::update_format ()
+{
+	if (!_session) {
+		format_label.set_text ("");
+		return;
+	}
+
+	stringstream s;
+
+	switch (_session->config.get_native_file_header_format ()) {
+	case BWF:
+		s << "BWF";
+		break;
+	case WAVE:
+		s << "WAV";
+		break;
+	case WAVE64:
+		s << "WAV64";
+		break;
+	case CAF:
+		s << "CAF";
+		break;
+	case AIFF:
+		s << "AIFF";
+		break;
+	case iXML:
+		s << "iXML";
+		break;
+	case RF64:
+		s << "RF64";
+		break;
+	}
+
+	s << " ";
+	
+	switch (_session->config.get_native_file_data_format ()) {
+	case FormatFloat:
+		s << "32-float";
+		break;
+	case FormatInt24:
+		s << "24-int";
+		break;
+	case FormatInt16:
+		s << "16-int";
+		break;
+	}
+
+	format_label.set_text (s.str ());
 }
 
 void
@@ -2068,7 +2120,6 @@ ARDOUR_UI::snapshot_session (bool switch_to_it)
 	prompter.set_name ("Prompter");
 	prompter.add_button (Gtk::Stock::SAVE, Gtk::RESPONSE_ACCEPT);
 	prompter.set_title (_("Take Snapshot"));
-	prompter.set_title (_("Take Snapshot"));
 	prompter.set_prompt (_("Name of new snapshot"));
 
 	if (!switch_to_it) {
@@ -2133,6 +2184,73 @@ ARDOUR_UI::snapshot_session (bool switch_to_it)
 	}
 }
 
+/** Ask the user for the name of a new shapshot and then take it.
+ */
+
+void
+ARDOUR_UI::rename_session ()
+{
+	if (!_session) {
+		return;
+	}
+
+	ArdourPrompter prompter (true);
+	string name;
+
+	prompter.set_name ("Prompter");
+	prompter.add_button (Gtk::Stock::SAVE, Gtk::RESPONSE_ACCEPT);
+	prompter.set_title (_("Rename Session"));
+	prompter.set_prompt (_("New session name"));
+
+  again:
+	switch (prompter.run()) {
+	case RESPONSE_ACCEPT:
+	{
+		prompter.get_result (name);
+
+		bool do_rename = (name.length() != 0);
+
+		if (do_rename) {
+			if (name.find ('/') != string::npos) {
+				MessageDialog msg (_("To ensure compatibility with various systems\n"
+				                     "session names may not contain a '/' character"));
+				msg.run ();
+				goto again;
+			}
+			if (name.find ('\\') != string::npos) {
+				MessageDialog msg (_("To ensure compatibility with various systems\n"
+				                     "session names may not contain a '\\' character"));
+				msg.run ();
+				goto again;
+			}
+
+			switch (_session->rename (name)) {
+			case -1: {
+				MessageDialog msg (_("That name is already in use by another directory/folder. Please try again."));
+				msg.set_position (WIN_POS_MOUSE);
+				msg.run ();
+				goto again;
+				break;
+			}
+			case 0:
+				break;
+			default: {
+				MessageDialog msg (_("Renaming this session failed.\nThings could be seriously messed up at this point"));
+				msg.set_position (WIN_POS_MOUSE);
+				msg.run ();
+				break;
+			}
+			}
+		}
+		
+		break;
+	}
+
+	default:
+		break;
+	}
+}
+
 void
 ARDOUR_UI::save_state (const string & name, bool switch_to_it)
 {
@@ -2143,6 +2261,8 @@ ARDOUR_UI::save_state (const string & name, bool switch_to_it)
 			node->add_child_nocopy (*((*i)->get_state ()));
 		}
 	}
+
+	node->add_child_nocopy (gui_object_state->get_state());
 
 	_session->add_extra_xml (*node);
 

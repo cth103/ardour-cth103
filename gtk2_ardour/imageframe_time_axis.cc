@@ -65,7 +65,6 @@ ImageFrameTimeAxis::ImageFrameTimeAxis(const string & track_id, PublicEditor& ed
 	selection_group->hide();
 
 	// intialize our data items
-	_marked_for_display = true;
 	y_position = -1 ;
 
 	/* create our new image frame view */
@@ -137,7 +136,7 @@ ImageFrameTimeAxis::set_height (uint32_t h)
 	}
 
 	// tell those interested that we have had our height changed
-	 gui_changed("track_height",(void*)0); /* EMIT_SIGNAL */
+	gui_changed("track_height",(void*)0); /* EMIT_SIGNAL */
 }
 
 /**

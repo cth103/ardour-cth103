@@ -623,7 +623,7 @@ Sequence<Time>::start_write()
  */
 template<typename Time>
 void
-Sequence<Time>::end_write (bool delete_stuck)
+Sequence<Time>::end_write (StuckNoteOption option, Time when)
 {
 	WriteLock lock(write_lock());
 
@@ -631,27 +631,40 @@ Sequence<Time>::end_write (bool delete_stuck)
 		return;
 	}
 
-	DEBUG_TRACE (DEBUG::Sequence, string_compose ("%1 : end_write (%2 notes)\n", this, _notes.size()));
+	DEBUG_TRACE (DEBUG::Sequence, string_compose ("%1 : end_write (%2 notes) delete stuck option %3 @ %4\n", this, _notes.size(), option, when));
 
-        if (!_percussive && delete_stuck) {
+        if (!_percussive) {
+
                 for (typename Notes::iterator n = _notes.begin(); n != _notes.end() ;) {
                         typename Notes::iterator next = n;
                         ++next;
 			
                         if ((*n)->length() == 0) {
-                                cerr << "WARNING: Stuck note lost: " << (*n)->note() << endl;
-                                _notes.erase(n);
-                        }
-                        
+				switch (option) {
+				case Relax:
+					break;
+				case DeleteStuckNotes:
+					cerr << "WARNING: Stuck note lost: " << (*n)->note() << endl;
+					_notes.erase(n);
+					break;
+				case ResolveStuckNotes:
+					if (when <= (*n)->time()) {
+						cerr << "WARNING: Stuck note resolution - end time @ " 
+						     << when << " is before note on: " << (**n) << endl;
+						_notes.erase (*n);
+					} else {
+						(*n)->set_length (when - (*n)->time());
+						cerr << "WARNING: resolved note-on with no note-off to generate " << (**n) << endl;
+					}
+					break;
+				}
+			}
+
                         n = next;
                 }
         }
 
 	for (int i = 0; i < 16; ++i) {
-		if (!_write_notes[i].empty()) {
-			cerr << "WARNING: Sequence<Time>::end_write: Channel " << i << " has "
-					<< _write_notes[i].size() << " stuck notes" << endl;
-		}
 		_write_notes[i].clear();
 	}
 
@@ -889,7 +902,7 @@ template<typename Time>
 void
 Sequence<Time>::append_note_off_unlocked (NotePtr note)
 {
-        DEBUG_TRACE (DEBUG::Sequence, string_compose ("%1 c=%2 note %3 on @ %4 v=%5\n",
+        DEBUG_TRACE (DEBUG::Sequence, string_compose ("%1 c=%2 note %3 OFF @ %4 v=%5\n",
                                                       this, (int)note->channel(), 
                                                       (int)note->note(), note->time(), (int)note->velocity()));
         assert(note->note() <= 127);
@@ -925,7 +938,7 @@ Sequence<Time>::append_note_off_unlocked (NotePtr note)
                         nn->set_off_velocity (note->velocity());
 
                         _write_notes[note->channel()].erase(n);
-                        DEBUG_TRACE (DEBUG::Sequence, string_compose ("resolved note, length: %1\n", note->length()));
+                        DEBUG_TRACE (DEBUG::Sequence, string_compose ("resolved note @ %2 length: %1\n", nn->length(), nn->time()));
                         resolved = true;
                         break;
                 }

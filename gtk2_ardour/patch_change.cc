@@ -23,6 +23,7 @@
 
 #include "gtkmm2ext/keyboard.h"
 #include "ardour/midi_patch_manager.h"
+
 #include "ardour_ui.h"
 #include "midi_region_view.h"
 #include "patch_change.h"
@@ -30,6 +31,7 @@
 #include "editor_drag.h"
 
 using namespace MIDI::Name;
+using namespace Gtkmm2ext;
 using namespace std;
 
 /** @param x x position in pixels.
@@ -154,7 +156,9 @@ PatchChange::event_handler (GdkEvent* ev)
 				initialize_popup_menus();
 				_popup_initialized = true;
 			}
-			_popup.popup(ev->button.button, ev->button.time);
+			if (!_popup.items().empty()) {
+				_popup.popup(ev->button.button, ev->button.time);
+			}
 			return true;
 		}
 		break;
@@ -165,12 +169,20 @@ PatchChange::event_handler (GdkEvent* ev)
 		case GDK_Up:
 		case GDK_KP_Up:
 		case GDK_uparrow:
-			_region.previous_patch (*this);
+			if (Keyboard::modifier_state_contains (ev->scroll.state, Keyboard::PrimaryModifier)) {
+				_region.previous_bank (*this);
+			} else {
+				_region.previous_patch (*this);
+			}
 			break;
 		case GDK_Down:
 		case GDK_KP_Down:
 		case GDK_downarrow:
-			_region.next_patch (*this);
+			if (Keyboard::modifier_state_contains (ev->scroll.state, Keyboard::PrimaryModifier)) {
+				_region.next_bank (*this);
+			} else {
+				_region.next_patch (*this);
+			}
 			break;
 		default:
 			break;
@@ -179,10 +191,18 @@ PatchChange::event_handler (GdkEvent* ev)
 
 	case GDK_SCROLL:
 		if (ev->scroll.direction == GDK_SCROLL_UP) {
-			_region.previous_patch (*this);
+			if (Keyboard::modifier_state_contains (ev->scroll.state, Keyboard::PrimaryModifier)) {
+				_region.previous_bank (*this);
+			} else {
+				_region.previous_patch (*this);
+			}
 			return true;
 		} else if (ev->scroll.direction == GDK_SCROLL_DOWN) {
-			_region.next_patch (*this);
+			if (Keyboard::modifier_state_contains (ev->scroll.state, Keyboard::PrimaryModifier)) {
+				_region.next_bank (*this);
+			} else {
+				_region.next_patch (*this);
+			}
 			return true;
 		}
 		break;

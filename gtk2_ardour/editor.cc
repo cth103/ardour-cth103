@@ -81,17 +81,12 @@
 
 #include "control_protocol/control_protocol.h"
 
+#include "actions.h"
+#include "actions.h"
+#include "analysis_window.h"
 #include "audio_clock.h"
-#include "editor.h"
-#include "debug.h"
-#include "keyboard.h"
-#include "marker.h"
-#include "playlist_selector.h"
 #include "audio_region_view.h"
-#include "rgb_macros.h"
-#include "selection.h"
 #include "audio_streamview.h"
-#include "time_axis_view.h"
 #include "audio_time_axis.h"
 #include "utils.h"
 #include "crossfade_view.h"
@@ -108,18 +103,31 @@
 #include "global_port_matrix.h"
 #include "editor_drag.h"
 #include "editor_group_tabs.h"
-#include "automation_time_axis.h"
-#include "editor_routes.h"
-#include "midi_time_axis.h"
-#include "mixer_strip.h"
-#include "editor_route_groups.h"
-#include "editor_regions.h"
 #include "editor_locations.h"
+#include "editor_regions.h"
+#include "editor_route_groups.h"
+#include "editor_routes.h"
 #include "editor_snapshots.h"
 #include "editor_summary.h"
-#include "region_layering_order_editor.h"
+#include "global_port_matrix.h"
+#include "gui_object.h"
+#include "gui_thread.h"
+#include "keyboard.h"
+#include "marker.h"
+#include "midi_time_axis.h"
+#include "mixer_strip.h"
 #include "mouse_cursors.h"
-#include "editor_cursors.h"
+#include "playlist_selector.h"
+#include "public_editor.h"
+#include "region_layering_order_editor.h"
+#include "rgb_macros.h"
+#include "rhythm_ferret.h"
+#include "selection.h"
+#include "sfdb_ui.h"
+#include "simpleline.h"
+#include "tempo_lines.h"
+#include "time_axis_view.h"
+#include "utils.h"
 
 #include "i18n.h"
 
@@ -2280,7 +2288,7 @@ Editor::set_state (const XMLNode& node, int /*version*/)
 	}
 
 	if ((prop = node.property ("stationary-playhead"))) {
-		bool yn = (prop->value() == "yes");
+		bool yn = string_is_affirmative (prop->value());
 		set_stationary_playhead (yn);
 		RefPtr<Action> act = ActionManager::get_action (X_("Editor"), X_("toggle-stationary-playhead"));
 		if (act) {
@@ -3528,7 +3536,6 @@ Editor::pane_allocation_handler (Allocation &alloc, Paned* which)
 	static Pane done;
 
 	XMLNode* geometry = find_named_node (*node, "geometry");
-	assert (geometry);
 
 	if (which == static_cast<Paned*> (&edit_pane)) {
 
@@ -3953,12 +3960,16 @@ Editor::maximise_editing_space ()
 		edit_pane.set_position (post_maximal_horizontal_pane_position);
 	}
 
-	if (post_maximal_editor_height) {
-		editor_summary_pane.set_position (post_maximal_vertical_pane_position -
-			abs(post_maximal_editor_height - pre_maximal_editor_height));
-	} else {
-		editor_summary_pane.set_position (post_maximal_vertical_pane_position);
-	}
+	/* Hack: we must do this in an idle handler for it to work; see comment in
+	   restore_editing_space()
+	*/
+	   
+	Glib::signal_idle().connect (
+		sigc::bind (
+			sigc::mem_fun (*this, &Editor::idle_reset_vertical_pane_position),
+			post_maximal_vertical_pane_position
+			)
+		);
 
 	if (Config->get_keep_tearoffs()) {
 		_mouse_mode_tearoff->set_visible (true);
@@ -3968,6 +3979,13 @@ Editor::maximise_editing_space ()
 		}
 	}
 
+}
+
+bool
+Editor::idle_reset_vertical_pane_position (int p)
+{
+	editor_summary_pane.set_position (p);
+	return false;
 }
 
 void
@@ -3994,7 +4012,17 @@ Editor::restore_editing_space ()
 	post_maximal_editor_height = this->get_height();
 
 	edit_pane.set_position (pre_maximal_horizontal_pane_position + abs(this->get_width() - pre_maximal_editor_width));
-	editor_summary_pane.set_position (pre_maximal_vertical_pane_position + abs(this->get_height() - pre_maximal_editor_height));
+
+	/* This is a bit of a hack, but it seems that if you set the vertical pane position
+	   here it gets reset to some wrong value after this method has finished.  Doing
+	   the setup in an idle callback seems to work.
+	*/
+	Glib::signal_idle().connect (
+		sigc::bind (
+			sigc::mem_fun (*this, &Editor::idle_reset_vertical_pane_position),
+			pre_maximal_vertical_pane_position
+			)
+		);
 }
 
 /**
@@ -4107,6 +4135,16 @@ Editor::reposition_and_zoom (framepos_t frame, double fpu)
 	}
 }
 
+Editor::VisualState::VisualState ()
+	: gui_state (new GUIObjectState)
+{
+}
+
+Editor::VisualState::~VisualState ()
+{
+	delete gui_state;
+}
+
 Editor::VisualState*
 Editor::current_visual_state (bool with_tracks)
 {
@@ -4116,10 +4154,8 @@ Editor::current_visual_state (bool with_tracks)
 	vs->leftmost_frame = leftmost_frame;
 	vs->zoom_focus = zoom_focus;
 
-	if (with_tracks) {
-		for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {
-			vs->track_states.push_back (TAVState ((*i), &(*i)->get_state()));
-		}
+	if (with_tracks) {	
+		*(vs->gui_state) = *ARDOUR_UI::instance()->gui_object_state;
 	}
 
 	return vs;
@@ -4174,22 +4210,15 @@ Editor::use_visual_state (VisualState& vs)
 
 	set_zoom_focus (vs.zoom_focus);
 	reposition_and_zoom (vs.leftmost_frame, vs.frames_per_pixel);
+	reposition_and_zoom (vs.leftmost_frame, vs.frames_per_pixel);
+	
+	*ARDOUR_UI::instance()->gui_object_state = *vs.gui_state;
 
-	for (list<TAVState>::iterator i = vs.track_states.begin(); i != vs.track_states.end(); ++i) {
-		TrackViewList::iterator t;
-
-		/* check if the track still exists - it could have been deleted */
-
-		if ((t = find (track_views.begin(), track_views.end(), i->first)) != track_views.end()) {
-			(*t)->set_state (*(i->second), Stateful::loading_state_version);
-		}
+	for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {	
+		(*i)->reset_visual_state ();
 	}
 
-
-	if (!vs.track_states.empty()) {
-		_routes->update_visibility ();
-	}
-
+	_routes->update_visibility ();
 	_routes->resume_redisplay ();
 
 	no_save_visual = false;
@@ -4871,9 +4900,11 @@ Editor::handle_new_route (RouteList& routes)
 		DataType dt = route->input()->default_type();
 
 		if (dt == ARDOUR::DataType::AUDIO) {
-			rtv = new AudioTimeAxisView (*this, _session, route, *_track_canvas);
+			rtv = new AudioTimeAxisView (*this, _session, *track_canvas);
+			rtv->set_route (route);
 		} else if (dt == ARDOUR::DataType::MIDI) {
-			rtv = new MidiTimeAxisView (*this, _session, route, *_track_canvas);
+			rtv = new MidiTimeAxisView (*this, _session, *track_canvas);
+			rtv->set_route (route);
 		} else {
 			throw unknown_type();
 		}
@@ -5500,4 +5531,21 @@ Editor::save_canvas_state ()
 	XMLTree* tree = static_cast<Canvas::Canvas*>(_track_canvas)->get_state ();
 	string path = string_compose ("%1/canvas-state.xml", _session->path());
 	tree->write (path);
+}
+
+void
+Editor::popup_control_point_context_menu (ArdourCanvas::Item* item, GdkEvent* event)
+{
+	using namespace Menu_Helpers;
+	
+	MenuList& items = _control_point_context_menu.items ();
+	items.clear ();
+	
+	items.push_back (MenuElem (_("Edit..."), sigc::bind (sigc::mem_fun (*this, &Editor::edit_control_point), item)));
+	items.push_back (MenuElem (_("Delete"), sigc::bind (sigc::mem_fun (*this, &Editor::remove_control_point), item)));
+	if (!can_remove_control_point (item)) {
+		items.back().set_sensitive (false);
+	}
+
+	_control_point_context_menu.popup (event->button.button, event->button.time);
 }

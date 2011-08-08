@@ -79,7 +79,7 @@ class StreamView;
  * This class provides the basic LHS controls and display methods. This should be
  * extended to create functional time-axis based views.
  */
-class TimeAxisView : public virtual AxisView, public PBD::Stateful
+class TimeAxisView : public virtual AxisView
 {
   private:
 	enum NamePackingBits {
@@ -91,9 +91,6 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 
 	TimeAxisView(ARDOUR::Session* sess, PublicEditor& ed, TimeAxisView* parent, Canvas::Canvas& canvas);
 	virtual ~TimeAxisView ();
-
-	XMLNode& get_state ();
-	int set_state (const XMLNode&, int version);
 
 	static PBD::Signal1<void,TimeAxisView*> CatchDeletion;
 
@@ -122,11 +119,6 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 
 	uint32_t current_height() const { return height; }
 
-	bool resizer_button_press (GdkEventButton*);
-	bool resizer_button_release (GdkEventButton*);
-	bool resizer_motion (GdkEventMotion*);
-	bool resizer_expose (GdkEventExpose*);
-
 	void idle_resize (uint32_t);
 
 	void hide_name_label ();
@@ -134,8 +126,8 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 	void show_name_label ();
 	void show_name_entry ();
 
-	virtual bool set_visibility (bool);
 	virtual guint32 show_at (double y, int& nth, Gtk::VBox *parent);
+	virtual void hide ();
 
 	void clip_to_viewport ();
 
@@ -156,6 +148,8 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 	virtual void set_height (uint32_t h);
 	void set_height_enum (Height, bool apply_to_selection = false);
 	void reset_height();
+
+	virtual void reset_visual_state ();
 
 	std::pair<TimeAxisView*, ARDOUR::layer_t> covers_y_position (double);
 
@@ -201,7 +195,6 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 
 	TimeAxisView* get_parent () { return parent; }
 	void set_parent (TimeAxisView& p);
-	bool has_state () const;
 
 	virtual LayerDisplay layer_display () const { return Overlaid; }
 	virtual StreamView* view () const { return 0; }
@@ -210,7 +203,7 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 	Children get_child_list ();
 
 	SelectionRect* get_selection_rect(uint32_t id);
-
+	
 	static uint32_t preset_height (Height);
 
   protected:
@@ -220,8 +213,6 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 	Gtk::EventBox         controls_ebox;
 	Gtk::VBox             controls_vbox;
 	Gtk::VBox             time_axis_vbox;
-	Gtk::DrawingArea      resizer;
-	Gtk::HBox             resizer_box;
 	Gtk::HBox             name_hbox;
 	Gtk::Frame            name_frame;
  	Gtkmm2ext::FocusEntry name_entry;
@@ -249,8 +240,11 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 	 *
 	 *@ param ev the event
 	 */
-	virtual bool controls_ebox_button_release (GdkEventButton *ev);
-	virtual bool controls_ebox_scroll (GdkEventScroll *ev);
+	virtual bool controls_ebox_button_release (GdkEventButton*);
+	virtual bool controls_ebox_scroll (GdkEventScroll*);
+	virtual bool controls_ebox_button_press (GdkEventButton*);
+	virtual bool controls_ebox_motion (GdkEventMotion*);
+	virtual bool controls_ebox_leave (GdkEventCrossing*);
 
 	/** Display the standard LHS control menu at when.
 	 *
@@ -275,17 +269,11 @@ class TimeAxisView : public virtual AxisView, public PBD::Stateful
 
 	TimeAxisView* parent;
 
-	/** Find the parent with state */
-	TimeAxisView* get_parent_with_state();
-
 	Children children;
 	bool is_child (TimeAxisView*);
 
 	void remove_child (boost::shared_ptr<TimeAxisView>);
 	void add_child (boost::shared_ptr<TimeAxisView>);
-
-	virtual void hide ();
-	virtual void show ();
 
 	/* selection display */
 
@@ -323,12 +311,16 @@ private:
 	uint32_t _effective_height;
 	double _resize_drag_start;
 	Canvas::Group* _ghost_group;
+	GdkCursor* _preresize_cursor;
+	bool       _have_preresize_cursor;
 
 	void compute_heights ();
 	static uint32_t extra_height;
 	static uint32_t small_height;
 
 	static int const _max_order;
+	
+	bool maybe_set_cursor (int y);
 
 }; /* class TimeAxisView */
 
