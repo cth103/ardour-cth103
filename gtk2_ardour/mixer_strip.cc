@@ -375,10 +375,6 @@ MixerStrip::set_route (boost::shared_ptr<Route> rt)
 
 	revert_to_default_display ();
 
-	if (set_color_from_route()) {
-		set_color (unique_random_color());
-	}
-
 	if (route()->is_master()) {
 		solo_button->hide ();
 		below_panner_box.hide ();
@@ -469,7 +465,6 @@ MixerStrip::set_route (boost::shared_ptr<Route> rt)
 	}
 
 	_route->comment_changed.connect (route_connections, invalidator (*this), ui_bind (&MixerStrip::comment_changed, this, _1), gui_context());
-	_route->gui_changed.connect (route_connections, invalidator (*this), ui_bind (&MixerStrip::route_gui_changed, this, _1, _2), gui_context());
 
 	set_stuff_from_route ();
 
@@ -918,7 +913,7 @@ MixerStrip::update_diskstream_display ()
 			input_selector->hide_all ();
 		}
 
-		show_route_color ();
+		route_color_changed ();
 
 	} else {
 
@@ -1317,21 +1312,8 @@ MixerStrip::route_group_changed ()
 	}
 }
 
-
 void
-MixerStrip::route_gui_changed (string what_changed, void*)
-{
-	ENSURE_GUI_THREAD (*this, &MixerStrip::route_gui_changed, what_changed, ignored)
-
-	if (what_changed == "color") {
-		if (set_color_from_route () == 0) {
-			show_route_color ();
-		}
-	}
-}
-
-void
-MixerStrip::show_route_color ()
+MixerStrip::route_color_changed ()
 {
 	name_button.modify_bg (STATE_NORMAL, color());
 	top_event_box.modify_bg (STATE_NORMAL, color());

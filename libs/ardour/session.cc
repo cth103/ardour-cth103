@@ -985,13 +985,18 @@ Session::handle_locations_changed (Locations::LocationList& locations)
 void
 Session::enable_record ()
 {
+	if (_transport_speed != 0.0 && _transport_speed != 1.0) {
+		/* no recording at anything except normal speed */
+		return;
+	}
+
 	while (1) {
 		RecordState rs = (RecordState) g_atomic_int_get (&_record_status);
 
 		if (rs == Recording) {
 			break;
 		}
-
+		
 		if (g_atomic_int_compare_and_exchange (&_record_status, rs, Recording)) {
 
 			_last_record_location = _transport_frame;
@@ -1877,7 +1882,7 @@ Session::new_audio_route (int input_channels, int output_channels, RouteGroup* r
 
   failure:
 	if (!ret.empty()) {
-		add_routes (ret, true, true);
+		add_routes (ret, false, true);
 	}
 
 	return ret;
@@ -2108,7 +2113,8 @@ Session::globally_add_internal_sends (boost::shared_ptr<Route> dest, Placement p
 	boost::shared_ptr<RouteList> t (new RouteList);
 
 	for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
-		if (include_buses || boost::dynamic_pointer_cast<Track>(*i)) {
+		/* no MIDI sends because there are no MIDI busses yet */
+		if (include_buses || boost::dynamic_pointer_cast<AudioTrack>(*i)) {
 			t->push_back (*i);
 		}
 	}
@@ -2304,6 +2310,8 @@ Session::route_solo_isolated_changed (void* /*src*/, boost::weak_ptr<Route> wpr)
 void
 Session::route_solo_changed (bool self_solo_change, void* /*src*/, boost::weak_ptr<Route> wpr)
 {
+	DEBUG_TRACE (DEBUG::Solo, string_compose ("route solo change, self = %1\n", self_solo_change));
+
 	if (!self_solo_change) {
 		// session doesn't care about changes to soloed-by-others
 		return;
@@ -2311,16 +2319,12 @@ Session::route_solo_changed (bool self_solo_change, void* /*src*/, boost::weak_p
 
 	if (solo_update_disabled) {
 		// We know already
+		DEBUG_TRACE (DEBUG::Solo, "solo update disabled - changed ignored\n");
 		return;
 	}
 
 	boost::shared_ptr<Route> route = wpr.lock ();
-
-	if (!route) {
-		/* should not happen */
-		error << string_compose (_("programming error: %1"), X_("invalid route weak ptr passed to route_solo_changed")) << endmsg;
-		return;
-	}
+	assert (route);
 
 	boost::shared_ptr<RouteList> r = routes.reader ();
 	int32_t delta;
@@ -2347,9 +2351,13 @@ Session::route_solo_changed (bool self_solo_change, void* /*src*/, boost::weak_p
 		}
 	}
 
+	DEBUG_TRACE (DEBUG::Solo, string_compose ("propagate solo change, delta = %1\n", delta));
+
 	solo_update_disabled = true;
 
 	RouteList uninvolved;
+
+	DEBUG_TRACE (DEBUG::Solo, string_compose ("%1\n", route->name()));
 
 	for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
 		bool via_sends_only;
@@ -2362,18 +2370,42 @@ Session::route_solo_changed (bool self_solo_change, void* /*src*/, boost::weak_p
 
 		in_signal_flow = false;
 
+		DEBUG_TRACE (DEBUG::Solo, string_compose ("check feed from %1\n", (*i)->name()));
+		
 		if ((*i)->feeds (route, &via_sends_only)) {
 			if (!via_sends_only) {
 				if (!route->soloed_by_others_upstream()) {
 					(*i)->mod_solo_by_others_downstream (delta);
 				}
-				in_signal_flow = true;
 			}
+			in_signal_flow = true;
+		} else {
+			DEBUG_TRACE (DEBUG::Solo, "\tno feed from\n");
 		}
+		
+		DEBUG_TRACE (DEBUG::Solo, string_compose ("check feed to %1\n", (*i)->name()));
 
 		if (route->feeds (*i, &via_sends_only)) {
-			(*i)->mod_solo_by_others_upstream (delta);
+			/* propagate solo upstream only if routing other than
+			   sends is involved, but do consider the other route
+			   (*i) to be part of the signal flow even if only
+			   sends are involved.
+			*/
+			DEBUG_TRACE (DEBUG::Solo, string_compose ("%1 feeds %2 via sends only %3 sboD %4 sboU %5\n",
+								  route->name(),
+								  (*i)->name(),
+								  via_sends_only,
+								  route->soloed_by_others_downstream(),
+								  route->soloed_by_others_upstream()));
+			if (!via_sends_only) {
+				if (!route->soloed_by_others_downstream()) {
+					DEBUG_TRACE (DEBUG::Solo, string_compose ("\tmod %1 by %2\n", (*i)->name(), delta));
+					(*i)->mod_solo_by_others_upstream (delta);
+				}
+			}
 			in_signal_flow = true;
+		} else {
+			DEBUG_TRACE (DEBUG::Solo, "\tno feed to\n");
 		}
 
 		if (!in_signal_flow) {
@@ -2382,6 +2414,8 @@ Session::route_solo_changed (bool self_solo_change, void* /*src*/, boost::weak_p
 	}
 
 	solo_update_disabled = false;
+	DEBUG_TRACE (DEBUG::Solo, "propagation complete\n");
+
 	update_route_solo_state (r);
 
 	/* now notify that the mute state of the routes not involved in the signal
@@ -2389,6 +2423,7 @@ Session::route_solo_changed (bool self_solo_change, void* /*src*/, boost::weak_p
 	*/
 
 	for (RouteList::iterator i = uninvolved.begin(); i != uninvolved.end(); ++i) {
+		DEBUG_TRACE (DEBUG::Solo, string_compose ("mute change for %1\n", (*i)->name()));
 		(*i)->mute_changed (this);
 	}
 
@@ -3998,11 +4033,25 @@ Session::solo_control_mode_changed ()
 	}
 }
 
-/** Called when anything about any of our route groups changes (membership, state etc.) */
+/** Called when a property of one of our route groups changes */
 void
-Session::route_group_changed ()
+Session::route_group_property_changed (RouteGroup* rg)
 {
-	RouteGroupChanged (); /* EMIT SIGNAL */
+	RouteGroupPropertyChanged (rg); /* EMIT SIGNAL */
+}
+
+/** Called when a route is added to one of our route groups */
+void
+Session::route_added_to_route_group (RouteGroup* rg, boost::weak_ptr<Route> r)
+{
+	RouteAddedToRouteGroup (rg, r);
+}
+
+/** Called when a route is removed from one of our route groups */
+void
+Session::route_removed_from_route_group (RouteGroup* rg, boost::weak_ptr<Route> r)
+{
+	RouteRemovedFromRouteGroup (rg, r);
 }
 
 vector<SyncSource>

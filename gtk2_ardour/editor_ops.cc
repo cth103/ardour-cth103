@@ -56,6 +56,7 @@
 #include "ardour/strip_silence.h"
 #include "ardour/route_group.h"
 #include "ardour/operations.h"
+#include "ardour/session_playlists.h"
 
 #include "canvas/canvas.h"
 
@@ -1839,11 +1840,13 @@ Editor::clear_ranges ()
 
 		Location * looploc = _session->locations()->auto_loop_location();
 		Location * punchloc = _session->locations()->auto_punch_location();
+		Location * sessionloc = _session->locations()->session_range_location();
 
 		_session->locations()->clear_ranges ();
 		// re-add these
 		if (looploc) _session->locations()->add (looploc);
 		if (punchloc) _session->locations()->add (punchloc);
+		if (sessionloc) _session->locations()->add (sessionloc);
 
 		XMLNode &after = _session->locations()->get_state();
 		_session->add_command(new MementoCommand<Locations>(*(_session->locations()), &before, &after));
@@ -3272,6 +3275,14 @@ Editor::freeze_thread ()
 void
 Editor::freeze_route ()
 {
+	if (!_session) {
+		return;
+	}
+
+	/* stop transport before we start. this is important */
+
+	_session->request_transport_speed (0.0);
+
 	if (clicked_routeview == 0 || !clicked_routeview->is_audio_track()) {
 		return;
 	}
@@ -4746,6 +4757,60 @@ Editor::toggle_record_enable ()
 	}
 }
 
+void
+Editor::toggle_solo ()
+{
+	bool new_state = false;
+	bool first = true;
+	boost::shared_ptr<RouteList> rl (new RouteList);
+
+	for (TrackSelection::iterator i = selection->tracks.begin(); i != selection->tracks.end(); ++i) {
+		RouteTimeAxisView *rtav = dynamic_cast<RouteTimeAxisView *>(*i);
+
+		if (!rtav) {
+			continue;
+		}
+
+		if (first) {
+			new_state = !rtav->route()->soloed ();
+			first = false;
+		}
+
+		rl->push_back (rtav->route());
+	}
+
+	_session->set_solo (rl, new_state, Session::rt_cleanup, true);
+}
+
+void
+Editor::toggle_mute ()
+{
+	bool new_state = false;
+	bool first = true;
+	boost::shared_ptr<RouteList> rl (new RouteList);
+
+	for (TrackSelection::iterator i = selection->tracks.begin(); i != selection->tracks.end(); ++i) {
+		RouteTimeAxisView *rtav = dynamic_cast<RouteTimeAxisView *>(*i);
+
+		if (!rtav) {
+			continue;
+		}
+
+		if (first) {
+			new_state = !rtav->route()->muted();
+			first = false;
+		}
+
+		rl->push_back (rtav->route());
+	}
+
+	_session->set_mute (rl, new_state, Session::rt_cleanup, true);
+}
+
+void
+Editor::toggle_solo_isolate ()
+{
+}
 
 void
 Editor::set_fade_length (bool in)
@@ -6120,6 +6185,7 @@ Editor::do_insert_time ()
 		get_preferred_edit_position(),
 		d.distance(),
 		opt,
+		d.all_playlists(),
 		d.move_glued(),
 		d.move_markers(),
 		d.move_glued_markers(),
@@ -6129,8 +6195,10 @@ Editor::do_insert_time ()
 }
 
 void
-Editor::insert_time (framepos_t pos, framecnt_t frames, InsertTimeOption opt,
-		     bool ignore_music_glue, bool markers_too, bool glued_markers_too, bool locked_markers_too, bool tempo_too)
+Editor::insert_time (
+	framepos_t pos, framecnt_t frames, InsertTimeOption opt,
+	bool all_playlists, bool ignore_music_glue, bool markers_too, bool glued_markers_too, bool locked_markers_too, bool tempo_too
+	)
 {
 	bool commit = false;
 
@@ -6141,25 +6209,37 @@ Editor::insert_time (framepos_t pos, framecnt_t frames, InsertTimeOption opt,
 	begin_reversible_command (_("insert time"));
 
 	for (TrackSelection::iterator x = selection->tracks.begin(); x != selection->tracks.end(); ++x) {
+
 		/* regions */
-		boost::shared_ptr<Playlist> pl = (*x)->playlist();
 
-		if (pl) {
+		vector<boost::shared_ptr<Playlist> > pl;
+		if (all_playlists) {
+			RouteTimeAxisView* rtav = dynamic_cast<RouteTimeAxisView*> (*x);
+			if (rtav) {
+				pl = _session->playlists->playlists_for_track (rtav->track ());
+			}
+		} else {
+			if ((*x)->playlist ()) {
+				pl.push_back ((*x)->playlist ());
+			}
+		}
 
-			pl->clear_changes ();
-			pl->clear_owned_changes ();
+		for (vector<boost::shared_ptr<Playlist> >::iterator i = pl.begin(); i != pl.end(); ++i) {
+
+			(*i)->clear_changes ();
+			(*i)->clear_owned_changes ();
 
 			if (opt == SplitIntersected) {
-				pl->split (pos);
+				(*i)->split (pos);
 			}
 
-			pl->shift (pos, frames, (opt == MoveIntersected), ignore_music_glue);
+			(*i)->shift (pos, frames, (opt == MoveIntersected), ignore_music_glue);
 
 			vector<Command*> cmds;
-			pl->rdiff (cmds);
+			(*i)->rdiff (cmds);
 			_session->add_commands (cmds);
 
-			_session->add_command (new StatefulDiffCommand (pl));
+			_session->add_command (new StatefulDiffCommand (*i));
 			commit = true;
 		}
 

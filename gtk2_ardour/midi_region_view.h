@@ -166,8 +166,6 @@ public:
 	void end_write();
 	void extend_active_notes();
 
-	void create_note_at(double x, double y, double length, bool);
-
 	void display_model(boost::shared_ptr<ARDOUR::MidiModel> model);
 
 	void start_note_diff_command (std::string name = "midi edit");
@@ -250,13 +248,23 @@ public:
 	 */
 	framepos_t snap_pixel_to_frame(double x);
 
-	ARDOUR::frameoffset_t snap_frame_to_frame (ARDOUR::frameoffset_t);
-
-	/** Convert a timestamp in beats to frames (both relative to region start) */
-	framepos_t beats_to_frames(double beats) const;
-
+	/** Convert a timestamp in beats into frames (both relative to region start) */
+	framepos_t region_beats_to_region_frames(double beats) const;
+	/** Convert a timestamp in beats into absolute frames */
+	framepos_t region_beats_to_absolute_frames(double beats) const {
+		return _region->position() + region_beats_to_region_frames (beats);
+	}
 	/** Convert a timestamp in frames to beats (both relative to region start) */
-	double frames_to_beats(framepos_t) const;
+	double region_frames_to_region_beats(framepos_t) const;
+
+	/** Convert a timestamp in beats measured from source start into absolute frames */
+	framepos_t source_beats_to_absolute_frames(double beats) const;
+	/** Convert a timestamp in beats measured from source start into region-relative frames */
+	framepos_t source_beats_to_region_frames(double beats) const {
+		return source_beats_to_absolute_frames (beats) - _region->position();
+	}
+	/** Convert a timestamp in absolute frames to beats measured from source start*/
+	double absolute_frames_to_source_beats(framepos_t) const;
 
 	void goto_previous_note (bool add_to_selection);
 	void goto_next_note (bool add_to_selection);
@@ -305,6 +313,8 @@ private:
 	void redisplay_model_notes ();
 	void redisplay_model_other ();
 	
+	void create_note_at(double x, double y, double length, bool, bool);
+
 	/** Play the NoteOn event of the given note immediately
 	 * and schedule the playback of the corresponding NoteOff event.
 	 */
@@ -332,9 +342,9 @@ private:
 	void trim_note(NoteBase* ev, ARDOUR::MidiModel::TimeType start_delta,
 		       ARDOUR::MidiModel::TimeType end_delta);
 
-	void clear_selection_except(NoteBase* ev);
-	void clear_selection() { clear_selection_except(NULL); }
-	void update_drag_selection(double last_x, double x, double last_y, double y);
+	void clear_selection_except (NoteBase* ev);
+	void clear_selection() { clear_selection_except (0); }
+	void update_drag_selection (double last_x, double x, double last_y, double y, bool);
 
 	void add_to_selection (NoteBase*);
 	void remove_from_selection (NoteBase*);
@@ -449,6 +459,8 @@ private:
 	double _last_event_x;
 	double _last_event_y;
 
+	framepos_t snap_frame_to_grid_underneath (framepos_t p, framecnt_t &) const;
+	
 	PBD::ScopedConnection _mouse_mode_connection;
 
 	Gdk::Cursor* _pre_enter_cursor;

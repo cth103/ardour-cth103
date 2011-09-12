@@ -25,6 +25,7 @@
 #include <cstdio>
 
 #include "pbd/compose.h"
+#include "pbd/error.h"
 
 #include "evoral/Control.hpp"
 #include "evoral/ControlList.hpp"
@@ -34,6 +35,8 @@
 #include "evoral/Sequence.hpp"
 #include "evoral/TypeMap.hpp"
 #include "evoral/midi_util.h"
+
+#include "i18n.h"
 
 using namespace std;
 using namespace PBD;
@@ -874,9 +877,16 @@ Sequence<Time>::append_note_on_unlocked (NotePtr note, event_id_t evid)
         DEBUG_TRACE (DEBUG::Sequence, string_compose ("%1 c=%2 note %3 on @ %4 v=%5\n", this, 
                                                       (int) note->channel(), (int) note->note(), 
                                                       note->time(), (int) note->velocity()));
-        assert(note->note() <= 127);
-        assert(note->channel() < 16);
         assert(_writing);
+
+	if (note->note() > 127) {
+		error << string_compose (_("illegal note number (%1) used in Note on event - event will be ignored"), (int)  note->note()) << endmsg;
+		return;
+	}
+	if (note->channel() >= 16) {
+		error << string_compose (_("illegal channel number (%1) used in Note on event - event will be ignored"), (int) note->channel()) << endmsg;
+		return;
+	}
 
         if (note->id() < 0) {
                 note->set_id (evid);
@@ -905,9 +915,17 @@ Sequence<Time>::append_note_off_unlocked (NotePtr note)
         DEBUG_TRACE (DEBUG::Sequence, string_compose ("%1 c=%2 note %3 OFF @ %4 v=%5\n",
                                                       this, (int)note->channel(), 
                                                       (int)note->note(), note->time(), (int)note->velocity()));
-        assert(note->note() <= 127);
-        assert(note->channel() < 16);
         assert(_writing);
+
+	if (note->note() > 127) {
+		error << string_compose (_("illegal note number (%1) used in Note off event - event will be ignored"), (int) note->note()) << endmsg;
+		return;
+	}
+	if (note->channel() >= 16) {
+		error << string_compose (_("illegal channel number (%1) used in Note off event - event will be ignored"), (int) note->channel()) << endmsg;
+		return;
+	}
+
         _edited = true;
 
         if (_percussive) {

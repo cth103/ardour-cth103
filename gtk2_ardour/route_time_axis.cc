@@ -902,12 +902,10 @@ RouteTimeAxisView::set_height (uint32_t h)
 }
 
 void
-RouteTimeAxisView::set_color (Gdk::Color const & c)
+RouteTimeAxisView::route_color_changed ()
 {
-	RouteUI::set_color (c);
-
 	if (_view) {
-		_view->apply_color (_color, StreamView::RegionColor);
+		_view->apply_color (color(), StreamView::RegionColor);
 	}
 }
 
@@ -1458,18 +1456,10 @@ RouteTimeAxisView::build_playlist_menu ()
 	playlist_action_menu->set_name ("ArdourContextMenu");
 	playlist_items.clear();
 
-        vector<boost::shared_ptr<Playlist> > playlists, playlists_tr;
-	boost::shared_ptr<Track> tr = track();
 	RadioMenuItem::Group playlist_group;
+	boost::shared_ptr<Track> tr = track ();
 
-	_session->playlists->get (playlists);
-
-        /* find the playlists for this diskstream */
-        for (vector<boost::shared_ptr<Playlist> >::iterator i = playlists.begin(); i != playlists.end(); ++i) {
-                if (((*i)->get_orig_diskstream_id() == tr->diskstream_id()) || (tr->playlist()->id() == (*i)->id())) {
-                        playlists_tr.push_back(*i);
-                }
-        }
+        vector<boost::shared_ptr<Playlist> > playlists_tr = _session->playlists->playlists_for_track (tr);
 
         /* sort the playlists */
         PlaylistSorter cmp;
@@ -2480,3 +2470,4 @@ RouteTimeAxisView::state_id() const
 {
 	return string_compose ("rtav %1", _route->id().to_s());
 }
+

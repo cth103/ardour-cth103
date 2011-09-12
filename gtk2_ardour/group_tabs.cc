@@ -27,11 +27,15 @@
 #include "group_tabs.h"
 #include "keyboard.h"
 #include "i18n.h"
+#include "ardour_ui.h"
+#include "utils.h"
 
 using namespace std;
 using namespace Gtk;
 using namespace ARDOUR;
 using Gtkmm2ext::Keyboard;
+
+list<Gdk::Color> GroupTabs::_used_colors;
 
 GroupTabs::GroupTabs ()
 	: _menu (0)
@@ -52,7 +56,16 @@ GroupTabs::set_session (Session* s)
 	SessionHandlePtr::set_session (s);
 
 	if (_session) {
-		_session->RouteGroupChanged.connect (_session_connections, invalidator (*this), boost::bind (&GroupTabs::set_dirty, this), gui_context());
+		_session->RouteGroupPropertyChanged.connect (
+			_session_connections, invalidator (*this), boost::bind (&GroupTabs::route_group_property_changed, this, _1), gui_context()
+			);
+		_session->RouteAddedToRouteGroup.connect (
+			_session_connections, invalidator (*this), boost::bind (&GroupTabs::route_added_to_route_group, this, _1, _2), gui_context()
+			);
+		_session->RouteRemovedFromRouteGroup.connect (
+			_session_connections, invalidator (*this), boost::bind (&GroupTabs::route_removed_from_route_group, this, _1, _2), gui_context()
+			);
+		
 		_session->route_group_removed.connect (_session_connections, invalidator (*this), boost::bind (&GroupTabs::set_dirty, this), gui_context());
 	}
 }
@@ -100,6 +113,7 @@ GroupTabs::on_button_press_event (GdkEventButton* ev)
 
 		} else {
 			_dragging_new_tab = false;
+			_initial_dragging_routes = routes_for_tab (t);
 		}
 
 		_dragging = t;
@@ -200,12 +214,15 @@ GroupTabs::on_button_release_event (GdkEventButton* ev)
 				boost::shared_ptr<RouteList> r = _session->get_routes ();
 				for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
 
-					if (find (routes.begin(), routes.end(), *i) == routes.end()) {
-						/* this route is not on the list of those that should be in _dragging's group */
-						if ((*i)->route_group() == _dragging->group) {
-							_dragging->group->remove (*i);
-						}
-					} else {
+					bool const was_in_tab = find (
+						_initial_dragging_routes.begin(), _initial_dragging_routes.end(), *i
+						) != _initial_dragging_routes.end ();
+
+					bool const now_in_tab = find (routes.begin(), routes.end(), *i) != routes.end();
+
+					if (was_in_tab && !now_in_tab) {
+						_dragging->group->remove (*i);
+					} else if (!was_in_tab && now_in_tab) {
 						_dragging->group->add (*i);
 					}
 				}
@@ -217,6 +234,7 @@ GroupTabs::on_button_release_event (GdkEventButton* ev)
 	}
 
 	_dragging = 0;
+	_initial_dragging_routes.clear ();
 
 	return true;
 }
@@ -244,8 +262,8 @@ GroupTabs::render (cairo_t* cr)
 
 /** Convert a click position to a tab.
  *  @param c Click position.
- *  @param prev Filled in with the previous tab to the click, or 0.
- *  @param next Filled in with the next tab after the click, or 0.
+ *  @param prev Filled in with the previous tab to the click, or _tabs.end().
+ *  @param next Filled in with the next tab after the click, or _tabs.end().
  *  @return Tab under the click, or 0.
  */
 
@@ -259,6 +277,7 @@ GroupTabs::click_to_tab (double c, list<Tab>::iterator* prev, list<Tab>::iterato
 	while (i != _tabs.end()) {
 
 		if (i->from > c) {
+			*next = i;
 			break;
 		}
 
@@ -273,14 +292,6 @@ GroupTabs::click_to_tab (double c, list<Tab>::iterator* prev, list<Tab>::iterato
 		}
 
 		++i;
-	}
-
-	if (i != _tabs.end()) {
-		*next = i;
-
-		if (under) {
-			(*next)++;
-		}
 	}
 
 	return under;
@@ -507,4 +518,120 @@ void
 GroupTabs::remove_group (RouteGroup* g)
 {
 	_session->remove_route_group (*g);
+}
+
+/** Set the color of the tab of a route group */
+void
+GroupTabs::set_group_color (RouteGroup* group, Gdk::Color color)
+{
+	assert (group);
+
+	/* Hack to disallow black route groups; force a dark grey instead */
+	if (color.get_red() == 0 && color.get_green() == 0 && color.get_blue() == 0) {
+		color.set_grey_p (0.1);
+	}
+	
+	GUIObjectState& gui_state = *ARDOUR_UI::instance()->gui_object_state;
+
+	char buf[64];
+	snprintf (buf, sizeof (buf), "%d:%d:%d", color.get_red(), color.get_green(), color.get_blue());
+	gui_state.set (group_gui_id (group), "color", buf);
+
+	/* This is a bit of a hack, but this might change
+	   our route's effective color, so emit gui_changed
+	   for our routes.
+	*/
+
+	emit_gui_changed_for_members (group);
+}
+
+/** @return the ID string to use for the GUI state of a route group */
+string
+GroupTabs::group_gui_id (RouteGroup* group)
+{
+	assert (group);
+
+	char buf[64];
+	snprintf (buf, sizeof (buf), "route_group %s", group->id().to_s().c_str ());
+
+	return buf;
+}
+
+/** @return the color to use for a route group tab */
+Gdk::Color
+GroupTabs::group_color (RouteGroup* group)
+{
+	assert (group);
+	
+	GUIObjectState& gui_state = *ARDOUR_UI::instance()->gui_object_state;
+
+	string const gui_id = group_gui_id (group);
+
+	bool empty;
+	string const color = gui_state.get_string (gui_id, "color", &empty);
+	if (empty) {
+		/* no color has yet been set, so use a random one */
+		Gdk::Color const color = unique_random_color (_used_colors);
+		set_group_color (group, color);
+		return color;
+	}
+
+	Gdk::Color c;
+
+	int r, g, b;
+
+	sscanf (color.c_str(), "%d:%d:%d", &r, &g, &b);
+
+	c.set_red (r);
+	c.set_green (g);
+	c.set_blue (b);
+	
+	return c;
+}
+
+void
+GroupTabs::route_group_property_changed (RouteGroup* rg)
+{
+	/* This is a bit of a hack, but this might change
+	   our route's effective color, so emit gui_changed
+	   for our routes.
+	*/
+
+	emit_gui_changed_for_members (rg);
+	
+	set_dirty ();
+}
+
+void
+GroupTabs::route_added_to_route_group (RouteGroup* rg, boost::weak_ptr<Route> w)
+{
+	/* Similarly-spirited hack as in route_group_property_changed */
+	
+	boost::shared_ptr<Route> r = w.lock ();
+	if (!r) {
+		return;
+	}
+
+	r->gui_changed (X_("color"), 0);
+}
+
+void
+GroupTabs::route_removed_from_route_group (RouteGroup* rg, boost::weak_ptr<Route> w)
+{
+	/* Similarly-spirited hack as in route_group_property_changed */
+
+	boost::shared_ptr<Route> r = w.lock ();
+	if (!r) {
+		return;
+	}
+
+	r->gui_changed (X_("color"), 0);
+}
+
+void
+GroupTabs::emit_gui_changed_for_members (RouteGroup* rg)
+{
+	for (RouteList::iterator i = rg->route_list()->begin(); i != rg->route_list()->end(); ++i) {
+		(*i)->gui_changed (X_("color"), 0);
+	}
 }

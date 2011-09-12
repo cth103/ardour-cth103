@@ -595,26 +595,42 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 		return true;
 
 	case TempoMarkerItem:
-		_drags->set (
-			new TempoMarkerDrag (
-				this,
-				item,
-				Keyboard::modifier_state_contains (event->button.state, Keyboard::CopyModifier)
-				),
-			event
-			);
-		return true;
+	{
+		TempoMarker* m = reinterpret_cast<TempoMarker*> (item->get_data ("marker"));
+		assert (m);
+		if (m->tempo().movable ()) {
+			_drags->set (
+				new TempoMarkerDrag (
+					this,
+					item,
+					Keyboard::modifier_state_contains (event->button.state, Keyboard::CopyModifier)
+					),
+				event
+				);
+			return true;
+		} else {
+			return false;
+		}
+	}
 
 	case MeterMarkerItem:
-		_drags->set (
-			new MeterMarkerDrag (
-				this,
-				item,
-				Keyboard::modifier_state_contains (event->button.state, Keyboard::CopyModifier)
-				),
-			event
-			);
-		return true;
+	{
+		MeterMarker* m = reinterpret_cast<MeterMarker*> (item->get_data ("marker"));
+		assert (m);
+		if (m->meter().movable ()) {
+			_drags->set (
+				new MeterMarkerDrag (
+					this,
+					item,
+					Keyboard::modifier_state_contains (event->button.state, Keyboard::CopyModifier)
+					),
+				event
+				);
+			return true;
+		} else {
+			return false;
+		}
+	}
 
 	case MarkerBarItem:
 	case TempoBarItem:
@@ -891,7 +907,9 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 			case AutomationTrackItem:
 			{
 				TimeAxisView* parent = clicked_axisview->get_parent ();
-				if (parent && dynamic_cast<MidiTimeAxisView*> (parent)) {
+				AutomationTimeAxisView* atv = dynamic_cast<AutomationTimeAxisView*> (clicked_axisview);
+				assert (atv);
+				if (parent && dynamic_cast<MidiTimeAxisView*> (parent) && atv->show_regions ()) {
 					/* create a MIDI region so that we have somewhere to put automation */
 					_drags->set (new RegionCreateDrag (this, item, parent), event);
 				} else {

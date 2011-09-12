@@ -2388,8 +2388,9 @@ Session::add_route_group (RouteGroup* g)
 	_route_groups.push_back (g);
 	route_group_added (g); /* EMIT SIGNAL */
 
-	g->MembershipChanged.connect_same_thread (*this, boost::bind (&Session::route_group_changed, this));
-	g->PropertyChanged.connect_same_thread (*this, boost::bind (&Session::route_group_changed, this));
+	g->RouteAdded.connect_same_thread (*this, boost::bind (&Session::route_added_to_route_group, this, _1, _2));
+	g->RouteRemoved.connect_same_thread (*this, boost::bind (&Session::route_removed_from_route_group, this, _1, _2));
+	g->PropertyChanged.connect_same_thread (*this, boost::bind (&Session::route_group_property_changed, this, g));
 
 	set_dirty ();
 }
@@ -3453,11 +3454,11 @@ Session::config_changed (std::string p, bool ours)
 
 		//poke_midi_thread ();
 
-	} else if (p == "mmc-device-id" || p == "mmc-receive-id") {
+	} else if (p == "mmc-device-id" || p == "mmc-receive-id" || p == "mmc-receive-device-id") {
 
 		MIDI::Manager::instance()->mmc()->set_receive_device_id (Config->get_mmc_receive_device_id());
 
-	} else if (p == "mmc-send-id") {
+	} else if (p == "mmc-send-id" || p == "mmc-send-device-id") {
 
 		MIDI::Manager::instance()->mmc()->set_send_device_id (Config->get_mmc_send_device_id());
 

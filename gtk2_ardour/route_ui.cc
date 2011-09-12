@@ -44,6 +44,7 @@
 #include "mixer_strip.h"
 #include "automation_time_axis.h"
 #include "route_time_axis.h"
+#include "group_tabs.h"
 
 #include "ardour/route.h"
 #include "ardour/event_type_map.h"
@@ -171,9 +172,7 @@ RouteUI::reset ()
 void
 RouteUI::self_delete ()
 {
-	/* This may be called from a non-GUI thread. Keep it safe */
-
-	delete_when_idle (this);
+	delete this;
 }
 
 void
@@ -206,6 +205,7 @@ RouteUI::set_route (boost::shared_ptr<Route> rp)
 	_route->PropertyChanged.connect (route_connections, invalidator (*this), ui_bind (&RouteUI::property_changed, this, _1), gui_context());
 
 	_route->io_changed.connect (route_connections, invalidator (*this), ui_bind (&RouteUI::setup_invert_buttons, this), gui_context ());
+	_route->gui_changed.connect (route_connections, invalidator (*this), ui_bind (&RouteUI::route_gui_changed, this, _1), gui_context ());
 
 	if (_session->writable() && is_track()) {
 		boost::shared_ptr<Track> t = boost::dynamic_pointer_cast<Track>(_route);
@@ -1258,6 +1258,9 @@ RouteUI::choose_color ()
 	}
 }
 
+/** Set the route's own color.  This may not be used for display if
+ *  the route is in a group which shares its color with its routes.
+ */
 void
 RouteUI::set_color (const Gdk::Color & c)
 {
@@ -1266,14 +1269,26 @@ RouteUI::set_color (const Gdk::Color & c)
 	_color = c;
 
 	snprintf (buf, sizeof (buf), "%d:%d:%d", c.get_red(), c.get_green(), c.get_blue());
-	set_gui_property ("color", buf);
+
+	/* note: we use the route state ID here so that color is the same for both
+	   the time axis view and the mixer strip
+	*/
+	
+	gui_object_state().set<string> (route_state_id(), X_("color"), buf);
 	_route->gui_changed ("color", (void *) 0); /* EMIT_SIGNAL */
+}
+
+/** @return GUI state ID for things that are common to the route in all its representations */
+string
+RouteUI::route_state_id () const
+{
+	return string_compose (X_("route %1"), _route->id().to_s());
 }
 
 int
 RouteUI::set_color_from_route ()
 {
-	const string str = gui_property ("color");
+	const string str = gui_object_state().get_string (route_state_id(), X_("color"));
 
 	if (str.empty()) {
 		return 1;
@@ -1781,4 +1796,30 @@ RouteUI::request_redraw ()
 	if (_route) {
 		_route->gui_changed ("track_height", (void *) 0); /* EMIT_SIGNAL */
 	}
+}
+
+/** The Route's gui_changed signal has been emitted */
+void
+RouteUI::route_gui_changed (string what_changed)
+{
+	if (what_changed == "color") {
+		if (set_color_from_route () == 0) {
+			route_color_changed ();
+		}
+	}
+}
+
+/** @return the color that this route should use; it maybe its own,
+    or it maybe that of its route group.
+*/
+Gdk::Color
+RouteUI::color () const
+{
+	RouteGroup* g = _route->route_group ();
+	
+	if (g && g->is_color()) {
+		return GroupTabs::group_color (g);
+	}
+
+	return _color;
 }

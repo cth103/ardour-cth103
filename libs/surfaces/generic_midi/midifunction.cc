@@ -35,9 +35,11 @@ MIDIFunction::~MIDIFunction ()
 }
 
 int
-MIDIFunction::init (GenericMidiControlProtocol& ui, const std::string& invokable_name, MIDI::byte* msg_data, size_t data_sz)
+MIDIFunction::setup (GenericMidiControlProtocol& ui, const std::string& invokable_name, const std::string& arg, MIDI::byte* msg_data, size_t data_sz)
 {
         MIDIInvokable::init (ui, invokable_name, msg_data, data_sz);
+
+	_argument = arg;
 
 	if (strcasecmp (_invokable_name.c_str(), "transport-stop") == 0) {
 		_function = TransportStop;
@@ -59,6 +61,21 @@ MIDIFunction::init (GenericMidiControlProtocol& ui, const std::string& invokable
 		_function = NextBank;
 	} else if (strcasecmp (_invokable_name.c_str(), "prev-bank") == 0) {
 		_function = PrevBank;
+	} else if (strcasecmp (_invokable_name.c_str(), "select") == 0) {
+		if (_argument.empty()) {
+			return -1;
+		}
+		_function = Select;
+	} else if (strcasecmp (_invokable_name.c_str(), "track-set-solo") == 0) {
+		if (_argument.empty()) {
+			return -1;
+		}
+		_function = TrackSetSolo;
+	} else if (strcasecmp (_invokable_name.c_str(), "track-set-mute") == 0) {
+		if (_argument.empty()) {
+			return -1;
+		}
+		_function = TrackSetMute;
 	} else {
 		return -1;
 	}
@@ -108,6 +125,25 @@ MIDIFunction::execute ()
 
 	case TransportRecordDisable:
 		_ui->set_record_enable (false);
+		break;
+
+	case Select:
+		if (!_argument.empty()) {
+			uint32_t rid;
+			sscanf (_argument.c_str(), "%d", &rid);
+			_ui->SelectByRID (rid);
+		}
+	case TrackSetMute:
+		break;
+	case TrackSetSolo:
+		break;
+	case TrackSetSoloIsolate:
+		break;
+	case TrackSetGain:
+		break;
+	case TrackSetRecordEnable:
+		break;
+	default:
 		break;
 	}
 }

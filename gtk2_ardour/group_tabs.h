@@ -28,8 +28,12 @@ namespace ARDOUR {
 
 class Editor;
 
-/** Parent class for tabs which represent route groups as coloured tabs;
+/** Parent class for tabs which represent route groups as colored tabs;
  *  Currently used on the left-hand side of the editor and at the top of the mixer.
+ *
+ *  This class also contains a fair bit of code to handle changes to route
+ *  group colours; it seems a bit out of place, but I could not really think
+ *  of a better place to put it.
  */
 class GroupTabs : public CairoWidget, public ARDOUR::SessionHandlePtr
 {
@@ -46,6 +50,10 @@ public:
 
 	void run_new_group_dialog (ARDOUR::RouteList const &);
 
+	static void set_group_color (ARDOUR::RouteGroup *, Gdk::Color);
+	static std::string group_gui_id (ARDOUR::RouteGroup *);
+	static Gdk::Color group_color (ARDOUR::RouteGroup *);
+
 protected:
 
 	struct Tab {
@@ -53,11 +61,13 @@ protected:
 
 		double from;
 		double to;
-		Gdk::Color colour; ///< colour
+		Gdk::Color color; ///< color
 		ARDOUR::RouteGroup* group; ///< route group
 	};
 
 private:
+	static void emit_gui_changed_for_members (ARDOUR::RouteGroup *);
+	
 	/** Compute all the tabs for this widget.
 	 *  @return Tabs.
 	 */
@@ -106,9 +116,15 @@ private:
 
 	Tab * click_to_tab (double, std::list<Tab>::iterator *, std::list<Tab>::iterator *);
 
+	void route_group_property_changed (ARDOUR::RouteGroup *);
+	void route_added_to_route_group (ARDOUR::RouteGroup *, boost::weak_ptr<ARDOUR::Route>);
+	void route_removed_from_route_group (ARDOUR::RouteGroup *, boost::weak_ptr<ARDOUR::Route>);
+
 	Gtk::Menu* _menu;
 	std::list<Tab> _tabs; ///< current list of tabs
 	Tab* _dragging; ///< tab being dragged, or 0
+	/** routes that were in the tab that is being dragged when the drag started */
+	ARDOUR::RouteList _initial_dragging_routes;
 	bool _dragging_new_tab; ///< true if we're dragging a new tab
 	bool _drag_moved; ///< true if there has been movement during any current drag
 	double _drag_fixed; ///< the position of the fixed end of the tab being dragged
@@ -117,4 +133,7 @@ private:
 	double _drag_min; ///< minimum position for drag
 	double _drag_max; ///< maximum position for drag
 	double _drag_first; ///< first mouse pointer position during drag
+
+	/** colors that have been used for new route group tabs */
+	static std::list<Gdk::Color> _used_colors;
 };

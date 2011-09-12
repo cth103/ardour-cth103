@@ -51,6 +51,7 @@ namespace ARDOUR {
 		PropertyDescriptor<bool> select;
 		PropertyDescriptor<bool> edit;
 		PropertyDescriptor<bool> route_active;
+		PropertyDescriptor<bool> color;
 	}
 }
 
@@ -77,6 +78,8 @@ RouteGroup::make_property_quarks ()
         DEBUG_TRACE (DEBUG::Properties, string_compose ("quark for edit = %1\n", 	Properties::edit.property_id));
 	Properties::route_active.property_id = g_quark_from_static_string (X_("route-active"));
         DEBUG_TRACE (DEBUG::Properties, string_compose ("quark for route-active = %1\n", Properties::route_active.property_id));
+	Properties::color.property_id = g_quark_from_static_string (X_("color"));
+        DEBUG_TRACE (DEBUG::Properties, string_compose ("quark for color = %1\n",       Properties::color.property_id));
 }
 
 #define ROUTE_GROUP_DEFAULT_PROPERTIES  _relative (Properties::relative, false) \
@@ -88,7 +91,8 @@ RouteGroup::make_property_quarks ()
 	, _recenable (Properties::recenable, false) \
 	, _select (Properties::select, false) \
 	, _edit (Properties::edit, false) \
-	, _route_active (Properties::route_active, false)
+	, _route_active (Properties::route_active, false) \
+	, _color (Properties::color, false)
 
 RouteGroup::RouteGroup (Session& s, const string &n)
 	: SessionObject (s, n)
@@ -107,6 +111,7 @@ RouteGroup::RouteGroup (Session& s, const string &n)
 	add_property (_select);
 	add_property (_edit);
 	add_property (_route_active);
+	add_property (_color);
 }
 
 RouteGroup::~RouteGroup ()
@@ -139,7 +144,7 @@ RouteGroup::add (boost::shared_ptr<Route> r)
 	r->DropReferences.connect_same_thread (*this, boost::bind (&RouteGroup::remove_when_going_away, this, boost::weak_ptr<Route> (r)));
 
 	_session.set_dirty ();
-	MembershipChanged (); /* EMIT SIGNAL */
+	RouteAdded (this, boost::weak_ptr<Route> (r)); /* EMIT SIGNAL */
 	return 0;
 }
 
@@ -162,7 +167,7 @@ RouteGroup::remove (boost::shared_ptr<Route> r)
 		r->leave_route_group ();
 		routes->erase (i);
 		_session.set_dirty ();
-		MembershipChanged (); /* EMIT SIGNAL */
+		RouteRemoved (this, boost::weak_ptr<Route> (r)); /* EMIT SIGNAL */
 		return 0;
 	}
 
@@ -171,51 +176,56 @@ RouteGroup::remove (boost::shared_ptr<Route> r)
 
 
 gain_t
-RouteGroup::get_min_factor(gain_t factor)
+RouteGroup::get_min_factor (gain_t factor)
 {
-	gain_t g;
-
 	for (RouteList::iterator i = routes->begin(); i != routes->end(); ++i) {
-		g = (*i)->amp()->gain();
+		gain_t const g = (*i)->amp()->gain();
 
-		if ( (g+g*factor) >= 0.0f)
+		if ((g + g * factor) >= 0.0f) {
 			continue;
+		}
 
-		if ( g <= 0.0000003f )
+		if (g <= 0.0000003f) {
 			return 0.0f;
+		}
 
-		factor = 0.0000003f/g - 1.0f;
+		factor = 0.0000003f / g - 1.0f;
 	}
+	
 	return factor;
 }
 
 gain_t
-RouteGroup::get_max_factor(gain_t factor)
+RouteGroup::get_max_factor (gain_t factor)
 {
-	gain_t g;
-
 	for (RouteList::iterator i = routes->begin(); i != routes->end(); i++) {
-		g = (*i)->amp()->gain();
+		gain_t const g = (*i)->amp()->gain();
 
 		// if the current factor woulnd't raise this route above maximum
-		if ( (g+g*factor) <= 1.99526231f)
+		if ((g + g * factor) <= 1.99526231f) {
 			continue;
+		}
 
 		// if route gain is already at peak, return 0.0f factor
-	    if (g>=1.99526231f)
+		if (g >= 1.99526231f) {
 			return 0.0f;
+		}
 
 		// factor is calculated so that it would raise current route to max
-		factor = 1.99526231f/g - 1.0f;
+		factor = 1.99526231f / g - 1.0f;
 	}
 
 	return factor;
 }
 
 XMLNode&
-RouteGroup::get_state (void)
+RouteGroup::get_state ()
 {
 	XMLNode *node = new XMLNode ("RouteGroup");
+
+	char buf[64];
+	id().print (buf, sizeof (buf));
+	node->add_property ("id", buf);
 
 	add_properties (*node);
 
@@ -239,9 +249,13 @@ RouteGroup::set_state (const XMLNode& node, int version)
 		return set_state_2X (node, version);
 	}
 
-	set_values (node);
-
 	const XMLProperty *prop;
+
+	if ((prop = node.property ("id")) != 0) {
+		_id = prop->value();
+	}
+
+	set_values (node);
 
 	if ((prop = node.property ("routes")) != 0) {
 		stringstream str (prop->value());
@@ -273,6 +287,7 @@ RouteGroup::set_state_2X (const XMLNode& node, int /*version*/)
 		_recenable = true;
 		_edit = false;
 		_route_active = true;
+		_color = false;
 	} else if (node.name() == "EditGroup") {
 		_gain = false;
 		_mute = false;
@@ -280,6 +295,7 @@ RouteGroup::set_state_2X (const XMLNode& node, int /*version*/)
 		_recenable = false;
 		_edit = true;
 		_route_active = false;
+		_color = false;
 	}
 
 	return 0;
@@ -349,6 +365,24 @@ RouteGroup::set_route_active (bool yn)
 }
 
 void
+RouteGroup::set_color (bool yn)
+{
+	if (is_color() == yn) {
+		return;
+	}
+	_color = yn;
+
+	/* This is a bit of a hack, but this might change
+	   our route's effective color, so emit gui_changed
+	   for our routes.
+	*/
+
+	for (RouteList::iterator i = routes->begin(); i != routes->end(); ++i) {
+		(*i)->gui_changed (X_("color"), this);
+	}
+}
+
+void
 RouteGroup::set_active (bool yn, void* /*src*/)
 {
 	if (is_active() == yn) {
@@ -390,7 +424,7 @@ RouteGroup::set_hidden (bool yn, void* /*src*/)
 		}
 	}
 
-	PropertyChanged (Properties::hidden); /* EMIT SIGNAL */
+	send_change (Properties::hidden);
 
 	_session.set_dirty ();
 }

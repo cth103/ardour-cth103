@@ -81,6 +81,8 @@ InternalSend::use_target (boost::shared_ptr<Route> sendto)
 	mixbufs.ensure_buffers (_send_to->internal_return()->input_streams(), _session.get_block_size());
 	mixbufs.set_count (_send_to->internal_return()->input_streams());
 
+	reset_panner ();
+
         set_name (sendto->name());
         _send_to_id = _send_to->id();
 
@@ -111,11 +113,10 @@ InternalSend::run (BufferSet& bufs, framepos_t start_frame, framepos_t end_frame
 	// we have to copy the input, because we may alter the buffers with the amp
 	// in-place, which a send must never do.
 
-	assert(mixbufs.available() >= bufs.count());
-
 	if (_panshell && !_panshell->bypassed()) {
 		_panshell->run (bufs, mixbufs, start_frame, end_frame, nframes);
 	} else {
+		assert (mixbufs.available() >= bufs.count());
 		mixbufs.read_from (bufs, nframes);
 	}
 
@@ -258,6 +259,22 @@ InternalSend::can_support_io_configuration (const ChanCount& in, ChanCount& out)
 {
 	out = in;
 	return true;
+}
+
+uint32_t
+InternalSend::pan_outs () const
+{
+	/* the number of targets for our panner is determined by what we are
+	   sending to, if anything.
+	*/
+
+	if (_send_to) {
+		return _send_to->internal_return()->input_streams().n_audio();
+	}
+
+	return 1; /* zero is more accurate, but 1 is probably safer as a way to
+		   * say "don't pan"
+		   */
 }
 
 bool

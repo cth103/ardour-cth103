@@ -983,6 +983,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	Gtk::HBox           edit_controls_hbox;
 
 	void control_scroll (float);
+	void control_select (uint32_t rid);
 	void access_action (std::string,std::string);
 	bool deferred_control_scroll (framepos_t);
 	sigc::connection control_scroll_connection;
@@ -1056,9 +1057,11 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	bool button_release_handler (Canvas::Item*, GdkEvent*, ItemType);
 	bool button_press_dispatch (GdkEventButton*);
 	bool button_release_dispatch (GdkEventButton*);
-	bool motion_handler (Canvas::Item*, GdkEvent*, bool from_autoscroll = false);
-	bool enter_handler (Canvas::Item*, GdkEvent*, ItemType);
-	bool leave_handler (Canvas::Item*, GdkEvent*, ItemType);
+	bool motion_handler (ArdourCanvas::Item*, GdkEvent*, bool from_autoscroll = false);
+	bool enter_handler (ArdourCanvas::Item*, GdkEvent*, ItemType);
+	bool leave_handler (ArdourCanvas::Item*, GdkEvent*, ItemType);
+	bool key_press_handler (ArdourCanvas::Item*, GdkEvent*, ItemType);
+	bool key_release_handler (ArdourCanvas::Item*, GdkEvent*, ItemType);
 
 	Gtkmm2ext::Bindings* button_bindings;
 	XMLNode* button_settings () const;
@@ -1086,6 +1089,9 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void toggle_region_lock ();
 	void toggle_opaque_region ();
 	void toggle_record_enable ();
+	void toggle_solo ();
+	void toggle_solo_isolate ();
+	void toggle_mute ();
 	void toggle_region_lock_style ();
 	void raise_region ();
 	void raise_region_to_top ();
@@ -1129,7 +1135,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void fork_region ();
 
 	void do_insert_time ();
-	void insert_time (framepos_t, framecnt_t, Editing::InsertTimeOption, bool, bool, bool, bool, bool);
+	void insert_time (framepos_t, framecnt_t, Editing::InsertTimeOption, bool, bool, bool, bool, bool, bool);
 
 	void tab_to_transient (bool forward);
 

@@ -94,8 +94,12 @@ class RegionView : public TimeAxisViewItem
 
 	static PBD::Signal1<void,RegionView*> RegionViewGoingAway;
 
-	ARDOUR::BeatsFramesConverter const & time_converter () {
-		return _time_converter;
+	ARDOUR::BeatsFramesConverter const & region_relative_time_converter () const {
+		return _region_relative_time_converter;
+	}
+
+	ARDOUR::BeatsFramesConverter const & source_relative_time_converter () const {
+		return _source_relative_time_converter;
 	}
 
 	/** Called when a front trim is about to begin */
@@ -114,6 +118,8 @@ class RegionView : public TimeAxisViewItem
         void drop_silent_frames ();
         void hide_silent_frames ();
 
+	ARDOUR::frameoffset_t snap_frame_to_frame (ARDOUR::frameoffset_t) const;
+	
   protected:
 
 	/** Allows derived types to specify their visibility requirements
@@ -180,7 +186,8 @@ class RegionView : public TimeAxisViewItem
          */
         Canvas::Text* _silence_text;
 	
-	ARDOUR::BeatsFramesConverter _time_converter;
+	ARDOUR::BeatsFramesConverter _region_relative_time_converter;
+	ARDOUR::BeatsFramesConverter _source_relative_time_converter;
 };
 
 #endif /* __gtk_ardour_region_view_h__ */

@@ -31,7 +31,7 @@ using namespace Editing;
 InsertTimeDialog::InsertTimeDialog (PublicEditor& e)
 	: ArdourDialog (_("Insert Time"))
 	, _editor (e)
-	, _clock ("insertTimeClock", true, X_("InsertTimeClock"), true, false, true, true)
+	, _clock ("insertTimeClock", true, X_("InsertTimeClock"), true, false, true, false)
 {
 	set_session (_editor.session ());
 
@@ -61,6 +61,9 @@ InsertTimeDialog::InsertTimeDialog (PublicEditor& e)
 	table->attach (_intersected_combo, 1, 2, 1, 2);
 
 	get_vbox()->pack_start (*table);
+
+	_all_playlists.set_label (_("Insert time on all the track's playlists"));
+	get_vbox()->pack_start (_all_playlists);
 
 	_move_glued.set_label (_("Move glued regions"));
 	get_vbox()->pack_start (_move_glued);
@@ -106,6 +109,12 @@ InsertTimeDialog::intersected_region_action ()
 	}
 
 	return opt;
+}
+
+bool
+InsertTimeDialog::all_playlists () const
+{
+	return _all_playlists.get_active ();
 }
 
 bool
