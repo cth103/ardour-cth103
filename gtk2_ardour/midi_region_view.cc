@@ -1573,7 +1573,7 @@ MidiRegionView::update_note (Note* ev, bool update_ghost_regions)
 {
 	boost::shared_ptr<NoteType> note = ev->note();
 
-	const framepos_t note_start_frames = source_beats_to_frames(note->time());
+	const framepos_t note_start_frames = source_beats_to_region_frames (note->time());
 
 	/* trim note display to not overlap the end of its region */
 	const framepos_t note_end_frames = min (source_beats_to_region_frames (note->end_time()), _region->length());
@@ -1988,7 +1988,7 @@ MidiRegionView::delete_note (boost::shared_ptr<NoteType> n)
 }
 
 void
-MidiRegionView::clear_selection_except (ArdourCanvas::CanvasNoteEvent* ev)
+MidiRegionView::clear_selection_except (NoteBase* ev)
 {
 	for (Selection::iterator i = _selection.begin(); i != _selection.end(); ) {
 		if ((*i) != ev) {
@@ -2011,7 +2011,7 @@ MidiRegionView::clear_selection_except (ArdourCanvas::CanvasNoteEvent* ev)
 }
 
 void
-MidiRegionView::unique_select(ArdourCanvas::CanvasNoteEvent* ev)
+MidiRegionView::unique_select (NoteBase* ev)
 {
 	clear_selection_except (ev);
 

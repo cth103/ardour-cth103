@@ -1084,15 +1084,14 @@ Editor::track_canvas_drag_motion (Glib::RefPtr<Gdk::DragContext> const & /*c*/, 
 }
 
 bool
-Editor::key_press_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType type)
+Editor::key_press_handler (Canvas::Item* item, GdkEvent* event, ItemType type)
 {
 	return false;
 }
 
 bool
-Editor::key_release_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType type)
+Editor::key_release_handler (Canvas::Item* item, GdkEvent* event, ItemType type)
 {
-
 	bool handled = false;
 
 	switch (type) {
