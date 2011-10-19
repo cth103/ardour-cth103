@@ -1,20 +1,19 @@
 #!/usr/bin/env python
-import autowaf
-import Options
+from waflib.extras import autowaf as autowaf
+from waflib import Options
 import os
 import re
 import string
 import subprocess
 import sys
-import glob
 
 # Variables for 'waf dist'
 VERSION = '3.0alpha10'
 APPNAME = 'Ardour'
 
 # Mandatory variables
-srcdir = '.'
-blddir = 'build'
+top = '.'
+out = 'build'
 
 children = [
         'libs/pbd',
@@ -32,20 +31,28 @@ children = [
         'libs/gtkmm2ext',
         'libs/clearlooks-newer',
         'libs/audiographer',
+<<<<<<< HEAD
         'libs/canvas',
+=======
+>>>>>>> origin/master
         'gtk2_ardour',
         'templates',
         'export',
-# this needs to be conditional at some point, since
-# we will not build it or use it on OS X
-        'tools/sanity_check'
 ]
+
+#if config[config_arch] != 'apple':
+#  children += [ 'tools/sanity_check' ]
 
 i18n_children = [
         'gtk2_ardour',
         'libs/ardour',
         'libs/gtkmm2ext',
 ]
+
+if sys.platform != 'darwin':
+    children += [ 'tools/sanity_check' ]
+else:
+    children += [ 'libs/appleutility' ]
 
 # Version stuff
 
@@ -139,22 +146,22 @@ def set_compiler_flags (conf,opt):
         if config[config_arch] == 'apple':
             # The [.] matches to the dot after the major version, "." would match any character
             if re.search ("darwin[0-7][.]", config[config_kernel]) != None:
-                conf.define ('build_target', 'panther')
+                conf.env['build_target'] = 'panther'
             elif re.search ("darwin8[.]", config[config_kernel]) != None:
-                conf.define ('build_target', 'tiger')
+                conf.env['build_target'] = 'tiger'
             else:
-                conf.define ('build_target', 'leopard')
+                conf.env['build_target'] = 'leopard'
         else:
             if re.search ("x86_64", config[config_cpu]) != None:
-                conf.define ('build_target', 'x86_64')
+                conf.env['build_target'] = 'x86_64'
             elif re.search("i[0-5]86", config[config_cpu]) != None:
-                conf.define ('build_target', 'i386')
+                conf.env['build_target'] = 'i386'
             elif re.search("powerpc", config[config_cpu]) != None:
-                conf.define ('build_target', 'powerpc')
+                conf.env['build_target'] = 'powerpc'
             else:
-                conf.define ('build_target', 'i686')
+                conf.env['build_target'] = 'i686'
     else:
-        conf.define ('build_target', opt.dist_target)
+        conf.env['build_target'] = opt.dist_target
 
     if config[config_cpu] == 'powerpc' and conf.env['build_target'] != 'none':
         #
@@ -231,8 +238,9 @@ def set_compiler_flags (conf,opt):
             print("\nWarning: you are building Ardour with SSE support even though your system does not support these instructions. (This may not be an error, especially if you are a package maintainer)")
 
     # check this even if we aren't using FPU optimization
-    if not conf.env['HAVE_POSIX_MEMALIGN']:
+    if not conf.is_defined('HAVE_POSIX_MEMALIGN'):
         optimization_flags.append("-DNO_POSIX_MEMALIGN")
+	debug_flags.append("-DNO_POSIX_MEMALIGN")
 
     # end optimization section
 
@@ -247,6 +255,15 @@ def set_compiler_flags (conf,opt):
         print("However, this is tricky and not recommended for beginners.")
         sys.exit (-1)
 
+    if opt.lxvst:
+        if conf.env['build_target'] == 'x86_64':
+            print("\n\n********************************************************")
+            print("* Building with 64Bit linuxVST support is experimental *")
+            print("********************************************************\n\n")
+            conf.env.append_value('CXXFLAGS', "-DLXVST_64BIT")
+        else:
+            conf.env.append_value('CXXFLAGS', "-DLXVST_32BIT")
+
     #
     # a single way to test if we're on OS X
     #
@@ -255,7 +272,7 @@ def set_compiler_flags (conf,opt):
         conf.define ('IS_OSX', 1)
         # force tiger or later, to avoid issues on PPC which defaults
         # back to 10.1 if we don't tell it otherwise.
-        conf.env.append_value('CCFLAGS', "-DMAC_OS_X_VERSION_MIN_REQUIRED=1040")
+        conf.env.append_value('CFLAGS', "-DMAC_OS_X_VERSION_MIN_REQUIRED=1040")
 
     else:
         conf.define ('IS_OSX', 0)
@@ -277,7 +294,7 @@ def set_compiler_flags (conf,opt):
     #
 
     optimization_flags[:0] = [
-            "-O3",
+            "-g", "-O2",
             "-fomit-frame-pointer",
             "-ffast-math",
             "-fstrength-reduce",
@@ -285,11 +302,11 @@ def set_compiler_flags (conf,opt):
             ]
 
     if opt.debug:
-        conf.env.append_value('CCFLAGS', debug_flags)
+        conf.env.append_value('CFLAGS', debug_flags)
         conf.env.append_value('CXXFLAGS', debug_flags)
         conf.env.append_value('LINKFLAGS', debug_flags)
     else:
-        conf.env.append_value('CCFLAGS', optimization_flags)
+        conf.env.append_value('CFLAGS', optimization_flags)
         conf.env.append_value('CXXFLAGS', optimization_flags)
         conf.env.append_value('LINKFLAGS', optimization_flags)
 
@@ -297,12 +314,12 @@ def set_compiler_flags (conf,opt):
         conf.env.append_value('CXXFLAGS', "-D_GLIBCXX_DEBUG")
 
     if conf.env['DEBUG_RT_ALLOC']:
-        conf.env.append_value('CCFLAGS', '-DDEBUG_RT_ALLOC')
+        conf.env.append_value('CFLAGS', '-DDEBUG_RT_ALLOC')
         conf.env.append_value('CXXFLAGS', '-DDEBUG_RT_ALLOC')
         conf.env.append_value('LINKFLAGS', '-ldl')
 
     if opt.universal:
-        conf.env.append_value('CCFLAGS', "-arch i386 -arch ppc")
+        conf.env.append_value('CFLAGS', "-arch i386 -arch ppc")
         conf.env.append_value('CXXFLAGS', "-arch i386 -arch ppc")
         conf.env.append_value('LINKFLAGS', "-arch i386 -arch ppc")
 
@@ -310,21 +327,21 @@ def set_compiler_flags (conf,opt):
     # warnings flags
     #
 
-    conf.env.append_value('CCFLAGS', "-Wall")
+    conf.env.append_value('CFLAGS', "-Wall")
     conf.env.append_value('CXXFLAGS', [ '-Wall', '-Woverloaded-virtual'])
 
     if opt.extra_warn:
         flags = [ '-Wextra' ]
-        conf.env.append_value('CCFLAGS', flags )
-        conf.env.append_value('CXXFLAGS', flags )
+        conf.env.append_value('CFLAGS', flags)
+        conf.env.append_value('CXXFLAGS', flags)
 
 
     #
     # more boilerplate
     #
 
-    conf.env.append_value('CCFLAGS', '-D_LARGEFILE64_SOURCE')
-    conf.env.append_value('CCFLAGS', '-D_FILE_OFFSET_BITS=64')
+    conf.env.append_value('CFLAGS', '-D_LARGEFILE64_SOURCE')
+    conf.env.append_value('CFLAGS', '-D_FILE_OFFSET_BITS=64')
     conf.env.append_value('CXXFLAGS', '-D_LARGEFILE64_SOURCE')
     conf.env.append_value('CXXFLAGS', '-D_FILE_OFFSET_BITS=64')
 
@@ -336,13 +353,15 @@ def set_compiler_flags (conf,opt):
 
     if opt.nls:
         conf.env.append_value('CXXFLAGS', '-DENABLE_NLS')
-        conf.env.append_value('CCFLAGS', '-DENABLE_NLS')
+        conf.env.append_value('CFLAGS', '-DENABLE_NLS')
 
 #----------------------------------------------------------------
 
 # Waf stages
 
-def set_options(opt):
+def options(opt):
+    opt.load('compiler_c')
+    opt.load('compiler_cxx')
     autowaf.set_options(opt)
     opt.add_option('--program-name', type='string', action='store', default='Ardour', dest='program_name',
                     help='The user-visible name of the program being built')
@@ -364,11 +383,14 @@ def set_options(opt):
     opt.add_option('--gprofile', action='store_true', default=False, dest='gprofile',
                     help='Compile for use with gprofile')
     opt.add_option('--lv2', action='store_true', default=False, dest='lv2',
-                    help='Compile with support for LV2 (if SLV2 or Lilv+Suil is available)')
+                    help='Compile with support for LV2 (if Lilv+Suil is available)')
+    opt.add_option('--lxvst', action='store_true', default=True, dest='lxvst',
+                    help='Compile with support for linuxVST plugins')
     opt.add_option('--nls', action='store_true', default=True, dest='nls',
                     help='Enable i18n (native language support) (default)')
     opt.add_option('--no-nls', action='store_false', dest='nls')
-    opt.add_option('--phone-home', action='store_false', default=True, dest='phone_home')
+    opt.add_option('--optimize', action='store_false', dest='debug')
+    opt.add_option('--phone-home', action='store_false', default=False, dest='phone_home')
     opt.add_option('--stl-debug', action='store_true', default=False, dest='stl_debug',
                     help='Build with debugging for the STL')
     opt.add_option('--rt-alloc-debug', action='store_true', default=False, dest='rt_alloc_debug',
@@ -395,13 +417,15 @@ def set_options(opt):
     opt.add_option('--noconfirm', action='store_true', default=False, dest='noconfirm',
                     help='Do not ask questions that require confirmation during the build')
     for i in children:
-        opt.sub_options(i)
+        opt.recurse(i)
 
 def sub_config_and_use(conf, name, has_objects = True):
-    conf.sub_config(name)
+    conf.recurse(name)
     autowaf.set_local_lib(conf, name, has_objects)
 
 def configure(conf):
+    conf.load('compiler_c')
+    conf.load('compiler_cxx')
     if not Options.options.noconfirm:
         print ('\n\nThis is an alpha version of Ardour 3.0.\n\n' +
                'You are respectfully requested NOT to ask for assistance with build issues\n' +
@@ -425,9 +449,9 @@ def configure(conf):
 
     if sys.platform == 'darwin':
 
-        conf.define ('AUDIOUNITS', 1)
+        conf.define ('HAVE_COREAUDIO', 1)
+        conf.define ('AUDIOUNIT_SUPPORT', 1)
         conf.define ('AU_STATE_SUPPORT', 1)
-        conf.define ('COREAUDIO', 1)
         conf.define ('GTKOSX', 1)
         conf.define ('TOP_MENUBAR',1)
         conf.define ('GTKOSX',1)
@@ -438,20 +462,20 @@ def configure(conf):
         #       on Darwin to add all applicable flags at once
         #
         conf.env.append_value('CXXFLAGS_OSX', '-DMAC_OS_X_VERSION_MIN_REQUIRED=1040')
-        conf.env.append_value('CCFLAGS_OSX', '-DMAC_OS_X_VERSION_MIN_REQUIRED=1040')
+        conf.env.append_value('CFLAGS_OSX', '-DMAC_OS_X_VERSION_MIN_REQUIRED=1040')
         conf.env.append_value('CXXFLAGS_OSX', '-mmacosx-version-min=10.4')
-        conf.env.append_value('CCFLAGS_OSX', '-mmacosx-version-min=10.4')
+        conf.env.append_value('CFLAGS_OSX', '-mmacosx-version-min=10.4')
 
         #conf.env.append_value('CXXFLAGS_OSX', "-isysroot /Developer/SDKs/MacOSX10.4u.sdk")
-        #conf.env.append_value('CCFLAGS_OSX', "-isysroot /Developer/SDKs/MacOSX10.4u.sdk")
+        #conf.env.append_value('CFLAGS_OSX', "-isysroot /Developer/SDKs/MacOSX10.4u.sdk")
         #conf.env.append_value('LINKFLAGS_OSX', "-isysroot /Developer/SDKs/MacOSX10.4u.sdk")
 
         #conf.env.append_value('LINKFLAGS_OSX', "-sysroot /Developer/SDKs/MacOSX10.4u.sdk")
 
         conf.env.append_value('CXXFLAGS_OSX', "-msse")
-        conf.env.append_value('CCFLAGS_OSX', "-msse")
+        conf.env.append_value('CFLAGS_OSX', "-msse")
         conf.env.append_value('CXXFLAGS_OSX', "-msse2")
-        conf.env.append_value('CCFLAGS_OSX', "-msse2")
+        conf.env.append_value('CFLAGS_OSX', "-msse2")
         #
         #       TODO: The previous sse flags NEED to be based
         #       off processor type.  Need to add in a check
@@ -470,22 +494,22 @@ def configure(conf):
 
         conf.env.append_value('LINKFLAGS_GTKOSX', [ '-Xlinker', '-headerpad'])
         conf.env.append_value('LINKFLAGS_GTKOSX', ['-Xlinker', '2048'])
-        conf.env.append_value('CPPPATH_GTKOSX', "/System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Headers/")
 
-        conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DHAVE_AUDIOUNITS")
+        conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DAUDIOUNIT_SUPPORT")
+        conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DAU_STATE_SUPPORT")
         conf.env.append_value('LINKFLAGS_AUDIOUNITS', ['-framework', 'Audiotoolbox', '-framework', 'AudioUnit'])
 
     if Options.options.boost_include != '':
         conf.env.append_value('CPPPATH', Options.options.boost_include)
 
-    autowaf.check_header(conf, 'boost/signals2.hpp', mandatory = True)
+    autowaf.check_header(conf, 'cxx', 'boost/signals2.hpp', mandatory = True)
 
     if Options.options.boost_sp_debug:
         conf.env.append_value('CXXFLAGS', '-DBOOST_SP_ENABLE_DEBUG_HOOKS')
 
-    autowaf.check_header(conf, 'jack/session.h', define="JACK_SESSION", mandatory = False)
+    autowaf.check_header(conf, 'cxx', 'jack/session.h', define="JACK_SESSION", mandatory = False)
 
-    conf.check_cc(fragment = "#include <boost/version.hpp>\nint main(void) { return (BOOST_VERSION >= 103900 ? 0 : 1); }\n",
+    conf.check_cxx(fragment = "#include <boost/version.hpp>\nint main(void) { return (BOOST_VERSION >= 103900 ? 0 : 1); }\n",
                   execute = "1",
                   mandatory = True,
                   msg = 'Checking for boost library >= 1.39',
@@ -498,51 +522,56 @@ def configure(conf):
     autowaf.check_pkg(conf, 'glibmm-2.4', uselib_store='GLIBMM', atleast_version='2.14.0')
     autowaf.check_pkg(conf, 'sndfile', uselib_store='SNDFILE', atleast_version='1.0.18')
 
-    if sys.platform == 'darwin':
-        sub_config_and_use(conf, 'libs/appleutility')
     for i in children:
         sub_config_and_use(conf, i)
 
     # Fix utterly braindead FLAC include path to not smash assert.h
-    conf.env['CPPPATH_FLAC'] = []
+    conf.env['INCLUDES_FLAC'] = []
 
     conf.check_cc(function_name='dlopen', header_name='dlfcn.h', linkflags='-ldl', uselib_store='DL')
     conf.check_cc(function_name='curl_global_init', header_name='curl/curl.h', linkflags='-lcurl', uselib_store='CURL')
 
     # Tell everyone that this is a waf build
 
-    conf.env.append_value('CCFLAGS', '-DWAF_BUILD')
+    conf.env.append_value('CFLAGS', '-DWAF_BUILD')
     conf.env.append_value('CXXFLAGS', '-DWAF_BUILD')
 
-    # Set up waf environment
+    # Set up waf environment and C defines
     opts = Options.options
     if opts.debug:
         opts.phone_home = False;   # debug builds should not call home
     if opts.phone_home:
         conf.env['PHONE_HOME'] = opts.phone_home
     if opts.fpu_optimization:
-        conf.define('FPU_OPTIMIZATION', 1)
+        conf.env['FPU_OPTIMIZATION'] = True
     if opts.freesound:
         conf.define('FREESOUND',1)
+        conf.env['FREESOUND'] = True
     if opts.nls:
-        conf.define ('ENABLE_NLS', 1)
+        conf.define('ENABLE_NLS', 1)
+        conf.env['ENABLE_NLS'] = True
     if opts.build_tests:
         conf.env['BUILD_TESTS'] = opts.build_tests
     if opts.tranzport:
-        conf.define('TRANZPORT', 1)
+        conf.env['TRANZPORT'] = 1
     if opts.vst:
         conf.define('VST_SUPPORT', 1)
+        conf.env['VST_SUPPORT'] = True
         conf.env.append_value('CPPPATH', Options.options.wine_include)
-        autowaf.check_header(conf, 'windows.h', mandatory = True)
+        autowaf.check_header(conf, 'cxx', 'windows.h', mandatory = True)
+    if opts.lxvst:
+        conf.define('LXVST_SUPPORT', 1)
+        conf.env['LXVST_SUPPORT'] = True
     if bool(conf.env['JACK_SESSION']):
-        conf.define ('HAVE_JACK_SESSION', 1)
+        conf.define('HAVE_JACK_SESSION', 1)
     if opts.wiimote:
-        conf.define('WIIMOTE',1)
+        conf.define('WIIMOTE', 1)
+        conf.env['WIIMOTE'] = True
     conf.define('WINDOWS_KEY', opts.windows_key)
     conf.env['PROGRAM_NAME'] = opts.program_name
     if opts.rt_alloc_debug:
         conf.define('DEBUG_RT_ALLOC', 1)
-    if not conf.env['HAVE_CPPUNIT']:
+    if not conf.is_defined('HAVE_CPPUNIT'):
         conf.env['BUILD_TESTS'] = False
 
     set_compiler_flags (conf, Options.options)
@@ -565,31 +594,34 @@ const char* const ardour_config_info = "\\n\\
     write_config_text('Strict compiler flags', conf.env['STRICT'])
 
     write_config_text('Architecture flags',    opts.arch)
-    write_config_text('Aubio',                 bool(conf.env['HAVE_AUBIO']))
+    write_config_text('Aubio',                 conf.is_defined('HAVE_AUBIO'))
+    write_config_text('AudioUnits',            conf.is_defined('AUDIOUNIT_SUPPORT'))
+    write_config_text('AU state support',      conf.is_defined('AU_STATE_SUPPORT'))
     write_config_text('Build target',          conf.env['build_target'])
-    write_config_text('CoreAudio',             bool(conf.env['HAVE_COREAUDIO']))
-    write_config_text('FLAC',                  bool(conf.env['HAVE_FLAC']))
+    write_config_text('CoreAudio',             conf.is_defined('HAVE_COREAUDIO'))
+    write_config_text('FLAC',                  conf.is_defined('HAVE_FLAC'))
     write_config_text('FPU optimization',      opts.fpu_optimization)
     write_config_text('Freedesktop files',     opts.freedesktop)
     write_config_text('Freesound',             opts.freesound)
-    write_config_text('JACK session support',  bool(conf.env['JACK_SESSION']))
-    write_config_text('LV2 UI embedding',      bool(conf.env['HAVE_SUIL']))
-    write_config_text('LV2 support',           bool(conf.env['LV2_SUPPORT']))
-    write_config_text('OGG',                   bool(conf.env['HAVE_OGG']))
-    write_config_text('Phone home',            bool(conf.env['PHONE_HOME']))
+    write_config_text('JACK session support',  conf.is_defined('JACK_SESSION'))
+    write_config_text('LV2 UI embedding',      conf.is_defined('HAVE_SUIL'))
+    write_config_text('LV2 support',           conf.is_defined('LV2_SUPPORT'))
+    write_config_text('LXVST support',         conf.is_defined('LXVST_SUPPORT'))
+    write_config_text('OGG',                   conf.is_defined('HAVE_OGG'))
+    write_config_text('Phone home',            conf.is_defined('PHONE_HOME'))
     write_config_text('Program name',          opts.program_name)
-    write_config_text('Rubberband',            bool(conf.env['HAVE_RUBBERBAND']))
-    write_config_text('Samplerate',            bool(conf.env['HAVE_SAMPLERATE']))
-    write_config_text('Soundtouch',            bool(conf.env['HAVE_SOUNDTOUCH']))
+    write_config_text('Rubberband',            conf.is_defined('HAVE_RUBBERBAND'))
+    write_config_text('Samplerate',            conf.is_defined('HAVE_SAMPLERATE'))
+    write_config_text('Soundtouch',            conf.is_defined('HAVE_SOUNDTOUCH'))
     write_config_text('Translation',           opts.nls)
     write_config_text('Tranzport',             opts.tranzport)
-    write_config_text('Unit tests',            bool(conf.env['BUILD_TESTS']))
+    write_config_text('Unit tests',            conf.is_defined('BUILD_TESTS'))
     write_config_text('Universal binary',      opts.universal)
     write_config_text('VST support',           opts.vst)
     write_config_text('Wiimote support',       opts.wiimote)
     write_config_text('Windows key',           opts.windows_key)
 
-    write_config_text('C compiler flags',      conf.env['CCFLAGS'])
+    write_config_text('C compiler flags',      conf.env['CFLAGS'])
     write_config_text('C++ compiler flags',    conf.env['CXXFLAGS'])
 
     config_text.write ('";\n}\n')
@@ -610,10 +642,9 @@ def build(bld):
     bld.path.find_dir ('libs/pbd/pbd')
 
     autowaf.set_recursive()
-    if sys.platform == 'darwin':
-        bld.add_subdirs('libs/appleutility')
+
     for i in children:
-        bld.add_subdirs(i)
+        bld.recurse(i)
 
     # ideally, we'd like to use the OS-provided MIDI API
     # for default ports. that doesn't work on at least
@@ -632,11 +663,11 @@ def build(bld):
                 'JACK_INPUT' : 'auditioner'
                 }
 
-    obj              = bld.new_task_gen('subst')
+    obj              = bld(features = 'subst')
     obj.source       = 'ardour.rc.in'
     obj.target       = 'ardour_system.rc'
     obj.dict         = rc_subst_dict
-    obj.install_path = '${CONFIGDIR}/ardour3'
+    obj.install_path = '${SYSCONFDIR}/ardour3'
 
 def i18n(bld):
     bld.recurse (i18n_children)

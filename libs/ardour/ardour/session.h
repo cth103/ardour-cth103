@@ -42,19 +42,19 @@
 #include "pbd/signals.h"
 #include "pbd/undo.h"
 
+#include "evoral/types.hpp"
+
 #include "midi++/types.h"
 
 #include "timecode/time.h"
 
 #include "ardour/ardour.h"
-#include "ardour/click.h"
 #include "ardour/chan_count.h"
 #include "ardour/rc_configuration.h"
 #include "ardour/session_configuration.h"
 #include "ardour/session_event.h"
 #include "ardour/location.h"
 #include "ardour/interpolation.h"
-#include "ardour/speakers.h"
 
 #ifdef HAVE_JACK_SESSION
 #include <jack/session.h>
@@ -92,16 +92,18 @@ class AuxInput;
 class BufferSet;
 class Bundle;
 class Butler;
+class Click;
 class Diskstream;
 class ExportHandler;
 class ExportStatus;
+class Graph;
 class IO;
 class IOProcessor;
 class ImportStatus;
+class MidiControlUI;
 class MidiRegion;
 class MidiSource;
 class MidiTrack;
-class MidiControlUI;
 class NamedSelection;
 class Playlist;
 class PluginInsert;
@@ -122,9 +124,8 @@ class Slave;
 class Source;
 class Speakers;
 class TempoMap;
-class VSTPlugin;
-class Graph;
 class Track;
+class VSTPlugin;
 
 extern void setup_enum_writer ();
 
@@ -741,6 +742,15 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 			long value,
 			void* ptr,
 			float opt);
+			
+	/*Native linuxVST support*/
+	
+	static intptr_t lxvst_callback (AEffect* effect,
+				  int32_t opcode,
+				  int32_t index,
+				  intptr_t value,
+				  void* ptr,
+				  float opt);
 
 	static PBD::Signal0<void> SendFeedback;
 
@@ -895,6 +905,7 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	bool                    _writable;
 	bool                    _was_seamless;
 
+	void initialize_latencies ();
 	void set_worst_io_latencies ();
 	void set_worst_playback_latency ();
 	void set_worst_capture_latency ();
@@ -962,18 +973,6 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	void get_track_statistics ();
 	int  process_routes (pframes_t, bool& need_butler);
 	int  silent_process_routes (pframes_t, bool& need_butler);
-
-	bool get_rec_monitors_input () {
-		if (actively_recording()) {
-			return true;
-		} else {
-			if (config.get_auto_input()) {
-				return false;
-			} else {
-				return true;
-			}
-		}
-	}
 
 	int get_transport_declick_required () {
 		if (transport_sub_state & PendingDeclickIn) {
@@ -1371,7 +1370,7 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	XMLNode& state(bool);
 
 	/* click track */
-
+	typedef std::list<Click*> Clicks;
 	Clicks                 clicks;
 	bool                  _clicking;
 	boost::shared_ptr<IO> _click_io;

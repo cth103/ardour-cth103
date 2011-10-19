@@ -30,6 +30,7 @@
 #include "ardour/audio_buffer.h"
 #include "ardour/automation_list.h"
 #include "ardour/buffer_set.h"
+#include "ardour/debug.h"
 #include "ardour/event_type_map.h"
 #include "ardour/ladspa_plugin.h"
 #include "ardour/plugin.h"
@@ -45,7 +46,11 @@
 #include "ardour/vst_plugin.h"
 #endif
 
-#ifdef HAVE_AUDIOUNITS
+#ifdef LXVST_SUPPORT
+#include "ardour/lxvst_plugin.h"
+#endif
+
+#ifdef AUDIOUNIT_SUPPORT
 #include "ardour/audio_unit.h"
 #endif
 
@@ -65,16 +70,12 @@ PluginInsert::PluginInsert (Session& s, boost::shared_ptr<Plugin> plug)
 	: Processor (s, (plug ? plug->name() : string ("toBeRenamed")))
 	, _signal_analysis_collected_nframes(0)
 	, _signal_analysis_collect_nframes_max(0)
-	, _splitting (false)
 {
 	/* the first is the master */
 
 	if (plug) {
 		add_plugin (plug);
 		create_automatable_parameters ();
-
-		Glib::Mutex::Lock em (_session.engine().process_lock());
-		IO::PortCountChanged (max(input_streams(), output_streams()));
 	}
 }
 
@@ -133,6 +134,8 @@ PluginInsert::output_streams() const
 {
 	ChanCount out = _plugins.front()->get_info()->n_outputs;
 
+	DEBUG_TRACE (DEBUG::Processors, string_compose ("Plugin insert, static output streams = %1\n", out));
+
 	if (out == ChanCount::INFINITE) {
 		return _plugins.front()->output_streams ();
 	} else {
@@ -147,7 +150,9 @@ PluginInsert::input_streams() const
 {
 	ChanCount in = _plugins[0]->get_info()->n_inputs;
 
-	if (_splitting) {
+	DEBUG_TRACE (DEBUG::Processors, string_compose ("Plugin insert, static input streams = %1, match using %2\n", in, _match.method));
+	
+	if (_match.method == Split) {
 
 		/* we are splitting 1 processor input to multiple plugin inputs,
 		   so we have a maximum of 1 stream of each type.
@@ -159,12 +164,24 @@ PluginInsert::input_streams() const
 		}
 		return in;
 
-	} else if (in == ChanCount::INFINITE) {
-		return _plugins[0]->input_streams ();
-	} else {
-		in.set_audio (in.n_audio() * _plugins.size());
-		in.set_midi (in.n_midi() * _plugins.size());
+	} else if (_match.method == Hide) {
+
+		for (DataType::iterator t = DataType::begin(); t != DataType::end(); ++t) {
+			in.set (*t, in.get (*t) - _match.hide.get (*t));
+		}
 		return in;
+
+	} else if (in == ChanCount::INFINITE) {
+		
+		return _plugins[0]->input_streams ();
+
+	} else {
+		
+		for (DataType::iterator t = DataType::begin(); t != DataType::end(); ++t) {
+			in.set (*t, in.get (*t) * _plugins.size ());
+		}
+		return in;
+		
 	}
 }
 
@@ -300,18 +317,30 @@ PluginInsert::connect_and_run (BufferSet& bufs, pframes_t nframes, framecnt_t of
 		collect_signal_nframes = nframes;
 	}
 
-	ChanMapping in_map(input_streams());
-	ChanMapping out_map(output_streams());
+	ChanCount const in_streams = input_streams ();
+	ChanCount const out_streams = output_streams ();
 
-	if (_splitting) {
+	ChanMapping in_map (in_streams);
+	ChanMapping out_map (out_streams);
+
+	if (_match.method == Split) {
 		/* fix the input mapping so that we have maps for each of the plugin's inputs */
 		in_map = ChanMapping (natural_input_streams ());
 
 		/* copy the first stream's buffer contents to the others */
 		/* XXX: audio only */
 		Sample const * mono = bufs.get_audio (in_map.get (DataType::AUDIO, 0)).data (offset);
-		for (uint32_t i = input_streams().n_audio(); i < natural_input_streams().n_audio(); ++i) {
+		for (uint32_t i = in_streams.n_audio(); i < natural_input_streams().n_audio(); ++i) {
 			memcpy (bufs.get_audio (in_map.get (DataType::AUDIO, i)).data (offset), mono, sizeof (Sample) * nframes);
+		}
+	}
+
+	if (_match.method == Hide) {
+		/* Silence the hidden input buffers */
+		for (DataType::iterator t = DataType::begin(); t != DataType::end(); ++t) {
+			for (uint32_t i = in_streams.get(*t); i < (in_streams.get(*t) + _match.hide.get(*t)); ++i) {
+				bufs.get(*t, i).silence (nframes);
+			}
 		}
 	}
 
@@ -404,7 +433,7 @@ PluginInsert::silence (framecnt_t nframes)
 	ChanMapping in_map(input_streams());
 	ChanMapping out_map(output_streams());
 
-	if (_splitting) {
+	if (_match.method == Split) {
 		/* fix the input mapping so that we have maps for each of the plugin's inputs */
 		in_map = ChanMapping (natural_input_streams ());
 	}
@@ -570,7 +599,10 @@ PluginInsert::plugin_factory (boost::shared_ptr<Plugin> other)
 #ifdef VST_SUPPORT
 	boost::shared_ptr<VSTPlugin> vp;
 #endif
-#ifdef HAVE_AUDIOUNITS
+#ifdef LXVST_SUPPORT
+	boost::shared_ptr<LXVSTPlugin> lxvp;
+#endif
+#ifdef AUDIOUNIT_SUPPORT
 	boost::shared_ptr<AUPlugin> ap;
 #endif
 
@@ -584,7 +616,11 @@ PluginInsert::plugin_factory (boost::shared_ptr<Plugin> other)
 	} else if ((vp = boost::dynamic_pointer_cast<VSTPlugin> (other)) != 0) {
 		return boost::shared_ptr<Plugin> (new VSTPlugin (*vp));
 #endif
-#ifdef HAVE_AUDIOUNITS
+#ifdef LXVST_SUPPORT
+	} else if ((lxvp = boost::dynamic_pointer_cast<LXVSTPlugin> (other)) != 0) {
+		return boost::shared_ptr<Plugin> (new LXVSTPlugin (*lxvp));
+#endif
+#ifdef AUDIOUNIT_SUPPORT
 	} else if ((ap = boost::dynamic_pointer_cast<AUPlugin> (other)) != 0) {
 		return boost::shared_ptr<Plugin> (new AUPlugin (*ap));
 #endif
@@ -600,22 +636,33 @@ PluginInsert::plugin_factory (boost::shared_ptr<Plugin> other)
 bool
 PluginInsert::configure_io (ChanCount in, ChanCount out)
 {
-	if (set_count (count_for_configuration (in, out)) == false) {
-		set_splitting (false);
+	Match old_match = _match;
+
+	/* set the matching method and number of plugins that we will use to meet this configuration */
+	_match = private_can_support_io_configuration (in, out);
+	if (set_count (_match.plugins) == false) {
 		return false;
 	}
 
-	if (_plugins.front()->get_info()->n_inputs <= in) {
-		set_splitting (false);
+	/* a signal needs emitting if we start or stop splitting */
+	if (old_match.method != _match.method && (old_match.method == Split || _match.method == Split)) {
+		SplittingChanged (); /* EMIT SIGNAL */
+	}
+
+	/* configure plugins */
+	switch (_match.method) {
+	case Split:
+	case Hide:
+		if (_plugins.front()->configure_io (_plugins.front()->get_info()->n_inputs, out)) {
+			return false;
+		}
+		break;
+
+	default:
 		if (_plugins.front()->configure_io (in, out) == false) {
 			return false;
 		}
-	} else {
-		/* we must be splitting a single processor input to
-		   multiple plugin inputs
-		*/
-		set_splitting (true);
-		_plugins.front()->configure_io (_plugins.front()->get_info()->n_inputs, out);
+		break;
 	}
 
 	// we don't know the analysis window size, so we must work with the
@@ -633,12 +680,35 @@ PluginInsert::configure_io (ChanCount in, ChanCount out)
 	return Processor::configure_io (in, out);
 }
 
+/** Decide whether this PluginInsert can support a given IO configuration.
+ *  To do this, we run through a set of possible solutions in rough order of
+ *  preference.
+ *
+ *  @param in Required input channel count.
+ *  @param out Filled in with the output channel count if we return true.
+ *  @return true if the given IO configuration can be supported.
+ */
 bool
 PluginInsert::can_support_io_configuration (const ChanCount& in, ChanCount& out) const
 {
-	// Plugin has flexible I/O, so delegate to it
+	return private_can_support_io_configuration (in, out).method != Impossible;
+}
+
+/** A private version of can_support_io_configuration which returns the method
+ *  by which the configuration can be matched, rather than just whether or not
+ *  it can be.
+ */
+PluginInsert::Match
+PluginInsert::private_can_support_io_configuration (ChanCount const & in, ChanCount& out) const
+{
 	if (_plugins.front()->reconfigurable_io()) {
-		return _plugins.front()->can_support_io_configuration (in, out);
+		/* Plugin has flexible I/O, so delegate to it */
+		bool const r = _plugins.front()->can_support_io_configuration (in, out);
+		if (!r) {
+			return Match (Impossible, 0);
+		}
+
+		return Match (Delegate, 1);
 	}
 
 	ChanCount inputs  = _plugins[0]->get_info()->n_inputs;
@@ -655,18 +725,21 @@ PluginInsert::can_support_io_configuration (const ChanCount& in, ChanCount& out)
 	if (no_inputs) {
 		/* no inputs so we can take any input configuration since we throw it away */
 		out = outputs;
-		return true;
+		return Match (NoInputs, 1);
 	}
 
-	// Plugin inputs match requested inputs exactly
+	/* Plugin inputs match requested inputs exactly */
 	if (inputs == in) {
 		out = outputs;
-		return true;
+		return Match (ExactMatch, 1);
 	}
 
-	// See if replication is possible
-	// We allow replication only for plugins with either zero or 1 inputs and outputs
-	// for every valid data type.
+	/* We may be able to run more than one copy of the plugin within this insert
+	   to cope with the insert having more inputs than the plugin.
+	   We allow replication only for plugins with either zero or 1 inputs and outputs
+	   for every valid data type.
+	*/
+	
 	uint32_t f             = 0;
 	bool     can_replicate = true;
 	for (DataType::iterator t = DataType::begin(); t != DataType::end(); ++t) {
@@ -684,7 +757,6 @@ PluginInsert::can_support_io_configuration (const ChanCount& in, ChanCount& out)
 		}
 
 		// Potential factor not set yet
-
 		if (f == 0) {
 			f = in.get(*t) / nin;
 		}
@@ -700,7 +772,7 @@ PluginInsert::can_support_io_configuration (const ChanCount& in, ChanCount& out)
 		for (DataType::iterator t = DataType::begin(); t != DataType::end(); ++t) {
 			out.set (*t, outputs.get(*t) * f);
 		}
-		return true;
+		return Match (Replicate, f);
 	}
 
 	/* If the processor has exactly one input of a given type, and
@@ -724,64 +796,38 @@ PluginInsert::can_support_io_configuration (const ChanCount& in, ChanCount& out)
 
 	if (can_split) {
 		out = outputs;
-		return true;
+		return Match (Split, 1);
 	}
 
-	return false;
-}
+	/* If the plugin has more inputs than we want, we can `hide' some of them
+	   by feeding them silence.
+	*/
 
-/* Number of plugin instances required to support a given channel configuration.
- * (private helper)
- */
-int32_t
-PluginInsert::count_for_configuration (ChanCount in, ChanCount /*out*/) const
-{
-	if (_plugins.front()->reconfigurable_io()) {
-		/* plugin has flexible I/O, so the answer is always 1 */
-		/* this could change if we ever decide to replicate AU's */
-		return 1;
+	bool could_hide = false;
+	bool cannot_hide = false;
+	ChanCount hide_channels;
+	
+	for (DataType::iterator t = DataType::begin(); t != DataType::end(); ++t) {
+		if (inputs.get(*t) > in.get(*t)) {
+			/* there is potential to hide, since the plugin has more inputs of type t than the insert */
+			hide_channels.set (*t, inputs.get(*t) - in.get(*t));
+			could_hide = true;
+		} else if (inputs.get(*t) < in.get(*t)) {
+			/* we definitely cannot hide, since the plugin has fewer inputs of type t than the insert */
+			cannot_hide = true;
+		}
 	}
 
-	// FIXME: take 'out' into consideration
-
-	ChanCount outputs = _plugins[0]->get_info()->n_outputs;
-	ChanCount inputs = _plugins[0]->get_info()->n_inputs;
-
-	if (inputs.n_total() == 0) {
-		/* instrument plugin, always legal, but throws away any existing streams */
-		return 1;
+	if (could_hide && !cannot_hide) {
+		out = outputs;
+		return Match (Hide, 1, hide_channels);
 	}
 
-	if (inputs.n_total() == 1 && outputs == inputs
-			&& ((inputs.n_audio() == 0 && in.n_audio() == 0)
-				|| (inputs.n_midi() == 0 && in.n_midi() == 0))) {
-		/* mono plugin, replicate as needed to match in */
-		return in.n_total();
-	}
-
-	if (inputs == in) {
-		/* exact match */
-		return 1;
-	}
-
-	if (inputs > in) {
-		/* more plugin inputs than processor inputs, so we are splitting */
-		return 1;
-	}
-
-	// assumes in is valid, so we must be replicating
-	if (inputs.n_total() < in.n_total()
-			&& (in.n_total() % inputs.n_total() == 0)) {
-
-		return in.n_total() / inputs.n_total();
-	}
-
-	/* err... */
-	return 0;
+	return Match (Impossible, 0);
 }
 
 XMLNode&
-PluginInsert::get_state(void)
+PluginInsert::get_state ()
 {
 	return state (true);
 }
@@ -852,6 +898,8 @@ PluginInsert::set_state(const XMLNode& node, int version)
 		type = ARDOUR::LV2;
 	} else if (prop->value() == X_("vst")) {
 		type = ARDOUR::VST;
+	} else if (prop->value() == X_("lxvst")) {
+		type = ARDOUR::LXVST;
 	} else if (prop->value() == X_("audiounit")) {
 		type = ARDOUR::AudioUnit;
 	} else {
@@ -869,6 +917,14 @@ PluginInsert::set_state(const XMLNode& node, int version)
 		 */
 
 		if (type == ARDOUR::VST) {
+			prop = node.property ("id");
+		}
+#endif
+
+#ifdef LXVST_SUPPORT
+		/*There shouldn't be any older sessions with linuxVST support.. but anyway..*/
+
+		if (type == ARDOUR::LXVST) {
 			prop = node.property ("id");
 		}
 #endif
@@ -901,9 +957,7 @@ PluginInsert::set_state(const XMLNode& node, int version)
 	// state. We can't call Processor::set_state() until
 	// the plugins themselves are created and added.
 
-	if ((prop = node.property ("id")) != 0) {
-		_id = prop->value();
-	}
+	set_id (node);
 
 	if (_plugins.empty()) {
 		/* if we are adding the first plugin, we will need to set
@@ -967,13 +1021,6 @@ PluginInsert::set_state(const XMLNode& node, int version)
 		} else {
 			(*i)->deactivate ();
 		}
-	}
-
-	/* catch up on I/O */
-
-	{
-		Glib::Mutex::Lock em (_session.engine().process_lock());
-		IO::PortCountChanged (max(input_streams(), output_streams()));
 	}
 
 	return 0;
@@ -1237,15 +1284,4 @@ PluginInsert::realtime_handle_transport_stopped ()
 	for (Plugins::iterator i = _plugins.begin(); i != _plugins.end(); ++i) {
 		(*i)->realtime_handle_transport_stopped ();
 	}
-}
-
-void
-PluginInsert::set_splitting (bool s)
-{
-	if (_splitting == s) {
-		return;
-	}
-
-	_splitting = s;
-	SplittingChanged (); /* EMIT SIGNAL */
 }

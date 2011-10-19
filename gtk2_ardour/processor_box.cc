@@ -76,7 +76,7 @@
 
 #include "i18n.h"
 
-#ifdef HAVE_AUDIOUNITS
+#ifdef AUDIOUNIT_SUPPORT
 class AUPluginUI;
 #endif
 
@@ -298,11 +298,12 @@ ProcessorEntry::name () const
 }
 
 SendProcessorEntry::SendProcessorEntry (boost::shared_ptr<Send> s, Width w)
-	: ProcessorEntry (s, w),
-	  _send (s),
-	  _adjustment (gain_to_slider_position_with_max (1.0, Config->get_max_gain()), 0, 1, 0.01, 0.1),
-	  _fader (_slider, &_adjustment, 0, false),
-	  _ignore_gain_change (false)
+	: ProcessorEntry (s, w)
+	, _send (s)
+	, _adjustment (gain_to_slider_position_with_max (1.0, Config->get_max_gain()), 0, 1, 0.01, 0.1)
+	, _fader (_slider, &_adjustment, 0, false)
+	, _ignore_gain_change (false)
+	, _data_type (DataType::AUDIO)
 {
 	_fader.set_name ("SendFader");
 	_fader.set_controllable (_send->amp()->gain_control ());
@@ -311,8 +312,37 @@ SendProcessorEntry::SendProcessorEntry (boost::shared_ptr<Send> s, Width w)
 	_fader.show ();
 
 	_adjustment.signal_value_changed().connect (sigc::mem_fun (*this, &SendProcessorEntry::gain_adjusted));
-	_send->amp()->gain_control()->Changed.connect (send_gain_connection, invalidator (*this), boost::bind (&SendProcessorEntry::show_gain, this), gui_context());
+
+	_send->amp()->gain_control()->Changed.connect (
+		_send_connections, invalidator (*this), boost::bind (&SendProcessorEntry::show_gain, this), gui_context()
+		);
+	
+	_send->amp()->ConfigurationChanged.connect (
+		_send_connections, invalidator (*this), ui_bind (&SendProcessorEntry::setup_gain_adjustment, this), gui_context ()
+		);
+
+	setup_gain_adjustment ();
 	show_gain ();
+}
+
+void
+SendProcessorEntry::setup_gain_adjustment ()
+{
+	if (_send->amp()->output_streams().n_midi() == 0) {
+		_data_type = DataType::AUDIO;
+		_adjustment.set_lower (0);
+		_adjustment.set_upper (1);
+		_adjustment.set_step_increment (0.01);
+		_adjustment.set_page_increment (0.1);
+		_fader.set_default_value (gain_to_slider_position (1));
+	} else {
+		_data_type = DataType::MIDI;
+		_adjustment.set_lower (0);
+		_adjustment.set_upper (2);
+		_adjustment.set_step_increment (0.05);
+		_adjustment.set_page_increment (0.1);
+		_fader.set_default_value (1);
+	}
 }
 
 void
@@ -325,7 +355,16 @@ SendProcessorEntry::setup_slider_pix ()
 void
 SendProcessorEntry::show_gain ()
 {
-	float const value = gain_to_slider_position_with_max (_send->amp()->gain (), Config->get_max_gain());
+	gain_t value = 0;
+	
+	switch (_data_type) {
+	case DataType::AUDIO:
+		value = gain_to_slider_position_with_max (_send->amp()->gain (), Config->get_max_gain());
+		break;
+	case DataType::MIDI:
+		value = _send->amp()->gain ();
+		break;
+	}
 
 	if (_adjustment.get_value() != value) {
 		_ignore_gain_change = true;
@@ -335,7 +374,11 @@ SendProcessorEntry::show_gain ()
 		stringstream s;
 		s.precision (1);
 		s.setf (ios::fixed, ios::floatfield);
-		s << accurate_coefficient_to_dB (_send->amp()->gain ()) << _("dB");
+		s << accurate_coefficient_to_dB (_send->amp()->gain ());
+		if (_data_type == DataType::AUDIO) {
+			s << _("dB");
+		}
+		
 		_fader.set_tooltip_text (s.str ());
 	}
 }
@@ -347,7 +390,17 @@ SendProcessorEntry::gain_adjusted ()
 		return;
 	}
 
-	_send->amp()->set_gain (slider_position_to_gain_with_max (_adjustment.get_value(), Config->get_max_gain()), this);
+	gain_t value = 0;
+
+	switch (_data_type) {
+	case DataType::AUDIO:
+		value = slider_position_to_gain_with_max (_adjustment.get_value(), Config->get_max_gain());
+		break;
+	case DataType::MIDI:
+		value = _adjustment.get_value ();
+	}
+	
+	_send->amp()->set_gain (value, this);
 }
 
 void
@@ -444,7 +497,7 @@ ProcessorBox::ProcessorBox (ARDOUR::Session* sess, boost::function<PluginSelecto
 	, _owner_is_mixer (owner_is_mixer)
 	, ab_direction (true)
 	, _get_plugin_selector (get_plugin_selector)
-	, _placement(PreFader)
+	, _placement (-1)
 	, _rr_selection(rsel)
 {
 	set_session (sess);
@@ -631,10 +684,11 @@ ProcessorBox::new_send ()
 }
 
 void
-ProcessorBox::show_processor_menu (gint arg)
+ProcessorBox::show_processor_menu (int arg)
 {
 	if (processor_menu == 0) {
 		processor_menu = build_processor_menu ();
+		processor_menu->signal_unmap().connect (sigc::mem_fun (*this, &ProcessorBox::processor_menu_unmapped));
 	}
 
 	Gtk::MenuItem* plugin_menu_item = dynamic_cast<Gtk::MenuItem*>(ActionManager::get_widget("/ProcessorMenu/newplugin"));
@@ -661,6 +715,13 @@ ProcessorBox::show_processor_menu (gint arg)
 	paste_action->set_sensitive (!_rr_selection.processors.empty());
 
 	processor_menu->popup (1, arg);
+
+	/* Add a placeholder gap to the processor list to indicate where a processor would be
+	   inserted were one chosen from the menu.
+	*/
+	int x, y;
+	processor_display.get_pointer (x, y);
+	_placement = processor_display.add_placeholder (y);
 }
 
 bool
@@ -831,20 +892,6 @@ ProcessorBox::processor_button_release_event (GdkEventButton *ev, ProcessorEntry
 
 	} else if (Keyboard::is_context_menu_event (ev)) {
 
-		/* figure out if we are above or below the fader/amp processor,
-		   and set the next insert position appropriately.
-		*/
-
-		if (processor) {
-			if (_route->processor_is_prefader (processor)) {
-				_placement = PreFader;
-			} else {
-				_placement = PostFader;
-			}
-		} else {
-			_placement = PostFader;
-		}
-
 		show_processor_menu (ev->time);
 
 	} else if (processor && Keyboard::is_button2_event (ev)
@@ -924,7 +971,7 @@ ProcessorBox::use_plugins (const SelectedPlugins& plugins)
 
 		Route::ProcessorStreams err_streams;
 
-		if (_route->add_processor (processor, _placement, &err_streams, Config->get_new_plugins_active ())) {
+		if (_route->add_processor_by_index (processor, _placement, &err_streams, Config->get_new_plugins_active ())) {
 			weird_plugin_dialog (**p, err_streams);
 			return true;
 			// XXX SHAREDPTR delete plugin here .. do we even need to care?
@@ -989,7 +1036,7 @@ void
 ProcessorBox::choose_insert ()
 {
 	boost::shared_ptr<Processor> processor (new PortInsert (*_session, _route->pannable(), _route->mute_master()));
-	_route->add_processor (processor, _placement);
+	_route->add_processor_by_index (processor, _placement);
 }
 
 /* Caller must not hold process lock */
@@ -1051,7 +1098,7 @@ ProcessorBox::send_io_finished (IOSelector::Result r, boost::weak_ptr<Processor>
 		break;
 
 	case IOSelector::Accepted:
-		_route->add_processor (processor, _placement);
+		_route->add_processor_by_index (processor, _placement);
 		if (Profile->get_sae()) {
 			processor->activate ();
 		}
@@ -1079,7 +1126,7 @@ ProcessorBox::return_io_finished (IOSelector::Result r, boost::weak_ptr<Processo
 		break;
 
 	case IOSelector::Accepted:
-		_route->add_processor (processor, _placement);
+		_route->add_processor_by_index (processor, _placement);
 		if (Profile->get_sae()) {
 			processor->activate ();
 		}
@@ -1708,7 +1755,8 @@ ProcessorBox::for_selected_processors (void (ProcessorBox::*method)(boost::share
 void
 ProcessorBox::all_processors_active (bool state)
 {
-	_route->all_processors_active (_placement, state);
+	_route->all_processors_active (PreFader, state);
+	_route->all_processors_active (PostFader, state);
 }
 
 void
@@ -2345,6 +2393,12 @@ ProcessorBox::hide_things ()
 	for (list<ProcessorEntry*>::iterator i = c.begin(); i != c.end(); ++i) {
 		(*i)->hide_things ();
 	}
+}
+
+void
+ProcessorBox::processor_menu_unmapped ()
+{
+	processor_display.remove_placeholder ();
 }
 
 ProcessorWindowProxy::ProcessorWindowProxy (

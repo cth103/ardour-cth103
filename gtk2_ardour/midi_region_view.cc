@@ -83,6 +83,8 @@ using namespace Editing;
 using namespace Canvas;
 using Gtkmm2ext::Keyboard;
 
+PBD::Signal1<void, MidiRegionView *> MidiRegionView::SelectionCleared;
+
 #define MIDI_BP_ZERO ((Config->get_first_midi_bank_is_zero())?0:1)
 
 MidiRegionView::MidiRegionView (Canvas::Group *parent, RouteTimeAxisView &tv,
@@ -120,6 +122,8 @@ MidiRegionView::MidiRegionView (Canvas::Group *parent, RouteTimeAxisView &tv,
 
 	Config->ParameterChanged.connect (*this, invalidator (*this), ui_bind (&MidiRegionView::parameter_changed, this, _1), gui_context());
 	connect_to_diskstream ();
+
+	SelectionCleared.connect (_selection_cleared_connection, invalidator (*this), ui_bind (&MidiRegionView::selection_cleared, this, _1), gui_context ());
 }
 
 MidiRegionView::MidiRegionView (Canvas::Group *parent, RouteTimeAxisView &tv,
@@ -153,6 +157,8 @@ MidiRegionView::MidiRegionView (Canvas::Group *parent, RouteTimeAxisView &tv,
 	PublicEditor::DropDownKeys.connect (sigc::mem_fun (*this, &MidiRegionView::drop_down_keys));
 
 	connect_to_diskstream ();
+
+	SelectionCleared.connect (_selection_cleared_connection, invalidator (*this), ui_bind (&MidiRegionView::selection_cleared, this, _1), gui_context ());
 }
 
 void
@@ -289,6 +295,8 @@ MidiRegionView::init (Gdk::Color const & basic_color, bool wfd)
 
 	Config->ParameterChanged.connect (*this, invalidator (*this), ui_bind (&MidiRegionView::parameter_changed, this, _1), gui_context());
 	connect_to_diskstream ();
+
+	SelectionCleared.connect (_selection_cleared_connection, invalidator (*this), ui_bind (&MidiRegionView::selection_cleared, this, _1), gui_context ());
 }
 
 void
@@ -385,7 +393,7 @@ MidiRegionView::enter_notify (GdkEventCrossing* ev)
 }
 
 bool
-MidiRegionView::leave_notify (GdkEventCrossing* ev)
+MidiRegionView::leave_notify (GdkEventCrossing*)
 {
 	_mouse_mode_connection.disconnect ();
 
@@ -712,6 +720,13 @@ MidiRegionView::scroll (GdkEventScroll* ev)
 		return false;
 	}
 
+	if (Keyboard::modifier_state_equals (ev->state, Keyboard::PrimaryModifier)) {
+		/* XXX: bit of a hack; allow PrimaryModifier scroll through so that
+		   it still works for zoom.
+		*/
+		return false;
+	}
+
 	trackview.editor().verbose_cursor()->hide ();
 
 	bool fine = !Keyboard::modifier_state_equals (ev->state, Keyboard::SecondaryModifier);
@@ -836,7 +851,7 @@ void
 MidiRegionView::channel_edit ()
 {
 	bool first = true;
-	uint8_t current_channel;
+	uint8_t current_channel = 0;
 
 	if (_selection.empty()) {
 		return;
@@ -1988,7 +2003,7 @@ MidiRegionView::delete_note (boost::shared_ptr<NoteType> n)
 }
 
 void
-MidiRegionView::clear_selection_except (NoteBase* ev)
+MidiRegionView::clear_selection_except (NoteBase* ev, bool signal)
 {
 	for (Selection::iterator i = _selection.begin(); i != _selection.end(); ) {
 		if ((*i) != ev) {
@@ -2008,6 +2023,10 @@ MidiRegionView::clear_selection_except (NoteBase* ev)
 	/* this does not change the status of this regionview w.r.t the editor
 	   selection.
 	*/
+
+	if (signal) {
+		SelectionCleared (this); /* EMIT SIGNAL */
+	}
 }
 
 void
@@ -2033,6 +2052,31 @@ MidiRegionView::select_all_notes ()
 
 	for (Events::iterator i = _events.begin(); i != _events.end(); ++i) {
 		add_to_selection (*i);
+	}
+}
+
+void
+MidiRegionView::select_range (framepos_t start, framepos_t end)
+{
+	clear_selection ();
+
+	for (Events::iterator i = _events.begin(); i != _events.end(); ++i) {
+		framepos_t t = source_beats_to_absolute_frames((*i)->note()->time());
+		if (t >= start && t <= end) {
+			add_to_selection (*i);
+		}
+	}
+}
+
+void
+MidiRegionView::invert_selection ()
+{
+	for (Events::iterator i = _events.begin(); i != _events.end(); ++i) {
+		if ((*i)->selected()) {
+			remove_from_selection(*i);
+		} else {
+			add_to_selection (*i);
+		}
 	}
 }
 
@@ -2360,12 +2404,6 @@ MidiRegionView::note_dropped(NoteBase *, frameoffset_t dt, int8_t dnote)
 
 		// keep notes in standard midi range
 		clamp_to_0_127(new_pitch);
-
-		// keep original pitch if note is dragged outside valid midi range
-		if ((original_pitch != 0 && new_pitch == 0)
-		    || (original_pitch != 127 && new_pitch == 127)) {
-			new_pitch = original_pitch;
-		}
 
 		lowest_note_in_selection  = std::min(lowest_note_in_selection,  new_pitch);
 		highest_note_in_selection = std::max(highest_note_in_selection, new_pitch);
@@ -3358,9 +3396,9 @@ MidiRegionView::update_ghost_note (double x, double y)
 	double length = region_frames_to_region_beats (snap_frame_to_frame (f + grid_frames) - f);
 
 	/* note that this sets the time of the ghost note in beats relative to
-	   the start of the region.
+	   the start of the source; that is how all note times are stored.
 	*/
-	_ghost_note->note()->set_time (region_frames_to_region_beats (f));
+	_ghost_note->note()->set_time (absolute_frames_to_source_beats (f + _region->position ()));
 	_ghost_note->note()->set_length (length);
 	_ghost_note->note()->set_note (midi_stream_view()->y_to_note (y));
 	_ghost_note->note()->set_channel (mtv->get_channel_for_add ());
@@ -3662,4 +3700,18 @@ MidiRegionView::snap_frame_to_grid_underneath (framepos_t p, framecnt_t& grid_fr
 	}
 
 	return snap_frame_to_frame (p);
+}
+
+/** Called when the selection has been cleared in any MidiRegionView.
+ *  @param rv MidiRegionView that the selection was cleared in.
+ */
+void
+MidiRegionView::selection_cleared (MidiRegionView* rv)
+{
+	if (rv == this) {
+		return;
+	}
+
+	/* Clear our selection in sympathy; but don't signal the fact */
+	clear_selection (false);
 }

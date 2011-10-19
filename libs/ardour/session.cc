@@ -132,6 +132,7 @@ PBD::Signal0<void> Session::Quit;
 static void clean_up_session_event (SessionEvent* ev) { delete ev; }
 const SessionEvent::RTeventCallback Session::rt_cleanup (clean_up_session_event);
 
+/** @param snapshot_name Snapshot name, without .ardour prefix */
 Session::Session (AudioEngine &eng,
                   const string& fullpath,
                   const string& snapshot_name,
@@ -346,7 +347,7 @@ Session::when_engine_running ()
 
 	/* every time we reconnect, recompute worst case output latencies */
 
-	_engine.Running.connect_same_thread (*this, boost::bind (&Session::set_worst_io_latencies, this));
+	_engine.Running.connect_same_thread (*this, boost::bind (&Session::initialize_latencies, this));
 
 	if (synced_to_jack()) {
 		_engine.transport_stop ();
@@ -640,12 +641,14 @@ Session::when_engine_running ()
 
 	_state_of_the_state = StateOfTheState (_state_of_the_state & ~(CannotSave|Dirty));
 
+        /* update latencies */
+
+        initialize_latencies ();
+
 	/* hook us up to the engine */
 
 	BootMessage (_("Connect to engine"));
 	_engine.set_session (this);
-
-	update_latency_compensation (true);
 }
 
 void
@@ -2508,7 +2511,7 @@ Session::io_name_is_legal (const std::string& name)
 }
 
 void
-Session::set_exclusive_input_active (boost::shared_ptr<Route> rt, bool others_on)
+Session::set_exclusive_input_active (boost::shared_ptr<Route> rt, bool /*others_on*/)
 {
 	RouteList rl;
 	vector<string> connections;
@@ -3329,13 +3332,18 @@ Session::graph_reordered ()
 		return;
 	}
 
+	cerr << "Session begins graph reorder\n";
+
 	/* every track/bus asked for this to be handled but it was deferred because
 	   we were connecting. do it now.
 	*/
 
 	request_input_change_handling ();
 
+	cerr << "Session graph reorder 2\n";
 	resort_routes ();
+
+	cerr << "Session graph reorder 3\n";
 
 	/* force all diskstreams to update their capture offset values to
 	   reflect any changes in latencies within the graph.
@@ -3348,6 +3356,8 @@ Session::graph_reordered ()
 			tr->set_capture_offset ();
 		}
 	}
+
+	cerr << "Session graph reorder 4\n";
 }
 
 framecnt_t
@@ -4196,7 +4206,7 @@ Session::end_time_changed (framepos_t old)
 
 	Location* l = _locations->auto_loop_location ();
 
-	if (l->end() == old) {
+	if (l && l->end() == old) {
 		l->set_end (s->end(), true);
 	}
 }
@@ -4335,6 +4345,8 @@ Session::update_latency (bool playback)
 
 	if (playback) {
 		/* reverse the list so that we work backwards from the last route to run to the first */
+                RouteList* rl = routes.reader().get();
+                r.reset (new RouteList (*rl));
 		reverse (r->begin(), r->end());
 	}
 
@@ -4378,14 +4390,15 @@ Session::post_playback_latency ()
 	set_worst_playback_latency ();
 
 	boost::shared_ptr<RouteList> r = routes.reader ();
+
 	for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
 		if (!(*i)->is_hidden() && ((*i)->active())) {
 			_worst_track_latency = max (_worst_track_latency, (*i)->update_signal_latency ());
 		}
+	}
 
-		for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
-			(*i)->set_latency_compensation (_worst_track_latency);
-		}
+	for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
+		(*i)->set_latency_compensation (_worst_track_latency);
 	}
 }
 
@@ -4404,6 +4417,18 @@ Session::post_capture_latency ()
 			tr->set_capture_offset ();
 		}
 	}
+}
+
+void
+Session::initialize_latencies ()
+{
+        {
+                Glib::Mutex::Lock lm (_engine.process_lock());
+                update_latency (false);
+                update_latency (true);
+        }
+
+        set_worst_io_latencies ();
 }
 
 void
@@ -4485,15 +4510,19 @@ Session::update_latency_compensation (bool force_whole_graph)
 	DEBUG_TRACE (DEBUG::Latency, string_compose ("worst signal processing latency: %1 (changed ? %2)\n", _worst_track_latency,
 	                                             (some_track_latency_changed ? "yes" : "no")));
 
-	if (force_whole_graph || some_track_latency_changed) {
-		/* trigger a full recompute of latency numbers for the graph.
-		   everything else that we need to do will be done in the latency
-		   callback.
-		*/
-		_engine.update_total_latencies ();
-		return; // everything else will be done in the latency callback
+	DEBUG_TRACE(DEBUG::Latency, "---------------------------- DONE update latency compensation\n\n");
+	
+	if (some_track_latency_changed || force_whole_graph)  {
+		_engine.update_latencies ();
 	}
 
-	DEBUG_TRACE(DEBUG::Latency, "---------------------------- DONE update latency compensation\n\n")
+
+	for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
+		boost::shared_ptr<Track> tr = boost::dynamic_pointer_cast<Track> (*i);
+		if (!tr) {
+			continue;
+		}
+		tr->set_capture_offset ();
+	}
 }
 

@@ -113,7 +113,8 @@ TimeAxisViewItem::TimeAxisViewItem(
 }
 
 TimeAxisViewItem::TimeAxisViewItem (const TimeAxisViewItem& other)
-	: sigc::trackable(other)
+	: trackable (other)
+	, Selectable (other)
 	, PBD::ScopedConnectionList()
 	, trackview (other.trackview)
 	, _recregion (other._recregion)

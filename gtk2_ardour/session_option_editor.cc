@@ -260,6 +260,15 @@ SessionOptionEditor::SessionOptionEditor (Session* s)
 
 	add_option (_("Misc"), lm);
 
+	add_option (_("Misc"), new OptionEditorHeading (_("MIDI Options")));
+
+        add_option (_("Misc"), new BoolOption (
+			    "midi-copy-is-fork",
+			    _("MIDI region copies are independent"),
+			    sigc::mem_fun (*_session_config, &SessionConfiguration::get_midi_copy_is_fork),
+			    sigc::mem_fun (*_session_config, &SessionConfiguration::set_midi_copy_is_fork)
+			    ));
+
 	add_option (_("Misc"), new OptionEditorHeading (_("MIDI Note Overlaps")));
 
 	ComboOption<InsertMergePolicy>* li = new ComboOption<InsertMergePolicy> (
@@ -292,6 +301,15 @@ SessionOptionEditor::SessionOptionEditor (Session* s)
 			    _("Organization code"),
 			    sigc::mem_fun (*_session_config, &SessionConfiguration::get_bwf_organization_code),
 			    sigc::mem_fun (*_session_config, &SessionConfiguration::set_bwf_organization_code)
+			    ));
+
+	add_option (_("Misc"), new OptionEditorHeading (_("Glue to bars and beats")));
+
+	add_option (_("Misc"), new BoolOption (
+			    "glue-new-markers-to-bars-and-beats",
+			    _("Glue new markers to bars and beats"),
+			    sigc::mem_fun (*_session_config, &SessionConfiguration::get_glue_new_markers_to_bars_and_beats),
+			    sigc::mem_fun (*_session_config, &SessionConfiguration::set_glue_new_markers_to_bars_and_beats)
 			    ));
 }
 

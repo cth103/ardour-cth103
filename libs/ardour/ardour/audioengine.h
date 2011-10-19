@@ -36,9 +36,12 @@
 #include "pbd/rcu.h"
 #include "pbd/signals.h"
 
-#include "ardour/ardour.h"
+#include <jack/weakjack.h>
 #include <jack/jack.h>
 #include <jack/transport.h>
+#include <jack/thread.h>
+
+#include "ardour/ardour.h"
 
 #include "ardour/data_type.h"
 #include "ardour/session_handle.h"
@@ -189,8 +192,6 @@ public:
 	void get_physical_outputs (DataType type, std::vector<std::string>&);
 	void get_physical_inputs (DataType type, std::vector<std::string>&);
 
-	void update_total_latencies ();
-
 	Port *get_port_by_name (const std::string &);
 
 	enum TransportState {
@@ -206,6 +207,8 @@ public:
 	TransportState transport_state ();
 
 	int  reset_timebase ();
+
+        void update_latencies ();
 
 	/* start/stop freewheeling */
 
@@ -249,9 +252,10 @@ _	   the regular process() call to session->process() is not made.
 
 	/** Emitted if a JACK port is connected or disconnected.
 	 *  The Port parameters are the ports being connected / disconnected, or 0 if they are not known to Ardour.
+	 *  The std::string parameters are the (long) port names.
 	 *  The bool parameter is true if ports were connected, or false for disconnected.
 	 */
-	PBD::Signal3<void, Port *, Port *, bool> PortConnectedOrDisconnected;
+	PBD::Signal5<void, Port *, std::string, Port *, std::string, bool> PortConnectedOrDisconnected;
 
 	std::string make_port_name_relative (std::string) const;
 	std::string make_port_name_non_relative (std::string) const;

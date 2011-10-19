@@ -42,7 +42,7 @@
 #include "ardour/vst_plugin.h"
 #endif
 
-#ifdef HAVE_AUDIOUNITS
+#ifdef AUDIOUNIT_SUPPORT
 #include "ardour/audio_unit.h"
 #endif
 
@@ -76,6 +76,7 @@ Processor::Processor (const Processor& other)
 	: Evoral::ControlSet (other)
 	, SessionObject (other.session(), other.name())
 	, Automatable (other.session())
+	, Latent (other)
 	, _pending_active(other._pending_active)
 	, _active(other._active)
 	, _next_ab_is_active(false)
@@ -149,9 +150,7 @@ Processor::set_state_2X (const XMLNode & node, int /*version*/)
 				set_name (prop->value ());
 			}
 
-			if ((prop = (*i)->property ("id")) != 0) {
-				_id = prop->value ();
-			}
+			set_id (**i);
 
 			if ((prop = (*i)->property ("active")) != 0) {
 				bool const a = string_is_affirmative (prop->value ());
@@ -187,10 +186,7 @@ Processor::set_state (const XMLNode& node, int version)
 		Processor::set_name (prop->value());
 	}
 
-	// may not exist for legacy 3.0 sessions
-	if ((prop = node.property ("id")) != 0) {
-		_id = prop->value();
-	}
+	set_id (node);
 
 	XMLNodeList nlist = node.children();
 	XMLNodeIterator niter;

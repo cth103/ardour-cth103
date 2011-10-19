@@ -29,7 +29,7 @@
 #include "ardour/data_type.h"
 #include "ardour/types.h"
 
-#ifdef VST_SUPPORT
+#if defined VST_SUPPORT || defined LXVST_SUPPORT
 #include "evoral/MIDIEvent.hpp"
 struct VstEvents;
 struct VstMidiEvent;
@@ -118,11 +118,12 @@ public:
 	void flush_lv2_midi(bool input, size_t i);
 #endif
 
-#ifdef VST_SUPPORT
+#if defined VST_SUPPORT || defined LXVST_SUPPORT
 	VstEvents* get_vst_midi (size_t);
 #endif
 
 	void read_from(const BufferSet& in, framecnt_t nframes);
+	void read_from(const BufferSet& in, framecnt_t nframes, DataType);
 	void merge_from(const BufferSet& in, framecnt_t nframes);
 
 	template <typename BS, typename B>
@@ -176,7 +177,7 @@ private:
 	LV2Buffers _lv2_buffers;
 #endif
 
-#ifdef VST_SUPPORT
+#if defined VST_SUPPORT || defined LXVST_SUPPORT
 	class VSTBuffer {
 	public:
 		VSTBuffer (size_t);

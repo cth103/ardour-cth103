@@ -291,6 +291,7 @@ MidiDiskstream::use_copy_playlist ()
 int
 MidiDiskstream::set_destructive (bool yn)
 {
+	yn = 0; // stop pedantic gcc complaints about unused parameter
 	assert( ! destructive());
 	assert( ! yn);
 	return -1;
@@ -475,7 +476,7 @@ trace_midi (ostream& o, MIDI::byte *msg, size_t len)
 #endif
 
 int
-MidiDiskstream::process (framepos_t transport_frame, pframes_t nframes, bool can_record, bool rec_monitors_input, bool& need_butler)
+MidiDiskstream::process (framepos_t transport_frame, pframes_t nframes, bool can_record, bool& need_butler)
 {
 	int       ret = -1;
 	framecnt_t rec_offset = 0;
@@ -563,7 +564,7 @@ MidiDiskstream::process (framepos_t transport_frame, pframes_t nframes, bool can
 	} else {
 
 		if (was_recording) {
-			finish_capture (rec_monitors_input);
+			finish_capture ();
 		}
 
 	}
@@ -760,7 +761,7 @@ MidiDiskstream::read (framepos_t& start, framecnt_t dur, bool reversed)
 		if (midi_playlist()->read (*_playback_buf, start, this_read) != this_read) {
 			error << string_compose(
 					_("MidiDiskstream %1: cannot read %2 from playlist at frame %3"),
-					_id, this_read, start) << endmsg;
+					id(), this_read, start) << endmsg;
 			return -1;
 		}
 
@@ -904,7 +905,7 @@ MidiDiskstream::do_flush (RunContext /*context*/, bool force_flush)
 
 	if (record_enabled() && ((total > disk_io_chunk_frames) || force_flush)) {
 		if (_write_source->midi_write (*_capture_buf, get_capture_start_frame (0), to_write) != to_write) {
-			error << string_compose(_("MidiDiskstream %1: cannot write to disk"), _id) << endmsg;
+			error << string_compose(_("MidiDiskstream %1: cannot write to disk"), id()) << endmsg;
 			return -1;
 		} 
 	}
@@ -923,7 +924,7 @@ MidiDiskstream::transport_stopped_wallclock (struct tm& /*when*/, time_t /*twhen
 	MidiRegion::SourceList::iterator src;
 	vector<CaptureInfo*>::iterator ci;
 
-	finish_capture (true);
+	finish_capture ();
 
 	/* butler is already stopped, but there may be work to do
 	   to flush remaining data to disk.
@@ -1124,7 +1125,7 @@ MidiDiskstream::transport_looped (framepos_t transport_frame)
 			}
 		}
 
-		finish_capture (true);
+		finish_capture ();
 
 		// the next region will start recording via the normal mechanism
 		// we'll set the start position to the current transport pos
@@ -1137,7 +1138,7 @@ MidiDiskstream::transport_looped (framepos_t transport_frame)
 }
 
 void
-MidiDiskstream::finish_capture (bool /*rec_monitors_input*/)
+MidiDiskstream::finish_capture ()
 {
 	was_recording = false;
 

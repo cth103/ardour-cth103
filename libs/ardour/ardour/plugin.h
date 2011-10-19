@@ -136,8 +136,7 @@ class Plugin : public PBD::StatefulDestructible, public Latent
 
 	typedef std::map<const std::string, const float> ScalePoints;
 
-	virtual boost::shared_ptr<ScalePoints>
-	get_scale_points(uint32_t port_index) const {
+	virtual boost::shared_ptr<ScalePoints> get_scale_points(uint32_t /*port_index*/) const {
 		return boost::shared_ptr<ScalePoints>();
 	}
 
@@ -216,7 +215,7 @@ class Plugin : public PBD::StatefulDestructible, public Latent
 	virtual ChanCount input_streams() const;
 
 	PluginInfoPtr get_info() const { return _info; }
-	void set_info (const PluginInfoPtr inf) { _info = inf; }
+	virtual void set_info (const PluginInfoPtr inf);
 
 	ARDOUR::AudioEngine& engine() const { return _engine; }
 	ARDOUR::Session& session() const { return _session; }

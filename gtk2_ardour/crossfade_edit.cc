@@ -36,6 +36,7 @@
 #include "ardour/audiosource.h"
 #include "ardour/region_factory.h"
 #include "ardour/profile.h"
+#include "ardour/crossfade_binder.h"
 
 #include <gtkmm2ext/gtk_ui.h>
 
@@ -790,7 +791,13 @@ CrossfadeEditor::apply ()
 
 	_apply_to (xfade);
 
-	_session->add_command (new MementoCommand<Crossfade> (*xfade.get(), &before, &xfade->get_state ()));
+	_session->add_command (
+		new MementoCommand<Crossfade> (
+			new ARDOUR::CrossfadeBinder (_session->playlists, xfade->id ()),
+			&before, &xfade->get_state ()
+			)
+		);
+
 	_session->commit_reversible_command ();
 }
 

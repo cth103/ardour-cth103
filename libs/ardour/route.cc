@@ -853,6 +853,34 @@ Route::add_processor (boost::shared_ptr<Processor> processor, Placement placemen
 }
 
 
+/** Add a processor to a route such that it ends up with a given index into the visible processors.
+ *  @param index Index to add the processor at, or -1 to add at the end of the list.
+ */
+
+int
+Route::add_processor_by_index (boost::shared_ptr<Processor> processor, int index, ProcessorStreams* err, bool activation_allowed)
+{
+	/* XXX this is not thread safe - we don't hold the lock across determining the iter
+	   to add before and actually doing the insertion. dammit.
+	*/
+
+	if (index == -1) {
+		return add_processor (processor, _processors.end(), err, activation_allowed);
+	}
+	
+	ProcessorList::iterator i = _processors.begin ();
+	int j = 0;
+	while (i != _processors.end() && j < index) {
+		if ((*i)->display_to_user()) {
+			++j;
+		}
+		
+		++i;
+	}
+	
+	return add_processor (processor, i, err, activation_allowed);
+}
+
 /** Add a processor to the route.
  *  @param iter an iterator in _processors; the new processor will be inserted immediately before this location.
  */
@@ -970,6 +998,7 @@ Route::add_processor_from_xml_2X (const XMLNode& node, int version)
 				if (prop->value() == "ladspa" || prop->value() == "Ladspa" ||
 						prop->value() == "lv2" ||
 						prop->value() == "vst" ||
+						prop->value() == "lxvst" ||
 						prop->value() == "audiounit") {
 
 					processor.reset (new PluginInsert (_session));
@@ -1632,21 +1661,15 @@ Route::all_processors_active (Placement p, bool state)
 	if (_processors.empty()) {
 		return;
 	}
+	
 	ProcessorList::iterator start, end;
 	placement_range(p, start, end);
 
-	bool before_amp = true;
-	for (ProcessorList::iterator i = _processors.begin(); i != _processors.end(); ++i) {
-		if ((*i) == _amp) {
-			before_amp = false;
-			continue;
-		}
-		if (p == PreFader && before_amp) {
-			if (state) {
-				(*i)->activate ();
-			} else {
-				(*i)->deactivate ();
-			}
+	for (ProcessorList::iterator i = start; i != end; ++i) {
+		if (state) {
+			(*i)->activate ();
+		} else {
+			(*i)->deactivate ();
 		}
 	}
 
@@ -1885,9 +1908,7 @@ Route::_set_state (const XMLNode& node, int version, bool /*call_base*/)
 		Route::set_name (prop->value());
 	}
 
-	if ((prop = node.property ("id")) != 0) {
-		_id = prop->value ();
-	}
+	set_id (node);
 
 	if ((prop = node.property (X_("flags"))) != 0) {
 		_flags = Flag (string_2_enum (prop->value(), _flags));
@@ -2215,9 +2236,7 @@ Route::_set_state_2X (const XMLNode& node, int version)
 				Route::set_name (prop->value ());
 			}
 
-			if ((prop = child->property (X_("id"))) != 0) {
-				_id = prop->value ();
-			}
+			set_id (*child);
 
 			if ((prop = child->property (X_("active"))) != 0) {
 				bool yn = string_is_affirmative (prop->value());
@@ -2382,6 +2401,7 @@ Route::set_processor_state (const XMLNode& node)
 				} else if (prop->value() == "ladspa" || prop->value() == "Ladspa" ||
 				           prop->value() == "lv2" ||
 				           prop->value() == "vst" ||
+						   prop->value() == "lxvst" ||
 				           prop->value() == "audiounit") {
 
 					processor.reset (new PluginInsert(_session));
@@ -2763,7 +2783,7 @@ Route::pans_required () const
 
 int
 Route::no_roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame,
-		bool session_state_changing, bool /*can_record*/, bool /*rec_monitors_input*/)
+		bool session_state_changing, bool /*can_record*/)
 {
 	Glib::RWLock::ReaderLock lm (_processor_lock, Glib::TRY_LOCK);
 	if (!lm.locked()) {
@@ -2799,45 +2819,9 @@ Route::no_roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame,
 	return 0;
 }
 
-framecnt_t
-Route::check_initial_delay (framecnt_t nframes, framecnt_t& transport_frame)
-{
-	if (_roll_delay > nframes) {
-
-		_roll_delay -= nframes;
-		silence_unlocked (nframes);
-		/* transport frame is not legal for caller to use */
-		return 0;
-
-	} else if (_roll_delay > 0) {
-
-		nframes -= _roll_delay;
-		silence_unlocked (_roll_delay);
-		transport_frame += _roll_delay;
-
-		/* shuffle all the port buffers for things that lead "out" of this Route
-		   to reflect that we just wrote _roll_delay frames of silence.
-		*/
-
-		Glib::RWLock::ReaderLock lm (_processor_lock);
-		for (ProcessorList::iterator i = _processors.begin(); i != _processors.end(); ++i) {
-			boost::shared_ptr<IOProcessor> iop = boost::dynamic_pointer_cast<IOProcessor> (*i);
-			if (iop) {
-				iop->increment_port_buffer_offset (_roll_delay);
-			}
-		}
-		_output->increment_port_buffer_offset (_roll_delay);
-
-		_roll_delay = 0;
-
-	}
-
-	return nframes;
-}
-
 int
 Route::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame, int declick,
-	     bool /*can_record*/, bool /*rec_monitors_input*/, bool& /* need_butler */)
+	     bool /*can_record*/, bool& /* need_butler */)
 {
 	Glib::RWLock::ReaderLock lm (_processor_lock, Glib::TRY_LOCK);
 	if (!lm.locked()) {
@@ -2870,7 +2854,7 @@ Route::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame, in
 
 int
 Route::silent_roll (pframes_t nframes, framepos_t /*start_frame*/, framepos_t /*end_frame*/,
-		    bool /*can_record*/, bool /*rec_monitors_input*/, bool& /* need_butler */)
+		    bool /*can_record*/, bool& /* need_butler */)
 {
 	silence (nframes);
 	return 0;
@@ -3578,21 +3562,26 @@ Route::update_port_latencies (PortSet& from, PortSet& to, bool playback, framecn
 
 	jack_latency_range_t all_connections;
 
-	all_connections.min = ~((jack_nframes_t) 0);
-	all_connections.max = 0;
-
-	/* iterate over all "from" ports and determine the latency range for all of their
-	   connections to the "outside" (outside of this Route).
-	*/
-
-	for (PortSet::iterator p = from.begin(); p != from.end(); ++p) {
-
-		jack_latency_range_t range;
-
-		p->get_connected_latency_range (range, playback);
-
-		all_connections.min = min (all_connections.min, range.min);
-		all_connections.max = max (all_connections.max, range.max);
+	if (from.empty()) {
+		all_connections.min = 0;
+		all_connections.max = 0;
+	} else {
+		all_connections.min = ~((jack_nframes_t) 0);
+		all_connections.max = 0;
+		
+		/* iterate over all "from" ports and determine the latency range for all of their
+		   connections to the "outside" (outside of this Route).
+		*/
+		
+		for (PortSet::iterator p = from.begin(); p != from.end(); ++p) {
+			
+			jack_latency_range_t range;
+			
+			p->get_connected_latency_range (range, playback);
+			
+			all_connections.min = min (all_connections.min, range.min);
+			all_connections.max = max (all_connections.max, range.max);
+		}
 	}
 
 	/* set the "from" port latencies to the max/min range of all their connections */

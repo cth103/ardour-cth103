@@ -41,6 +41,10 @@
 #include "vestige/aeffectx.h"
 #endif
 
+#ifdef LXVST_SUPPORT
+#include "ardour/vestige/aeffectx.h"
+#endif
+
 namespace ARDOUR {
 
 /** Create a new, empty BufferSet */
@@ -77,13 +81,14 @@ BufferSet::clear()
 	_count.reset();
 	_available.reset();
 
-#ifdef VST_SUPPORT
+#if defined VST_SUPPORT || defined LXVST_SUPPORT 
 	for (VSTBuffers::iterator i = _vst_buffers.begin(); i != _vst_buffers.end(); ++i) {
 		delete *i;
 	}
 
 	_vst_buffers.clear ();
 #endif
+
 }
 
 /** Set up this BufferSet so that its data structures mirror a PortSet's buffers.
@@ -192,7 +197,7 @@ BufferSet::ensure_buffers(DataType type, size_t num_buffers, size_t buffer_capac
 	}
 #endif
 
-#ifdef VST_SUPPORT
+#if defined VST_SUPPORT || defined LXVST_SUPPORT
 	// As above but for VST
 	if (type == DataType::MIDI) {
 		while (_vst_buffers.size() < _buffers[type].size()) {
@@ -299,7 +304,7 @@ BufferSet::flush_lv2_midi(bool input, size_t i)
 
 #endif /* LV2_SUPPORT */
 
-#ifdef VST_SUPPORT
+#if defined VST_SUPPORT || defined LXVST_SUPPORT
 
 VstEvents*
 BufferSet::get_vst_midi (size_t b)
@@ -378,6 +383,21 @@ BufferSet::VSTBuffer::push_back (Evoral::MIDIEvent<framepos_t> const & ev)
 
 #endif /* VST_SUPPORT */
 
+/** Copy buffers of one type from `in' to this BufferSet */
+void
+BufferSet::read_from (const BufferSet& in, framecnt_t nframes, DataType type)
+{
+	assert (available().get (type) >= in.count().get (type));
+
+	BufferSet::iterator o = begin (type);
+	for (BufferSet::const_iterator i = in.begin (type); i != in.end (type); ++i, ++o) {
+		o->read_from (*i, nframes);
+	}
+
+	_count.set (type, in.count().get (type));
+}
+
+/** Copy buffers of all types from `in' to this BufferSet */
 void
 BufferSet::read_from (const BufferSet& in, framecnt_t nframes)
 {
@@ -385,13 +405,8 @@ BufferSet::read_from (const BufferSet& in, framecnt_t nframes)
 
 	// Copy all buffers 1:1
 	for (DataType::iterator t = DataType::begin(); t != DataType::end(); ++t) {
-		BufferSet::iterator o = begin(*t);
-		for (BufferSet::const_iterator i = in.begin(*t); i != in.end(*t); ++i, ++o) {
-			o->read_from (*i, nframes);
-		}
+		read_from (in, nframes, *t);
 	}
-
-	set_count(in.count());
 }
 
 void

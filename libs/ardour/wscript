@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-import autowaf
+from waflib.extras import autowaf as autowaf
+from waflib import Options
 import os
-import glob
-import Options
 import re
 import subprocess
 
@@ -26,8 +25,8 @@ APPNAME = 'libardour'
 VERSION = LIBARDOUR_VERSION
 
 # Mandatory variables
-srcdir = '.'
-blddir = 'build'
+top = '.'
+out = 'build'
 
 path_prefix = 'libs/ardour/'
 
@@ -71,6 +70,7 @@ libardour_sources = [
         'control_protocol_manager.cc',
         'control_protocol_search_path.cc',
         'crossfade.cc',
+        'crossfade_binder.cc',
         'cycle_timer.cc',
         'data_type.cc',
         'default_click.cc',
@@ -232,16 +232,17 @@ def ogg_supported():
     out = cmd.communicate()[0].decode('utf-8');
     return re.search ('unknown format', out) == None
 
-def set_options(opt):
+def options(opt):
     autowaf.set_options(opt)
 
 def configure(conf):
+    conf.load('compiler_cxx')
+    conf.load('gas')
     autowaf.build_version_files(
         path_prefix + 'ardour/version.h',
         path_prefix + 'version.cc',
         'libardour3', MAJOR, MINOR, MICRO)
     autowaf.configure(conf)
-    conf.check_tool('compiler_cxx gas')
     autowaf.check_pkg(conf, 'aubio', uselib_store='AUBIO',
                       atleast_version='0.3.2')
     autowaf.check_pkg(conf, 'jack', uselib_store='JACK',
@@ -255,15 +256,9 @@ def configure(conf):
                       atleast_version='2.0')
     autowaf.check_pkg(conf, 'lilv-0', uselib_store='LILV',
                       atleast_version='0.0.0', mandatory=False)
-    if conf.env['HAVE_LILV']:
+    if conf.is_defined('HAVE_LILV'):
         autowaf.check_pkg(conf, 'suil-0', uselib_store='SUIL',
                           atleast_version='0.2.0', mandatory=False)
-    else:
-        autowaf.check_pkg(conf, 'slv2', uselib_store='SLV2',
-                          atleast_version='0.6.4', mandatory=False)
-        if conf.env['HAVE_SLV2']:
-            autowaf.check_pkg(conf, 'rasqal', uselib_store='RASQAL',
-                              atleast_version='0.9.14', mandatory=False)
     autowaf.check_pkg(conf, 'soundtouch-1.0', uselib_store='SOUNDTOUCH',
                       mandatory=False)
     autowaf.check_pkg(conf, 'cppunit', uselib_store='CPPUNIT',
@@ -281,17 +276,17 @@ def configure(conf):
 
     conf.define('CURRENT_SESSION_FILE_VERSION', CURRENT_SESSION_FILE_VERSION)
 
-    conf.check(header_name='sys/vfs.h', define_name='HAVE_SYS_VFS_H')
-    conf.check(header_name='wordexp.h', define_name='HAVE_WORDEXP')
+    conf.check(header_name='sys/vfs.h', define_name='HAVE_SYS_VFS_H',mandatory=False)
+    conf.check(header_name='wordexp.h', define_name='HAVE_WORDEXP',mandatory=False)
 
     conf.check(header_name='jack/session.h', uselib = [ 'JACK' ],
                define_name='HAVE_JACK_SESSION')
 
-    conf.check(header_name='unistd.h', define_name='HAVE_UNISTD')
+    conf.check(header_name='unistd.h', define_name='HAVE_UNISTD',mandatory=False)
 
     conf.check_cc(fragment = '''
 #include <jack/jack.h>
-void callback(int code, const char* reason, void* arg) { return; }
+void callback(jack_status_t code, const char* reason, void* arg) { return; }
 int main(int argc, char **argv) {
     jack_client_t* c;
     jack_on_info_shutdown(c, callback, (void*) 0);
@@ -302,9 +297,7 @@ int main(int argc, char **argv) {
                   define_name = 'HAVE_JACK_ON_INFO_SHUTDOWN',
                   okmsg = 'present')
 
-    missing_jack_message = '''missing - a version of JACK that supports \
-jack_port_set_latency_range() is required to compile Ardour3.  Currently this\
-means using JACK version 0.120.1 from http://www.jackaudio.org/download'''
+    missing_jack_message = 'missing - a version of JACK that supports jack_port_set_latency_range() is required to compile Ardour3.'
 
     conf.check_cc(fragment = '''
 #include <jack/jack.h>
@@ -337,30 +330,30 @@ int main(int argc, char **argv) {
     if ogg_supported():
         conf.define ('HAVE_OGG', 1)
 
-    if conf.env['HAVE_LILV'] or conf.env['HAVE_SLV2']:
+    if conf.is_defined('HAVE_LILV'):
         conf.define ('LV2_SUPPORT', 1)
 
-    conf.write_config_header('libardour-config.h')
+    conf.write_config_header('libardour-config.h', remove=False)
 
     # Boost headers
-    autowaf.check_header(conf, 'boost/shared_ptr.hpp')
-    autowaf.check_header(conf, 'boost/weak_ptr.hpp')
-    autowaf.check_header(conf, 'boost/scoped_ptr.hpp')
-    autowaf.check_header(conf, 'boost/ptr_container/ptr_list.hpp')
+    autowaf.check_header(conf, 'cxx', 'boost/shared_ptr.hpp')
+    autowaf.check_header(conf, 'cxx', 'boost/weak_ptr.hpp')
+    autowaf.check_header(conf, 'cxx', 'boost/scoped_ptr.hpp')
+    autowaf.check_header(conf, 'cxx', 'boost/ptr_container/ptr_list.hpp')
 
 
 def build(bld):
     # Library
-    obj              = bld.new_task_gen('cxx', 'shlib')
+    obj              = bld(features = 'c cxx cshlib cxxshlib')
     obj.source       = libardour_sources
-    obj.export_incdirs = ['.']
+    obj.export_includes = ['.']
     obj.includes     = ['.', '../surfaces/control_protocol', '..']
     obj.name         = 'libardour'
     obj.target       = 'ardour'
     obj.uselib       = ['GLIBMM','GTHREAD','AUBIO','SIGCPP','XML','UUID',
                         'JACK','SNDFILE','SAMPLERATE','LRDF','AUDIOUNIT',
                         'OSX','BOOST','CURL','DL']
-    obj.uselib_local = ['libpbd','libmidipp','libevoral','libvamphost',
+    obj.use          = ['libpbd','libmidipp','libevoral','libvamphost',
                         'libvampplugin','libtaglib','librubberband',
                         'libaudiographer']
     obj.vnum         = LIBARDOUR_LIB_VERSION
@@ -368,7 +361,7 @@ def build(bld):
     obj.defines      = [
         'PACKAGE="libardour3"',
         'DATA_DIR="' + os.path.normpath(bld.env['DATADIR']) + '"',
-        'CONFIG_DIR="' + os.path.normpath(bld.env['CONFIGDIR']) + '"',
+        'CONFIG_DIR="' + os.path.normpath(bld.env['SYSCONFDIR']) + '"',
         'MODULE_DIR="' + os.path.normpath(bld.env['LIBDIR']) + '"',
         'LOCALEDIR="' + os.path.join(
             os.path.normpath(bld.env['DATADIR']), 'locale') + '"',
@@ -381,28 +374,29 @@ def build(bld):
     #obj.uselib += ' SOUNDTOUCH '
     #obj.add_objects = 'default/libs/surfaces/control_protocol/smpte_1.o'
 
-    if bld.env['HAVE_LILV']:
+    if bld.is_defined('HAVE_LILV') :
         obj.source += [ 'lv2_plugin_lilv.cc', 'lv2_event_buffer.cc',
                         'uri_map.cc', 'rdff.c' ]
         obj.uselib += ['LILV']
-        if bld.env['HAVE_SUIL']:
+        if bld.is_defined('HAVE_SUIL'):
             obj.uselib += ['SUIL']
-    elif bld.env['HAVE_SLV2']:
-        obj.source += [ 'lv2_plugin.cc', 'lv2_event_buffer.cc',
-                        'uri_map.cc', 'rdff.c' ]
-        obj.uselib += ['SLV2','RASQAL']
 
-    if bld.env['VST_SUPPORT']:
+    if bld.is_defined('VST_SUPPORT'):
         obj.source += [ 'vst_plugin.cc', 'session_vst.cc' ]
         obj.includes += [ '../fst' ]
         obj.defines += [ 'VST_SUPPORT' ]
 
-    if bld.env['COREAUDIO']:
+    if bld.is_defined('LXVST_SUPPORT'):
+        obj.source += [ 'lxvst_plugin.cc', 'session_lxvst.cc', 'vstfx.cc', 'vstfxwin.cc', 'vstfxinfofile.cc' ]
+        obj.defines += [ 'LXVST_SUPPORT' ]
+
+
+    if bld.is_defined('HAVE_COREAUDIO'):
         obj.source += [ 'coreaudiosource.cc', 'caimportable.cc' ]
-        obj.uselib_local += ['libappleutility']
+        obj.use    += ['libappleutility']
         obj.source += [ 'audio_unit.cc' ]
 
-    if bld.env['FPU_OPTIMIZATION']:
+    if Options.options.fpu_optimization:
         if (bld.env['build_target'] == 'i386'
             or bld.env['build_target'] == 'i686'):
             obj.source += [ 'sse_functions_xmm.cc', 'sse_functions.s' ]
@@ -410,17 +404,17 @@ def build(bld):
             obj.source += [ 'sse_functions_xmm.cc', 'sse_functions_64bit.s' ]
 
     # i18n
-    if bld.env['ENABLE_NLS']:
-        mo_files = glob.glob(os.path.join(bld.get_curdir(), 'po/*.mo'))
+    if bld.is_defined('ENABLE_NLS'):
+        mo_files = bld.path.ant_glob('po/*.mo')
         for mo in mo_files:
             lang = os.path.basename(mo).replace('.mo', '')
             bld.install_as(os.path.join(bld.env['PREFIX'], 'share', 'locale',
                                         lang, 'LC_MESSAGES', 'libardour3.mo'),
                            mo)
 
-    if bld.env['BUILD_TESTS'] and bld.env['HAVE_CPPUNIT']:
+    if bld.is_defined('BUILD_TESTS') and bld.is_defined('HAVE_CPPUNIT'):
         # Unit tests
-        testobj              = bld.new_task_gen('cxx', 'program')
+        testobj              = bld(features = 'cxx cxxprogram')
         testobj.source       = '''
                 test/bbt_test.cpp
                 test/interpolation_test.cpp
@@ -431,14 +425,14 @@ def build(bld):
         testobj.includes     = obj.includes + ['test', '../pbd']
         testobj.uselib       = ['CPPUNIT','SIGCPP','JACK','GLIBMM','GTHREAD',
                                 'SAMPLERATE','XML','LRDF','COREAUDIO']
-        testobj.uselib_local = ['libpbd','libmidipp','libardour']
+        testobj.use          = ['libpbd','libmidipp','libardour']
         testobj.name         = 'libardour-tests'
         testobj.target       = 'run-tests'
         testobj.install_path = ''
         testobj.defines      = [
             'PACKAGE="libardour3test"',
             'DATA_DIR="' + os.path.normpath(bld.env['DATADIR']) + '"',
-            'CONFIG_DIR="' + os.path.normpath(bld.env['CONFIGDIR']) + '"',
+            'CONFIG_DIR="' + os.path.normpath(bld.env['SYSCONFDIR']) + '"',
             'MODULE_DIR="' + os.path.normpath(bld.env['LIBDIR']) + '"',
             'LOCALEDIR="' + os.path.join(
                 os.path.normpath(bld.env['DATADIR']), 'locale') + '"',

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import autowaf
-import Options
+from waflib.extras import autowaf as autowaf
+from waflib import Options
 import os
 
 # Version of this package (even if built as a child)
@@ -19,22 +19,21 @@ APPNAME = 'timecode'
 VERSION = TIMECODE_VERSION
 
 # Mandatory variables
-srcdir = '.'
-blddir = 'build'
+top = '.'
+out = 'build'
 
-def set_options(opt):
+def options(opt):
     autowaf.set_options(opt)
 
 def configure(conf):
+    conf.load('compiler_cxx')
     autowaf.configure(conf)
-
-    conf.check_tool('compiler_cxx')
 
 def build(bld):
     # Library
-    obj = bld.new_task_gen('cxx', 'shlib')
+    obj = bld(features = 'cxx cxxshlib')
     obj.source         = [ 'src/time.cc', 'src/bbt_time.cc' ]
-    obj.export_incdirs = ['.']
+    obj.export_includes = ['.']
     obj.includes       = ['.', './src']
     obj.name           = 'libtimecode'
     obj.target         = 'timecode'

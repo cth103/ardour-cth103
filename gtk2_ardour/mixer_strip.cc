@@ -334,7 +334,7 @@ MixerStrip::init ()
 	SwitchIO.connect (sigc::mem_fun (*this, &MixerStrip::switch_io));
 
 	AudioEngine::instance()->PortConnectedOrDisconnected.connect (
-		*this, invalidator (*this), boost::bind (&MixerStrip::port_connected_or_disconnected, this, _1, _2), gui_context ()
+		*this, invalidator (*this), boost::bind (&MixerStrip::port_connected_or_disconnected, this, _1, _3), gui_context ()
 		);
 }
 
@@ -456,7 +456,7 @@ MixerStrip::set_route (boost::shared_ptr<Route> rt)
 	_route->meter_change.connect (route_connections, invalidator (*this), bind (&MixerStrip::meter_changed, this), gui_context());
 	_route->route_group_changed.connect (route_connections, invalidator (*this), boost::bind (&MixerStrip::route_group_changed, this), gui_context());
 
-	if (_route->panner()) {
+	if (_route->panner_shell()) {
 		_route->panner_shell()->Changed.connect (route_connections, invalidator (*this), boost::bind (&MixerStrip::connect_to_pan, this), gui_context());
 	}
 
@@ -1880,7 +1880,7 @@ MixerStrip::hide_things ()
 }
 
 bool
-MixerStrip::input_active_button_press (GdkEventButton* ev)
+MixerStrip::input_active_button_press (GdkEventButton*)
 {
 	/* nothing happens on press */
 	return true;

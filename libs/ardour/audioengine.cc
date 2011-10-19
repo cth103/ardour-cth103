@@ -25,14 +25,13 @@
 #include <sstream>
 
 #include <glibmm/timer.h>
-#include <jack/weakjack.h>
-#include <jack/jack.h>
-#include <jack/thread.h>
 
 #include "pbd/pthread_utils.h"
 #include "pbd/stacktrace.h"
 #include "pbd/unknown_type.h"
 #include "pbd/epa.h"
+
+#include <jack/weakjack.h>
 
 #include "midi++/port.h"
 #include "midi++/mmc.h"
@@ -177,7 +176,7 @@ AudioEngine::set_jack_callbacks ()
                 jack_set_latency_callback (_priv_jack, _latency_callback, this);
         }
 
-        jack_set_error_function (ardour_jack_error);
+        // jack_set_error_function (ardour_jack_error);
 }
 
 int
@@ -332,6 +331,7 @@ AudioEngine::_graph_order_callback (void *arg)
 	if (ae->connected() && !ae->port_remove_in_progress) {
 		ae->GraphReordered (); /* EMIT SIGNAL */
 	}
+	
 	return 0;
 }
 
@@ -402,7 +402,11 @@ AudioEngine::_connect_callback (jack_port_id_t id_a, jack_port_id_t id_b, int co
 		++i;
 	}
 
-	ae->PortConnectedOrDisconnected (port_a, port_b, conn == 0 ? false : true); /* EMIT SIGNAL */
+	ae->PortConnectedOrDisconnected (
+		port_a, jack_port_name (jack_port_a),
+		port_b, jack_port_name (jack_port_b),
+		conn == 0 ? false : true
+		); /* EMIT SIGNAL */
 }
 
 void
@@ -1414,13 +1418,6 @@ AudioEngine::request_buffer_size (pframes_t nframes)
 	return jack_set_buffer_size (_priv_jack, nframes);
 }
 
-void
-AudioEngine::update_total_latencies ()
-{
-	GET_PRIVATE_JACK_POINTER (_jack);
-	jack_recompute_total_latencies (_priv_jack);
-}
-
 string
 AudioEngine::make_port_name_relative (string portname) const
 {
@@ -1528,4 +1525,13 @@ AudioEngine::ensure_monitor_input (const std::string& portname, bool yn) const
         }
 
         jack_port_request_monitor (port, yn);
+}
+
+void
+AudioEngine::update_latencies ()
+{
+        if (jack_recompute_total_latencies) {
+                GET_PRIVATE_JACK_POINTER (_jack);
+                jack_recompute_total_latencies (_priv_jack);
+        }
 }

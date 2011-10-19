@@ -36,17 +36,24 @@
 #include <cstring>
 #endif // VST_SUPPORT
 
+#ifdef LXVST_SUPPORT
+#include <ardour/vstfx.h>
+#include <pbd/basename.h>
+#include <cstring>
+#endif //LXVST_SUPPORT
+
 #include <glibmm/miscutils.h>
 
 #include "pbd/pathscanner.h"
 #include "pbd/whitespace.h"
 
-#include "ardour/ladspa.h"
-#include "ardour/session.h"
-#include "ardour/plugin_manager.h"
-#include "ardour/plugin.h"
-#include "ardour/ladspa_plugin.h"
+#include "ardour/debug.h"
 #include "ardour/filesystem_paths.h"
+#include "ardour/ladspa.h"
+#include "ardour/ladspa_plugin.h"
+#include "ardour/plugin.h"
+#include "ardour/plugin_manager.h"
+#include "ardour/session.h"
 
 #ifdef LV2_SUPPORT
 #include "ardour/lv2_plugin.h"
@@ -56,7 +63,11 @@
 #include "ardour/vst_plugin.h"
 #endif
 
-#ifdef HAVE_AUDIOUNITS
+#ifdef LXVST_SUPPORT
+#include "ardour/lxvst_plugin.h"
+#endif
+
+#ifdef AUDIOUNIT_SUPPORT
 #include "ardour/audio_unit.h"
 #include <Carbon/Carbon.h>
 #endif
@@ -74,6 +85,7 @@ PluginManager* PluginManager::_manager = 0;
 
 PluginManager::PluginManager ()
 	: _vst_plugin_info(0)
+	, _lxvst_plugin_info(0)
 	, _ladspa_plugin_info(0)
 	, _lv2_plugin_info(0)
 	, _au_plugin_info(0)
@@ -82,14 +94,6 @@ PluginManager::PluginManager ()
 	string lrdf_path;
 
 	load_statuses ();
-
-#ifdef HAVE_AUDIOUNITS
-	ProcessSerialNumber psn = { 0, kCurrentProcess };
-	OSStatus returnCode = TransformProcessType(& psn, kProcessTransformToForegroundApplication);
-	if( returnCode != 0) {
-		error << _("Cannot become GUI app") << endmsg;
-	}
-#endif
 
 	if ((s = getenv ("LADSPA_RDF_PATH"))){
 		lrdf_path = s;
@@ -107,6 +111,12 @@ PluginManager::PluginManager ()
 	}
 #endif /* VST_SUPPORT */
 
+#ifdef LXVST_SUPPORT
+	if (Config->get_use_lxvst()) {
+		add_lxvst_presets();
+	}
+#endif /* Native LinuxVST support*/
+
 	if ((s = getenv ("LADSPA_PATH"))) {
 		ladspa_path = s;
 	}
@@ -115,6 +125,12 @@ PluginManager::PluginManager ()
 		vst_path = s;
 	} else if ((s = getenv ("VST_PLUGINS"))) {
 		vst_path = s;
+	}
+
+	if ((s = getenv ("LXVST_PATH"))) {
+		lxvst_path = s;
+	} else if ((s = getenv ("LXVST_PLUGINS"))) {
+		lxvst_path = s;
 	}
 
 	if (_manager == 0) {
@@ -145,6 +161,8 @@ PluginManager::~PluginManager()
 void
 PluginManager::refresh ()
 {
+	DEBUG_TRACE (DEBUG::PluginManager, "PluginManager::refresh\n");
+
 	ladspa_refresh ();
 #ifdef LV2_SUPPORT
 	lv2_refresh ();
@@ -154,7 +172,14 @@ PluginManager::refresh ()
 		vst_refresh ();
 	}
 #endif // VST_SUPPORT
-#ifdef HAVE_AUDIOUNITS
+
+#ifdef LXVST_SUPPORT
+	if(Config->get_use_lxvst()) {
+		lxvst_refresh();
+	}
+#endif //Native linuxVST SUPPORT
+
+#ifdef AUDIOUNIT_SUPPORT
 	au_refresh ();
 #endif
 
@@ -205,6 +230,8 @@ PluginManager::ladspa_refresh ()
 		ladspa_path += standard_paths[i];
 
 	}
+
+	DEBUG_TRACE (DEBUG::PluginManager, string_compose ("LADSPA: search along: [%1]\n", ladspa_path));
 
 	ladspa_discover_from_path (ladspa_path);
 }
@@ -268,6 +295,13 @@ PluginManager::add_vst_presets()
 {
 	add_presets ("vst");
 }
+
+void
+PluginManager::add_lxvst_presets()
+{
+	add_presets ("lxvst");
+}
+
 void
 PluginManager::add_presets(string domain)
 {
@@ -472,10 +506,11 @@ PluginManager::lv2_refresh ()
 }
 #endif
 
-#ifdef HAVE_AUDIOUNITS
+#ifdef AUDIOUNIT_SUPPORT
 void
 PluginManager::au_refresh ()
 {
+	DEBUG_TRACE (DEBUG::PluginManager, "AU: refresh\n");
 	delete _au_plugin_info;
 	_au_plugin_info = AUPluginInfo::discover();
 }
@@ -586,6 +621,128 @@ PluginManager::vst_discover (string path)
 
 #endif // VST_SUPPORT
 
+#ifdef LXVST_SUPPORT
+
+void
+PluginManager::lxvst_refresh ()
+{
+	if (_lxvst_plugin_info) {
+		_lxvst_plugin_info->clear ();
+	} else {
+		_lxvst_plugin_info = new ARDOUR::PluginInfoList();
+	}
+
+	if (lxvst_path.length() == 0) {
+		lxvst_path = "/usr/local/lib64/lxvst:/usr/local/lib/lxvst:/usr/lib64/lxvst:/usr/lib/lxvst";
+	}
+
+	lxvst_discover_from_path (lxvst_path);
+}
+
+int
+PluginManager::add_lxvst_directory (string path)
+{
+	if (lxvst_discover_from_path (path) == 0) {
+		lxvst_path += ':';
+		lxvst_path += path;
+		return 0;
+	}
+	return -1;
+}
+
+static bool lxvst_filter (const string& str, void *)
+{
+	/* Not a dotfile, has a prefix before a period, suffix is "so" */
+
+	return str[0] != '.' && (str.length() > 3 && str.find (".so") == (str.length() - 3));
+}
+
+int
+PluginManager::lxvst_discover_from_path (string path)
+{
+	PathScanner scanner;
+	vector<string *> *plugin_objects;
+	vector<string *>::iterator x;
+	int ret = 0;
+
+	info << "Discovering linuxVST plugins along " << path << endmsg;
+
+	plugin_objects = scanner (lxvst_path, lxvst_filter, 0, true, true);
+
+	if (plugin_objects) {
+		for (x = plugin_objects->begin(); x != plugin_objects->end (); ++x) {
+			lxvst_discover (**x);
+		}
+	}
+
+	info << "Done linuxVST discover" << endmsg;
+
+	vector_delete (plugin_objects);
+	return ret;
+}
+
+int
+PluginManager::lxvst_discover (string path)
+{
+	VSTFXInfo* finfo;
+	char buf[32];
+
+	if ((finfo = vstfx_get_info (const_cast<char *> (path.c_str()))) == 0) {
+		warning << "Cannot get linuxVST information from " << path << endmsg;
+		return -1;
+	}
+
+	if (!finfo->canProcessReplacing) {
+		warning << string_compose (_("linuxVST plugin %1 does not support processReplacing, and so cannot be used in ardour at this time"),
+				    finfo->name)
+			<< endl;
+	}
+
+	PluginInfoPtr info(new LXVSTPluginInfo);
+
+	if (!strcasecmp ("The Unnamed plugin", finfo->name)) {
+		info->name = PBD::basename_nosuffix (path);
+	} else {
+		info->name = finfo->name;
+	}
+
+	
+	snprintf (buf, sizeof (buf), "%d", finfo->UniqueID);
+	info->unique_id = buf;
+	info->category = "linuxVSTs";
+	info->path = path;
+	info->creator = finfo->creator;
+	info->index = 0;
+	info->n_inputs.set_audio (finfo->numInputs);
+	info->n_outputs.set_audio (finfo->numOutputs);
+	info->n_inputs.set_midi (finfo->wantMidi ? 1 : 0);
+	info->type = ARDOUR::LXVST;
+
+        /* Make sure we don't find the same plugin in more than one place along
+	   the LXVST_PATH We can't use a simple 'find' because the path is included
+	   in the PluginInfo, and that is the one thing we can be sure MUST be
+	   different if a duplicate instance is found.  So we just compare the type
+	   and unique ID (which for some VSTs isn't actually unique...)
+	*/
+	
+	if (!_lxvst_plugin_info->empty()) {
+		for (PluginInfoList::iterator i =_lxvst_plugin_info->begin(); i != _lxvst_plugin_info->end(); ++i) {
+			if ((info->type == (*i)->type)&&(info->unique_id == (*i)->unique_id)) {
+				vstfx_free_info(finfo);
+				return 0;
+			}
+		}
+	}
+	
+	_lxvst_plugin_info->push_back (info);
+	vstfx_free_info (finfo);
+
+	return 0;
+}
+
+#endif // LXVST_SUPPORT
+
+
 PluginManager::PluginStatusType
 PluginManager::get_status (const PluginInfoPtr& pi)
 {
@@ -624,6 +781,9 @@ PluginManager::save_statuses ()
 			break;
 		case VST:
 			ofs << "VST";
+			break;
+		case LXVST:
+			ofs << "LXVST";
 			break;
 		}
 
@@ -709,6 +869,8 @@ PluginManager::load_statuses ()
 			type = LV2;
 		} else if (stype == "VST") {
 			type = VST;
+		} else if (stype == "LXVST") {
+			type = LXVST;
 		} else {
 			error << string_compose (_("unknown plugin type \"%1\" - ignored"), stype)
 			      << endmsg;
@@ -749,6 +911,18 @@ PluginManager::vst_plugin_info ()
 }
 
 ARDOUR::PluginInfoList&
+PluginManager::lxvst_plugin_info ()
+{
+#ifdef LXVST_SUPPORT
+	if (!_lxvst_plugin_info)
+		lxvst_refresh();
+	return *_lxvst_plugin_info;
+#else
+	return _empty_plugin_info;
+#endif
+}
+
+ARDOUR::PluginInfoList&
 PluginManager::ladspa_plugin_info ()
 {
 	if (!_ladspa_plugin_info)
@@ -771,7 +945,7 @@ PluginManager::lv2_plugin_info ()
 ARDOUR::PluginInfoList&
 PluginManager::au_plugin_info ()
 {
-#ifdef HAVE_AUDIOUNITS
+#ifdef AUDIOUNIT_SUPPORT
 	if (!_au_plugin_info)
 		au_refresh();
 	return *_au_plugin_info;

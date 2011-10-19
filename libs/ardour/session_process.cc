@@ -120,7 +120,7 @@ Session::no_roll (pframes_t nframes)
 			(*i)->set_pending_declick (declick);
 
 			if ((*i)->no_roll (nframes, _transport_frame, end_frame, non_realtime_work_pending(),
-			                   actively_recording(), declick)) {
+			                   actively_recording())) {
 				error << string_compose(_("Session: error in no roll for %1"), (*i)->name()) << endmsg;
 				ret = -1;
 				break;
@@ -136,7 +136,6 @@ Session::process_routes (pframes_t nframes, bool& need_butler)
 {
 	bool record_active;
 	int  declick = get_transport_declick_required();
-	bool rec_monitors = get_rec_monitors_input();
 	boost::shared_ptr<RouteList> r = routes.reader ();
 
 	if (transport_sub_state & StopPendingCapture) {
@@ -155,7 +154,7 @@ Session::process_routes (pframes_t nframes, bool& need_butler)
 	*/
 	if (1 || route_graph->threads_in_use() > 0) {
 		DEBUG_TRACE(DEBUG::ProcessThreads,"calling graph/process-routes\n");
-		route_graph->process_routes( nframes, start_frame, end_frame, declick, record_active, rec_monitors, need_butler);
+		route_graph->process_routes (nframes, start_frame, end_frame, declick, record_active, need_butler);
 	} else {
 
 		for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
@@ -168,7 +167,7 @@ Session::process_routes (pframes_t nframes, bool& need_butler)
 
 			(*i)->set_pending_declick (declick);
 
-			if ((ret = (*i)->roll (nframes, start_frame, end_frame, declick, record_active, rec_monitors, need_butler)) < 0) {
+			if ((ret = (*i)->roll (nframes, start_frame, end_frame, declick, record_active, need_butler)) < 0) {
 				stop_transport ();
 				return -1;
 			}
@@ -182,7 +181,6 @@ int
 Session::silent_process_routes (pframes_t nframes, bool& need_butler)
 {
 	bool record_active = actively_recording();
-	bool rec_monitors = get_rec_monitors_input();
 	boost::shared_ptr<RouteList> r = routes.reader ();
 
 	const framepos_t start_frame = _transport_frame;
@@ -193,7 +191,7 @@ Session::silent_process_routes (pframes_t nframes, bool& need_butler)
 	   tracks, the graph never gets updated.
 	*/
 	if (1 || route_graph->threads_in_use() > 0) {
-		route_graph->silent_process_routes( nframes, start_frame, end_frame, record_active, rec_monitors, need_butler);
+		route_graph->silent_process_routes (nframes, start_frame, end_frame, record_active, need_butler);
 	} else {
 		for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
 
@@ -203,7 +201,7 @@ Session::silent_process_routes (pframes_t nframes, bool& need_butler)
 				continue;
 			}
 
-			if ((ret = (*i)->silent_roll (nframes, start_frame, end_frame, record_active, rec_monitors, need_butler)) < 0) {
+			if ((ret = (*i)->silent_roll (nframes, start_frame, end_frame, record_active, need_butler)) < 0) {
 				stop_transport ();
 				return -1;
 			}
@@ -619,7 +617,7 @@ Session::calculate_moving_average_of_slave_delta (int dir, framecnt_t this_delta
 }
 
 void
-Session::track_slave_state (float slave_speed, framepos_t slave_transport_frame, framecnt_t this_delta)
+Session::track_slave_state (float slave_speed, framepos_t slave_transport_frame, framecnt_t /*this_delta*/)
 {
 	if (slave_speed != 0.0f) {
 

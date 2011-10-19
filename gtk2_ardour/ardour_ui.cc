@@ -2129,7 +2129,7 @@ ARDOUR_UI::snapshot_session (bool switch_to_it)
 
 		time (&n);
 		localtime_r (&n, &local_time);
-		strftime (timebuf, sizeof(timebuf), "%FT%T", &local_time);
+		strftime (timebuf, sizeof(timebuf), "%FT%H.%M.%S", &local_time);
 		prompter.set_initial_text (timebuf);
 	}
 
@@ -2151,6 +2151,12 @@ ARDOUR_UI::snapshot_session (bool switch_to_it)
 			if (snapname.find ('\\') != string::npos) {
 				MessageDialog msg (_("To ensure compatibility with various systems\n"
 				                     "snapshot names may not contain a '\\' character"));
+				msg.run ();
+				goto again;
+			}
+			if (snapname.find (':') != string::npos) {
+				MessageDialog msg (_("To ensure compatibility with various systems\n"
+				                     "snapshot names may not contain a ':' character"));
 				msg.run ();
 				goto again;
 			}
@@ -2571,6 +2577,12 @@ ARDOUR_UI::get_session_parameters (bool quit_on_cancel, bool should_be_new, stri
 			should_be_new = false;
 
 			session_name = _startup->session_name (likely_new);
+
+			string::size_type suffix = session_name.find (statefile_suffix);
+
+			if (suffix != string::npos) {
+				session_name = session_name.substr (0, suffix);
+			}
 
 			/* this shouldn't happen, but we catch it just in case it does */
 
@@ -3695,12 +3707,6 @@ ARDOUR_UI::TransportControllable::get_value (void) const
 }
 
 void
-ARDOUR_UI::TransportControllable::set_id (const string& str)
-{
-	_id = str;
-}
-
-void
 ARDOUR_UI::setup_profile ()
 {
 	if (gdk_screen_width() < 1200) {
@@ -3795,7 +3801,7 @@ ARDOUR_UI::missing_file (Session*s, std::string str, DataType type)
 }
 
 int
-ARDOUR_UI::ambiguous_file (std::string file, std::string path, std::vector<std::string> hits)
+ARDOUR_UI::ambiguous_file (std::string file, std::string /*path*/, std::vector<std::string> hits)
 {
 	AmbiguousFileDialog dialog (file, hits);
 

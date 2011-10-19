@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import autowaf
-import Options
+from waflib.extras import autowaf as autowaf
+from waflib import Options
 
 # Version of this package (even if built as a child)
 LIBSURFACES_VERSION = '4.1.0'
@@ -16,8 +16,8 @@ APPNAME = 'libsurfaces'
 VERSION = LIBSURFACES_VERSION
 
 # Mandatory variables
-srcdir = '.'
-blddir = 'build'
+top = '.'
+out = 'build'
 
 children = [
         'control_protocol',
@@ -30,11 +30,11 @@ children = [
         'wiimote'
 ]
 
-def set_options(opt):
+def options(opt):
     autowaf.set_options(opt)
 
 def sub_config_and_use(conf, name, has_objects = True):
-    conf.sub_config(name)
+    conf.recurse(name)
     autowaf.set_local_lib(conf, name, has_objects)
 
 def configure(conf):
@@ -44,33 +44,37 @@ def configure(conf):
     for i in children:
         sub_config_and_use(conf, i)
 
-    conf.check_cc (lib='libusb', header_name='libusb.h', function_name='usb_interrupt_write', define_name='BUILD_TRANZPORT')
-    conf.check_cc (header_name='linux/input.h', define_name='BUILD_POWERMATE')
-    conf.check_cc (lib='lo', header_name='lo/lo.h', function_name='lo_server_new', define_name='BUILD_OSC')
+    autowaf.check_pkg(conf, 'libusb-1.0', uselib_store='USB', mandatory=False)
+    if Options.options.tranzport and conf.is_defined('HAVE_USB'):
+        conf.define('BUILD_TRANZPORT', 1)
+
+    #conf.check_cc (lib='libusb', header_name='libusb.h', function_name='usb_interrupt_write', define_name='BUILD_TRANZPORT')
+    conf.check_cc (header_name='linux/input.h', define_name='BUILD_POWERMATE',mandatory=False)
+    conf.check_cc (lib='lo', header_name='lo/lo.h', function_name='lo_server_new', define_name='BUILD_OSC',mandatory=False)
 
     if Options.options.wiimote:
-        conf.check_cc (header_name='cwiid.h',define_name='HAVE_CWIID_H')
-        if not conf.env['HAVE_CWIID_H']:
+        conf.check_cc (header_name='cwiid.h', define_name='HAVE_CWIID_H')
+        if not conf.is_defined('HAVE_CWIID_H'):
             print('WIIMOTE configured but you are missing libcwiid!')
             sys.exit(1)
-        conf.check_cc (header_name='bluetooth/bluetooth.h',define_name='HAVE_BLUETOOTH_H')
-        if not conf.env['HAVE_BLUETOOTH_H']:
+        conf.check_cc (header_name='bluetooth/bluetooth.h', define_name='HAVE_BLUETOOTH_H')
+        if not conf.is_defined('HAVE_BLUETOOTH_H'):
             print('WIIMOTE configured but you are missing the libbluetooth headers needed to compile wiimote support!')
             sys.exit(1)
         conf.define ('BUILD_WIIMOTE', 1)
 
 def build(bld):
-    bld.add_subdirs('control_protocol')
-    bld.add_subdirs('generic_midi')
-    bld.add_subdirs('mackie')
-    if bld.env['BUILD_OSC']:
-        bld.add_subdirs('osc')
-    if bld.env['BUILD_POWERMATE']:
-        bld.add_subdirs('powermate')
-    if bld.env['BUILD_WIIMOTE']:
-        bld.add_subdirs('wiimote')
-    if bld.env['BUILD_TRANZPORT']:
-        bld.add_subdirs('tranzport')
+    bld.recurse('control_protocol')
+    bld.recurse('generic_midi')
+    bld.recurse('mackie')
+    if bld.is_defined ('BUILD_OSC'):
+        bld.recurse('osc')
+    if bld.is_defined('BUILD_POWERMATE'):
+        bld.recurse('powermate')
+    if bld.is_defined('BUILD_WIIMOTE'):
+        bld.recurse('wiimote')
+    if bld.is_defined('BUILD_TRANZPORT'):
+        bld.recurse('tranzport')
 
 def shutdown():
     autowaf.shutdown()

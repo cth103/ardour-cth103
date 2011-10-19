@@ -23,9 +23,8 @@
 
 #include <set>
 
-#include <boost/signals2.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/scoped_array.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "pbd/signals.h"
 
@@ -47,7 +46,7 @@ class ExportChannel : public boost::less_than_comparable<ExportChannel>
 
 	virtual ~ExportChannel () {}
 
-	virtual void set_max_buffer_size(framecnt_t frames) { }
+	virtual void set_max_buffer_size(framecnt_t) { }
 
 	virtual void read (Sample const *& data, framecnt_t frames) const = 0;
 	virtual bool empty () const = 0;

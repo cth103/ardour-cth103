@@ -189,6 +189,8 @@ public:
 	void   delete_note (boost::shared_ptr<NoteType>);
 	size_t selection_size() { return _selection.size(); }
 	void   select_all_notes ();
+	void   select_range(framepos_t start, framepos_t end);
+	void   invert_selection ();
 
 	void move_selection (ARDOUR::frameoffset_t dx, double dy, double cumulative_dy);
 	void note_dropped (NoteBase* ev, ARDOUR::frameoffset_t, int8_t d_note);
@@ -308,6 +310,11 @@ protected:
 
 private:
 
+	/** Emitted when the selection has been cleared in one MidiRegionView */
+	static PBD::Signal1<void, MidiRegionView*> SelectionCleared;
+	PBD::ScopedConnection _selection_cleared_connection;
+	void selection_cleared (MidiRegionView *);
+
 	friend class EditNoteDialog;
 
 	void redisplay_model_notes ();
@@ -342,8 +349,8 @@ private:
 	void trim_note(NoteBase* ev, ARDOUR::MidiModel::TimeType start_delta,
 		       ARDOUR::MidiModel::TimeType end_delta);
 
-	void clear_selection_except (NoteBase* ev);
-	void clear_selection() { clear_selection_except (0); }
+	void clear_selection_except (NoteBase* ev, bool signal = true);
+	void clear_selection (bool signal = true) { clear_selection_except (0, signal); }
 	void update_drag_selection (double last_x, double x, double last_y, double y, bool);
 
 	void add_to_selection (NoteBase*);

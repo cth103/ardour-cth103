@@ -68,8 +68,15 @@ namespace Mackie {
 	the Route and encoded as the correct midi message.
 */
 
+struct MackieControlUIRequest : public BaseUI::BaseRequestObject {
+public:
+	MackieControlUIRequest () {}
+	~MackieControlUIRequest () {}
+};
+
 class MackieControlProtocol 
 	: public ARDOUR::ControlProtocol
+	, public AbstractUI<MackieControlUIRequest>
 	, public Mackie::MackieButtonHandler
 {
   public:
@@ -306,7 +313,13 @@ class MackieControlProtocol
 	boost::shared_ptr<ARDOUR::Route> master_route();
 	Mackie::Strip & master_strip();
 
+	void do_request (MackieControlUIRequest*);
+	int stop ();
+	
   private:
+
+	void port_connected_or_disconnected (std::string, std::string, bool);
+	
 	boost::shared_ptr<Mackie::RouteSignal> master_route_signal;
 	
 	static const char * default_port_name;
@@ -323,7 +336,8 @@ class MackieControlProtocol
 	
 	/// protects the port list
 	Glib::Mutex update_mutex;
-  
+
+	PBD::ScopedConnectionList audio_engine_connections;
 	PBD::ScopedConnectionList session_connections;
 	PBD::ScopedConnectionList port_connections;
 	PBD::ScopedConnectionList route_connections;

@@ -53,6 +53,7 @@ namespace ARDOUR {
 	class PluginInsert;
 	class Plugin;
 	class VSTPlugin;
+	class LXVSTPlugin;
 	class IOProcessor;
 	class AUPlugin;
 }
@@ -298,11 +299,12 @@ class PluginUIWindow : public Gtk::Window
 	void plugin_going_away ();
 
 	bool create_vst_editor (boost::shared_ptr<ARDOUR::PluginInsert>);
+	bool create_lxvst_editor(boost::shared_ptr<ARDOUR::PluginInsert>);
 	bool create_audiounit_editor (boost::shared_ptr<ARDOUR::PluginInsert>);
 	bool create_lv2_editor (boost::shared_ptr<ARDOUR::PluginInsert>);
 };
 
-#ifdef AUDIOUNITS
+#ifdef AUDIOUNIT_SUPPORT
 /* this function has to be in a .mm file */
 extern PlugUIBase* create_au_gui (boost::shared_ptr<ARDOUR::PluginInsert>, Gtk::VBox**);
 #endif

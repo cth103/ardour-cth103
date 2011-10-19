@@ -2732,7 +2732,7 @@ MarkerDrag::aborted (bool)
 }
 
 void
-MarkerDrag::update_item (Location* location)
+MarkerDrag::update_item (Location*)
 {
         /* noop */
 }

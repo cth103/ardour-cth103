@@ -2192,7 +2192,7 @@ Editor::rename_region ()
 	d.set_size_request (300, -1);
 	d.set_position (Gtk::WIN_POS_MOUSE);
 
-	entry.set_text (selection->regions.front()->region()->name());
+	entry.set_text (rs.front()->region()->name());
 	entry.select_region (0, -1);
 
 	entry.signal_activate().connect (sigc::bind (sigc::mem_fun (d, &Dialog::response), RESPONSE_OK));
@@ -3366,6 +3366,10 @@ Editor::bounce_range_selection (bool replace, bool enable_processing)
 		playlist->clear_owned_changes ();
 
 		boost::shared_ptr<Region> r = rtv->track()->bounce_range (start, start+cnt, itt, enable_processing);
+
+		if (!r) {
+			continue;
+		}
 
 		if (replace) {
 			list<AudioRange> ranges;
@@ -5005,7 +5009,7 @@ void
 Editor::toggle_region_fades (int dir)
 {
 	boost::shared_ptr<AudioRegion> ar;
-	bool yn;
+	bool yn = false;
 
 	RegionSelection rs = get_regions_from_selection_and_entered ();
 

@@ -1480,12 +1480,12 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void new_transport_marker_menu_set_punch ();
 	void update_loop_range_view (bool visibility=false);
 	void update_punch_range_view (bool visibility=false);
-        void new_transport_marker_menu_popdown ();
+	void new_transport_marker_menu_popdown ();
 	void marker_context_menu (GdkEventButton*, Canvas::Item*);
 	void tempo_or_meter_marker_context_menu (GdkEventButton*, Canvas::Item*);
 	void transport_marker_context_menu (GdkEventButton*, Canvas::Item*);
 	void new_transport_marker_context_menu (GdkEventButton*, Canvas::Item*);
-	void build_range_marker_menu (bool);
+	void build_range_marker_menu (bool, bool);
 	void build_marker_menu (ARDOUR::Location *);
 	void build_tempo_or_meter_marker_menu (bool);
 	void build_new_transport_marker_menu ();
@@ -1552,7 +1552,6 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	Gtk::VBox                automation_box;
 	Gtk::Button              automation_mode_button;
-	Gtk::ToggleButton        global_automation_button;
 
 	Gtk::ComboBoxText edit_mode_selector;
 	Gtk::VBox         edit_mode_box;
@@ -1605,7 +1604,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	Gtk::HBox                panic_box;
 	Gtk::Button              midi_panic_button;
-	Gtk::ToggleButton        midi_sound_notes;
+	Gtkmm2ext::StatefulToggleButton midi_sound_notes;
 	void                     midi_panic ();
 	bool                     sound_notes () const { return midi_sound_notes.get_active(); }
 

@@ -45,7 +45,7 @@
 #include "ardour/ladspa_plugin.h"
 #include "ardour/plugin_manager.h"
 
-#ifdef HAVE_AUDIOUNITS
+#ifdef AUDIOUNIT_SUPPORT
 #include "ardour/audio_unit.h"
 #endif
 
@@ -139,7 +139,13 @@ ARDOUR::find_plugin(Session& session, string identifier, PluginType type)
 		break;
 #endif
 
-#ifdef HAVE_AUDIOUNITS
+#ifdef LXVST_SUPPORT
+	case ARDOUR::LXVST:
+		plugs = mgr->lxvst_plugin_info();
+		break;
+#endif
+
+#ifdef AUDIOUNIT_SUPPORT
 	case ARDOUR::AudioUnit:
 		plugs = mgr->au_plugin_info();
 		break;
@@ -158,6 +164,19 @@ ARDOUR::find_plugin(Session& session, string identifier, PluginType type)
 	}
 
 #ifdef VST_SUPPORT
+	/* hmm, we didn't find it. could be because in older versions of Ardour.
+	   we used to store the name of a VST plugin, not its unique ID. so try
+	   again.
+	*/
+
+	for (i = plugs.begin(); i != plugs.end(); ++i) {
+		if (identifier == (*i)->name){
+			return (*i)->load (session);
+		}
+	}
+#endif
+
+#ifdef LXVST_SUPPORT
 	/* hmm, we didn't find it. could be because in older versions of Ardour.
 	   we used to store the name of a VST plugin, not its unique ID. so try
 	   again.
@@ -217,8 +236,8 @@ Plugin::preset_by_uri (const string& uri)
 
 int
 Plugin::connect_and_run (BufferSet& bufs,
-			 ChanMapping in_map, ChanMapping out_map,
-			 pframes_t nframes, framecnt_t offset)
+			 ChanMapping /*in_map*/, ChanMapping /*out_map*/,
+			 pframes_t /* nframes */, framecnt_t /*offset*/)
 {
 	if (bufs.count().n_midi() > 0) {
 
@@ -287,7 +306,7 @@ Plugin::set_parameter (uint32_t which, float val)
 }
 
 int
-Plugin::set_state (const XMLNode& node, int version)
+Plugin::set_state (const XMLNode& node, int /*version*/)
 {
 	XMLProperty const * p = node.property (X_("last-preset-uri"));
 	if (p) {
@@ -319,4 +338,10 @@ Plugin::get_state ()
 
 	add_state (root);
 	return *root;
+}
+
+void
+Plugin::set_info (PluginInfoPtr info)
+{
+	_info = info;
 }

@@ -276,7 +276,6 @@ Editor::Editor ()
 	, toolbar_selection_clock_table (2,3)
 
 	, automation_mode_button (_("mode"))
-	, global_automation_button (_("automation"))
 
 	, _toolbar_viewport (*manage (new Gtk::Adjustment (0, 0, 1e10)), *manage (new Gtk::Adjustment (0, 0, 1e10)))
 	, midi_panic_button (_("Panic"))
@@ -1263,7 +1262,7 @@ Editor::set_session (Session *t)
 	}
 
 	/* register for undo history */
-	_session->register_with_memento_command_factory(_id, this);
+	_session->register_with_memento_command_factory(id(), this);
 
 	ActionManager::ui_manager->signal_pre_activate().connect (sigc::mem_fun (*this, &Editor::action_pre_activated));
 
@@ -1905,7 +1904,7 @@ Editor::add_selection_context_items (Menu_Helpers::MenuList& edit_items)
 	edit_items.push_back (MenuElem (_("Consolidate Range With Processing"), sigc::bind (sigc::mem_fun(*this, &Editor::bounce_range_selection), true, true)));
 	edit_items.push_back (MenuElem (_("Bounce Range to Region List"), sigc::bind (sigc::mem_fun(*this, &Editor::bounce_range_selection), false, false)));
 	edit_items.push_back (MenuElem (_("Bounce Range to Region List With Processing"), sigc::bind (sigc::mem_fun(*this, &Editor::bounce_range_selection), false, true)));
-	edit_items.push_back (MenuElem (_("Export Range"), sigc::mem_fun(*this, &Editor::export_selection)));
+	edit_items.push_back (MenuElem (_("Export Range..."), sigc::mem_fun(*this, &Editor::export_selection)));
 }
 
 
@@ -2182,9 +2181,7 @@ Editor::set_state (const XMLNode& node, int /*version*/)
 	int x, y;
 	Gdk::Geometry g;
 
-	if ((prop = node.property ("id")) != 0) {
-		_id = prop->value ();
-	}
+	set_id (node);
 
 	g.base_width = default_width;
 	g.base_height = default_height;
@@ -2396,7 +2393,7 @@ Editor::get_state ()
 	XMLNode* node = new XMLNode ("Editor");
 	char buf[32];
 
-	_id.print (buf, sizeof (buf));
+	id().print (buf, sizeof (buf));
 	node->add_property ("id", buf);
 
 	if (is_realized()) {
@@ -3038,6 +3035,7 @@ Editor::setup_midi_toolbar ()
 	/* Midi sound notes */
 	midi_sound_notes.add (*(manage (new Image (::get_icon("midi_sound_notes")))));
 	midi_sound_notes.unset_flags (CAN_FOCUS);
+	midi_sound_notes.set_name (X_("MidiSoundNotesButton"));
 
 	/* Panic */
 

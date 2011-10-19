@@ -50,6 +50,10 @@
 #include "ardour/vst_plugin.h"
 #include "vst_pluginui.h"
 #endif
+#ifdef LXVST_SUPPORT
+#include "ardour/lxvst_plugin.h"
+#include "lxvst_plugin_ui.h"
+#endif
 #ifdef LV2_SUPPORT
 #include "ardour/lv2_plugin.h"
 #include "lv2_plugin_ui.h"
@@ -97,6 +101,10 @@ PluginUIWindow::PluginUIWindow (
 		switch (insert->type()) {
 		case ARDOUR::VST:
 			have_gui = create_vst_editor (insert);
+			break;
+			
+		case ARDOUR::LXVST:
+			have_gui = create_lxvst_editor (insert);
 			break;
 
 		case ARDOUR::AudioUnit:
@@ -275,6 +283,36 @@ PluginUIWindow::create_vst_editor(boost::shared_ptr<PluginInsert>)
 }
 
 bool
+#ifdef LXVST_SUPPORT
+PluginUIWindow::create_lxvst_editor(boost::shared_ptr<PluginInsert> insert)
+#else
+PluginUIWindow::create_lxvst_editor(boost::shared_ptr<PluginInsert>)
+#endif
+{
+#ifndef LXVST_SUPPORT
+	return false;
+#else
+
+	boost::shared_ptr<LXVSTPlugin> lxvp;
+
+	if ((lxvp = boost::dynamic_pointer_cast<LXVSTPlugin> (insert->plugin())) == 0) {
+		error << _("unknown type of editor-supplying plugin (note: no linuxVST support in this version of ardour)")
+			      << endmsg;
+		throw failed_constructor ();
+	} else {
+		LXVSTPluginUI* lxvpu = new LXVSTPluginUI (insert, lxvp);
+
+		_pluginui = lxvpu;
+		_pluginui->KeyboardFocused.connect (sigc::mem_fun (*this, &PluginUIWindow::keyboard_focused));
+		add (*lxvpu);
+		lxvpu->package (*this);
+	}
+
+	return true;
+#endif
+}
+
+bool
 #ifdef GTKOSX
 PluginUIWindow::create_audiounit_editor (boost::shared_ptr<PluginInsert> insert)
 #else
@@ -322,7 +360,7 @@ PluginUIWindow::app_activated (bool)
 bool
 PluginUIWindow::create_lv2_editor(boost::shared_ptr<PluginInsert> insert)
 {
-#if defined(HAVE_SLV2) || defined(HAVE_SUIL)
+#ifdef HAVE_SUIL
 	boost::shared_ptr<LV2Plugin> vp;
 
 	if ((vp = boost::dynamic_pointer_cast<LV2Plugin> (insert->plugin())) == 0) {

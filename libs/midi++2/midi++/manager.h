@@ -24,6 +24,8 @@
 
 #include <string>
 
+#include "pbd/rcu.h"
+
 #include "midi++/types.h"
 #include "midi++/port.h"
 
@@ -57,6 +59,7 @@ class Manager {
 	Port *midi_clock_output_port() const { return _midi_clock_output_port; }
 
 	Port* add_port (Port *);
+	void remove_port (Port *);
 
 	Port* port (std::string const &);
 
@@ -64,7 +67,7 @@ class Manager {
 
 	typedef std::list<Port *> PortList;
 
-	const PortList& get_midi_ports() const { return _ports; } 
+	boost::shared_ptr<const PortList> get_midi_ports() const { return _ports.reader (); } 
 
 	static void create (jack_client_t* jack);
 	
@@ -90,8 +93,8 @@ class Manager {
 	MIDI::Port*             _midi_output_port;
 	MIDI::Port*             _midi_clock_input_port;
 	MIDI::Port*             _midi_clock_output_port;
-	
-	std::list<Port*> _ports;
+
+	SerializedRCUManager<PortList> _ports;
 };
 
 } // namespace MIDI

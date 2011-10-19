@@ -44,7 +44,7 @@ using namespace ARDOUR;
 using namespace PBD;
 
 PlaylistSource::PlaylistSource (Session& s, const ID& orig, const std::string& name, boost::shared_ptr<Playlist> p, DataType type,
-				frameoffset_t begin, framecnt_t len, Source::Flag flags)
+				frameoffset_t begin, framecnt_t len, Source::Flag /*flags*/)
 	: Source (s, type, name)
 	, _playlist (p)
 	, _original (orig)
@@ -86,13 +86,13 @@ PlaylistSource::add_state (XMLNode& node)
 	node.add_property ("offset", buf);
 	snprintf (buf, sizeof (buf), "%" PRIu64, _playlist_length);
 	node.add_property ("length", buf);
-	node.add_property ("original", _id.to_s());
+	node.add_property ("original", id().to_s());
 
 	node.add_child_nocopy (_playlist->get_state());
 }
 
 int
-PlaylistSource::set_state (const XMLNode& node, int version)
+PlaylistSource::set_state (const XMLNode& node, int /*version*/)
 {
 	/* check that we have a playlist ID */
 
@@ -141,11 +141,15 @@ PlaylistSource::set_state (const XMLNode& node, int version)
 
 	sscanf (prop->value().c_str(), "%" PRIu64, &_playlist_length);
 
+	/* XXX not quite sure why we set our ID back to the "original" one
+	   here. october 2011, paul
+	*/
+
 	if ((prop = node.property (X_("original"))) == 0) {
 		throw failed_constructor ();
 	}
 
-	_id = prop->value();
+	set_id (prop->value());
 
 	_level = _playlist->max_source_level () + 1;
 

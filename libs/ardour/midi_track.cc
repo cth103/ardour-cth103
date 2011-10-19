@@ -311,7 +311,7 @@ MidiTrack::set_state_part_two ()
 
 int
 MidiTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame, int declick,
-		 bool can_record, bool rec_monitors_input, bool& needs_butler)
+		 bool can_record, bool& needs_butler)
 {
 	Glib::RWLock::ReaderLock lm (_processor_lock, Glib::TRY_LOCK);
 	if (!lm.locked()) {
@@ -339,12 +339,12 @@ MidiTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame
 		   playback distance to zero, thus causing diskstream::commit
 		   to do nothing.
 		   */
-		return diskstream->process (transport_frame, 0, can_record, rec_monitors_input, needs_butler);
+		return diskstream->process (transport_frame, 0, can_record, needs_butler);
 	}
 
 	_silent = false;
 
-	if ((dret = diskstream->process (transport_frame, nframes, can_record, rec_monitors_input, needs_butler)) != 0) {
+	if ((dret = diskstream->process (transport_frame, nframes, can_record, needs_butler)) != 0) {
 		silence (nframes);
 		return dret;
 	}
@@ -398,16 +398,21 @@ MidiTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame
 		                        (!diskstream->record_enabled() && !_session.transport_stopped()));
 	}
 
-	_main_outs->flush_buffers (nframes, end_frame - start_frame - 1);
+	for (ProcessorList::iterator i = _processors.begin(); i != _processors.end(); ++i) {
+		boost::shared_ptr<Delivery> d = boost::dynamic_pointer_cast<Delivery> (*i);
+		if (d) {
+			d->flush_buffers (nframes, end_frame - start_frame - 1);
+		}
+	}
 
 	return 0;
 }
 
 int
 MidiTrack::no_roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame,
-		    bool state_changing, bool can_record, bool rec_monitors_input)
+		    bool state_changing, bool can_record)
 {
-	int ret = Track::no_roll (nframes, start_frame, end_frame, state_changing, can_record, rec_monitors_input);
+	int ret = Track::no_roll (nframes, start_frame, end_frame, state_changing, can_record);
 
 	if (ret == 0 && _step_editing) {
 		push_midi_input_to_step_edit_ringbuffer (nframes);
@@ -508,9 +513,7 @@ MidiTrack::export_stuff (BufferSet& /*bufs*/, framecnt_t /*nframes*/, framepos_t
 boost::shared_ptr<Region>
 MidiTrack::bounce (InterThreadInfo& /*itt*/)
 {
-	throw;
-	// vector<MidiSource*> srcs;
-	// return _session.write_one_track (*this, 0, _session.current_end_frame(), false, srcs, itt);
+	std::cerr << "MIDI bounce currently unsupported" << std::endl;
 	return boost::shared_ptr<Region> ();
 }
 
@@ -518,15 +521,14 @@ MidiTrack::bounce (InterThreadInfo& /*itt*/)
 boost::shared_ptr<Region>
 MidiTrack::bounce_range (framepos_t /*start*/, framepos_t /*end*/, InterThreadInfo& /*itt*/, bool /*enable_processing*/)
 {
-	throw;
-	//vector<MidiSource*> srcs;
-	//return _session.write_one_track (*this, start, end, false, srcs, itt);
+	std::cerr << "MIDI bounce range currently unsupported" << std::endl;
 	return boost::shared_ptr<Region> ();
 }
 
 void
 MidiTrack::freeze_me (InterThreadInfo& /*itt*/)
 {
+	std::cerr << "MIDI freeze currently unsupported" << std::endl;
 }
 
 void

@@ -483,7 +483,7 @@ ShuttleControl::use_shuttle_fract (bool force)
 }
 
 bool
-ShuttleControl::on_expose_event (GdkEventExpose* event)
+ShuttleControl::on_expose_event (GdkEventExpose*)
 {
 	cairo_text_extents_t extents;
 	Glib::RefPtr<Gdk::Window> win (get_window());
@@ -609,12 +609,6 @@ ShuttleControl::ShuttleControllable::ShuttleControllable (ShuttleControl& s)
 	: PBD::Controllable (X_("Shuttle"))
 	, sc (s)
 {
-}
-
-void
-ShuttleControl::ShuttleControllable::set_id (const std::string& str)
-{
-	_id = str;
 }
 
 void

@@ -42,7 +42,7 @@ MidiStretch::~MidiStretch ()
 }
 
 int
-MidiStretch::run (boost::shared_ptr<Region> r, Progress* progress)
+MidiStretch::run (boost::shared_ptr<Region> r, Progress*)
 {
 	SourceList nsrcs;
 	char suffix[32];
@@ -99,7 +99,7 @@ MidiStretch::run (boost::shared_ptr<Region> r, Progress* progress)
 
 		// FIXME: double copy
 		Evoral::Event<MidiModel::TimeType> ev(*i, true);
-		ev.time() = new_time;
+		ev.set_time(new_time);
 		new_model->append(ev, Evoral::next_event_id());
 	}
 

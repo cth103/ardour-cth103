@@ -109,13 +109,13 @@ class Route : public SessionObject, public Automatable, public RouteGroupMember,
 	/* these are the core of the API of a Route. see the protected sections as well */
 
 	virtual int roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame,
-	                  int declick, bool can_record, bool rec_monitors_input, bool& need_butler);
+	                  int declick, bool can_record, bool& need_butler);
 
 	virtual int no_roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame,
-	                     bool state_changing, bool can_record, bool rec_monitors_input);
+	                     bool state_changing, bool can_record);
 
 	virtual int silent_roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame,
-	                         bool can_record, bool rec_monitors_input, bool& need_butler);
+	                         bool can_record, bool& need_butler);
 
 	virtual void toggle_monitor_input ();
 	virtual bool can_record() { return false; }
@@ -237,6 +237,7 @@ class Route : public SessionObject, public Automatable, public RouteGroupMember,
 	};
 
 	int add_processor (boost::shared_ptr<Processor>, Placement placement, ProcessorStreams* err = 0, bool activation_allowed = true);
+	int add_processor_by_index (boost::shared_ptr<Processor>, int, ProcessorStreams* err = 0, bool activation_allowed = true);
 	int add_processor (boost::shared_ptr<Processor>, ProcessorList::iterator iter, ProcessorStreams* err = 0, bool activation_allowed = true);
 	int add_processors (const ProcessorList&, boost::shared_ptr<Processor> before, ProcessorStreams* err = 0);
 	int remove_processor (boost::shared_ptr<Processor>, ProcessorStreams* err = 0);
@@ -414,7 +415,7 @@ class Route : public SessionObject, public Automatable, public RouteGroupMember,
 	virtual void set_block_size (pframes_t nframes);
 
   protected:
-	framecnt_t check_initial_delay (framecnt_t, framecnt_t&);
+	virtual framecnt_t check_initial_delay (framecnt_t nframes, framecnt_t&) { return nframes; }
 
 	void passthru (framepos_t start_frame, framepos_t end_frame,
 			pframes_t nframes, int declick);
