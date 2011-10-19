@@ -31,10 +31,7 @@ children = [
         'libs/gtkmm2ext',
         'libs/clearlooks-newer',
         'libs/audiographer',
-<<<<<<< HEAD
         'libs/canvas',
-=======
->>>>>>> origin/master
         'gtk2_ardour',
         'templates',
         'export',

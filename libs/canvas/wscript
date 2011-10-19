@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-import autowaf
+from waflib.extras import autowaf as autowaf
+from waflib import Options
 import os
 
 # Version of this package (even if built as a child)
@@ -49,21 +50,21 @@ blddir = 'build'
 
 path_prefix = 'libs/canvas/'
 
-def set_options(opt):
+def options(opt):
 	autowaf.set_options(opt)
 
 def configure(conf):
+	conf.load('compiler_cxx')
 	autowaf.configure(conf)
 	autowaf.check_pkg(conf, 'cairomm-1.0', uselib_store='CAIROMM', atleast_version='1.8.4')
-	conf.check_tool('compiler_cxx')
 
 def build(bld):
-	obj = bld.new_task_gen(features = 'cxx cshlib')
+	obj = bld(features = 'cxx cshlib')
 	obj.source = canvas_sources
 	obj.export_incdirs = ['.']
 	obj.includes     = ['.']
-	obj.uselib       = 'SIGCPP CAIROMM GTKMM'
-	obj.uselib_local = 'libevoral libardour libgtkmm2ext'
+	obj.uselib       = ['SIGCPP', 'CAIROMM', 'GTKMM']
+	obj.use          = ['libevoral', 'libardour', 'libgtkmm2ext', 'libpbd']
 	obj.name         = 'libcanvas'
 	obj.target       = 'canvas'
 	obj.vnum         = CANVAS_LIB_VERSION
@@ -71,7 +72,7 @@ def build(bld):
 	obj.cxxflags     = [
 			'-DPACKAGE="libcanvas"',
 			'-DLOCALEDIR="' + os.path.join(
-				os.path.normpath(bld.env['DATADIRNAME']), 'locale') + '"']
+				os.path.normpath(bld.env['DATADIR']), 'locale') + '"']
 
 	if bld.env['BUILD_TESTS'] and bld.env['HAVE_CPPUNIT']:
 		
@@ -87,7 +88,7 @@ def build(bld):
 		for t in manual_tests:
 			target = t[:-3]
 			name = t[t.find('/')+1:-3]
-			manual_testobj = bld.new_task_gen('cxx', 'program')
+			manual_testobj = bld(features = 'cxx program')
 			manual_testobj.source = t
 			manual_testobj.includes = obj.includes + ['test', '../pbd']
 			manual_testobj.uselib       = 'CPPUNIT SIGCPP CAIROMM GTKMM'
