@@ -46,17 +46,18 @@
 #include "ardour/debug.h"
 #include "ardour/io.h"
 #include "ardour/midi_diskstream.h"
+#include "ardour/midi_model.h"
 #include "ardour/midi_playlist.h"
 #include "ardour/midi_port.h"
 #include "ardour/midi_region.h"
 #include "ardour/playlist_factory.h"
 #include "ardour/region_factory.h"
+#include "ardour/route.h"
 #include "ardour/send.h"
 #include "ardour/session.h"
+#include "ardour/session_playlists.h"
 #include "ardour/smf_source.h"
 #include "ardour/utils.h"
-#include "ardour/session_playlists.h"
-#include "ardour/route.h"
 
 #include "midi++/types.h"
 
@@ -476,13 +477,14 @@ trace_midi (ostream& o, MIDI::byte *msg, size_t len)
 #endif
 
 int
-MidiDiskstream::process (framepos_t transport_frame, pframes_t nframes, bool can_record, bool& need_butler)
+MidiDiskstream::process (framepos_t transport_frame, pframes_t nframes, bool& need_butler)
 {
 	int       ret = -1;
 	framecnt_t rec_offset = 0;
 	framecnt_t rec_nframes = 0;
 	bool      nominally_recording;
 	bool      re = record_enabled ();
+	bool      can_record = _session.actively_recording ();
 
 	playback_distance = 0;
 

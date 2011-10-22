@@ -145,8 +145,10 @@ MidiTrack::_set_state (const XMLNode& node, int version, bool call_base)
 	const XMLProperty *prop;
 	XMLNodeConstIterator iter;
 
-	if (Route::_set_state (node, version, call_base)) {
-		return -1;
+	if (call_base) {
+		if (Track::_set_state (node, version, call_base)) {
+			return -1;
+		}
 	}
 
 	// No destructive MIDI tracks (yet?)
@@ -209,7 +211,7 @@ MidiTrack::_set_state (const XMLNode& node, int version, bool call_base)
 XMLNode&
 MidiTrack::state(bool full_state)
 {
-	XMLNode& root (Route::state(full_state));
+	XMLNode& root (Track::state(full_state));
 	XMLNode* freeze_node;
 	char buf[64];
 
@@ -310,8 +312,7 @@ MidiTrack::set_state_part_two ()
 }
 
 int
-MidiTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame, int declick,
-		 bool can_record, bool& needs_butler)
+MidiTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame, int declick, bool& needs_butler)
 {
 	Glib::RWLock::ReaderLock lm (_processor_lock, Glib::TRY_LOCK);
 	if (!lm.locked()) {
@@ -339,12 +340,12 @@ MidiTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame
 		   playback distance to zero, thus causing diskstream::commit
 		   to do nothing.
 		   */
-		return diskstream->process (transport_frame, 0, can_record, needs_butler);
+		return diskstream->process (transport_frame, 0, needs_butler);
 	}
 
 	_silent = false;
 
-	if ((dret = diskstream->process (transport_frame, nframes, can_record, needs_butler)) != 0) {
+	if ((dret = diskstream->process (transport_frame, nframes, needs_butler)) != 0) {
 		silence (nframes);
 		return dret;
 	}
@@ -355,7 +356,7 @@ MidiTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame
 		_input->process_input (_meter, start_frame, end_frame, nframes);
 	}
 
-	if (diskstream->record_enabled() && !can_record && !_session.config.get_auto_input()) {
+	if (monitoring_state() == MonitoringInput) {
 
 		/* not actually recording, but we want to hear the input material anyway,
 		   at least potentially (depending on monitoring options)
@@ -409,10 +410,9 @@ MidiTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame
 }
 
 int
-MidiTrack::no_roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame,
-		    bool state_changing, bool can_record)
+MidiTrack::no_roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame, bool state_changing)
 {
-	int ret = Track::no_roll (nframes, start_frame, end_frame, state_changing, can_record);
+	int ret = Track::no_roll (nframes, start_frame, end_frame, state_changing);
 
 	if (ret == 0 && _step_editing) {
 		push_midi_input_to_step_edit_ringbuffer (nframes);

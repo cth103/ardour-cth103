@@ -43,6 +43,7 @@ Track::Track (Session& sess, string name, Route::Flag flag, TrackMode mode, Data
 	: Route (sess, name, flag, default_type)
         , _saved_meter_point (_meter_point)
         , _mode (mode)
+	, _monitoring (MonitorAuto)
 	, _rec_enable_control (new RecEnableControllable(*this))
 {
 	_freeze_record.state = NoFreeze;
@@ -63,13 +64,46 @@ Track::init ()
 
         return 0;
 }
+
 XMLNode&
 Track::get_state ()
 {
 	return state (true);
 }
 
+XMLNode&
+Track::state (bool full)
+{
+	XMLNode& root (Route::state (full));
+	root.add_property (X_("monitoring"), enum_2_string (_monitoring));
+	return root;
+}	
 
+int
+Track::set_state (const XMLNode& node, int version)
+{
+	return _set_state (node, version, true);
+}
+
+int
+Track::_set_state (const XMLNode& node, int version, bool call_base)
+{
+	if (call_base) {
+		if (Route::_set_state (node, version, call_base)) {
+			return -1;
+		}
+	}
+
+	const XMLProperty* prop;
+
+	if ((prop = node.property (X_("monitoring"))) != 0) {
+		_monitoring = MonitorChoice (string_2_enum (prop->value(), _monitoring));
+	} else {
+		_monitoring = MonitorAuto;
+	}
+
+	return 0;
+}
 
 XMLNode&
 Track::get_template ()
@@ -207,13 +241,14 @@ Track::zero_diskstream_id_in_xml (XMLNode& node)
 }
 
 int
-Track::no_roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame,
-		bool session_state_changing, bool can_record)
+Track::no_roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame, bool session_state_changing)
 {
 	Glib::RWLock::ReaderLock lm (_processor_lock, Glib::TRY_LOCK);
 	if (!lm.locked()) {
 		return 0;
 	}
+
+	bool can_record = _session.actively_recording ();
 
 	if (n_outputs().n_total() == 0) {
 		return 0;
@@ -289,8 +324,7 @@ Track::no_roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame,
 }
 
 int
-Track::silent_roll (pframes_t nframes, framepos_t /*start_frame*/, framepos_t /*end_frame*/,
-		    bool can_record, bool& need_butler)
+Track::silent_roll (pframes_t nframes, framepos_t /*start_frame*/, framepos_t /*end_frame*/, bool& need_butler)
 {
 	Glib::RWLock::ReaderLock lm (_processor_lock, Glib::TRY_LOCK);
 	if (!lm.locked()) {
@@ -311,7 +345,7 @@ Track::silent_roll (pframes_t nframes, framepos_t /*start_frame*/, framepos_t /*
 
 	silence (nframes);
 
-	return _diskstream->process (_session.transport_frame(), nframes, can_record, need_butler);
+	return _diskstream->process (_session.transport_frame(), nframes, need_butler);
 }
 
 void
@@ -640,38 +674,46 @@ Track::adjust_capture_buffering ()
 bool
 Track::send_silence () const
 {
-        /*
-          ADATs work in a strange way..
-          they monitor input always when stopped.and auto-input is engaged.
-
-          Other machines switch to input on stop if the track is record enabled,
-          regardless of the auto input setting (auto input only changes the
-          monitoring state when the transport is rolling)
-        */
-
         bool send_silence;
 
-        if (!Config->get_tape_machine_mode()) {
-                /*
-                  ADATs work in a strange way..
-                  they monitor input always when stopped.and auto-input is engaged.
+        if (Config->get_tape_machine_mode()) {
+
+                /* ADATs work in a strange way..
+		   they monitor input always when stopped.and auto-input is engaged.
                 */
+		
                 if ((Config->get_monitoring_model() == SoftwareMonitoring)
-                    && (_session.config.get_auto_input () || _diskstream->record_enabled())) {
-                        send_silence = false;
+                    && ((_monitoring & MonitorInput) || (_diskstream->record_enabled()))) {
+			send_silence = false;
                 } else {
                         send_silence = true;
                 }
+		
+		
         } else {
-                /*
-                  Other machines switch to input on stop if the track is record enabled,
-                  regardless of the auto input setting (auto input only changes the
-                  monitoring state when the transport is rolling)
+		
+                /* Other machines switch to input on stop if the track is record enabled,
+		   regardless of the auto input setting (auto input only changes the
+		   monitoring state when the transport is rolling)
                 */
+		
                 if ((Config->get_monitoring_model() == SoftwareMonitoring)
-                    && _diskstream->record_enabled()) {
+                    && ((_monitoring & MonitorInput) || 
+			(!(_monitoring & MonitorDisk) && (_session.config.get_auto_input () || _diskstream->record_enabled())))){
+
+			DEBUG_TRACE (DEBUG::Monitor, 
+				     string_compose ("%1: no roll, use silence = FALSE,  monitoring choice %2 recenable %3 sRA %4 autoinput %5\n",
+						     name(), enum_2_string (_monitoring), 
+						     _diskstream->record_enabled(), _session.actively_recording(),
+						     _session.config.get_auto_input()));
+
                         send_silence = false;
                 } else {
+			DEBUG_TRACE (DEBUG::Monitor, 
+				     string_compose ("%1: no roll, use silence = TRUE,  monitoring choice %2 recenable %3 sRA %4 autoinput %5\n",
+						     name(), enum_2_string (_monitoring), 
+						     _diskstream->record_enabled(), _session.actively_recording(),
+						     _session.config.get_auto_input()));
                         send_silence = true;
                 }
         }
@@ -679,14 +721,63 @@ Track::send_silence () const
         return send_silence;
 }
 
+MonitorState
+Track::monitoring_state ()
+{
+	MonitorState ms = MonitoringSilence;
+
+	if (_session.transport_rolling()) {
+		
+		/* roll case */
+		
+		if (_monitoring & MonitorInput) { // explicitly requested input monitoring
+			
+			ms = MonitoringInput;
+
+		} else if (_monitoring & MonitorDisk) { // explicitly requested disk monitoring
+			
+			ms = MonitoringDisk;
+
+		} else if (_diskstream->record_enabled() && _session.actively_recording()) { // Track actually recording
+			
+			ms = MonitoringInput;
+
+		} else if (_diskstream->record_enabled() && !_session.actively_recording() && _session.config.get_auto_input()) { // Track armed but not recording, with auto input enabled
+			
+			ms = MonitoringInput;
+
+		} else { // Every other state
+			
+			ms = MonitoringDisk; 
+
+		}
+
+	} else {
+
+		/* no-roll case */
+
+		if (send_silence()) {
+			
+			ms = MonitoringSilence;
+		} else {
+			
+			ms = MonitoringInput;
+		}
+	}
+
+	return ms;
+}
+
 void
 Track::maybe_declick (BufferSet& bufs, framecnt_t nframes, int declick)
 {
         /* never declick if there is an internal generator - we just want it to
            keep generating sound without interruption.
+
+	   ditto if we are monitoring inputs.
         */
 
-        if (_have_internal_generator) {
+        if (_have_internal_generator || monitoring_choice() == MonitorInput) {
                 return;
         }
 
@@ -732,6 +823,15 @@ Track::check_initial_delay (framecnt_t nframes, framecnt_t& transport_frame)
 
 	}
 
-	return nframes;
+	return nframes; 
+}
+
+void
+Track::set_monitoring (MonitorChoice mc)
+{
+	if (mc !=  _monitoring) {
+		_monitoring = mc;
+		MonitoringChanged (); /* EMIT SIGNAL */
+	}
 }
 

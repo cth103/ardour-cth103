@@ -48,14 +48,19 @@ class Track : public Route, public PublicDiskstream
 	virtual bool can_use_mode (TrackMode /*m*/, bool& /*bounce_required*/) { return false; }
 	PBD::Signal0<void> TrackModeChanged;
 
+	virtual void set_monitoring (MonitorChoice);
+	MonitorChoice monitoring_choice() const { return _monitoring; }
+	MonitorState monitoring_state();
+	PBD::Signal0<void> MonitoringChanged;
+
 	virtual int no_roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame,
-	                     bool state_changing, bool can_record);
+	                     bool state_changing);
 
 	int silent_roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame,
-	                 bool can_record, bool& need_butler);
+	                 bool& need_butler);
 
 	virtual int roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame,
-	                  int declick, bool can_record, bool& need_butler) = 0;
+	                  int declick, bool& need_butler) = 0;
 
 	bool needs_butler() const { return _needs_butler; }
 	void toggle_monitor_input ();
@@ -85,7 +90,7 @@ class Track : public Route, public PublicDiskstream
 
 	XMLNode&    get_state();
 	XMLNode&    get_template();
-	virtual int set_state (const XMLNode&, int version) = 0;
+	int set_state (const XMLNode&, int version);
 	static void zero_diskstream_id_in_xml (XMLNode&);
 
 	boost::shared_ptr<PBD::Controllable> rec_enable_control() { return _rec_enable_control; }
@@ -158,12 +163,14 @@ class Track : public Route, public PublicDiskstream
 	PBD::Signal0<void> AlignmentStyleChanged;
 
   protected:
-	virtual XMLNode& state (bool full) = 0;
+	XMLNode& state (bool full);
+	int _set_state (const XMLNode&, int version, bool);
 
 	boost::shared_ptr<Diskstream> _diskstream;
-	MeterPoint  _saved_meter_point;
-	TrackMode   _mode;
-	bool        _needs_butler;
+	MeterPoint    _saved_meter_point;
+	TrackMode     _mode;
+	bool          _needs_butler;
+	MonitorChoice _monitoring;
 
 	//private: (FIXME)
 	struct FreezeRecordProcessorInfo {

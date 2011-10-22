@@ -212,7 +212,7 @@ AudioTrack::_set_state (const XMLNode& node, int version, bool call_base)
 	XMLNode *child;
 
 	if (call_base) {
-		if (Route::_set_state (node, version, call_base)) {
+		if (Track::_set_state (node, version, call_base)) {
 			return -1;
 		}
 	}
@@ -263,7 +263,7 @@ AudioTrack::_set_state (const XMLNode& node, int version, bool call_base)
 XMLNode&
 AudioTrack::state (bool full_state)
 {
-	XMLNode& root (Route::state(full_state));
+	XMLNode& root (Track::state(full_state));
 	XMLNode* freeze_node;
 	char buf[64];
 
@@ -353,10 +353,10 @@ AudioTrack::set_state_part_two ()
 }
 
 int
-AudioTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame, int declick,
-		  bool can_record, bool& need_butler)
+AudioTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame, int declick, bool& need_butler)
 {
 	Glib::RWLock::ReaderLock lm (_processor_lock, Glib::TRY_LOCK);
+
 	if (!lm.locked()) {
 		return 0;
 	}
@@ -386,13 +386,13 @@ AudioTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_fram
 		   playback distance to zero, thus causing diskstream::commit
 		   to do nothing.
 		*/
-		return diskstream->process (transport_frame, 0, can_record, need_butler);
+		return diskstream->process (transport_frame, 0, need_butler);
 	}
 
 	_silent = false;
 	_amp->apply_gain_automation(false);
 
-	if ((dret = diskstream->process (transport_frame, nframes, can_record, need_butler)) != 0) {
+	if ((dret = diskstream->process (transport_frame, nframes, need_butler)) != 0) {
 		silence (nframes);
 		return dret;
 	}
@@ -403,11 +403,7 @@ AudioTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_fram
 		_input->process_input (_meter, start_frame, end_frame, nframes);
 	}
 
-	if (diskstream->record_enabled() && !can_record && !_session.config.get_auto_input()) {
-
-		/* not actually recording, but we want to hear the input material anyway,
-		   at least potentially (depending on monitoring options)
-		 */
+	if (monitoring_state() == MonitoringInput) {
 
 		passthru (start_frame, end_frame, nframes, false);
 
@@ -734,3 +730,5 @@ AudioTrack::bounceable () const
 {
 	return n_inputs().n_audio() >= n_outputs().n_audio();
 }
+
+	

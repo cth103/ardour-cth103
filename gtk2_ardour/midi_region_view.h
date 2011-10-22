@@ -26,7 +26,6 @@
 #include "pbd/signals.h"
 
 #include "ardour/midi_track.h"
-#include "ardour/midi_region.h"
 #include "ardour/midi_model.h"
 #include "ardour/diskstream.h"
 #include "ardour/types.h"
@@ -82,8 +81,7 @@ public:
 
 	virtual void init (Gdk::Color const & basic_color, bool wfd);
 
-	inline const boost::shared_ptr<ARDOUR::MidiRegion> midi_region() const
-	{ return boost::dynamic_pointer_cast<ARDOUR::MidiRegion>(_region); }
+	const boost::shared_ptr<ARDOUR::MidiRegion> midi_region() const;
 
 	inline MidiTimeAxisView* midi_view() const
 	{ return dynamic_cast<MidiTimeAxisView*>(&trackview); }

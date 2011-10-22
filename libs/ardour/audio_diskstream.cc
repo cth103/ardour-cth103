@@ -56,6 +56,7 @@
 #include "ardour/send.h"
 #include "ardour/session.h"
 #include "ardour/source_factory.h"
+#include "ardour/track.h"
 #include "ardour/utils.h"
 #include "ardour/session_playlists.h"
 #include "ardour/route.h"
@@ -405,7 +406,7 @@ AudioDiskstream::prepare_record_status(framepos_t capture_start_frame)
 }
 
 int
-AudioDiskstream::process (framepos_t transport_frame, pframes_t nframes, bool can_record, bool& need_butler)
+AudioDiskstream::process (framepos_t transport_frame, pframes_t nframes, bool& need_butler)
 {
 	uint32_t n;
 	boost::shared_ptr<ChannelList> c = channels.reader();
@@ -414,6 +415,7 @@ AudioDiskstream::process (framepos_t transport_frame, pframes_t nframes, bool ca
 	framecnt_t rec_offset = 0;
 	framecnt_t rec_nframes = 0;
 	bool collect_playback = false;
+	bool can_record = _session.actively_recording ();
 
 	playback_distance = 0;
 
@@ -566,8 +568,8 @@ AudioDiskstream::process (framepos_t transport_frame, pframes_t nframes, bool ca
 		collect_playback = true;
 	}
 
-	if (collect_playback) {
-
+	if ((_track->monitoring_state () & MonitoringDisk) || collect_playback) {
+		
 		/* we're doing playback */
 
 		framecnt_t necessary_samples;
