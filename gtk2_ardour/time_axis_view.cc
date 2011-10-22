@@ -76,9 +76,9 @@ TimeAxisView::TimeAxisView (ARDOUR::Session* sess, PublicEditor& ed, TimeAxisVie
 	, _y_position (0)
 	, _editor (ed)
 	, _order (0)
+	, _ghost_group (0)
 	, _preresize_cursor (0)
 	, _have_preresize_cursor (false)
-	, _ghost_group (0)
 {
 	if (extra_height == 0) {
 		compute_heights ();

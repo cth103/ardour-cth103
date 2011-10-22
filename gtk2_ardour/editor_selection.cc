@@ -1521,10 +1521,10 @@ Editor::select_all_selectables_using_cursor (EditorCursor *cursor, bool after)
 	list<Selectable *> touched;
 
 	if (after) {
-		start = cursor->current_frame;
+		start = cursor->current_frame ();
 		end = _session->current_end_frame();
 	} else {
-		if (cursor->current_frame > 0) {
+		if (cursor->current_frame() > 0) {
 			start = 0;
 			end = cursor->current_frame () - 1;
 		} else {

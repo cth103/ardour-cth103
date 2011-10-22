@@ -342,8 +342,13 @@ def build(bld):
     obj.uselib       = 'UUID FLAC GLIBMM GTHREAD GTK OGG ALSA CURL DL'
     obj.uselib       += ' GTKMM '
     obj.uselib       += ' AUDIOUNITS OSX GTKOSX '
-    obj.uselib_local = '''libpbd libmidipp libtaglib libardour libardour_cp
-                          libgtkmm2ext libtaglib libcanvas'''
+    obj.use          = [ 'libpbd',
+                         'libmidipp',
+                         'libtaglib',
+                         'libardour',
+                         'libardour_cp',
+                         'libgtkmm2ext',
+                         'libcanvas' ]
     if sys.platform == 'darwin':
         obj.use += ' libappleutility'
     obj.defines     = [

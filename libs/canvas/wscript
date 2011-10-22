@@ -7,19 +7,19 @@ import os
 MAJOR = '0'
 MINOR = '0'
 MICRO = '0'
-CANVAS_VERSION = "%s.%s.%s" % (MAJOR, MINOR, MICRO)
+LIBCANVAS_VERSION = "%s.%s.%s" % (MAJOR, MINOR, MICRO)
 
 # Library version (UNIX style major, minor, micro)
 # major increment <=> incompatible changes
 # minor increment <=> compatible changes (additions)
 # micro increment <=> no interface changes
-CANVAS_LIB_VERSION = '0.0.0'
+LIBCANVAS_LIB_VERSION = '0.0.0'
 
 # Variables for 'waf dist'
 APPNAME = 'canvas'
-VERSION = CANVAS_VERSION
+VERSION = LIBCANVAS_VERSION
 
-canvas_sources = [
+libcanvas_sources = [
 	'arrow.cc',
         'bbt_lines.cc',
 	'canvas.cc',
@@ -45,8 +45,8 @@ canvas_sources = [
 ]
 
 # Mandatory variables
-srcdir = '.'
-blddir = 'build'
+top = '.'
+out = 'build'
 
 path_prefix = 'libs/canvas/'
 
@@ -60,14 +60,14 @@ def configure(conf):
 
 def build(bld):
 	obj = bld(features = 'cxx cshlib')
-	obj.source = canvas_sources
-	obj.export_incdirs = ['.']
+	obj.source = libcanvas_sources
+	obj.export_includes = ['.']
 	obj.includes     = ['.']
 	obj.uselib       = ['SIGCPP', 'CAIROMM', 'GTKMM']
 	obj.use          = ['libevoral', 'libardour', 'libgtkmm2ext', 'libpbd']
 	obj.name         = 'libcanvas'
 	obj.target       = 'canvas'
-	obj.vnum         = CANVAS_LIB_VERSION
+	obj.vnum         = LIBCANVAS_LIB_VERSION
 	obj.install_path = os.path.join(bld.env['LIBDIR'], 'ardour3')
 	obj.cxxflags     = [
 			'-DPACKAGE="libcanvas"',
