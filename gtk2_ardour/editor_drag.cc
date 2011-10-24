@@ -689,7 +689,7 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 			double y = 0;
 
 			/* Get the y coordinate of the top of the track that this region is now on */
-			tv->canvas_display()->i2w (x, y);
+			tv->canvas_display()->item_to_canvas (x, y);
 			y += _editor->get_trackview_group_vertical_offset();
 			
 			/* And adjust for the layer that it should be on */
@@ -699,7 +699,7 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 			}
 			
 			/* Now move the region view */
-			rv->move (x_delta, y - rv->get_canvas_group()->property_y());
+			rv->move (x_delta, y - rv->get_canvas_group()->position().y);
 		}
 
 	} /* foreach region */
