@@ -410,20 +410,19 @@ RegionDrag::RegionDrag (Editor* e, Canvas::Item* i, RegionView* p, list<RegionVi
 {
 	_editor->visible_order_range (&_visible_y_low, &_visible_y_high);
 
-	/* Make a list of non-hidden tracks to refer to during the drag */
+	/* Make a list of tracks to refer to during the drag; we include hidden tracks,
+	   as some of the regions we are dragging may be on such tracks.
+	*/
 
 	TrackViewList track_views = _editor->track_views;
 	track_views.sort (EditorOrderTimeAxisViewSorter ());
 
 	for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {
-		if (!(*i)->hidden()) {
-
-			_time_axis_views.push_back (*i);
-
-			TimeAxisView::Children children_list = (*i)->get_child_list ();
-			for (TimeAxisView::Children::iterator j = children_list.begin(); j != children_list.end(); ++j) {
-				_time_axis_views.push_back (j->get());
-			}
+		_time_axis_views.push_back (*i);
+		
+		TimeAxisView::Children children_list = (*i)->get_child_list ();
+		for (TimeAxisView::Children::iterator j = children_list.begin(); j != children_list.end(); ++j) {
+			_time_axis_views.push_back (j->get());
 		}
 	}
 
@@ -450,7 +449,9 @@ RegionDrag::region_going_away (RegionView* v)
 	}
 }
 
-/** Given a non-hidden TimeAxisView, return the index of it into the _time_axis_views vector */
+/** Given a TimeAxisView, return the index of it into the _time_axis_views vector,
+ *  or -1 if it is not found.
+ */
 int
 RegionDrag::find_time_axis_view (TimeAxisView* t) const
 {
@@ -634,45 +635,23 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 
 		if (first_move) {
 
-			/* here we are calculating the y distance from the
-			   top of the first track view to the top of the region
-			   area of the track view that we're working on */
-
-			/* this x value is just a dummy value so that we have something
-			   to pass to i2w () */
-
-			double ix1 = 0;
-
-			/* distance from the top of this track view to the region area
-			   of our track view is always 1 */
-
-			double iy1 = 1;
-
-			/* convert to world coordinates, ie distance from the top of
-			   the ruler section */
-			
-			rv->get_canvas_frame()->item_to_canvas (ix1, iy1);
-			
-			/* hide any dependent views */
-			
 			rv->get_time_axis_view().hide_dependent_views (*rv);
-
-			/*
-			  reparent to a non scrolling group so that we can keep the
-			  region selection above all time axis views.
-			  reparenting means we have to move the rv as the two
-			  parent groups have different coordinates.
+										    
+			/* Reparent to a non scrolling group so that we can keep the
+			   region selection above all time axis views.
+			   Reparenting means that we will have to move the region view
+			   later, as the two parent groups have different coordinates.
 			*/
 			
-			rv->get_canvas_group()->set_y_position (iy1 - 1.5);
 			rv->get_canvas_group()->reparent (_editor->_region_motion_group);
 			
 			rv->fake_set_opaque (true);
+			
+			if (!rv->get_time_axis_view().hidden()) {
+				/* the track that this region view is on is hidden, so hide the region too */
+				rv->get_canvas_group()->hide ();
+			}
 		}
-
-		/* Work out the change in y position of this region view */
-
-		double y_delta = 0;
 
 		/* If we have moved tracks, we'll fudge the layer delta so that the
 		   region gets moved back onto layer 0 on its new track; this avoids
@@ -684,32 +663,20 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 			this_delta_layer = - i->layer;
 		}
 
-		/* Move this region to layer 0 on its old track */
-		StreamView* lv = _time_axis_views[i->time_axis_view]->view ();
-		if (lv->layer_display() == Stacked) {
-			y_delta -= (lv->layers() - i->layer - 1) * lv->child_height ();
-		}
-
-		/* Now move it to its right layer on the current track */
-		StreamView* cv = _time_axis_views[i->time_axis_view + delta_time_axis_view]->view ();
-		if (cv->layer_display() == Stacked) {
-			y_delta += (cv->layers() - (i->layer + this_delta_layer) - 1) * cv->child_height ();
-		}
-
-		/* Move tracks */
-		if (delta_time_axis_view > 0) {
-			for (int j = 0; j < delta_time_axis_view; ++j) {
-				y_delta += _time_axis_views[i->time_axis_view + j]->current_height ();
-			}
-		} else {
-			/* start by subtracting the height of the track above where we are now */
-			for (int j = 1; j <= -delta_time_axis_view; ++j) {
-				y_delta -= _time_axis_views[i->time_axis_view - j]->current_height ();
-			}
-		}
-
+		/* The TimeAxisView that this region is now on */
+		TimeAxisView* tv = _time_axis_views[i->time_axis_view + delta_time_axis_view];
+			
 		/* Set height */
-		rv->set_height (_time_axis_views[i->time_axis_view + delta_time_axis_view]->view()->child_height ());
+		rv->set_height (tv->view()->child_height ());
+
+		/* Update show/hidden status as the region view may have come from a hidden track,
+		   or have moved to one.
+		*/
+		if (tv->hidden ()) {
+			rv->get_canvas_group()->hide ();
+		} else {
+			rv->get_canvas_group()->show ();
+		}
 
 		/* Update the DraggingView */
 		i->time_axis_view += delta_time_axis_view;
@@ -718,7 +685,21 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 		if (_brushing) {
 			_editor->mouse_brush_insert_region (rv, pending_region_position);
 		} else {
-			rv->move (x_delta, y_delta);
+			double x = 0;
+			double y = 0;
+
+			/* Get the y coordinate of the top of the track that this region is now on */
+			tv->canvas_display()->i2w (x, y);
+			y += _editor->get_trackview_group_vertical_offset();
+			
+			/* And adjust for the layer that it should be on */
+			StreamView* cv = tv->view ();
+			if (cv->layer_display() == Stacked) {
+				y += (cv->layers() - i->layer - 1) * cv->child_height ();
+			}
+			
+			/* Now move the region view */
+			rv->move (x_delta, y - rv->get_canvas_group()->property_y());
 		}
 
 	} /* foreach region */
@@ -3874,16 +3855,16 @@ NoteDrag::total_dx () const
 	/* primary note time */
 	frameoffset_t const n = _region->source_beats_to_absolute_frames (_primary->note()->time ());
 
-	/* new time of the primary note relative to the region position */
+	/* new time of the primary note in session frames */
 	frameoffset_t st = n + dx;
 
+	framepos_t const rp = _region->region()->position ();
+
 	/* prevent the note being dragged earlier than the region's position */
-	if (st < 0) {
-		st = 0;
-	}
+	st = max (st, rp);
 
 	/* snap and return corresponding delta */
-	return _region->snap_frame_to_frame (st) - n;
+	return _region->snap_frame_to_frame (st - rp) + rp - n;
 }
 
 /** @return Current total drag y change in note number */

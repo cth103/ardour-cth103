@@ -2426,6 +2426,9 @@ MidiRegionView::note_dropped(NoteBase *, frameoffset_t dt, int8_t dnote)
 	}
 }
 
+/** @param x Pixel relative to the region position.
+ *  @return Snapped frame relative to the region position.
+ */
 framepos_t
 MidiRegionView::snap_pixel_to_frame(double x)
 {
@@ -2433,6 +2436,9 @@ MidiRegionView::snap_pixel_to_frame(double x)
 	return snap_frame_to_frame (editor.pixel_to_frame (x));
 }
 
+/** @param x Pixel relative to the region position.
+ *  @return Snapped pixel relative to the region position.
+ */
 double
 MidiRegionView::snap_to_pixel(double x)
 {
@@ -2573,9 +2579,6 @@ MidiRegionView::update_resizing (NoteBase* primary, bool at_front, double delta_
 			double beats;
 
 			beats = snap_pixel_to_frame (current_x);
-			/* XXX not sure this is correct - snap_pixel_to_frame()
-			   returns an absolute frame.
-			*/
 			beats = region_frames_to_region_beats (beats);
 
 			double len;
@@ -2638,13 +2641,10 @@ MidiRegionView::commit_resizing (NoteBase* primary, bool at_front, double delta_
 			}
 		}
 
-		/* Convert that to a frame within the region */
+		/* Convert that to a frame within the source */
 		current_x = snap_pixel_to_frame (current_x) + _region->start ();
 
 		/* and then to beats */
-		/* XXX not sure this is correct - snap_pixel_to_frame()
-		   returns an absolute frame.
-		*/
 		current_x = region_frames_to_region_beats (current_x);
 
 		if (at_front && current_x < canvas_note->note()->end_time()) {
