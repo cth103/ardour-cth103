@@ -700,7 +700,7 @@ PortMatrix::remove_channel (ARDOUR::BundleChannel b)
 	boost::shared_ptr<IO> io = io_from_bundle (b.bundle);
 
 	if (io) {
-		Port* p = io->nth (b.channel);
+		boost::shared_ptr<Port> p = io->nth (b.channel);
 		if (p) {
 			int const r = io->remove_port (p, this);
 			if (r == -1) {
@@ -765,7 +765,15 @@ PortMatrix::setup_notebooks ()
 		Label* label = manage (new Label ((*i)->name));
 		label->set_angle (_arrangement == LEFT_TO_BOTTOM ? 90 : -90);
 		label->show ();
-		_vnotebook.prepend_page (*dummy, *label);
+		if (_arrangement == LEFT_TO_BOTTOM) {
+			_vnotebook.prepend_page (*dummy, *label);
+		} else {
+			/* Reverse the order of vertical tabs when they are on the right hand side
+			   so that from top to bottom it is the same order as that from left to right
+			   for the top tabs.
+			*/
+			_vnotebook.append_page (*dummy, *label);
+		}
 	}
 
 	for (PortGroupList::List::const_iterator i = _ports[_column_index].begin(); i != _ports[_column_index].end(); ++i) {

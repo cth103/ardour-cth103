@@ -182,8 +182,8 @@ class Diskstream : public SessionObject, public PublicDiskstream
   protected:
 	friend class Track;
 
-	virtual int  process (framepos_t transport_frame, pframes_t nframes, bool& need_butler) = 0;
-	virtual bool commit  (framecnt_t nframes) = 0;
+	virtual int  process (framepos_t transport_frame, pframes_t nframes, framecnt_t &) = 0;
+	virtual bool commit  (framecnt_t) = 0;
 
 	//private:
 
@@ -256,13 +256,15 @@ class Diskstream : public SessionObject, public PublicDiskstream
 	bool         _buffer_reallocation_required;
 	bool         _seek_required;
 
-	bool          force_refill;
 	/** Start of currently running capture in session frames */
 	framepos_t    capture_start_frame;
 	framecnt_t    capture_captured;
 	bool          was_recording;
 	framecnt_t    adjust_capture_position;
 	framecnt_t   _capture_offset;
+	/** The number of frames by which this diskstream's output should be delayed
+	    with respect to the transport frame.  This is used for latency compensation.
+	*/
 	framecnt_t   _roll_delay;
 	framepos_t    first_recordable_frame;
 	framepos_t    last_recordable_frame;
@@ -283,9 +285,9 @@ class Diskstream : public SessionObject, public PublicDiskstream
 	double        _speed;
 	double        _target_speed;
 
+	/** The next frame position that we should be reading from in our playlist */
 	framepos_t     file_frame;
 	framepos_t     playback_sample;
-	framecnt_t     playback_distance;
 
 	bool          in_set_state;
 

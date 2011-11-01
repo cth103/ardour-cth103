@@ -126,11 +126,7 @@ Route::init ()
 	/* panning */
 
 	if (!(_flags & Route::MonitorOut)) {
-		Pannable* p = new Pannable (_session);
-#ifdef BOOST_SP_ENABLE_DEBUG_HOOKS
-		boost_debug_shared_ptr_mark_interesting (p, "Pannable");
-#endif
-		_pannable.reset (p);
+		_pannable.reset (new Pannable (_session));
 	}
 
 	/* input and output objects */
@@ -407,6 +403,15 @@ Route::process_output_buffers (BufferSet& bufs,
 	bool monitor = should_monitor ();
 
 	bufs.is_silent (false);
+
+#if 0
+	cerr << name() << " POB, buffers: count: " << bufs.count() << " avail " << bufs.available() << endl;
+	int na = bufs.count().n_audio();
+	for (int nn = 0; nn < na; ++nn) {
+		AudioBuffer& ab (bufs.get_audio (nn));
+		cerr << "\tAudio buffer " << nn << " @ " << &ab << " data @ " << ab.data() << endl;
+	}
+#endif
 
 	/* figure out if we're going to use gain automation */
 	if (gain_automation_ok) {
@@ -1627,28 +1632,6 @@ Route::configure_processors_unlocked (ProcessorStreams* err)
 	return 0;
 }
 
-void
-Route::all_processors_flip ()
-{
-	Glib::RWLock::ReaderLock lm (_processor_lock);
-
-	if (_processors.empty()) {
-		return;
-	}
-
-	bool first_is_on = _processors.front()->active();
-
-	for (ProcessorList::iterator i = _processors.begin(); i != _processors.end(); ++i) {
-		if (first_is_on) {
-			(*i)->deactivate ();
-		} else {
-			(*i)->activate ();
-		}
-	}
-
-	_session.set_dirty ();
-}
-
 /** Set all processors with a given placement to a given active state.
  * @param p Placement of processors to change.
  * @param state New active state for those processors.
@@ -1674,31 +1657,6 @@ Route::all_processors_active (Placement p, bool state)
 	}
 
 	_session.set_dirty ();
-}
-
-bool
-Route::processor_is_prefader (boost::shared_ptr<Processor> p)
-{
-	bool pre_fader = true;
-	Glib::RWLock::ReaderLock lm (_processor_lock);
-
-	for (ProcessorList::iterator i = _processors.begin(); i != _processors.end(); ++i) {
-
-		/* semantic note: if p == amp, we want to return true, so test
-		   for equality before checking if this is the amp
-		*/
-
-		if ((*i) == p) {
-			break;
-		}
-
-		if ((*i) == _amp) {
-			pre_fader = false;
-			break;
-		}
-	}
-
-	return pre_fader;
 }
 
 int
@@ -1884,11 +1842,11 @@ Route::state(bool full_state)
 int
 Route::set_state (const XMLNode& node, int version)
 {
-	return _set_state (node, version, true);
+	return _set_state (node, version);
 }
 
 int
-Route::_set_state (const XMLNode& node, int version, bool /*call_base*/)
+Route::_set_state (const XMLNode& node, int version)
 {
 	if (version < 3000) {
 		return _set_state_2X (node, version);
@@ -1965,6 +1923,14 @@ Route::_set_state (const XMLNode& node, int version, bool /*call_base*/)
 		}
 	}
 
+	if ((prop = node.property (X_("meter-point"))) != 0) {
+		MeterPoint mp = MeterPoint (string_2_enum (prop->value (), _meter_point));
+		set_meter_point (mp, true);
+		if (_meter) {
+			_meter->set_display_to_user (_meter_point == MeterCustom);
+		}
+	}
+
 	set_processor_state (processor_state);
 
 	if ((prop = node.property ("self-solo")) != 0) {
@@ -2001,14 +1967,6 @@ Route::_set_state (const XMLNode& node, int version, bool /*call_base*/)
 		bool yn = string_is_affirmative (prop->value());
 		_active = !yn; // force switch
 		set_active (yn, this);
-	}
-
-	if ((prop = node.property (X_("meter-point"))) != 0) {
-		MeterPoint mp = MeterPoint (string_2_enum (prop->value (), _meter_point));
-		set_meter_point (mp, true);
-		if (_meter) {
-			_meter->set_display_to_user (_meter_point == MeterCustom);
-		}
 	}
 
 	if ((prop = node.property (X_("order-keys"))) != 0) {
@@ -2360,6 +2318,7 @@ Route::set_processor_state (const XMLNode& node)
 			new_order.push_back (_amp);
 		} else if (prop->value() == "meter") {
 			_meter->set_state (**niter, Stateful::current_state_version);
+			new_order.push_back (_meter);
 		} else if (prop->value() == "main-outs") {
 			_main_outs->set_state (**niter, Stateful::current_state_version);
 		} else if (prop->value() == "intreturn") {
@@ -2401,7 +2360,7 @@ Route::set_processor_state (const XMLNode& node)
 				} else if (prop->value() == "ladspa" || prop->value() == "Ladspa" ||
 				           prop->value() == "lv2" ||
 				           prop->value() == "vst" ||
-						   prop->value() == "lxvst" ||
+					   prop->value() == "lxvst" ||
 				           prop->value() == "audiounit") {
 
 					processor.reset (new PluginInsert(_session));

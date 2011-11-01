@@ -790,10 +790,69 @@ private:
         Gtk::Window& _parent;
 };
 
+/** A class which allows control of visibility of some editor components usign
+ *  a VisibilityGroup.  The caller should pass in a `dummy' VisibilityGroup
+ *  which has the correct members, but with null widget pointers.  This
+ *  class allows the user to set visibility of the members, the details
+ *  of which are stored in a configuration variable which can be watched
+ *  by parts of the editor that actually contain the widgets whose visibility
+ *  is being controlled.
+ */
+
+class VisibilityOption : public Option
+{
+public:
+	/** @param name User-visible name for this group.
+	 *  @param g `Dummy' VisibilityGroup (as described above).
+	 *  @param get Method to get the value of the appropriate configuration variable.
+	 *  @param set Method to set the value of the appropriate configuration variable.
+	 */
+	VisibilityOption (string name, VisibilityGroup* g, sigc::slot<string> get, sigc::slot<bool, string> set)
+		: Option (g->get_state_name(), name)
+		, _heading (name)
+		, _visibility_group (g)
+		, _get (get)
+		, _set (set)
+	{
+		/* Watch for changes made by the user to our members */
+		_visibility_group->VisibilityChanged.connect_same_thread (
+			_visibility_group_connection, sigc::bind (&VisibilityOption::changed, this)
+			);
+	}
+
+	void set_state_from_config ()
+	{
+		/* Set our state from the current configuration */
+		_visibility_group->set_state (_get ());
+	}
+
+	void add_to_page (OptionEditorPage* p)
+	{
+		_heading.add_to_page (p);
+		add_widget_to_page (p, _visibility_group->list_view ());
+	}
+
+private:
+	void changed ()
+	{
+		/* The user has changed something, so reflect this change
+		   in the RCConfiguration.
+		*/
+		_set (_visibility_group->get_state_value ());
+	}
+	
+	OptionEditorHeading _heading;
+	VisibilityGroup* _visibility_group;
+	sigc::slot<std::string> _get;
+	sigc::slot<bool, std::string> _set;
+	PBD::ScopedConnection _visibility_group_connection;
+};
+
 
 RCOptionEditor::RCOptionEditor ()
 	: OptionEditor (Config, string_compose (_("%1 Preferences"), PROGRAM_NAME))
         , _rc_config (Config)
+	, _mixer_strip_visibility ("mixer-strip-visibility")
 {
 	/* MISC */
 
@@ -1087,6 +1146,14 @@ RCOptionEditor::RCOptionEditor ()
 			    sigc::mem_fun (*_rc_config, &RCConfiguration::set_color_regions_using_track_color)
 			    ));
 
+	add_option (_("Editor"),
+		    new BoolOption (
+			    "update-editor-during-summary-drag",
+			    _("Update editor window during drags of the summary"),
+			    sigc::mem_fun (*_rc_config, &RCConfiguration::get_update_editor_during_summary_drag),
+			    sigc::mem_fun (*_rc_config, &RCConfiguration::set_update_editor_during_summary_drag)
+			    ));
+
 	/* AUDIO */
 
 	add_option (_("Audio"), new OptionEditorHeading (_("Buffering")));
@@ -1110,6 +1177,8 @@ RCOptionEditor::RCOptionEditor ()
 		sigc::mem_fun (*_rc_config, &RCConfiguration::set_monitoring_model)
 		);
 
+	add_option (_("Audio"), mm);
+
 #ifndef __APPLE__
         /* no JACK monitoring on CoreAudio */
         if (AudioEngine::instance()->can_request_hardware_monitoring()) {
@@ -1118,32 +1187,6 @@ RCOptionEditor::RCOptionEditor ()
 #endif
 	mm->add (SoftwareMonitoring, _("ardour"));
 	mm->add (ExternalMonitoring, _("audio hardware"));
-
-	add_option (_("Audio"), mm);
-
-	ComboOption<PFLPosition>* pp = new ComboOption<PFLPosition> (
-		"pfl-position",
-		_("PFL signals come from"),
-		sigc::mem_fun (*_rc_config, &RCConfiguration::get_pfl_position),
-		sigc::mem_fun (*_rc_config, &RCConfiguration::set_pfl_position)
-		);
-
-	pp->add (PFLFromBeforeProcessors, _("before pre-fader processors"));
-	pp->add (PFLFromAfterProcessors, _("pre-fader but after pre-fader processors"));
-
-	add_option (_("Audio"), pp);
-
-	ComboOption<AFLPosition>* pa = new ComboOption<AFLPosition> (
-		"afl-position",
-		_("AFL signals come from"),
-		sigc::mem_fun (*_rc_config, &RCConfiguration::get_afl_position),
-		sigc::mem_fun (*_rc_config, &RCConfiguration::set_afl_position)
-		);
-
-	pa->add (AFLFromBeforeProcessors, _("post-fader but before post-fader processors"));
-	pa->add (AFLFromAfterProcessors, _("after post-fader processors"));
-
-	add_option (_("Audio"), pa);
 
 	add_option (_("Audio"),
 	     new BoolOption (
@@ -1291,10 +1334,34 @@ RCOptionEditor::RCOptionEditor ()
 		sigc::mem_fun (*_rc_config, &RCConfiguration::set_listen_position)
 		);
 
-	_listen_position->add (AfterFaderListen, _("after-fader listen"));
-	_listen_position->add (PreFaderListen, _("pre-fader listen"));
+	_listen_position->add (AfterFaderListen, _("after-fader (AFL)"));
+	_listen_position->add (PreFaderListen, _("pre-fader (PFL)"));
 
 	add_option (_("Solo / mute"), _listen_position);
+
+	ComboOption<PFLPosition>* pp = new ComboOption<PFLPosition> (
+		"pfl-position",
+		_("PFL signals come from"),
+		sigc::mem_fun (*_rc_config, &RCConfiguration::get_pfl_position),
+		sigc::mem_fun (*_rc_config, &RCConfiguration::set_pfl_position)
+		);
+
+	pp->add (PFLFromBeforeProcessors, _("before pre-fader processors"));
+	pp->add (PFLFromAfterProcessors, _("pre-fader but after pre-fader processors"));
+
+	add_option (_("Solo / mute"), pp);
+
+	ComboOption<AFLPosition>* pa = new ComboOption<AFLPosition> (
+		"afl-position",
+		_("AFL signals come from"),
+		sigc::mem_fun (*_rc_config, &RCConfiguration::get_afl_position),
+		sigc::mem_fun (*_rc_config, &RCConfiguration::set_afl_position)
+		);
+
+	pa->add (AFLFromBeforeProcessors, _("immediately post-fader"));
+	pa->add (AFLFromAfterProcessors, _("after post-fader processors (before pan)"));
+
+	add_option (_("Solo / mute"), pa);
 
 	parameter_changed ("use-monitor-bus");
 
@@ -1460,6 +1527,28 @@ RCOptionEditor::RCOptionEditor ()
 	/* KEYBOARD */
 
 	add_option (_("Keyboard"), new KeyboardOptions);
+
+	/* INTERFACE */
+
+	/* The names of these controls must be the same as those given in MixerStrip
+	   for the actual widgets being controlled.
+	*/
+	_mixer_strip_visibility.add (0, X_("PhaseInvert"), _("Phase Invert"));
+	_mixer_strip_visibility.add (0, X_("SoloSafe"), _("Solo Safe"));
+	_mixer_strip_visibility.add (0, X_("SoloIsolated"), _("Solo Isolated"));
+	_mixer_strip_visibility.add (0, X_("Comments"), _("Comments"));
+	_mixer_strip_visibility.add (0, X_("Group"), _("Group"));
+	_mixer_strip_visibility.add (0, X_("MeterPoint"), _("Meter Point"));
+	
+	add_option (
+		_("Interface"),
+		new VisibilityOption (
+			_("Mixer Strip"),
+			&_mixer_strip_visibility,
+			sigc::mem_fun (*_rc_config, &RCConfiguration::get_mixer_strip_visibility),
+			sigc::mem_fun (*_rc_config, &RCConfiguration::set_mixer_strip_visibility)
+			)
+		);
 }
 
 void

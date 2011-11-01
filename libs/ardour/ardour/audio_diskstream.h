@@ -77,18 +77,6 @@ class AudioDiskstream : public Diskstream
 	int set_non_layered (bool yn);
 	bool can_become_destructive (bool& requires_bounce) const;
 
-	float peak_power(uint32_t n = 0) {
-		boost::shared_ptr<ChannelList> c = channels.reader();
-		ChannelInfo* chaninfo = (*c)[n];
-		float x = chaninfo->peak_power;
-		chaninfo->peak_power = 0.0f;
-		if (x > 0.0f) {
-			return 20.0f * fast_log10(x);
-		} else {
-			return minus_infinity();
-		}
-	}
-
 	boost::shared_ptr<AudioPlaylist> audio_playlist () { return boost::dynamic_pointer_cast<AudioPlaylist>(_playlist); }
 
 	int use_playlist (boost::shared_ptr<Playlist>);
@@ -136,14 +124,6 @@ class AudioDiskstream : public Diskstream
 		}
 	}
 
-	static void swap_by_ptr (Sample *first, Sample *last, framecnt_t n) {
-		while (n--) {
-			Sample tmp = *first;
-			*first++ = *last;
-			*last-- = tmp;
-		}
-	}
-
 	CubicInterpolation interpolation;
 
   protected:
@@ -171,8 +151,8 @@ class AudioDiskstream : public Diskstream
   protected:
 	friend class AudioTrack;
 
-	int  process (framepos_t transport_frame, pframes_t nframes, bool& need_butler);
-	bool commit  (framecnt_t nframes);
+	int  process (framepos_t transport_frame, pframes_t nframes, framecnt_t &);
+	bool commit  (framecnt_t);
 
   private:
 	struct ChannelSource {
@@ -182,6 +162,7 @@ class AudioDiskstream : public Diskstream
 		void ensure_monitor_input (bool) const;
 	};
 
+	/** Information about one of our channels */
 	struct ChannelInfo : public boost::noncopyable {
 
 		ChannelInfo (framecnt_t playback_buffer_size,
@@ -194,17 +175,17 @@ class AudioDiskstream : public Diskstream
 		Sample     *capture_wrap_buffer;
 		Sample     *speed_buffer;
 
-		float       peak_power;
-
 		boost::shared_ptr<AudioFileSource> write_source;
 
-		/// information the Port that our audio data comes from
-
+		/** Information about the Port that our audio data comes from */
 		ChannelSource source;
 
 		Sample       *current_capture_buffer;
 		Sample       *current_playback_buffer;
 
+		/** A ringbuffer for data to be played back, written to in the
+		    butler thread, read from in the process thread.
+		*/
 		PBD::RingBufferNPT<Sample> *playback_buf;
 		PBD::RingBufferNPT<Sample> *capture_buf;
 
@@ -225,8 +206,6 @@ class AudioDiskstream : public Diskstream
 
 	typedef std::vector<ChannelInfo*> ChannelList;
 
-	void process_varispeed_playback (pframes_t nframes, boost::shared_ptr<ChannelList> c);
-
 	/* The two central butler operations */
 	int do_flush (RunContext context, bool force = false);
 	int do_refill () { return _do_refill(_mixdown_buffer, _gain_buffer); }
@@ -235,7 +214,7 @@ class AudioDiskstream : public Diskstream
 
 	int read (Sample* buf, Sample* mixdown_buffer, float* gain_buffer,
 	          framepos_t& start, framecnt_t cnt,
-	          ChannelInfo* channel_info, int channel, bool reversed);
+	          int channel, bool reversed);
 
 	void finish_capture (boost::shared_ptr<ChannelList>);
 	void transport_stopped_wallclock (struct tm&, time_t, bool abort);

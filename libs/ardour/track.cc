@@ -76,30 +76,63 @@ Track::state (bool full)
 {
 	XMLNode& root (Route::state (full));
 	root.add_property (X_("monitoring"), enum_2_string (_monitoring));
+	root.add_property (X_("saved-meter-point"), enum_2_string (_saved_meter_point));
+	root.add_child_nocopy (_rec_enable_control->get_state());
+	root.add_child_nocopy (_diskstream->get_state ());
 	return root;
 }	
 
 int
 Track::set_state (const XMLNode& node, int version)
 {
-	return _set_state (node, version, true);
+	return _set_state (node, version);
 }
 
 int
-Track::_set_state (const XMLNode& node, int version, bool call_base)
+Track::_set_state (const XMLNode& node, int version)
 {
-	if (call_base) {
-		if (Route::_set_state (node, version, call_base)) {
-			return -1;
+	if (Route::_set_state (node, version)) {
+		return -1;
+	}
+
+	XMLNode* child;
+
+	if (version >= 3000) {
+		if ((child = find_named_node (node, X_("Diskstream"))) != 0) {
+			boost::shared_ptr<Diskstream> ds = diskstream_factory (*child);
+			ds->do_refill_with_alloc ();
+			set_diskstream (ds);
 		}
 	}
 
+	/* set rec-enable control *AFTER* setting up diskstream, because it may
+	   want to operate on the diskstream as it sets its own state
+	*/
+
+	XMLNodeList nlist = node.children();
+	for (XMLNodeConstIterator niter = nlist.begin(); niter != nlist.end(); ++niter) {
+		child = *niter;
+
+		XMLProperty* prop;
+		if (child->name() == Controllable::xml_node_name && (prop = child->property ("name")) != 0) {
+			if (prop->value() == X_("recenable")) {
+				_rec_enable_control->set_state (*child, version);
+			}
+		}
+	}
+	
 	const XMLProperty* prop;
 
 	if ((prop = node.property (X_("monitoring"))) != 0) {
 		_monitoring = MonitorChoice (string_2_enum (prop->value(), _monitoring));
 	} else {
 		_monitoring = MonitorAuto;
+	}
+
+	if ((prop = node.property (X_("saved-meter-point"))) != 0) {
+		_saved_meter_point = MeterPoint (string_2_enum (prop->value(), _saved_meter_point));
+	} else {
+		_saved_meter_point = _meter_point;
 	}
 
 	return 0;
@@ -345,7 +378,10 @@ Track::silent_roll (pframes_t nframes, framepos_t /*start_frame*/, framepos_t /*
 
 	silence (nframes);
 
-	return _diskstream->process (_session.transport_frame(), nframes, need_butler);
+	framecnt_t playback_distance;
+	int const dret = _diskstream->process (_session.transport_frame(), nframes, playback_distance);
+	need_butler = _diskstream->commit (playback_distance);
+	return dret;
 }
 
 void

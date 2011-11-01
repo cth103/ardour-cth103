@@ -62,7 +62,7 @@ class MidiDiskstream : public Diskstream
 	float playback_buffer_load() const;
 	float capture_buffer_load() const;
 
-	void get_playback(MidiBuffer& dst, framepos_t start, framepos_t end);
+	void get_playback (MidiBuffer& dst, framecnt_t);
 
 	void set_record_enabled (bool yn);
 
@@ -142,7 +142,7 @@ class MidiDiskstream : public Diskstream
   protected:
 	friend class MidiTrack;
 
-	int  process (framepos_t transport_frame, pframes_t nframes, bool& need_butler);
+	int  process (framepos_t transport_frame, pframes_t nframes, framecnt_t &);
 	bool commit  (framecnt_t nframes);
 	static framecnt_t midi_readahead;
 
@@ -184,7 +184,7 @@ class MidiDiskstream : public Diskstream
 
 	MidiRingBuffer<framepos_t>*  _playback_buf;
 	MidiRingBuffer<framepos_t>*  _capture_buf;
-	MidiPort*                    _source_port;
+	boost::weak_ptr<MidiPort>    _source_port;
 	boost::shared_ptr<SMFSource> _write_source;
 	NoteMode                     _note_mode;
 	volatile gint                _frames_written_to_ringbuffer;

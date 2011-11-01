@@ -136,19 +136,16 @@ MidiTrack::midi_diskstream() const
 int
 MidiTrack::set_state (const XMLNode& node, int version)
 {
-	return _set_state (node, version, true);
+	return _set_state (node, version);
 }
 
 int
-MidiTrack::_set_state (const XMLNode& node, int version, bool call_base)
+MidiTrack::_set_state (const XMLNode& node, int version)
 {
 	const XMLProperty *prop;
-	XMLNodeConstIterator iter;
 
-	if (call_base) {
-		if (Track::_set_state (node, version, call_base)) {
-			return -1;
-		}
+	if (Track::_set_state (node, version)) {
+		return -1;
 	}
 
 	// No destructive MIDI tracks (yet?)
@@ -166,34 +163,6 @@ MidiTrack::_set_state (const XMLNode& node, int version, bool call_base)
 
 	if ((prop = node.property ("input-active")) != 0) {
 		set_input_active (string_is_affirmative (prop->value()));
-	}
-
-	XMLNodeList nlist;
-	XMLNodeConstIterator niter;
-	XMLNode *child;
-
-	nlist = node.children();
-
-	if (version >= 3000) {
-		if ((child = find_named_node (node, X_("Diskstream"))) != 0) {
-			boost::shared_ptr<MidiDiskstream> ds (new MidiDiskstream (_session, *child));
-			ds->do_refill_with_alloc ();
-			set_diskstream (ds);
-		}
-	}
-
-	/* set rec-enable control *AFTER* setting up diskstream, because it may
-	   want to operate on the diskstream as it sets its own state
-	*/
-
-	for (niter = nlist.begin(); niter != nlist.end(); ++niter){
-		child = *niter;
-
-		if (child->name() == Controllable::xml_node_name && (prop = child->property ("name")) != 0) {
-			if (prop->value() == X_("recenable")) {
-				_rec_enable_control->set_state (*child, version);
-			}
-		}
 	}
 
 	pending_state = const_cast<XMLNode*> (&node);
@@ -235,8 +204,6 @@ MidiTrack::state(bool full_state)
 	}
 
 	root.add_property (X_("note-mode"), enum_2_string (_note_mode));
-	root.add_child_nocopy (_rec_enable_control->get_state());
-	root.add_child_nocopy (_diskstream->get_state ());
 
 	root.add_property ("step-editing", (_step_editing ? "yes" : "no"));
 	root.add_property ("note-mode", enum_2_string (_note_mode));
@@ -312,14 +279,13 @@ MidiTrack::set_state_part_two ()
 }
 
 int
-MidiTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame, int declick, bool& needs_butler)
+MidiTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame, int declick, bool& need_butler)
 {
 	Glib::RWLock::ReaderLock lm (_processor_lock, Glib::TRY_LOCK);
 	if (!lm.locked()) {
 		return 0;
 	}
 
-	int dret;
 	boost::shared_ptr<MidiDiskstream> diskstream = midi_diskstream();
 
 	automation_snapshot (start_frame);
@@ -335,17 +301,23 @@ MidiTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame
 
 	framepos_t transport_frame = _session.transport_frame();
 
+	int dret;
+	framecnt_t playback_distance;
+
 	if ((nframes = check_initial_delay (nframes, transport_frame)) == 0) {
 		/* need to do this so that the diskstream sets its
 		   playback distance to zero, thus causing diskstream::commit
 		   to do nothing.
 		   */
-		return diskstream->process (transport_frame, 0, needs_butler);
+		dret = diskstream->process (transport_frame, 0, playback_distance);
+		need_butler = diskstream->commit (playback_distance);
+		return dret;
 	}
 
 	_silent = false;
 
-	if ((dret = diskstream->process (transport_frame, nframes, needs_butler)) != 0) {
+	if ((dret = diskstream->process (transport_frame, nframes, playback_distance)) != 0) {
+		need_butler = diskstream->commit (playback_distance);
 		silence (nframes);
 		return dret;
 	}
@@ -386,7 +358,7 @@ MidiTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame
 		c.set_midi (1);
 		bufs.set_count (c);
 
-		diskstream->get_playback (mbuf, start_frame, end_frame);
+		diskstream->get_playback (mbuf, nframes);
 
 		/* append immediate messages to the first MIDI buffer (thus sending it to the first output port) */
 
@@ -406,6 +378,8 @@ MidiTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame
 		}
 	}
 
+	need_butler = diskstream->commit (playback_distance);
+	
 	return 0;
 }
 
@@ -723,7 +697,7 @@ MidiTrack::map_input_active (bool yn)
 	PortSet& ports (_input->ports());
 
 	for (PortSet::iterator p = ports.begin(DataType::MIDI); p != ports.end(DataType::MIDI); ++p) {
-		MidiPort* mp = dynamic_cast<MidiPort*> (&*p);
+		boost::shared_ptr<MidiPort> mp = boost::dynamic_pointer_cast<MidiPort> (*p);
 		if (yn != mp->input_active()) {
 			mp->set_input_active (yn);
 		}
@@ -738,3 +712,8 @@ MidiTrack::track_input_active (IOChange change, void* /* src */)
 	}
 }
 
+boost::shared_ptr<Diskstream>
+MidiTrack::diskstream_factory (XMLNode const & node)
+{
+	return boost::shared_ptr<Diskstream> (new MidiDiskstream (_session, node));
+}

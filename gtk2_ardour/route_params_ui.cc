@@ -25,7 +25,7 @@
 #include <gtkmm2ext/window_title.h>
 
 #include "ardour/ardour.h"
-#include "ardour/audio_diskstream.h"
+#include "ardour/audioengine.h"
 #include "ardour/audio_track.h"
 #include "ardour/plugin.h"
 #include "ardour/plugin_insert.h"

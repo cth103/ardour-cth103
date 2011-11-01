@@ -30,25 +30,21 @@ class LED : public CairoWidget
 	LED ();
 	virtual ~LED ();
 
-        void set_visual_state (int32_t s);
-        int32_t visual_state() const { return _visual_state; }
-        void set_diameter (float);
+	void set_diameter (float);
 
   protected:
 	void render (cairo_t *);
-        void on_size_request (Gtk::Requisition* req);
-        void on_realize ();
+	void on_size_request (Gtk::Requisition* req);
+	void on_realize ();
 
   private:
-        int32_t _visual_state;
-        bool  _active;
-        float _diameter;
-        bool  _fixed_diameter;
-        float _red;
-        float _green;
-        float _blue;
+	float _diameter;
+	float _red;
+	float _green;
+	float _blue;
+	bool  _fixed_diameter;
 
-        void set_colors_from_style ();
+	void set_colors_from_style ();
 };
 
 #endif /* __gtk2_ardour_led_h__ */

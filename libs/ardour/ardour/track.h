@@ -162,7 +162,7 @@ class Track : public Route, public PublicDiskstream
 
   protected:
 	XMLNode& state (bool full);
-	int _set_state (const XMLNode&, int version, bool);
+	int _set_state (const XMLNode&, int version);
 
 	boost::shared_ptr<Diskstream> _diskstream;
 	MeterPoint    _saved_meter_point;
@@ -217,6 +217,9 @@ class Track : public Route, public PublicDiskstream
 	framecnt_t check_initial_delay (framecnt_t nframes, framecnt_t&);
 
 private:
+
+	virtual boost::shared_ptr<Diskstream> diskstream_factory (XMLNode const &) = 0;
+	
 	void diskstream_playlist_changed ();
 	void diskstream_record_enable_changed ();
 	void diskstream_speed_changed ();

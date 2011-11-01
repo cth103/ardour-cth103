@@ -53,6 +53,7 @@
 #include "send_ui.h"
 #include "enums.h"
 #include "window_proxy.h"
+#include "ardour_button.h"
 
 class MotionController;
 class PluginSelector;
@@ -106,7 +107,7 @@ public:
 	Gtk::EventBox& action_widget ();
 	Gtk::Widget& widget ();
 	std::string drag_text () const;
-	void set_visual_state (Gtk::StateType);
+	void set_visual_state (Gtkmm2ext::VisualState, bool);
 
 	enum Position {
 		PreFader,
@@ -123,24 +124,18 @@ public:
 	virtual void hide_things () {}
 
 protected:
-
-	virtual void setup_visuals ();
-
+	ArdourButton _button;
 	Gtk::VBox _vbox;
 	Position _position;
 
-private:
+	virtual void setup_visuals ();
 
-	void active_toggled ();
+private:
+	void led_clicked();
 	void processor_active_changed ();
 	void processor_property_changed (const PBD::PropertyChange&);
 	std::string name () const;
 
-	Gtk::Frame _frame;
-	Gtk::EventBox _event_box;
-	Gtk::Label _name;
-	Gtk::HBox _hbox;
-	Gtk::CheckButton _active;
 	boost::shared_ptr<ARDOUR::Processor> _processor;
 	Width _width;
 	Gtk::StateType _visual_state;

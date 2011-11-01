@@ -443,6 +443,9 @@ def configure(conf):
 
     if sys.platform == 'darwin':
 
+        # this is required, potentially, for anything we link and then relocate into a bundle
+        conf.env.append_value('LINKFLAGS', [ '-Xlinker', '-headerpad', '-Xlinker', '2048'])
+
         conf.define ('HAVE_COREAUDIO', 1)
         conf.define ('AUDIOUNIT_SUPPORT', 1)
         conf.define ('AU_STATE_SUPPORT', 1)
@@ -485,9 +488,6 @@ def configure(conf):
 
         conf.env.append_value('LINKFLAGS_OSX', ['-undefined', 'suppress' ])
         conf.env.append_value('LINKFLAGS_OSX', '-flat_namespace')
-
-        conf.env.append_value('LINKFLAGS_GTKOSX', [ '-Xlinker', '-headerpad'])
-        conf.env.append_value('LINKFLAGS_GTKOSX', ['-Xlinker', '2048'])
 
         conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DAUDIOUNIT_SUPPORT")
         conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DAU_STATE_SUPPORT")
@@ -607,7 +607,7 @@ const char* const ardour_config_info = "\\n\\
     write_config_text('Program name',          opts.program_name)
     write_config_text('Rubberband',            conf.is_defined('HAVE_RUBBERBAND'))
     write_config_text('Samplerate',            conf.is_defined('HAVE_SAMPLERATE'))
-    write_config_text('Soundtouch',            conf.is_defined('HAVE_SOUNDTOUCH'))
+#    write_config_text('Soundtouch',            conf.is_defined('HAVE_SOUNDTOUCH'))
     write_config_text('Translation',           opts.nls)
     write_config_text('Tranzport',             opts.tranzport)
     write_config_text('Unit tests',            conf.is_defined('BUILD_TESTS'))

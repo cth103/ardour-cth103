@@ -546,7 +546,7 @@ Session::when_engine_running ()
 			uint32_t limit = _master_out->n_outputs().n_total();
 
 			for (uint32_t n = 0; n < limit; ++n) {
-				Port* p = _master_out->output()->nth (n);
+				boost::shared_ptr<Port> p = _master_out->output()->nth (n);
 				string connect_to;
 				if (outputs[p->type()].size() > n) {
 					connect_to = outputs[p->type()][n];
@@ -576,8 +576,8 @@ Session::when_engine_running ()
 
 			if (_master_out) {
 				for (uint32_t n = 0; n < limit; ++n) {
-					AudioPort* p = _monitor_out->input()->ports().nth_audio_port (n);
-					AudioPort* o = _master_out->output()->ports().nth_audio_port (n);
+					boost::shared_ptr<AudioPort> p = _monitor_out->input()->ports().nth_audio_port (n);
+					boost::shared_ptr<AudioPort> o = _master_out->output()->ports().nth_audio_port (n);
 
 					if (o) {
 						string connect_to = o->name();
@@ -617,7 +617,7 @@ Session::when_engine_running ()
 
 						for (uint32_t n = 0; n < limit; ++n) {
 
-							Port* p = _monitor_out->output()->ports().port(DataType::AUDIO, n);
+							boost::shared_ptr<Port> p = _monitor_out->output()->ports().port(DataType::AUDIO, n);
 							string connect_to;
 							if (outputs[DataType::AUDIO].size() > (n % mod)) {
 								connect_to = outputs[DataType::AUDIO][n % mod];
@@ -1327,10 +1327,11 @@ void
 Session::resort_routes ()
 {
 	/* don't do anything here with signals emitted
-	   by Routes while we are being destroyed.
+	   by Routes during initial setup or while we
+	   are being destroyed.
 	*/
 
-	if (_state_of_the_state & Deletion) {
+	if (_state_of_the_state & (InitialConnecting | Deletion)) {
 		return;
 	}
 
@@ -1496,7 +1497,7 @@ Session::new_midi_track (TrackMode mode, RouteGroup* route_group, uint32_t how_m
 			track->use_new_diskstream();
 
 #ifdef BOOST_SP_ENABLE_DEBUG_HOOKS
-			boost_debug_shared_ptr_mark_interesting (track.get(), "Track");
+			// boost_debug_shared_ptr_mark_interesting (track.get(), "Track");
 #endif
 			{
 				Glib::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
@@ -1723,7 +1724,7 @@ Session::new_audio_track (
 			track->use_new_diskstream();
 
 #ifdef BOOST_SP_ENABLE_DEBUG_HOOKS
-			boost_debug_shared_ptr_mark_interesting (track.get(), "Track");
+			// boost_debug_shared_ptr_mark_interesting (track.get(), "Track");
 #endif
 			{
 				Glib::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
@@ -1838,7 +1839,7 @@ Session::new_audio_route (int input_channels, int output_channels, RouteGroup* r
 			}
 
 #ifdef BOOST_SP_ENABLE_DEBUG_HOOKS
-			boost_debug_shared_ptr_mark_interesting (bus.get(), "Route");
+			// boost_debug_shared_ptr_mark_interesting (bus.get(), "Route");
 #endif
 			{
 				Glib::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
@@ -3334,18 +3335,13 @@ Session::graph_reordered ()
 		return;
 	}
 
-	cerr << "Session begins graph reorder\n";
-
 	/* every track/bus asked for this to be handled but it was deferred because
 	   we were connecting. do it now.
 	*/
 
 	request_input_change_handling ();
 
-	cerr << "Session graph reorder 2\n";
 	resort_routes ();
-
-	cerr << "Session graph reorder 3\n";
 
 	/* force all diskstreams to update their capture offset values to
 	   reflect any changes in latencies within the graph.
@@ -3358,8 +3354,6 @@ Session::graph_reordered ()
 			tr->set_capture_offset ();
 		}
 	}
-
-	cerr << "Session graph reorder 4\n";
 }
 
 framecnt_t

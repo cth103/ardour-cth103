@@ -53,6 +53,7 @@
 #include "enums.h"
 #include "processor_box.h"
 #include "ardour_dialog.h"
+#include "visibility_group.h"
 
 namespace ARDOUR {
 	class Route;
@@ -120,6 +121,8 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 
 	std::string state_id() const;
 
+	void parameter_changed (std::string);
+
   protected:
 	friend class Mixer_UI;
 	void set_packed (bool yn);
@@ -162,14 +165,10 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 	PannerUI     panners;
 
 	Gtk::Table button_table;
-	Gtk::Table solo_led_table;
-	Gtk::HBox  below_panner_box;
+	Gtk::Table rec_solo_table;
 	Gtk::Table top_button_table;
 	Gtk::Table middle_button_table;
 	Gtk::Table bottom_button_table;
-
-	Gtk::Label* _iso_label;
-	Gtk::Label* _safe_label;
 
 	Gtk::Button                  gain_unit_button;
 	Gtk::Label                   gain_unit_label;
@@ -201,10 +200,12 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 
 	ArdourDialog*  comment_window;
 	Gtk::TextView* comment_area;
+	Gtk::Button   _comment_button;
 
 	void comment_editor_done_editing ();
 	void setup_comment_editor ();
 	void toggle_comment ();
+	void setup_comment_button ();
 
 	Gtk::Button   group_button;
 	Gtk::Label    group_label;
@@ -230,7 +231,6 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 	void diskstream_changed ();
 
 	Gtk::Menu *send_action_menu;
-	Gtk::CheckMenuItem* _comment_menu_item;
 	Gtk::MenuItem* rename_menu_item;
 	void build_send_action_menu ();
 
@@ -292,7 +292,18 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 	static int scrollbar_height;
 
 	void update_io_button (boost::shared_ptr<ARDOUR::Route> route, Width width, bool input_button);
-	void port_connected_or_disconnected (ARDOUR::Port *, ARDOUR::Port *);
+	void port_connected_or_disconnected (boost::weak_ptr<ARDOUR::Port>, boost::weak_ptr<ARDOUR::Port>);
+
+	/** A VisibilityGroup to manage the visibility of some of our controls.
+	 *  We fill it with the controls that are being managed, using the same names
+	 *  as those used with _mixer_strip_visibility in RCOptionEditor.  Then
+	 *  this VisibilityGroup is configured by changes to the RC variable
+	 *  mixer-strip-visibility, which happen when the user makes changes in
+	 *  the RC option editor.
+	 */
+	VisibilityGroup _visibility;
+
+	PBD::ScopedConnection _config_connection;
 
 	static std::string meter_point_string (ARDOUR::MeterPoint);
 };

@@ -74,7 +74,6 @@ MidiDiskstream::MidiDiskstream (Session &sess, const string &name, Diskstream::F
 	: Diskstream(sess, name, flag)
 	, _playback_buf(0)
 	, _capture_buf(0)
-	, _source_port(0)
 	, _note_mode(Sustained)
 	, _frames_written_to_ringbuffer(0)
 	, _frames_read_from_ringbuffer(0)
@@ -94,7 +93,6 @@ MidiDiskstream::MidiDiskstream (Session& sess, const XMLNode& node)
 	: Diskstream(sess, node)
 	, _playback_buf(0)
 	, _capture_buf(0)
-	, _source_port(0)
 	, _note_mode(Sustained)
 	, _frames_written_to_ringbuffer(0)
 	, _frames_read_from_ringbuffer(0)
@@ -171,7 +169,7 @@ MidiDiskstream::non_realtime_input_change ()
 			}
 
 			if (ni == 0) {
-				_source_port = 0;
+				_source_port.reset ();
 			} else {
 				_source_port = _io->midi(0);
 			}
@@ -477,9 +475,8 @@ trace_midi (ostream& o, MIDI::byte *msg, size_t len)
 #endif
 
 int
-MidiDiskstream::process (framepos_t transport_frame, pframes_t nframes, bool& need_butler)
+MidiDiskstream::process (framepos_t transport_frame, pframes_t nframes, framecnt_t& playback_distance)
 {
-	int       ret = -1;
 	framecnt_t rec_offset = 0;
 	framecnt_t rec_nframes = 0;
 	bool      nominally_recording;
@@ -496,7 +493,9 @@ MidiDiskstream::process (framepos_t transport_frame, pframes_t nframes, bool& ne
 		return 0;
 	}
 
-	if (_source_port == 0) {
+	boost::shared_ptr<MidiPort> sp = _source_port.lock ();
+
+	if (sp == 0) {
 		return 1;
 	}
 
@@ -527,7 +526,7 @@ MidiDiskstream::process (framepos_t transport_frame, pframes_t nframes, bool& ne
 	if (nominally_recording || rec_nframes) {
 
 		// Pump entire port buffer into the ring buffer (FIXME: split cycles?)
-		MidiBuffer& buf = _source_port->get_midi_buffer(nframes);
+		MidiBuffer& buf = sp->get_midi_buffer(nframes);
 		for (MidiBuffer::iterator i = buf.begin(); i != buf.end(); ++i) {
 			const Evoral::MIDIEvent<MidiBuffer::TimeType> ev(*i, false);
 			assert(ev.buffer());
@@ -597,17 +596,11 @@ MidiDiskstream::process (framepos_t transport_frame, pframes_t nframes, bool& ne
 
 	}
 
-	ret = 0;
-
-	if (commit (nframes)) {
-		need_butler = true;
-	}
-
-	return ret;
+	return 0;
 }
 
 bool
-MidiDiskstream::commit (framecnt_t nframes)
+MidiDiskstream::commit (framecnt_t playback_distance)
 {
 	bool need_butler = false;
 
@@ -624,7 +617,7 @@ MidiDiskstream::commit (framecnt_t nframes)
 
 	uint32_t frames_read = g_atomic_int_get(&_frames_read_from_ringbuffer);
 	uint32_t frames_written = g_atomic_int_get(&_frames_written_to_ringbuffer);
-	if ((frames_written - frames_read) + nframes < midi_readahead) {
+	if ((frames_written - frames_read) + playback_distance < midi_readahead) {
 		need_butler = true;
 	}
 
@@ -1196,8 +1189,10 @@ MidiDiskstream::engage_record_enable ()
 
 	g_atomic_int_set (&_record_enabled, 1);
 
-	if (_source_port && Config->get_monitoring_model() == HardwareMonitoring) {
-		_source_port->request_monitor_input (!(_session.config.get_auto_input() && rolling));
+	boost::shared_ptr<MidiPort> sp = _source_port.lock ();
+	
+	if (sp && Config->get_monitoring_model() == HardwareMonitoring) {
+		sp->request_monitor_input (!(_session.config.get_auto_input() && rolling));
 	}
 
 	RecordEnableChanged (); /* EMIT SIGNAL */
@@ -1372,8 +1367,11 @@ MidiDiskstream::allocate_temporary_buffers ()
 void
 MidiDiskstream::monitor_input (bool yn)
 {
-	if (_source_port)
-		_source_port->ensure_monitor_input (yn);
+	boost::shared_ptr<MidiPort> sp = _source_port.lock ();
+	
+	if (sp) {
+		sp->ensure_monitor_input (yn);
+	}
 }
 
 void
@@ -1411,43 +1409,34 @@ MidiDiskstream::use_pending_capture_data (XMLNode& /*node*/)
 	return 0;
 }
 
-/** Writes playback events in the given range to \a dst, translating time stamps
- * so that an event at \a start has time = 0
+/** Writes playback events from playback_sample for nframes to dst, translating time stamps
+ *  so that an event at playback_sample has time = 0
  */
 void
-MidiDiskstream::get_playback (MidiBuffer& dst, framepos_t start, framepos_t end)
+MidiDiskstream::get_playback (MidiBuffer& dst, framecnt_t nframes)
 {
 	dst.clear();
 	assert(dst.size() == 0);
 
-	// Reverse.  ... We just don't do reverse, ok?  Back off.
-	if (end <= start) {
-		return;
-	}
-
-	// Translate stamps to be relative to start
-
-
 #ifndef NDEBUG
 	DEBUG_TRACE (DEBUG::MidiDiskstreamIO, string_compose (
 		             "%1 MDS pre-read read %4..%5 from %2 write to %3\n", _name,
-		             _playback_buf->get_read_ptr(), _playback_buf->get_write_ptr(), start, end));
+		             _playback_buf->get_read_ptr(), _playback_buf->get_write_ptr(), playback_sample, playback_sample + nframes));
 //        cerr << "================\n";
 //        _playback_buf->dump (cerr);
 //        cerr << "----------------\n";
 
-	const size_t events_read = _playback_buf->read(dst, start, end);
+	const size_t events_read = _playback_buf->read (dst, playback_sample, playback_sample + nframes);
 	DEBUG_TRACE (DEBUG::MidiDiskstreamIO, string_compose (
 		             "%1 MDS events read %2 range %3 .. %4 rspace %5 wspace %6 r@%7 w@%8\n",
-		             _name, events_read, start, end,
+		             _name, events_read, playback_sample, playback_sample + nframes,
 		             _playback_buf->read_space(), _playback_buf->write_space(),
-	                 _playback_buf->get_read_ptr(), _playback_buf->get_write_ptr()));
+			     _playback_buf->get_read_ptr(), _playback_buf->get_write_ptr()));
 #else
-	_playback_buf->read(dst, start, end);
+	_playback_buf->read (dst, playback_sample, playback_sample + nframes);
 #endif
 
-	gint32 frames_read = end - start;
-	g_atomic_int_add(&_frames_read_from_ringbuffer, frames_read);
+	g_atomic_int_add (&_frames_read_from_ringbuffer, nframes);
 }
 
 bool

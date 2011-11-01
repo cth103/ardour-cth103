@@ -82,6 +82,7 @@ private:
 	Position get_position (double, double) const;
 	void set_cursor (Position);
 	void route_gui_changed (std::string);
+	bool suspending_editor_updates () const;
 
 	framepos_t _start; ///< start frame of the overview
 	framepos_t _end; ///< end frame of the overview
@@ -105,9 +106,15 @@ private:
 	std::pair<double, double> _view_rectangle_x;
 	std::pair<double, double> _view_rectangle_y;
 
+	/* XXX: merge these two pendings */
+	
 	std::pair<double, double> _pending_rectangle_x;
 	std::pair<double, double> _pending_rectangle_y;
 	
+	std::pair<double, double> _pending_editor_x;
+	std::pair<double, double> _pending_editor_y;
+	bool _pending_editor_changed;
+
 	bool _zoom_dragging;
 	Position _zoom_position;
 

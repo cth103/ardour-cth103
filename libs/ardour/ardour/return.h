@@ -26,7 +26,6 @@
 
 #include "pbd/stateful.h"
 #include "ardour/ardour.h"
-#include "ardour/audioengine.h"
 #include "ardour/io_processor.h"
 
 namespace ARDOUR {
@@ -74,7 +73,6 @@ private:
 	uint32_t _bitslot;
 
 	void collect_input (BufferSet& bufs, pframes_t nframes, ChanCount offset = ChanCount::ZERO);
-	void just_meter_input (framepos_t start_frame, framepos_t end_frame, pframes_t nframes);
 };
 
 } // namespace ARDOUR
