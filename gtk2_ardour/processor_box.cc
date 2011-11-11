@@ -112,12 +112,13 @@ ProcessorEntry::ProcessorEntry (boost::shared_ptr<Processor> p, Width w)
 	_button.set_distinct_led_click (true);
 	_button.set_led_left (true);
 	_button.signal_led_clicked.connect (sigc::mem_fun (*this, &ProcessorEntry::led_clicked));
-	_button.set_text (name());
+	_button.set_text (name (_width));
 	_button.show ();
 
 	_processor->ActiveChanged.connect (active_connection, invalidator (*this), boost::bind (&ProcessorEntry::processor_active_changed, this), gui_context());
 	_processor->PropertyChanged.connect (name_connection, invalidator (*this), ui_bind (&ProcessorEntry::processor_property_changed, this, _1), gui_context());
 
+	setup_tooltip ();
 	setup_visuals ();
 }
 
@@ -136,7 +137,7 @@ ProcessorEntry::widget ()
 string
 ProcessorEntry::drag_text () const
 {
-	return name ();
+	return name (Wide);
 }
 
 void
@@ -211,12 +212,19 @@ void
 ProcessorEntry::processor_property_changed (const PropertyChange& what_changed)
 {
 	if (what_changed.contains (ARDOUR::Properties::name)) {
-		_button.set_text (name ());
+		_button.set_text (name (_width));
+		setup_tooltip ();
 	}
 }
 
+void
+ProcessorEntry::setup_tooltip ()
+{
+	ARDOUR_UI::instance()->set_tip (_button, name (Wide));
+}
+
 string
-ProcessorEntry::name () const
+ProcessorEntry::name (Width w) const
 {
 	boost::shared_ptr<Send> send;
 	string name_display;
@@ -232,7 +240,7 @@ ProcessorEntry::name () const
 		lbracket = send->name().find ('[');
 		rbracket = send->name().find (']');
 
-		switch (_width) {
+		switch (w) {
 		case Wide:
 			name_display += send->name().substr (lbracket+1, lbracket-rbracket-1);
 			break;
@@ -243,7 +251,7 @@ ProcessorEntry::name () const
 
 	} else {
 
-		switch (_width) {
+		switch (w) {
 		case Wide:
 			name_display += _processor->display_name();
 			break;
@@ -480,15 +488,11 @@ ProcessorBox::ProcessorBox (ARDOUR::Session* sess, boost::function<PluginSelecto
 	processor_display.signal_enter_notify_event().connect (sigc::mem_fun(*this, &ProcessorBox::enter_notify), false);
 	processor_display.signal_leave_notify_event().connect (sigc::mem_fun(*this, &ProcessorBox::leave_notify), false);
 
-	processor_display.signal_key_press_event().connect (sigc::mem_fun(*this, &ProcessorBox::processor_key_press_event));
-	processor_display.signal_key_release_event().connect (sigc::mem_fun(*this, &ProcessorBox::processor_key_release_event));
-
 	processor_display.ButtonPress.connect (sigc::mem_fun (*this, &ProcessorBox::processor_button_press_event));
 	processor_display.ButtonRelease.connect (sigc::mem_fun (*this, &ProcessorBox::processor_button_release_event));
 
 	processor_display.Reordered.connect (sigc::mem_fun (*this, &ProcessorBox::reordered));
 	processor_display.DropFromAnotherBox.connect (sigc::mem_fun (*this, &ProcessorBox::object_drop));
-	processor_display.SelectionChanged.connect (sigc::mem_fun (*this, &ProcessorBox::selection_changed));
 
 	processor_scroller.show ();
 	processor_display.show ();
@@ -651,11 +655,15 @@ ProcessorBox::show_processor_menu (int arg)
 		processor_menu->signal_unmap().connect (sigc::mem_fun (*this, &ProcessorBox::processor_menu_unmapped));
 	}
 
+	/* Sort out the plugin submenu */
+
 	Gtk::MenuItem* plugin_menu_item = dynamic_cast<Gtk::MenuItem*>(ActionManager::get_widget("/ProcessorMenu/newplugin"));
 
 	if (plugin_menu_item) {
 		plugin_menu_item->set_submenu (*_get_plugin_selector()->plugin_menu());
 	}
+
+	/* And the aux submenu */
 
 	Gtk::MenuItem* aux_menu_item = dynamic_cast<Gtk::MenuItem*>(ActionManager::get_widget("/ProcessorMenu/newaux"));
 
@@ -671,8 +679,30 @@ ProcessorBox::show_processor_menu (int arg)
 		}
 	}
 
+	/* Sensitise actions as approprioate */
+
         cut_action->set_sensitive (can_cut());
 	paste_action->set_sensitive (!_rr_selection.processors.empty());
+
+	const bool sensitive = !processor_display.selection().empty();
+	ActionManager::set_sensitive (ActionManager::plugin_selection_sensitive_actions, sensitive);
+	edit_action->set_sensitive (one_processor_can_be_edited ());
+
+	boost::shared_ptr<Processor> single_selection;
+	if (processor_display.selection().size() == 1) {
+		single_selection = processor_display.selection().front()->processor ();
+	}
+
+	boost::shared_ptr<PluginInsert> pi;
+	if (single_selection) {
+		pi = boost::dynamic_pointer_cast<PluginInsert> (single_selection);
+	}
+
+	/* enable gui for plugin inserts with editors */
+	controls_action->set_sensitive(pi && pi->plugin()->has_editor());
+
+	/* disallow rename for multiple selections, for plugin inserts and for the fader */
+	rename_action->set_sensitive (single_selection && !pi && !boost::dynamic_pointer_cast<Amp> (single_selection));
 
 	processor_menu->popup (1, arg);
 
@@ -688,36 +718,18 @@ bool
 ProcessorBox::enter_notify (GdkEventCrossing*)
 {
 	_current_processor_box = this;
-	Keyboard::magic_widget_grab_focus ();
-	processor_display.grab_focus ();
-
 	return false;
 }
 
 bool
 ProcessorBox::leave_notify (GdkEventCrossing* ev)
 {
-	switch (ev->detail) {
-	case GDK_NOTIFY_INFERIOR:
-		break;
-	default:
-		Keyboard::magic_widget_drop_focus ();
-	}
-
 	return false;
 }
 
-bool
-ProcessorBox::processor_key_press_event (GdkEventKey *)
+void
+ProcessorBox::processor_operation (ProcessorOperation op) 
 {
-	/* do real stuff on key release */
-	return false;
-}
-
-bool
-ProcessorBox::processor_key_release_event (GdkEventKey *ev)
-{
-	bool ret = false;
 	ProcSelection targets;
 
 	get_selected_processors (targets);
@@ -734,53 +746,32 @@ ProcessorBox::processor_key_release_event (GdkEventKey *ev)
 		}
 	}
 
+	switch (op) {
+	case ProcessorsSelectAll:
+		processor_display.select_all ();
+		break;
 
-	switch (ev->keyval) {
-	case GDK_a:
-		if (Keyboard::modifier_state_equals (ev->state, Keyboard::PrimaryModifier)) {
-			processor_display.select_all ();
-			ret = true;
+	case ProcessorsCopy:
+		copy_processors (targets);
+		break;
+
+	case ProcessorsCut:
+		cut_processors (targets);
+		break;
+
+	case ProcessorsPaste:
+		if (targets.empty()) {
+			paste_processors ();
+		} else {
+			paste_processors (targets.front());
 		}
 		break;
 
-	case GDK_c:
-		if (Keyboard::modifier_state_equals (ev->state, Keyboard::PrimaryModifier)) {
-			copy_processors (targets);
-			ret = true;
-		}
-		break;
-
-	case GDK_x:
-		if (Keyboard::modifier_state_equals (ev->state, Keyboard::PrimaryModifier)) {
-			cut_processors (targets);
-			ret = true;
-		}
-		break;
-
-	case GDK_v:
-		if (Keyboard::modifier_state_equals (ev->state, Keyboard::PrimaryModifier)) {
-			if (targets.empty()) {
-				paste_processors ();
-			} else {
-				paste_processors (targets.front());
-			}
-			ret = true;
-		}
-		break;
-
-	case GDK_Up:
-		break;
-
-	case GDK_Down:
-		break;
-
-	case GDK_Delete:
-	case GDK_BackSpace:
+	case ProcessorsDelete:
 		delete_processors (targets);
-		ret = true;
 		break;
 
-	case GDK_Return:
+	case ProcessorsToggleActive:
 		for (ProcSelection::iterator i = targets.begin(); i != targets.end(); ++i) {
 			if ((*i)->active()) {
 				(*i)->deactivate ();
@@ -788,19 +779,15 @@ ProcessorBox::processor_key_release_event (GdkEventKey *ev)
 				(*i)->activate ();
 			}
 		}
-		ret = true;
 		break;
 
-	case GDK_slash:
+	case ProcessorsAB:
 		ab_plugins ();
-		ret = true;
 		break;
 
 	default:
 		break;
 	}
-
-	return ret;
 }
 
 bool
@@ -878,29 +865,6 @@ ProcessorBox::build_processor_menu ()
 	processor_menu = dynamic_cast<Gtk::Menu*>(ActionManager::get_widget("/ProcessorMenu") );
 	processor_menu->set_name ("ArdourContextMenu");
 	return processor_menu;
-}
-
-void
-ProcessorBox::selection_changed ()
-{
-	const bool sensitive = !processor_display.selection().empty();
-	ActionManager::set_sensitive(ActionManager::plugin_selection_sensitive_actions,
-	                             sensitive);
-	edit_action->set_sensitive(one_processor_can_be_edited());
-
-	const bool single_selection = (processor_display.selection().size() == 1);
-
-	boost::shared_ptr<PluginInsert> pi;
-	if (single_selection) {
-		pi = boost::dynamic_pointer_cast<PluginInsert>(
-			processor_display.selection().front()->processor());
-	}
-
-	/* enable gui for plugin inserts with editors */
-	controls_action->set_sensitive(pi && pi->plugin()->has_editor());
-
-	/* disallow rename for multiple selections and for plugin inserts */
-	rename_action->set_sensitive(single_selection && pi);
 }
 
 void
@@ -1377,14 +1341,6 @@ ProcessorBox::can_cut () const
 }
 
 void
-ProcessorBox::cut_processors ()
-{
-	ProcSelection to_be_removed;
-
-	get_selected_processors (to_be_removed);
-}
-
-void
 ProcessorBox::cut_processors (const ProcSelection& to_be_removed)
 {
 	if (to_be_removed.empty()) {
@@ -1426,14 +1382,6 @@ ProcessorBox::cut_processors (const ProcSelection& to_be_removed)
 }
 
 void
-ProcessorBox::copy_processors ()
-{
-	ProcSelection to_be_copied;
-	get_selected_processors (to_be_copied);
-	copy_processors (to_be_copied);
-}
-
-void
 ProcessorBox::copy_processors (const ProcSelection& to_be_copied)
 {
 	if (to_be_copied.empty()) {
@@ -1455,12 +1403,17 @@ ProcessorBox::copy_processors (const ProcSelection& to_be_copied)
 }
 
 void
-ProcessorBox::delete_processors ()
+ProcessorBox::processors_up ()
 {
-	ProcSelection to_be_deleted;
-	get_selected_processors (to_be_deleted);
-	delete_processors (to_be_deleted);
+	/* unimplemented */
 }
+
+void
+ProcessorBox::processors_down ()
+{
+	/* unimplemented */
+}
+	
 
 void
 ProcessorBox::delete_processors (const ProcSelection& targets)
@@ -1780,7 +1733,7 @@ ProcessorBox::processor_can_be_edited (boost::shared_ptr<Processor> processor)
 	}
 
 	if (
-		boost::dynamic_pointer_cast<Send> (processor) ||
+		(boost::dynamic_pointer_cast<Send> (processor) && !boost::dynamic_pointer_cast<InternalSend> (processor))||
 		boost::dynamic_pointer_cast<Return> (processor) ||
 		boost::dynamic_pointer_cast<PluginInsert> (processor) ||
 		boost::dynamic_pointer_cast<PortInsert> (processor)
@@ -1826,28 +1779,16 @@ ProcessorBox::toggle_edit_processor (boost::shared_ptr<Processor> processor)
 			_parent_strip->revert_to_default_display ();
 		}
 
-	} else if ((internal_send = boost::dynamic_pointer_cast<InternalSend> (processor)) != 0) {
-
-		if (!_session->engine().connected()) {
-			return;
-		}
-
-		if (_parent_strip) {
-			if (boost::dynamic_pointer_cast<Send> (_parent_strip->current_delivery()) == internal_send) {
-				_parent_strip->revert_to_default_display ();
-			} else {
-				_parent_strip->show_send (internal_send);
-			}
-		}
-
 	} else if ((send = boost::dynamic_pointer_cast<Send> (processor)) != 0) {
 
 		if (!_session->engine().connected()) {
 			return;
 		}
 
-		SendUIWindow* w = new SendUIWindow (send, _session);
-		w->show ();
+		if (boost::dynamic_pointer_cast<InternalSend> (processor) == 0) {
+			SendUIWindow* w = new SendUIWindow (send, _session);
+			w->show ();
+		}
 
 	} else if ((retrn = boost::dynamic_pointer_cast<Return> (processor)) != 0) {
 
@@ -2111,7 +2052,7 @@ ProcessorBox::rb_cut ()
 		return;
 	}
 
-	_current_processor_box->cut_processors ();
+	_current_processor_box->processor_operation (ProcessorsCut);
 }
 
 void
@@ -2121,7 +2062,7 @@ ProcessorBox::rb_delete ()
 		return;
 	}
 
-	_current_processor_box->delete_processors ();
+	_current_processor_box->processor_operation (ProcessorsDelete);
 }
 
 void
@@ -2130,7 +2071,7 @@ ProcessorBox::rb_copy ()
 	if (_current_processor_box == 0) {
 		return;
 	}
-	_current_processor_box->copy_processors ();
+	_current_processor_box->processor_operation (ProcessorsCopy);
 }
 
 void
@@ -2140,7 +2081,7 @@ ProcessorBox::rb_paste ()
 		return;
 	}
 
-	_current_processor_box->paste_processors ();
+	_current_processor_box->processor_operation (ProcessorsPaste);
 }
 
 void
@@ -2159,7 +2100,7 @@ ProcessorBox::rb_select_all ()
 		return;
 	}
 
-	_current_processor_box->select_all_processors ();
+	_current_processor_box->processor_operation (ProcessorsSelectAll);
 }
 
 void

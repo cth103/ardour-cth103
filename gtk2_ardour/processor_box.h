@@ -134,7 +134,8 @@ private:
 	void led_clicked();
 	void processor_active_changed ();
 	void processor_property_changed (const PBD::PropertyChange&);
-	std::string name () const;
+	std::string name (Width) const;
+	void setup_tooltip ();
 
 	boost::shared_ptr<ARDOUR::Processor> _processor;
 	Width _width;
@@ -193,6 +194,16 @@ private:
 class ProcessorBox : public Gtk::HBox, public PluginInterestedObject, public ARDOUR::SessionHandlePtr
 {
   public:
+	enum ProcessorOperation {
+		ProcessorsCut,
+		ProcessorsCopy,
+		ProcessorsPaste,
+		ProcessorsDelete,
+		ProcessorsSelectAll,
+		ProcessorsToggleActive,
+		ProcessorsAB,
+	};
+
 	ProcessorBox (ARDOUR::Session*, boost::function<PluginSelector*()> get_plugin_selector,
 		      RouteRedirectSelection&, MixerStrip* parent, bool owner_is_mixer = false);
 	~ProcessorBox ();
@@ -201,6 +212,8 @@ class ProcessorBox : public Gtk::HBox, public PluginInterestedObject, public ARD
 	void set_width (Width);
 
 	void update();
+
+	void processor_operation (ProcessorOperation);
 
 	void select_all_processors ();
 	void deselect_all_processors ();
@@ -244,8 +257,6 @@ class ProcessorBox : public Gtk::HBox, public PluginInterestedObject, public ARD
 
 	void route_going_away ();
 
-	void selection_changed ();
-
 	Gtkmm2ext::DnDVBox<ProcessorEntry> processor_display;
 	Gtk::ScrolledWindow    processor_scroller;
 
@@ -278,8 +289,6 @@ class ProcessorBox : public Gtk::HBox, public PluginInterestedObject, public ARD
 
 	bool enter_notify (GdkEventCrossing *ev);
 	bool leave_notify (GdkEventCrossing *ev);
-	bool processor_key_press_event (GdkEventKey *);
-	bool processor_key_release_event (GdkEventKey *);
 	bool processor_button_press_event (GdkEventButton *, ProcessorEntry *);
 	bool processor_button_release_event (GdkEventButton *, ProcessorEntry *);
 	void redisplay_processors ();
@@ -299,13 +308,12 @@ class ProcessorBox : public Gtk::HBox, public PluginInterestedObject, public ARD
 	typedef std::vector<boost::shared_ptr<ARDOUR::Processor> > ProcSelection;
 
 	void cut_processors (const ProcSelection&);
-	void cut_processors ();
 	void copy_processors (const ProcSelection&);
-	void copy_processors ();
 	void delete_processors (const ProcSelection&);
-	void delete_processors ();
 	void paste_processors ();
 	void paste_processors (boost::shared_ptr<ARDOUR::Processor> before);
+	void processors_up ();
+	void processors_down ();
 
 	void delete_dragged_processors (const std::list<boost::shared_ptr<ARDOUR::Processor> >&);
 	void clear_processors ();

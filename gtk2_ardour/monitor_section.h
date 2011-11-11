@@ -50,11 +50,16 @@ class MonitorSection : public RouteUI
   private:
         Gtk::VBox vpacker;
         Gtk::HBox hpacker;
-        Gtk::Table main_table;
-	Gtk::ScrolledWindow main_table_scroller;
         Gtk::VBox upper_packer;
         Gtk::VBox lower_packer;
         Gtkmm2ext::TearOff* _tearoff;
+
+	Gtk::HBox  channel_table_packer;
+	Gtk::HBox  table_hpacker;
+        Gtk::Table channel_table;
+        Gtk::Table channel_table_header;
+	Gtk::ScrolledWindow channel_table_scroller;
+	Glib::RefPtr<Gtk::SizeGroup> channel_size_group;
 
         struct ChannelButtonSet {
             ArdourButton cut;
@@ -74,7 +79,6 @@ class MonitorSection : public RouteUI
         VolumeController* solo_cut_control;
 
         void populate_buttons ();
-	void set_button_names ();
         void map_state ();
 
         boost::shared_ptr<ARDOUR::MonitorProcessor> _monitor;
@@ -94,15 +98,15 @@ class MonitorSection : public RouteUI
         void cut_all ();
         void mono ();
         void toggle_exclusive_solo ();
+	void set_button_names () {}
         void toggle_mute_overrides_solo ();
         void dim_level_changed ();
         void solo_boost_changed ();
         void gain_value_changed ();
 
-        Gtk::RadioButtonGroup solo_model_group;
-        Gtk::RadioButton solo_in_place_button;
-        Gtk::RadioButton afl_button;
-        Gtk::RadioButton pfl_button;
+        ArdourButton solo_in_place_button;
+        ArdourButton afl_button;
+        ArdourButton pfl_button;
         Gtk::HBox        solo_model_box;
 
         void solo_use_in_place ();

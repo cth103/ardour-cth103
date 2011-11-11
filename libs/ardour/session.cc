@@ -86,6 +86,7 @@
 #include "ardour/recent_sessions.h"
 #include "ardour/region_factory.h"
 #include "ardour/return.h"
+#include "ardour/route_graph.h"
 #include "ardour/route_group.h"
 #include "ardour/send.h"
 #include "ardour/session.h"
@@ -128,6 +129,8 @@ PBD::Signal0<void> Session::AutoBindingOff;
 PBD::Signal2<void,std::string, std::string> Session::Exported;
 PBD::Signal1<int,boost::shared_ptr<Playlist> > Session::AskAboutPlaylistDeletion;
 PBD::Signal0<void> Session::Quit;
+PBD::Signal0<void> Session::FeedbackDetected;
+PBD::Signal0<void> Session::SuccessfulGraphSort;
 
 static void clean_up_session_event (SessionEvent* ev) { delete ev; }
 const SessionEvent::RTeventCallback Session::rt_cleanup (clean_up_session_event);
@@ -148,7 +151,7 @@ Session::Session (AudioEngine &eng,
 	, _post_transport_work (0)
 	, _send_timecode_update (false)
 	, _all_route_group (new RouteGroup (*this, "all"))
-	, route_graph (new Graph(*this))
+	, _process_graph (new Graph (*this))
 	, routes (new RouteList)
 	, _total_free_4k_blocks (0)
 	, _bundles (new BundleList)
@@ -1222,56 +1225,6 @@ Session::set_block_size (pframes_t nframes)
 	}
 }
 
-struct RouteSorter {
-    /** @return true to run r1 before r2, otherwise false */
-    bool sort_by_rec_enabled (const boost::shared_ptr<Route>& r1, const boost::shared_ptr<Route>& r2) {
-            if (r1->record_enabled()) {
-                    if (r2->record_enabled()) {
-                            /* both rec-enabled, just use signal order */
-                            return r1->order_key(N_("signal")) < r2->order_key(N_("signal"));
-                    } else {
-                            /* r1 rec-enabled, r2 not rec-enabled, run r2 early */
-                            return false;
-                    }
-            } else {
-                    if (r2->record_enabled()) {
-                            /* r2 rec-enabled, r1 not rec-enabled, run r1 early */
-                            return true;
-                    } else {
-                            /* neither rec-enabled, use signal order */
-                            return r1->order_key(N_("signal")) < r2->order_key(N_("signal"));
-                    }
-            }
-    }
-
-    bool operator() (boost::shared_ptr<Route> r1, boost::shared_ptr<Route> r2) {
-	    if (r2->feeds (r1)) {
-		    /* r1 fed by r2; run r2 early */
-		    return false;
-	    } else if (r1->feeds (r2)) {
-		    /* r2 fed by r1; run r1 early */
-		    return true;
-	    } else {
-		    if (r1->not_fed ()) {
-			    if (r2->not_fed ()) {
-				    /* no ardour-based connections inbound to either route. */
-                                    return sort_by_rec_enabled (r1, r2);
-			    } else {
-				    /* r2 has connections, r1 does not; run r1 early */
-				    return true;
-			    }
-		    } else {
-			    if (r2->not_fed()) {
-				    /* r1 has connections, r2 does not; run r2 early */
-				    return false;
-			    } else {
-				    /* both r1 and r2 have connections, but not to each other. just use signal order */
-				    return r1->order_key(N_("signal")) < r2->order_key(N_("signal"));
-			    }
-		    }
-	    }
-    }
-};
 
 static void
 trace_terminal (boost::shared_ptr<Route> r1, boost::shared_ptr<Route> rbase)
@@ -1342,7 +1295,7 @@ Session::resort_routes ()
 		/* writer goes out of scope and forces update */
 	}
 
-	//route_graph->dump(1);
+	//_process_graph->dump(1);
 
 #ifndef NDEBUG
 	boost::shared_ptr<RouteList> rl = routes.reader ();
@@ -1361,51 +1314,97 @@ Session::resort_routes ()
 #endif
 
 }
+
+/** This is called whenever we need to rebuild the graph of how we will process
+ *  routes.
+ *  @param r List of routes, in any order.
+ */
+
 void
 Session::resort_routes_using (boost::shared_ptr<RouteList> r)
 {
-	RouteList::iterator i, j;
+	/* We are going to build a directed graph of our routes;
+	   this is where the edges of that graph are put.
+	*/
+	
+	GraphEdges edges;
 
-	for (i = r->begin(); i != r->end(); ++i) {
+	/* Go through all routes doing two things:
+	 *
+	 * 1. Collect the edges of the route graph.  Each of these edges
+	 *    is a pair of routes, one of which directly feeds the other
+	 *    either by a JACK connection or by an internal send.
+	 *
+	 * 2. Begin the process of making routes aware of which other
+	 *    routes directly or indirectly feed them.  This information
+	 *    is used by the solo code.
+	 */
+	   
+	for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
 
+		/* Clear out the route's list of direct or indirect feeds */
 		(*i)->clear_fed_by ();
 
-		for (j = r->begin(); j != r->end(); ++j) {
-
-			/* although routes can feed themselves, it will
-			   cause an endless recursive descent if we
-			   detect it. so don't bother checking for
-			   self-feeding.
-			*/
-
-			if (*j == *i) {
-				continue;
-			}
+		for (RouteList::iterator j = r->begin(); j != r->end(); ++j) {
 
 			bool via_sends_only;
 
-			if ((*j)->direct_feeds (*i, &via_sends_only)) {
+			/* See if this *j feeds *i according to the current state of the JACK
+			   connections and internal sends.
+			*/
+			if ((*j)->direct_feeds_according_to_reality (*i, &via_sends_only)) {
+				/* add the edge to the graph (part #1) */
+				edges.add (*j, *i, via_sends_only);
+				/* tell the route (for part #2) */
 				(*i)->add_fed_by (*j, via_sends_only);
 			}
 		}
 	}
 
-	for (i = r->begin(); i != r->end(); ++i) {
-		trace_terminal (*i, *i);
-	}
+	/* Attempt a topological sort of the route graph */
+	boost::shared_ptr<RouteList> sorted_routes = topological_sort (r, edges);
+	
+	if (sorted_routes) {
+		/* We got a satisfactory topological sort, so there is no feedback;
+		   use this new graph.
 
-	RouteSorter cmp;
-	r->sort (cmp);
+		   Note: the process graph rechain does not require a
+		   topologically-sorted list, but hey ho.
+		*/
+		_process_graph->rechain (sorted_routes, edges);
+		_current_route_graph = edges;
 
-	route_graph->rechain (r);
+		/* Complete the building of the routes' lists of what directly
+		   or indirectly feeds them.
+		*/
+		for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
+			trace_terminal (*i, *i);
+		}
+
+		r = sorted_routes;
 
 #ifndef NDEBUG
-	DEBUG_TRACE (DEBUG::Graph, "Routes resorted, order follows:\n");
-	for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
-		DEBUG_TRACE (DEBUG::Graph, string_compose ("\t%1 signal order %2\n",
-		                                           (*i)->name(), (*i)->order_key ("signal")));
-	}
+		DEBUG_TRACE (DEBUG::Graph, "Routes resorted, order follows:\n");
+		for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
+			DEBUG_TRACE (DEBUG::Graph, string_compose ("\t%1 signal order %2\n",
+								   (*i)->name(), (*i)->order_key ("signal")));
+		}
 #endif
+
+		SuccessfulGraphSort (); /* EMIT SIGNAL */
+
+	} else {
+		/* The topological sort failed, so we have a problem.  Tell everyone
+		   and stick to the old graph; this will continue to be processed, so
+		   until the feedback is fixed, what is played back will not quite
+		   reflect what is actually connected.  Note also that we do not
+		   do trace_terminal here, as it would fail due to an endless recursion,
+		   so the solo code will think that everything is still connected
+		   as it was before.
+		*/
+		
+		FeedbackDetected (); /* EMIT SIGNAL */
+	}
 
 }
 
@@ -1463,7 +1462,7 @@ Session::count_existing_track_channels (ChanCount& in, ChanCount& out)
 }
 
 /** Caller must not hold process lock
- *  @param name_template string to use for the start of the name, or "" to use "Midi".
+ *  @param name_template string to use for the start of the name, or "" to use "MIDI".
  */
 list<boost::shared_ptr<MidiTrack> >
 Session::new_midi_track (TrackMode mode, RouteGroup* route_group, uint32_t how_many, string name_template)
@@ -1477,10 +1476,10 @@ Session::new_midi_track (TrackMode mode, RouteGroup* route_group, uint32_t how_m
 
 	control_id = ntracks() + nbusses();
 
-	bool const use_number = (how_many != 1) || name_template.empty () || name_template == _("Midi");
+	bool const use_number = (how_many != 1) || name_template.empty () || name_template == _("MIDI");
 
 	while (how_many) {
-		if (!find_route_name (name_template.empty() ? _("Midi") : name_template, ++track_id, track_name, sizeof(track_name), use_number)) {
+		if (!find_route_name (name_template.empty() ? _("MIDI") : name_template, ++track_id, track_name, sizeof(track_name), use_number)) {
 			error << "cannot find name for new midi track" << endmsg;
 			goto failed;
 		}
@@ -2223,7 +2222,7 @@ Session::remove_route (boost::shared_ptr<Route> route)
 	 */
 
 	resort_routes ();
-	route_graph->clear_other_chain ();
+	_process_graph->clear_other_chain ();
 
 	/* get rid of it from the dead wood collection in the route list manager */
 

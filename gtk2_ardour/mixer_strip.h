@@ -92,7 +92,6 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 	void fast_update ();
 	void set_embedded (bool);
 
-	ARDOUR::RouteGroup* route_group() const;
 	void set_route (boost::shared_ptr<ARDOUR::Route>);
 	void set_button_names ();
 	void show_send (boost::shared_ptr<ARDOUR::Send>);
@@ -116,12 +115,20 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 	/** The delivery that we are handling the level for with our fader has changed */
 	PBD::Signal1<void, boost::weak_ptr<ARDOUR::Delivery> > DeliveryChanged;
 
-	static sigc::signal<void,boost::shared_ptr<ARDOUR::Route> > SwitchIO;
 	static PBD::Signal1<void,MixerStrip*> CatchDeletion;
 
 	std::string state_id() const;
 
 	void parameter_changed (std::string);
+	void route_active_changed ();
+
+	void copy_processors ();
+	void cut_processors ();
+	void paste_processors ();
+	void select_all_processors ();
+	void delete_processors ();
+	void toggle_processors ();
+	void ab_plugins ();
 
   protected:
 	friend class Mixer_UI;
@@ -130,11 +137,6 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 
 	void set_selected(bool yn);
 	void set_stuff_from_route ();
-
-	bool on_leave_notify_event (GdkEventCrossing* ev);
-	bool on_enter_notify_event (GdkEventCrossing* ev);
-	bool on_key_press_event (GdkEventKey* ev);
-	bool on_key_release_event (GdkEventKey* ev);
 
   private:
 	Mixer_UI& _mixer;
@@ -163,6 +165,8 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 	ProcessorBox processor_box;
 	GainMeter    gpm;
 	PannerUI     panners;
+
+	Glib::RefPtr<Gtk::SizeGroup> button_size_group;
 
 	Gtk::Table button_table;
 	Gtk::Table rec_solo_table;
@@ -279,7 +283,7 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 	void engine_running();
 	void engine_stopped();
 
-	void switch_io (boost::shared_ptr<ARDOUR::Route>);
+	virtual void bus_send_display_changed (boost::shared_ptr<ARDOUR::Route>);
 
 	void set_current_delivery (boost::shared_ptr<ARDOUR::Delivery>);
 	boost::shared_ptr<ARDOUR::Delivery> _current_delivery;
@@ -302,8 +306,12 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 	 *  the RC option editor.
 	 */
 	VisibilityGroup _visibility;
+	boost::optional<bool> override_solo_visibility () const;
 
 	PBD::ScopedConnection _config_connection;
+
+	void add_input_port (ARDOUR::DataType);
+	void add_output_port (ARDOUR::DataType);
 
 	static std::string meter_point_string (ARDOUR::MeterPoint);
 };

@@ -63,6 +63,7 @@
 #include "ardour/session_handle.h"
 
 #include "ardour_dialog.h"
+#include "ardour_button.h"
 #include "editing.h"
 #include "ui_config.h"
 #include "window_proxy.h"
@@ -104,6 +105,7 @@ namespace ARDOUR {
 	class Route;
 	class RouteGroup;
 	class Location;
+	class ProcessThread;
 }
 
 class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
@@ -199,8 +201,6 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 
 	AudioClock* primary_clock;
 	AudioClock* secondary_clock;
-	AudioClock* preroll_clock;
-	AudioClock* postroll_clock;
 
 	TimeInfoBox* time_info_box;
 
@@ -265,6 +265,9 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	void add_window_proxy (WindowProxyBase *);
 	void remove_window_proxy (WindowProxyBase *);
 
+	void get_process_buffers ();
+	void drop_process_buffers ();
+
   protected:
 	friend class PublicEditor;
 
@@ -295,9 +298,6 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	void                goto_mixer_window ();
 	void                toggle_mixer_window ();
 	void                toggle_mixer_on_top ();
-
-	Gtk::ToggleButton   preroll_button;
-	Gtk::ToggleButton   postroll_button;
 
 	int  setup_windows ();
 	void setup_transport ();
@@ -419,14 +419,14 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	void set_transport_controllable_state (const XMLNode&);
 	XMLNode& get_transport_controllable_state ();
 
-	BindableButton roll_button;
-	BindableButton stop_button;
-	BindableButton goto_start_button;
-	BindableButton goto_end_button;
-	BindableButton auto_loop_button;
-	BindableButton play_selection_button;
-	BindableButton rec_button;
-	BindableToggleButton join_play_range_button;
+	ArdourButton roll_button;
+	ArdourButton stop_button;
+	ArdourButton goto_start_button;
+	ArdourButton goto_end_button;
+	ArdourButton auto_loop_button;
+	ArdourButton play_selection_button;
+	ArdourButton rec_button;
+	ArdourButton join_play_range_button;
 
 	void toggle_external_sync ();
 	void toggle_time_master ();
@@ -434,21 +434,23 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 
 	ShuttleControl* shuttle_box;
 
-	Gtkmm2ext::StatefulToggleButton auto_return_button;
-	Gtkmm2ext::StatefulToggleButton auto_play_button;
-	Gtkmm2ext::StatefulToggleButton auto_input_button;
-	Gtkmm2ext::StatefulToggleButton click_button;
-	Gtkmm2ext::StatefulToggleButton time_master_button;
-	Gtkmm2ext::StatefulToggleButton sync_button;
+	ArdourButton auto_return_button;
+	ArdourButton auto_play_button;
+	ArdourButton auto_input_button;
+	ArdourButton click_button;
+	ArdourButton time_master_button;
+	ArdourButton sync_button;
 
-	Gtk::ToggleButton auditioning_alert_button;
-	Gtk::ToggleButton solo_alert_button;
+	ArdourButton auditioning_alert_button;
+	ArdourButton solo_alert_button;
+	ArdourButton feedback_alert_button;
 
 	Gtk::VBox alert_box;
 
 	void solo_blink (bool);
 	void sync_blink (bool);
 	void audition_blink (bool);
+	void feedback_blink (bool);
 
 	void soloing_changed (bool);
 	void auditioning_changed (bool);
@@ -456,6 +458,7 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 
 	bool solo_alert_press (GdkEventButton* ev);
 	bool audition_alert_press (GdkEventButton* ev);
+	bool feedback_alert_press (GdkEventButton *);
 
 	void big_clock_value_changed ();
 	void primary_clock_value_changed ();
@@ -723,6 +726,19 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	bool click_button_clicked (GdkEventButton *);
 
 	VisibilityGroup _status_bar_visibility;
+
+	/** A ProcessThread so that we have some thread-local buffers for use by
+	 *  PluginEqGui::impulse_analysis ().
+	 */
+	ARDOUR::ProcessThread* _process_thread;
+
+	void feedback_detected ();
+
+	ArdourButton             midi_panic_button;
+	void                     midi_panic ();
+
+	void successful_graph_sort ();
+	bool _feedback_exists;
 };
 
 #endif /* __ardour_gui_h__ */

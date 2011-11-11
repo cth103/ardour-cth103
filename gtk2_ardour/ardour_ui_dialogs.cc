@@ -109,8 +109,6 @@ ARDOUR_UI::set_session (Session *s)
 	primary_clock->set_session (s);
 	secondary_clock->set_session (s);
 	big_clock->set_session (s);
-	preroll_clock->set_session (s);
-	postroll_clock->set_session (s);
 	time_info_box->set_session (s);
 
 	/* sensitize menu bar options that are now valid */
@@ -156,6 +154,7 @@ ARDOUR_UI::set_session (Session *s)
 	Blink.connect (sigc::mem_fun(*this, &ARDOUR_UI::solo_blink));
 	Blink.connect (sigc::mem_fun(*this, &ARDOUR_UI::sync_blink));
 	Blink.connect (sigc::mem_fun(*this, &ARDOUR_UI::audition_blink));
+	Blink.connect (sigc::mem_fun(*this, &ARDOUR_UI::feedback_blink));
 
 	_session->RecordStateChanged.connect (_session_connections, MISSING_INVALIDATOR, boost::bind (&ARDOUR_UI::record_state_changed, this), gui_context());
 	_session->StepEditStatusChange.connect (_session_connections, MISSING_INVALIDATOR, boost::bind (&ARDOUR_UI::step_edit_status_change, this, _1), gui_context());

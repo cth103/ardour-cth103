@@ -65,7 +65,6 @@
 #include "ardour/session.h"
 #include "ardour/timestamps.h"
 #include "ardour/utils.h"
-#include "ardour/graph.h"
 #include "ardour/unknown_processor.h"
 #include "ardour/capturing_processor.h"
 
@@ -82,7 +81,7 @@ PBD::Signal0<void> Route::RemoteControlIDChange;
 Route::Route (Session& sess, string name, Flag flg, DataType default_type)
 	: SessionObject (sess, name)
 	, Automatable (sess)
-	, GraphNode( sess.route_graph )
+	, GraphNode (sess._process_graph)
 	, _active (true)
 	, _signal_latency (0)
 	, _initial_delay (0)
@@ -404,15 +403,6 @@ Route::process_output_buffers (BufferSet& bufs,
 
 	bufs.is_silent (false);
 
-#if 0
-	cerr << name() << " POB, buffers: count: " << bufs.count() << " avail " << bufs.available() << endl;
-	int na = bufs.count().n_audio();
-	for (int nn = 0; nn < na; ++nn) {
-		AudioBuffer& ab (bufs.get_audio (nn));
-		cerr << "\tAudio buffer " << nn << " @ " << &ab << " data @ " << ab.data() << endl;
-	}
-#endif
-
 	/* figure out if we're going to use gain automation */
 	if (gain_automation_ok) {
 		_amp->setup_gain_automation (start_frame, end_frame, nframes);
@@ -563,6 +553,7 @@ void
 Route::passthru_silence (framepos_t start_frame, framepos_t end_frame, pframes_t nframes, int declick)
 {
 	BufferSet& bufs (_session.get_silent_buffers (n_process_buffers()));
+
 	bufs.set_count (_input->n_ports());
 	write_out_of_band_data (bufs, start_frame, end_frame, nframes);
 	process_output_buffers (bufs, start_frame, end_frame, nframes, true, declick, false);
@@ -753,7 +744,7 @@ Route::set_solo_isolated (bool yn, void *src)
 		}
 
 		bool sends_only;
-		bool does_feed = direct_feeds (*i, &sends_only); // we will recurse anyway, so don't use ::feeds()
+		bool does_feed = direct_feeds_according_to_graph (*i, &sends_only); // we will recurse anyway, so don't use ::feeds()
 
 		if (does_feed && !sends_only) {
 			(*i)->set_solo_isolated (yn, (*i)->route_group());
@@ -2653,14 +2644,14 @@ Route::feeds (boost::shared_ptr<Route> other, bool* via_sends_only)
 }
 
 bool
-Route::direct_feeds (boost::shared_ptr<Route> other, bool* only_send)
+Route::direct_feeds_according_to_reality (boost::shared_ptr<Route> other, bool* via_send_only)
 {
 	DEBUG_TRACE (DEBUG::Graph, string_compose ("Feeds? %1\n", _name));
 
 	if (_output->connected_to (other->input())) {
 		DEBUG_TRACE (DEBUG::Graph, string_compose ("\tdirect FEEDS %2\n", other->name()));
-		if (only_send) {
-			*only_send = false;
+		if (via_send_only) {
+			*via_send_only = false;
 		}
 
 		return true;
@@ -2674,8 +2665,8 @@ Route::direct_feeds (boost::shared_ptr<Route> other, bool* only_send)
 		if ((iop = boost::dynamic_pointer_cast<IOProcessor>(*r)) != 0) {
 			if (iop->feeds (other)) {
 				DEBUG_TRACE (DEBUG::Graph,  string_compose ("\tIOP %1 does feed %2\n", iop->name(), other->name()));
-				if (only_send) {
-					*only_send = true;
+				if (via_send_only) {
+					*via_send_only = true;
 				}
 				return true;
 			} else {
@@ -2689,6 +2680,12 @@ Route::direct_feeds (boost::shared_ptr<Route> other, bool* only_send)
 
 	DEBUG_TRACE (DEBUG::Graph,  string_compose ("\tdoes NOT feed %1\n", other->name()));
 	return false;
+}
+
+bool
+Route::direct_feeds_according_to_graph (boost::shared_ptr<Route> other, bool* via_send_only)
+{
+	return _session._current_route_graph.has (shared_from_this (), other, via_send_only);
 }
 
 /** Called from the (non-realtime) butler thread when the transport is stopped */

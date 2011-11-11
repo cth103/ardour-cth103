@@ -195,7 +195,7 @@ FaderOption::add_to_page (OptionEditorPage* p)
 
 ClockOption::ClockOption (string const & i, string const & n, sigc::slot<framecnt_t> g, sigc::slot<bool, framecnt_t> s)
 	: Option (i, n)
-	, _clock (X_("timecode-offset"), false, X_("TimecodeOffset"), true, false, true, false)
+	, _clock (X_("timecode-offset"), false, X_("TimecodeOffsetClock"), true, false, true, false)
 	, _get (g)
 	, _set (s)
 {
@@ -320,4 +320,30 @@ OptionEditor::set_current_page (string const & p)
 }
 
 
+DirectoryOption::DirectoryOption (string const & i, string const & n, sigc::slot<string> g, sigc::slot<bool, string> s)
+	: Option (i, n)
+	, _get (g)
+	, _set (s)
+{
+	_file_chooser.set_action (Gtk::FILE_CHOOSER_ACTION_SELECT_FOLDER);
+	_file_chooser.signal_file_set().connect (sigc::mem_fun (*this, &DirectoryOption::file_set));
+}
 
+
+void
+DirectoryOption::set_state_from_config ()
+{
+	_file_chooser.set_filename (_get ());
+}
+
+void
+DirectoryOption::add_to_page (OptionEditorPage* p)
+{
+	add_widgets_to_page (p, manage (new Label (_name)), &_file_chooser);
+}
+
+void
+DirectoryOption::file_set ()
+{
+	_set (_file_chooser.get_filename ());
+}

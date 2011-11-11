@@ -40,12 +40,9 @@ MonitorSection::MonitorSection (Session* s)
         , dim_control (0)
         , solo_boost_control (0)
         , solo_cut_control (0)
-        , solo_in_place_button (solo_model_group, _("SiP"))
-        , afl_button (solo_model_group, _("AFL"))
-        , pfl_button (solo_model_group, _("PFL"))
-	, cut_all_button (ArdourButton::led_default_elements)
-	, dim_all_button (ArdourButton::led_default_elements)
-	, mono_button (ArdourButton::led_default_elements)
+        , solo_in_place_button (_("SiP"), ArdourButton::led_default_elements)
+        , afl_button (_("AFL"), ArdourButton::led_default_elements)
+	, pfl_button (_("PFL"), ArdourButton::led_default_elements)
 	, exclusive_solo_button (ArdourButton::led_default_elements)
 	, solo_mute_override_button (ArdourButton::led_default_elements)
 {
@@ -63,23 +60,6 @@ MonitorSection::MonitorSection (Session* s)
 
         VBox* spin_packer;
         Label* spin_label;
-
-        /* Dim */
-
-        dim_control = new VolumeController (little_knob_pixbuf, boost::shared_ptr<Controllable>(), 0.0, 0.01, 0.1, true, 30, 30, true);
-
-        HBox* dim_packer = manage (new HBox);
-        dim_packer->show ();
-
-        spin_label = manage (new Label (_("Dim")));
-        spin_packer = manage (new VBox);
-        spin_packer->show ();
-        spin_packer->set_spacing (6);
-        spin_packer->pack_start (*dim_control, false, false);
-        spin_packer->pack_start (*spin_label, false, false);
-
-        dim_packer->set_spacing (12);
-        dim_packer->pack_start (*spin_packer, true, false);
 
         /* Rude Solo */
 
@@ -106,10 +86,14 @@ MonitorSection::MonitorSection (Session* s)
 	rude_audition_button.signal_button_press_event().connect (sigc::mem_fun(*this, &MonitorSection::cancel_audition));
         UI::instance()->set_tip (rude_audition_button, _("When active, auditioning is active.\nClick to stop the audition"));
 
+	solo_in_place_button.set_name ("monitor section solo model");
+	afl_button.set_name ("monitor section solo model");
+	pfl_button.set_name ("monitor section solo model");
+
         solo_model_box.set_spacing (6);
-        solo_model_box.pack_start (solo_in_place_button, false, false);
-        solo_model_box.pack_start (afl_button, false, false);
-        solo_model_box.pack_start (pfl_button, false, false);
+        solo_model_box.pack_start (solo_in_place_button, true, false);
+        solo_model_box.pack_start (afl_button, true, false);
+        solo_model_box.pack_start (pfl_button, true, false);
 
         solo_in_place_button.show ();
         afl_button.show ();
@@ -117,26 +101,30 @@ MonitorSection::MonitorSection (Session* s)
         solo_model_box.show ();
 
         act = ActionManager::get_action (X_("Solo"), X_("solo-use-in-place"));
+	ARDOUR_UI::instance()->tooltips().set_tip (solo_in_place_button, _("Solo controls affect solo-in-place"));
         if (act) {
-                act->connect_proxy (solo_in_place_button);
+		solo_in_place_button.set_related_action (act);
         }
 
         act = ActionManager::get_action (X_("Solo"), X_("solo-use-afl"));
+	ARDOUR_UI::instance()->tooltips().set_tip (afl_button, _("Solo controls toggle after-fader-listen"));
         if (act) {
-                act->connect_proxy (afl_button);
+		afl_button.set_related_action (act);
         }
 
         act = ActionManager::get_action (X_("Solo"), X_("solo-use-pfl"));
+	ARDOUR_UI::instance()->tooltips().set_tip (pfl_button, _("Solo controls toggle pre-fader-listen"));
         if (act) {
-                act->connect_proxy (pfl_button);
+		pfl_button.set_related_action (act);
         }
 
         /* Solo Boost */
 
         solo_boost_control = new VolumeController (little_knob_pixbuf, boost::shared_ptr<Controllable>(), 0.0, 0.01, 0.1, true, 30, 30, true);
+	ARDOUR_UI::instance()->tooltips().set_tip (*solo_boost_control, _("Gain increase for soloed signals (0dB is normal)"));
 
         HBox* solo_packer = manage (new HBox);
-        solo_packer->set_spacing (12);
+        solo_packer->set_spacing (6);
         solo_packer->show ();
 
         spin_label = manage (new Label (_("Solo Boost")));
@@ -146,11 +134,12 @@ MonitorSection::MonitorSection (Session* s)
         spin_packer->pack_start (*solo_boost_control, false, false);
         spin_packer->pack_start (*spin_label, false, false);
 
-        solo_packer->pack_start (*spin_packer, false, true);
+        solo_packer->pack_start (*spin_packer, true, false);
 
         /* Solo (SiP) cut */
 
         solo_cut_control = new VolumeController (little_knob_pixbuf, boost::shared_ptr<Controllable>(), 0.0, 0.1, 0.5, true, 30, 30, true);
+	ARDOUR_UI::instance()->tooltips().set_tip (*solo_cut_control, _("Gain reduction non-soloed signals\nA value above -inf dB causes \"solo-in-front\""));
 
         spin_label = manage (new Label (_("SiP Cut")));
         spin_packer = manage (new VBox);
@@ -159,7 +148,24 @@ MonitorSection::MonitorSection (Session* s)
         spin_packer->pack_start (*solo_cut_control, false, false);
         spin_packer->pack_start (*spin_label, false, false);
 
-        solo_packer->pack_start (*spin_packer, false, true);
+        solo_packer->pack_start (*spin_packer, true, false);
+
+        /* Dim */
+
+        dim_control = new VolumeController (little_knob_pixbuf, boost::shared_ptr<Controllable>(), 0.0, 0.01, 0.1, true, 30, 30, true);
+	ARDOUR_UI::instance()->tooltips().set_tip (*dim_control, _("Gain reduction to use when dimming monitor outputs"));
+
+        HBox* dim_packer = manage (new HBox);
+        dim_packer->show ();
+
+        spin_label = manage (new Label (_("Dim")));
+        spin_packer = manage (new VBox);
+        spin_packer->show ();
+        spin_packer->set_spacing (6);
+        spin_packer->pack_start (*dim_control, false, false);
+        spin_packer->pack_start (*spin_label, false, false);
+
+        dim_packer->pack_start (*spin_packer, true, false);
 
 	exclusive_solo_button.set_text (_("excl. solo"));
         exclusive_solo_button.set_name (X_("monitor solo exclusive"));
@@ -186,7 +192,7 @@ MonitorSection::MonitorSection (Session* s)
         solo_opt_box->pack_start (solo_mute_override_button);
         solo_opt_box->show ();
 
-        upper_packer.set_spacing (12);
+        upper_packer.set_spacing (6);
 
         Gtk::HBox* rude_box = manage (new HBox);
         rude_box->pack_start (rude_solo_button, true, true);
@@ -194,9 +200,9 @@ MonitorSection::MonitorSection (Session* s)
 
         upper_packer.pack_start (*rude_box, false, false);
         upper_packer.pack_start (rude_audition_button, false, false);
-        upper_packer.pack_start (solo_model_box, false, false);
+        upper_packer.pack_start (solo_model_box, false, false, 12);
         upper_packer.pack_start (*solo_opt_box, false, false);
-        upper_packer.pack_start (*solo_packer, false, false);
+        upper_packer.pack_start (*solo_packer, false, false, 12);
 
         cut_all_button.set_text (_("mute"));
 	cut_all_button.set_name ("monitor section cut");
@@ -246,32 +252,53 @@ MonitorSection::MonitorSection (Session* s)
 
         lower_packer.pack_start (*spin_packer, true, true);
 
-	HBox* hb = manage (new HBox);
-	hb->pack_start (main_table_scroller, false, false);
-	hb->show ();
+	channel_table_scroller.set_policy (Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
+	channel_table_scroller.set_size_request (-1, 150);
+	channel_table_scroller.set_shadow_type (Gtk::SHADOW_NONE);
+	channel_table_scroller.show ();
+	
+	channel_size_group  = SizeGroup::create (SIZE_GROUP_HORIZONTAL);
+	channel_size_group->add_widget (channel_table_header);
+	channel_size_group->add_widget (channel_table);
 
-	main_table_scroller.add (main_table);
-	main_table_scroller.set_policy (Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
-	main_table_scroller.set_size_request (-1, 150);
-	main_table_scroller.set_shadow_type (Gtk::SHADOW_NONE);
-	main_table_scroller.show ();
+	channel_table_header.resize (1, 5);
+        Label* l1 = manage (new Label (X_("out")));
+	l1->set_name (X_("MonitorSectionLabel"));
+        channel_table_header.attach (*l1, 0, 1, 0, 1, EXPAND|FILL);
+        l1 = manage (new Label (X_("mute")));
+	l1->set_name (X_("MonitorSectionLabel"));
+        channel_table_header.attach (*l1, 1, 2, 0, 1, EXPAND|FILL);
+        l1 = manage (new Label (X_("dim")));
+	l1->set_name (X_("MonitorSectionLabel"));
+        channel_table_header.attach (*l1, 2, 3, 0, 1, EXPAND|FILL);
+        l1 = manage (new Label (X_("solo")));
+	l1->set_name (X_("MonitorSectionLabel"));
+        channel_table_header.attach (*l1, 3, 4, 0, 1, EXPAND|FILL);
+        l1 = manage (new Label (X_("inv")));
+	l1->set_name (X_("MonitorSectionLabel"));
+        channel_table_header.attach (*l1, 4, 5, 0, 1, EXPAND|FILL);
+	channel_table_header.show ();
 
-        vpacker.set_border_width (12);
+	table_hpacker.pack_start (channel_table, true, true);
+
+	/* note that we don't pack the table_hpacker till later
+	 */
+
+        vpacker.set_border_width (6);
         vpacker.set_spacing (12);
         vpacker.pack_start (upper_packer, false, false);
         vpacker.pack_start (*dim_packer, false, false);
-        vpacker.pack_start (*hb, false, false);
+        vpacker.pack_start (channel_table_header, false, false);
+        vpacker.pack_start (channel_table_packer, false, false);
         vpacker.pack_start (lower_packer, false, false);
 
-        hpacker.set_border_width (12);
-        hpacker.set_spacing (12);
         hpacker.pack_start (vpacker, true, true);
 
         gain_control->show_all ();
         dim_control->show_all ();
         solo_boost_control->show_all ();
 
-        main_table.show ();
+        channel_table.show ();
         hpacker.show ();
         upper_packer.show ();
         lower_packer.show ();
@@ -326,6 +353,40 @@ MonitorSection::set_session (Session* s)
                         _route.reset ();
                 }
 
+		if (channel_table_scroller.get_parent()) {
+			/* scroller is packed, so remove it */
+			channel_table_packer.remove (channel_table_scroller);
+			/* remove the table_hpacker from the scroller */
+			channel_table_scroller.remove ();
+		} 
+
+		if (table_hpacker.get_parent ()) {
+			/* this occurs when the table hpacker is directly
+			   packed, so remove it.
+			*/
+			channel_table_packer.remove (table_hpacker);
+		}
+		
+		if (_monitor->output_streams().n_audio() > 7) {
+			/* put the table into a scrolled window, and then put
+			 * that into the channel vpacker, after the table header
+			 */
+			channel_table_scroller.add (table_hpacker);
+			channel_table_packer.pack_start (channel_table_scroller, true, true);
+			channel_table_scroller.show ();
+
+		} else {
+			/* just put the channel table itself into the channel
+			 * vpacker, after the table header
+			 */
+			 
+			channel_table_packer.pack_start (table_hpacker, true, true);
+			channel_table_scroller.hide ();
+		}
+
+		table_hpacker.show ();
+		channel_table.show ();
+
         } else {
                 /* no session */
 
@@ -340,10 +401,6 @@ MonitorSection::set_session (Session* s)
 }
 
 MonitorSection::ChannelButtonSet::ChannelButtonSet ()
-	: cut (ArdourButton::just_led_default_elements)
-	, dim (ArdourButton::just_led_default_elements)
-	, solo (ArdourButton::just_led_default_elements)
-	, invert (ArdourButton::just_led_default_elements)
 {
 	cut.set_diameter (3);
 	dim.set_diameter (3);
@@ -371,23 +428,12 @@ MonitorSection::populate_buttons ()
         Glib::RefPtr<Action> act;
         uint32_t nchans = _monitor->output_streams().n_audio();
 
-        main_table.resize (nchans+1, 5);
-        main_table.set_col_spacings (6);
-        main_table.set_row_spacings (6);
-        main_table.set_homogeneous (true);
+        channel_table.resize (nchans, 5);
+        channel_table.set_col_spacings (6);
+        channel_table.set_row_spacings (6);
+        channel_table.set_homogeneous (true);
 
-        Label* l1 = manage (new Label (X_("out")));
-        main_table.attach (*l1, 0, 1, 0, 1, SHRINK|FILL, SHRINK|FILL);
-        l1 = manage (new Label (X_("cut")));
-        main_table.attach (*l1, 1, 2, 0, 1, SHRINK|FILL, SHRINK|FILL);
-        l1 = manage (new Label (X_("dim")));
-        main_table.attach (*l1, 2, 3, 0, 1, SHRINK|FILL, SHRINK|FILL);
-        l1 = manage (new Label (X_("solo")));
-        main_table.attach (*l1, 3, 4, 0, 1, SHRINK|FILL, SHRINK|FILL);
-        l1 = manage (new Label (X_("inv")));
-        main_table.attach (*l1, 4, 5, 0, 1, SHRINK|FILL, SHRINK|FILL);
-
-        const uint32_t row_offset = 1;
+        const uint32_t row_offset = 0;
 
         for (uint32_t i = 0; i < nchans; ++i) {
 
@@ -407,16 +453,16 @@ MonitorSection::populate_buttons ()
                 }
 
                 Label* label = manage (new Label (l));
-                main_table.attach (*label, 0, 1, i+row_offset, i+row_offset+1, SHRINK|FILL, SHRINK|FILL);
+                channel_table.attach (*label, 0, 1, i+row_offset, i+row_offset+1, EXPAND|FILL);
 
                 ChannelButtonSet* cbs = new ChannelButtonSet;
 
                 _channel_buttons.push_back (cbs);
 
-                main_table.attach (cbs->cut, 1, 2, i+row_offset, i+row_offset+1, SHRINK|FILL, SHRINK|FILL);
-                main_table.attach (cbs->dim, 2, 3, i+row_offset, i+row_offset+1, SHRINK|FILL, SHRINK|FILL);
-                main_table.attach (cbs->solo, 3, 4, i+row_offset, i+row_offset+1, SHRINK|FILL, SHRINK|FILL);
-                main_table.attach (cbs->invert, 4, 5, i+row_offset, i+row_offset+1, SHRINK|FILL, SHRINK|FILL);
+                channel_table.attach (cbs->cut, 1, 2, i+row_offset, i+row_offset+1, EXPAND|FILL);
+                channel_table.attach (cbs->dim, 2, 3, i+row_offset, i+row_offset+1, EXPAND|FILL);
+                channel_table.attach (cbs->solo, 3, 4, i+row_offset, i+row_offset+1, EXPAND|FILL);
+                channel_table.attach (cbs->invert, 4, 5, i+row_offset, i+row_offset+1, EXPAND|FILL);
 
                 snprintf (buf, sizeof (buf), "monitor-cut-%u", i+1);
                 act = ActionManager::get_action (X_("Monitor"), buf);
@@ -443,15 +489,7 @@ MonitorSection::populate_buttons ()
                 }
         }
 
-        main_table.show_all ();
-}
-
-void
-MonitorSection::set_button_names ()
-{
-        rec_enable_button_label.set_text ("rec");
-        mute_button_label.set_text ("rec");
-        solo_button_label.set_text ("rec");
+        channel_table.show_all ();
 }
 
 void
@@ -708,8 +746,8 @@ MonitorSection::solo_use_afl ()
                 Glib::RefPtr<RadioAction> ract = Glib::RefPtr<RadioAction>::cast_dynamic (act);
                 if (ract) {
                         if (ract->get_active()) {
-                                Config->set_listen_position (AfterFaderListen);
                                 Config->set_solo_control_is_listen_control (true);
+                                Config->set_listen_position (AfterFaderListen);
                         }
                 }
         }
@@ -723,13 +761,13 @@ MonitorSection::solo_use_pfl ()
 	   active.
 	*/
 
-        Glib::RefPtr<Action> act = ActionManager::get_action (X_("Solo"), X_("solo-use-afl"));
+        Glib::RefPtr<Action> act = ActionManager::get_action (X_("Solo"), X_("solo-use-pfl"));
         if (act) {
                 Glib::RefPtr<RadioAction> ract = Glib::RefPtr<RadioAction>::cast_dynamic (act);
                 if (ract) {
                         if (ract->get_active()) {
-                                Config->set_listen_position (PreFaderListen);
                                 Config->set_solo_control_is_listen_control (true);
+                                Config->set_listen_position (PreFaderListen);
                         }
                 }
         }
@@ -743,7 +781,6 @@ MonitorSection::setup_knob_images ()
 		uint32_t c = ARDOUR_UI::config()->color_by_name ("monitor knob");
 		char buf[16];
 		snprintf (buf, 16, "#%x", (c >> 8));
-		cerr << "Motion feedback using " << buf << endl;
 		MotionFeedback::set_lamp_color (buf);
                 big_knob_pixbuf = MotionFeedback::render_pixbuf (80);
 
@@ -796,10 +833,19 @@ MonitorSection::update_solo_model ()
 
         act = ActionManager::get_action (X_("Solo"), action_name);
         if (act) {
+
                 Glib::RefPtr<RadioAction> ract = Glib::RefPtr<RadioAction>::cast_dynamic (act);
                 if (ract) {
+			/* because these are radio buttons, one of them will be
+			   active no matter what. to trigger a change in the
+			   action so that the view picks it up, toggle it.
+			*/
+			if (ract->get_active()) {
+				ract->set_active (false);
+			}
                         ract->set_active (true);
                 }
+		
         }
 }
 
@@ -973,8 +1019,9 @@ MonitorSection::cancel_audition (GdkEventButton*)
 void
 MonitorSection::parameter_changed (std::string name)
 {
-        if (name == "solo-control-is-listen-control" ||
-            name == "listen-position") {
+        if (name == "solo-control-is-listen-control") {
+                update_solo_model ();
+	} else if (name == "listen-position") {
                 update_solo_model ();
         }
 }

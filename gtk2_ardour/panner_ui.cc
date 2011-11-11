@@ -244,13 +244,13 @@ PannerUI::setup_pan ()
 
 	if (nouts == 0 || nouts == 1) {
 
-                delete _stereo_panner;
-                delete twod_panner;
-
 		/* stick something into the panning viewport so that it redraws */
 
 		EventBox* eb = manage (new EventBox());
 		pan_vbox.pack_start (*eb, false, false);
+
+		delete big_window;
+		big_window = 0;
 
 	} else if (nouts == 2) {
 
@@ -304,6 +304,8 @@ PannerUI::setup_pan ()
                                                    nins) << endmsg;
                 }
 
+		delete big_window;
+		big_window = 0;
 
 	} else {
 

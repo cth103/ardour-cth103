@@ -100,6 +100,8 @@ class Bundle : public PBD::ScopedConnectionList
 	void disconnect (boost::shared_ptr<Bundle>, AudioEngine &);
 	bool connected_to (boost::shared_ptr<Bundle>, AudioEngine &);
 	bool has_same_ports (boost::shared_ptr<Bundle>) const;
+	uint32_t type_channel_to_overall (DataType, uint32_t) const;
+	uint32_t overall_channel_to_type (DataType, uint32_t) const;
 
 	void set_name (std::string const &);
 
@@ -113,6 +115,8 @@ class Bundle : public PBD::ScopedConnectionList
 
 	void suspend_signals ();
 	void resume_signals ();
+
+	bool operator== (Bundle const & other);
 
 	/** Things that might change about this bundle */
 	enum Change {

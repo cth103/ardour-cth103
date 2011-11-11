@@ -25,6 +25,8 @@
 #include "pbd/xml++.h"
 #include "pbd/signals.h"
 
+#include "gtkmm2ext/widget_state.h"
+
 #include "ardour/ardour.h"
 #include "ardour/mute_master.h"
 #include "ardour/session_event.h"
@@ -34,6 +36,7 @@
 #include "ardour/track.h"
 
 #include "axis_view.h"
+#include "selectable.h"
 
 namespace ARDOUR {
 	class AudioTrack;
@@ -68,6 +71,7 @@ class RouteUI : public virtual AxisView
 	bool has_audio_outputs () const;
 
 	boost::shared_ptr<ARDOUR::Route> route() const { return _route; }
+	ARDOUR::RouteGroup* route_group() const;
 
 	boost::shared_ptr<ARDOUR::Track>      track() const;
 	boost::shared_ptr<ARDOUR::AudioTrack> audio_track() const;
@@ -90,29 +94,23 @@ class RouteUI : public virtual AxisView
 	bool multiple_solo_change;
 
 	Gtk::HBox _invert_button_box;
-	BindableToggleButton* mute_button;
-	BindableToggleButton* solo_button;
-	BindableToggleButton* rec_enable_button; /* audio tracks */
-	BindableToggleButton* show_sends_button; /* busses */
+	ArdourButton* mute_button;
+	ArdourButton* solo_button;
+	ArdourButton* rec_enable_button; /* audio tracks */
+	ArdourButton* show_sends_button; /* busses */
 	ArdourButton* monitor_input_button;
 	ArdourButton* monitor_disk_button;
 
-	Gtk::Image* solo_safe_image;
+	Glib::RefPtr<Gdk::Pixbuf> solo_safe_pixbuf;
 
         ArdourButton* solo_safe_led;
         ArdourButton* solo_isolated_led;
 
-	Gtk::Label solo_button_label;
-	Gtk::Label mute_button_label;
-	Gtk::Label rec_enable_button_label;
 	Gtk::Label monitor_input_button_label;
 	Gtk::Label monitor_disk_button_label;
 
 	void send_blink (bool);
 	sigc::connection send_blink_connection;
-
-	virtual std::string solo_button_name () const { return "SoloButton"; }
-	virtual std::string safe_solo_button_name () const { return "SafeSoloButton"; }
 
 	Gtk::Menu* mute_menu;
 	Gtk::Menu* solo_menu;
@@ -218,11 +216,16 @@ class RouteUI : public virtual AxisView
 	void save_as_template ();
 	void open_remote_control_id_dialog ();
 
-	static int solo_visual_state (boost::shared_ptr<ARDOUR::Route>);
-	static int solo_visual_state_with_isolate (boost::shared_ptr<ARDOUR::Route>);
-	static int solo_isolate_visual_state (boost::shared_ptr<ARDOUR::Route>);
-	static int solo_safe_visual_state (boost::shared_ptr<ARDOUR::Route>);
-	static int mute_visual_state (ARDOUR::Session*, boost::shared_ptr<ARDOUR::Route>);
+	static Gtkmm2ext::ActiveState solo_active_state (boost::shared_ptr<ARDOUR::Route>);
+	static Gtkmm2ext::ActiveState solo_isolate_active_state (boost::shared_ptr<ARDOUR::Route>);
+	static Gtkmm2ext::ActiveState solo_safe_active_state (boost::shared_ptr<ARDOUR::Route>);
+	static Gtkmm2ext::ActiveState mute_active_state (ARDOUR::Session*, boost::shared_ptr<ARDOUR::Route>);
+
+	/** Emitted when a bus has been set or unset from `display sends to this bus' mode
+	 *  by a click on the `Sends' button.  The parameter is the route that the sends are
+	 *  to, or 0 if no route is now in this mode.
+	 */
+	static sigc::signal<void, boost::shared_ptr<ARDOUR::Route> > BusSendDisplayChanged;
 
    protected:
 	PBD::ScopedConnectionList route_connections;
@@ -240,6 +243,8 @@ class RouteUI : public virtual AxisView
 
 	void route_gui_changed (std::string);
 	virtual void route_color_changed () {}
+
+	virtual void bus_send_display_changed (boost::shared_ptr<ARDOUR::Route>);
 
   private:
 	void check_rec_enable_sensitivity ();
@@ -274,6 +279,9 @@ class RouteUI : public virtual AxisView
 	std::list<BindableToggleButton*> _invert_buttons;
 	Gtk::Menu* _invert_menu;
 
+	static void set_showing_sends_to (boost::shared_ptr<ARDOUR::Route>);
+	static boost::weak_ptr<ARDOUR::Route> _showing_sends_to;
+	
 	static uint32_t _max_invert_buttons;
 };
 

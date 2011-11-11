@@ -37,6 +37,7 @@ typedef boost::shared_ptr<GraphNode> node_ptr_t;
 typedef std::set< node_ptr_t > node_set_t;
 typedef std::list< node_ptr_t > node_list_t;
 
+/** A node on our processing graph, ie a Route */	
 class GraphNode
 {
     public:
@@ -52,11 +53,13 @@ class GraphNode
     private:
 	friend class Graph;
 
+	/** Nodes that we directly feed */
 	node_set_t  _activation_set[2];
 
 	boost::shared_ptr<Graph> _graph;
 
 	gint _refcount;
+	/** The number of nodes that we directly feed us (one count for each chain) */
 	gint _init_refcount[2];
 };
 

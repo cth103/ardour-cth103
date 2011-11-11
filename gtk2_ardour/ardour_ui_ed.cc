@@ -444,12 +444,18 @@ ARDOUR_UI::install_actions ()
 		}
 	}
 
+	/* MIDI */
+
+	Glib::RefPtr<ActionGroup> midi_actions = ActionGroup::create (X_("MIDI"));
+	ActionManager::register_action (midi_actions, X_("panic"), _("Panic"), sigc::mem_fun(*this, &ARDOUR_UI::midi_panic));
+
 	ActionManager::add_action_group (shuttle_actions);
 	ActionManager::add_action_group (option_actions);
 	ActionManager::add_action_group (jack_actions);
 	ActionManager::add_action_group (transport_actions);
 	ActionManager::add_action_group (main_actions);
 	ActionManager::add_action_group (common_actions);
+	ActionManager::add_action_group (midi_actions);
 }
 
 void
@@ -591,10 +597,10 @@ ARDOUR_UI::build_menu_bar ()
 
 	_status_bar_visibility.add (&wall_clock_box,  X_("WallClock"), _("Wall Clock"), wall_clock);
 	_status_bar_visibility.add (&disk_space_box,  X_("Disk"),      _("Disk Space"), disk_space);
-	_status_bar_visibility.add (&cpu_load_box,    X_("DSP"),       _("DSP"));
-	_status_bar_visibility.add (&buffer_load_box, X_("Buffers"),   _("Buffers"));
-	_status_bar_visibility.add (&sample_rate_box, X_("JACK"),      _("JACK Sampling Rate and Latency"));
-	_status_bar_visibility.add (&format_box,      X_("Format"),    _("File Format"));
+	_status_bar_visibility.add (&cpu_load_box,    X_("DSP"),       _("DSP"), true);
+	_status_bar_visibility.add (&buffer_load_box, X_("Buffers"),   _("Buffers"), true);
+	_status_bar_visibility.add (&sample_rate_box, X_("JACK"),      _("JACK Sampling Rate and Latency"), true);
+	_status_bar_visibility.add (&format_box,      X_("Format"),    _("File Format"), true);
 
 	ev->signal_button_press_event().connect (sigc::mem_fun (_status_bar_visibility, &VisibilityGroup::button_press_event));
 }
@@ -613,11 +619,11 @@ ARDOUR_UI::use_menubar_as_top_menubar ()
 
 	GtkApplicationMenuGroup* group = app->add_app_menu_group ();
 
-	if ((widget = ActionManager::get_widget ("/ui/Main/Help/About"))) {
+	if ((widget = ActionManager::get_widget ("/ui/Main/Session/About"))) {
 		app->add_app_menu_item (group, dynamic_cast<MenuItem*>(widget));
 	}
 
-	if ((widget = ActionManager::get_widget ("/ui/Main/WindowMenu/ToggleOptionsEditor"))) {
+	if ((widget = ActionManager::get_widget ("/ui/Main/Session/ToggleRCOptionsEditor"))) {
 		app->add_app_menu_item (group, dynamic_cast<MenuItem*>(widget));
 	}
 

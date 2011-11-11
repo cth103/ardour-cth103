@@ -20,6 +20,7 @@
 #ifndef __gtk2_ardour_ardour_button_h__
 #define __gtk2_ardour_ardour_button_h__
 
+#include <list>
 #include <stdint.h>
 
 #include <gtkmm/action.h>
@@ -37,15 +38,32 @@ class ArdourButton : public CairoWidget
 		Body = 0x2,
 		Text = 0x4,
 		Indicator = 0x8,
-		Image = 0x16
 	};
-	
+
 	static Element default_elements;
 	static Element led_default_elements;
 	static Element just_led_default_elements;
 
 	ArdourButton (Element e = default_elements);
+	ArdourButton (const std::string&, Element e = default_elements);
 	virtual ~ArdourButton ();
+
+	enum Tweaks {
+		ShowClick = 0x1,
+		NoModel = 0x4,
+	};
+
+	Tweaks tweaks() const { return _tweaks; }
+	void set_tweaks (Tweaks);
+
+	void set_active_state (Gtkmm2ext::ActiveState);
+	void set_visual_state (Gtkmm2ext::VisualState);
+
+	/* this is an API simplification for buttons
+	   that only use the Active and Normal active states.
+	*/
+	void set_active (bool);
+	bool get_active () { return active_state() != Gtkmm2ext::ActiveState (0); }
 
 	void set_elements (Element);
 	Element elements() const { return _elements; }
@@ -67,21 +85,28 @@ class ArdourButton : public CairoWidget
 
 	void set_related_action (Glib::RefPtr<Gtk::Action>);
 
+	bool on_button_press_event (GdkEventButton*);
+	bool on_button_release_event (GdkEventButton*);
+
+	void set_image (const Glib::RefPtr<Gdk::Pixbuf>&);
+
   protected:
 	void render (cairo_t *);
 	void on_size_request (Gtk::Requisition* req);
 	void on_size_allocate (Gtk::Allocation&);
-	bool on_button_press_event (GdkEventButton*);
-	bool on_button_release_event (GdkEventButton*);
 	void on_style_changed (const Glib::RefPtr<Gtk::Style>&);
+	bool on_enter_notify_event (GdkEventCrossing*);
+	bool on_leave_notify_event (GdkEventCrossing*);
 
         void controllable_changed ();
         PBD::ScopedConnection watch_connection;
 
   private:
 	Glib::RefPtr<Pango::Layout> _layout;
+	Glib::RefPtr<Gdk::Pixbuf>   _pixbuf;
 	std::string                 _text;
 	Element                     _elements;
+	Tweaks                      _tweaks;
 	BindingProxy binding_proxy;
 	bool    _act_on_release;
 
@@ -109,15 +134,19 @@ class ArdourButton : public CairoWidget
 	bool _fixed_diameter;
 	bool _distinct_led_click;
 	cairo_rectangle_t* _led_rect;
+	bool _hovering;
 
 	void setup_led_rect ();
 	void set_colors ();
 	void color_handler ();
-	void state_handler ();
 
 	Glib::RefPtr<Gtk::Action> _action;
 	void action_activated ();
 	void action_toggled ();
+
+	void action_sensitivity_changed ();
+	void action_visibility_changed ();
+	void action_tooltip_changed ();
 };
 
 #endif /* __gtk2_ardour_ardour_button_h__ */

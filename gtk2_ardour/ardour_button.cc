@@ -30,6 +30,8 @@
 #include "gtkmm2ext/rgb_macros.h"
 #include "gtkmm2ext/gui_thread.h"
 
+#include "ardour/rc_configuration.h" // for widget prelight preference
+
 #include "ardour_button.h"
 #include "ardour_ui.h"
 #include "global_signals.h"
@@ -50,6 +52,27 @@ ArdourButton::Element ArdourButton::just_led_default_elements = ArdourButton::El
 
 ArdourButton::ArdourButton (Element e)
 	: _elements (e)
+	, _tweaks (Tweaks (0))
+	, _act_on_release (true)
+	, _text_width (0)
+	, _text_height (0)
+	, _diameter (11.0)
+	, _corner_radius (9.0)
+	, edge_pattern (0)
+	, fill_pattern (0)
+	, led_inset_pattern (0)
+	, reflection_pattern (0)
+	, _led_left (false)
+	, _fixed_diameter (true)
+	, _distinct_led_click (false)
+	, _led_rect (0)
+	, _hovering (false)
+{
+	ColorsChanged.connect (sigc::mem_fun (*this, &ArdourButton::color_handler));
+}
+
+ArdourButton::ArdourButton (const std::string& str, Element e)
+	: _elements (e)
 	, _act_on_release (true)
 	, _text_width (0)
 	, _text_height (0)
@@ -64,8 +87,7 @@ ArdourButton::ArdourButton (Element e)
 	, _distinct_led_click (false)
 	, _led_rect (0)
 {
-	ColorsChanged.connect (sigc::mem_fun (*this, &ArdourButton::color_handler));
-	StateChanged.connect (sigc::mem_fun (*this, &ArdourButton::state_handler));
+	set_text (str);
 }
 
 ArdourButton::~ArdourButton()
@@ -81,8 +103,10 @@ ArdourButton::set_text (const std::string& str)
 	if (!_layout && !_text.empty()) {
 		_layout = Pango::Layout::create (get_pango_context());
 	} 
-	
-	_layout->set_text (str);
+
+	if (_layout) {
+		_layout->set_text (str);
+	}
 
 	queue_resize ();
 }
@@ -130,6 +154,17 @@ ArdourButton::render (cairo_t* cr)
 			Gtkmm2ext::rounded_rectangle (cr, 0, 0, _width, _height, _corner_radius - 1.0);
 		}
 		cairo_set_source (cr, fill_pattern);
+		cairo_fill (cr);
+	}
+
+	if (_pixbuf) {
+
+		double x,y;
+		x = (_width - _pixbuf->get_width())/2.0;
+		y = (_height - _pixbuf->get_height())/2.0;
+
+		cairo_rectangle (cr, x, y, _pixbuf->get_width(), _pixbuf->get_height());
+		gdk_cairo_set_source_pixbuf (cr, _pixbuf->gobj(), x, y);
 		cairo_fill (cr);
 	}
 
@@ -202,19 +237,24 @@ ArdourButton::render (cairo_t* cr)
 
 	}
 
+
 	/* a partially transparent gray layer to indicate insensitivity */
 
 	if ((visual_state() & Gtkmm2ext::Insensitive)) {
-		cairo_rectangle (cr, 0, 0, _width, _height);
+		Gtkmm2ext::rounded_rectangle (cr, 0, 0, _width, _height, _corner_radius);
 		cairo_set_source_rgba (cr, 0.905, 0.917, 0.925, 0.5);
 		cairo_fill (cr);
 	}
-}
 
-void
-ArdourButton::state_handler ()
-{
-	set_colors ();
+	/* if requested, show hovering */
+	
+	if (ARDOUR::Config->get_widget_prelight()) {
+		if (_hovering) {
+			Gtkmm2ext::rounded_rectangle (cr, 0, 0, _width, _height, _corner_radius);
+			cairo_set_source_rgba (cr, 0.905, 0.917, 0.925, 0.2);
+			cairo_fill (cr);
+		}
+	}
 }
 
 void
@@ -256,12 +296,26 @@ ArdourButton::on_size_request (Gtk::Requisition* req)
 		_text_height = 0;
 	}
 
+	if (_pixbuf) {
+		xpad = 6;
+	}
+
         if ((_elements & Indicator) && _fixed_diameter) {
-                req->width = _text_width + lrint (_diameter) + xpad;
-                req->height = max (_text_height, (int) lrint (_diameter)) + ypad;
+		if (_pixbuf) {
+			req->width = _pixbuf->get_width() + lrint (_diameter) + xpad;
+			req->height = max (_pixbuf->get_height(), (int) lrint (_diameter)) + ypad;
+		} else {
+			req->width = _text_width + lrint (_diameter) + xpad;
+			req->height = max (_text_height, (int) lrint (_diameter)) + ypad;
+		}
         } else {
-                req->width = _text_width + xpad;
-                req->height = _text_height + ypad;
+		if (_pixbuf) {
+			req->width = _pixbuf->get_width() + xpad;
+			req->height = _pixbuf->get_height() + ypad;
+		}  else {
+			req->width = _text_width + xpad;
+			req->height = _text_height + ypad;
+		}
 	}
 }
 
@@ -286,11 +340,11 @@ ArdourButton::set_colors ()
 
 		edge_pattern = cairo_pattern_create_linear (0.0, 0.0, 0.0, _height);
 		if (visual_state() & Gtkmm2ext::Selected) {
-			start_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1 border start selected", get_name()));
-			end_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1 border end selected", get_name()));
+			start_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1: border start selected", get_name()));
+			end_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1: border end selected", get_name()));
 		} else {
-			start_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1 border start", get_name()));
-			end_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1 border end", get_name()));
+			start_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1: border start", get_name()));
+			end_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1: border end", get_name()));
 		}
 		UINT_TO_RGBA (start_color, &r, &g, &b, &a);
 		cairo_pattern_add_color_stop_rgba (edge_pattern, 0, r/255.0,g/255.0,b/255.0, 0.7);
@@ -310,14 +364,14 @@ ArdourButton::set_colors ()
 		fill_pattern = cairo_pattern_create_linear (0.0, 0.0, 0.0, _height);
 		
 		if (active_state() == Gtkmm2ext::Mid) {
-			start_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1 fill start mid", get_name()));
-			end_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1 fill end mid", get_name()));
+			start_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1: fill start mid", get_name()));
+			end_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1: fill end mid", get_name()));
 		} else if (active_state() == Gtkmm2ext::Active) {
-			start_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1 fill start active", get_name()));
-			end_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1 fill end active", get_name()));
+			start_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1: fill start active", get_name()));
+			end_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1: fill end active", get_name()));
 		} else {
-			start_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1 fill start", get_name()));
-			end_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1 fill end", get_name()));
+			start_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1: fill start", get_name()));
+			end_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1: fill end", get_name()));
 		}
 		UINT_TO_RGBA (start_color, &r, &g, &b, &a);
 		cairo_pattern_add_color_stop_rgba (fill_pattern, 0, r/255.0,g/255.0,b/255.0, a/255.0);
@@ -346,14 +400,14 @@ ArdourButton::set_colors ()
 	/* text and LED colors depend on Active/Normal/Mid */
 
 	if (active_state() == Gtkmm2ext::Active) {
-		text_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1 text active", get_name()));
-		led_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1 led active", get_name()));
+		text_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1: text active", get_name()));
+		led_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1: led active", get_name()));
 	} else if (active_state() == Gtkmm2ext::Mid) {
-		text_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1 text mid", get_name()));
-		led_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1 led active", get_name()));
+		text_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1: text mid", get_name()));
+		led_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1: led mid", get_name()));
 	} else {
-		text_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1 text", get_name()));
-		led_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1 led", get_name()));
+		text_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1: text", get_name()));
+		led_color = ARDOUR_UI::config()->color_by_name (string_compose ("%1: led", get_name()));
 	}
 
 	UINT_TO_RGBA (text_color, &r, &g, &b, &a);
@@ -386,6 +440,10 @@ ArdourButton::on_button_press_event (GdkEventButton *ev)
 		}
 	}
 
+	if (_tweaks & ShowClick) {
+		set_active_state (Gtkmm2ext::Active);
+	}
+
 	if (binding_proxy.button_press_handler (ev)) {
 		return true;
 	}
@@ -411,12 +469,18 @@ ArdourButton::on_button_release_event (GdkEventButton *ev)
 		}
 	}
 
+	if (_tweaks & ShowClick) {
+		unset_active_state ();
+	}
+
 	if (_act_on_release) {
 		if (_action) {
+			Glib::RefPtr<ToggleAction> tact = Glib::RefPtr<ToggleAction>::cast_dynamic (_action);
 			_action->activate ();
 			return true;
 		}
 	}
+
 
 	return false;
 }
@@ -480,9 +544,21 @@ ArdourButton::set_related_action (RefPtr<Action> act)
 {
 	_action = act;
 
-	Glib::RefPtr<ToggleAction> tact = Glib::RefPtr<ToggleAction>::cast_dynamic (_action);
-	if (tact) {
-		tact->signal_toggled().connect (sigc::mem_fun (*this, &ArdourButton::action_toggled));
+	if (_action) {
+
+		string str = _action->property_tooltip().get_value();
+		if (!str.empty()) {
+			ARDOUR_UI::instance()->set_tip (*this, str);
+		}
+
+		Glib::RefPtr<ToggleAction> tact = Glib::RefPtr<ToggleAction>::cast_dynamic (_action);
+		if (tact) {
+			tact->signal_toggled().connect (sigc::mem_fun (*this, &ArdourButton::action_toggled));
+		} 
+
+		_action->connect_property_changed ("sensitive", sigc::mem_fun (*this, &ArdourButton::action_sensitivity_changed));
+		_action->connect_property_changed ("visible", sigc::mem_fun (*this, &ArdourButton::action_visibility_changed));
+		_action->connect_property_changed ("tooltip", sigc::mem_fun (*this, &ArdourButton::action_tooltip_changed));
 	}
 }
 
@@ -539,5 +615,108 @@ ArdourButton::setup_led_rect ()
 		delete _led_rect;
 		_led_rect = 0;
 	}
+}
+
+void
+ArdourButton::set_image (const RefPtr<Gdk::Pixbuf>& img)
+{
+	_pixbuf = img;
+	queue_draw ();
+}
+
+void
+ArdourButton::set_active (bool yn)
+{
+	/* this is an API simplification for buttons
+	   that only use the Active and Normal states.
+	*/
+
+	if (yn) {
+		set_active_state (Gtkmm2ext::Active);
+	} else {
+		unset_active_state ();
+	}
+}
+
+void
+ArdourButton::set_active_state (Gtkmm2ext::ActiveState s)
+{
+	bool changed = (_active_state != s);
+	CairoWidget::set_active_state (s);
+	if (changed) {
+		set_colors ();
+	}
+}
+	
+void
+ArdourButton::set_visual_state (Gtkmm2ext::VisualState s)
+{
+	bool changed = (_visual_state != s);
+	CairoWidget::set_visual_state (s);
+	if (changed) {
+		set_colors ();
+	}
+}
+	
+bool
+ArdourButton::on_enter_notify_event (GdkEventCrossing* ev)
+{
+	_hovering = true;
+
+	if (ARDOUR::Config->get_widget_prelight()) {
+		queue_draw ();
+	}
+
+	return CairoWidget::on_enter_notify_event (ev);
+}
+
+bool
+ArdourButton::on_leave_notify_event (GdkEventCrossing* ev)
+{
+	_hovering = false;
+
+	if (ARDOUR::Config->get_widget_prelight()) {
+		queue_draw ();
+	}
+
+	return CairoWidget::on_leave_notify_event (ev);
+}
+
+void
+ArdourButton::set_tweaks (Tweaks t)
+{
+	if (_tweaks != t) {
+		_tweaks = t;
+		queue_draw ();
+	}
+}
+
+void
+ArdourButton::action_sensitivity_changed ()
+{
+	if (_action->property_sensitive ()) {
+		set_visual_state (Gtkmm2ext::VisualState (visual_state() & ~Gtkmm2ext::Insensitive));
+	} else {
+		set_visual_state (Gtkmm2ext::VisualState (visual_state() | Gtkmm2ext::Insensitive));
+	}
+	
+}
+
+
+void
+ArdourButton::action_visibility_changed ()
+{
+	if (_action->property_visible ()) {
+		show ();
+	} else {
+		hide ();
+	}
+}
+
+void
+ArdourButton::action_tooltip_changed ()
+{
+	string str = _action->property_tooltip().get_value();
+	ARDOUR_UI::instance()->set_tip (*this, str);
 }
 

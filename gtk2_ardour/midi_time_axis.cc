@@ -59,6 +59,7 @@
 
 #include "add_midi_cc_track_dialog.h"
 #include "ardour_ui.h"
+#include "ardour_button.h"
 #include "automation_line.h"
 #include "automation_time_axis.h"
 #include "crossfade_view.h"
@@ -133,8 +134,8 @@ MidiTimeAxisView::set_route (boost::shared_ptr<Route> rt)
 
 	ignore_toggle = false;
 
-	mute_button->set_active (false);
-	solo_button->set_active (false);
+	mute_button->unset_active_state ();
+	solo_button->unset_active_state ();
 
 	if (is_midi_track()) {
 		controls_ebox.set_name ("MidiTimeAxisViewControlsBaseUnselected");

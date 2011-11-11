@@ -52,7 +52,7 @@ CairoWidget::on_expose_event (GdkEventExpose *ev)
 void
 CairoWidget::set_dirty ()
 {
-	ENSURE_GUI_THREAD (*this, &CairoWidget::set_dirty)
+	ENSURE_GUI_THREAD (*this, &CairoWidget::set_dirty);
 	queue_draw ();
 }
 
@@ -104,4 +104,20 @@ CairoWidget::set_visual_state (Gtkmm2ext::VisualState s)
 		_visual_state = s;
 		StateChanged ();
 	}
+}
+
+void
+CairoWidget::on_state_changed (Gtk::StateType)
+{
+	/* this will catch GTK-level state changes from calls like
+	   ::set_sensitive() 
+	*/
+
+	if (get_state() == Gtk::STATE_INSENSITIVE) {
+		set_visual_state (Gtkmm2ext::VisualState (visual_state() | Gtkmm2ext::Insensitive));
+	} else {
+		set_visual_state (Gtkmm2ext::VisualState (visual_state() & ~Gtkmm2ext::Insensitive));
+	}
+
+	queue_draw ();
 }

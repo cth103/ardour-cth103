@@ -38,9 +38,8 @@ PortMatrixRowLabels::PortMatrixRowLabels (PortMatrix* m, PortMatrixBody* b)
 void
 PortMatrixRowLabels::compute_dimensions ()
 {
-	GdkPixmap* pm = gdk_pixmap_new (NULL, 1, 1, 24);
-	gdk_drawable_set_colormap (pm, gdk_colormap_get_system());
-	cairo_t* cr = gdk_cairo_create (pm);
+	cairo_surface_t* surface = cairo_image_surface_create (CAIRO_FORMAT_RGB24, 200, 200);
+	cairo_t* cr = cairo_create (surface);
 
 	_longest_port_name = 0;
 	_longest_bundle_name = 0;
@@ -83,7 +82,7 @@ PortMatrixRowLabels::compute_dimensions ()
 	}
 
 	cairo_destroy (cr);
-	g_object_unref (pm);
+	cairo_surface_destroy (surface);
 
 	_width = _longest_bundle_name +
 		name_pad() * 2;
@@ -118,7 +117,12 @@ PortMatrixRowLabels::render (cairo_t* cr)
 			uint32_t const N = _matrix->count_of_our_type ((*i)->bundle->nchannels());
 			for (uint32_t j = 0; j < N; ++j) {
 				Gdk::Color c = (*i)->has_colour ? (*i)->colour : get_a_bundle_colour (M);
-				render_channel_name (cr, background_colour (), c, 0, y, ARDOUR::BundleChannel ((*i)->bundle, j));
+				ARDOUR::BundleChannel bc (
+					(*i)->bundle,
+					(*i)->bundle->type_channel_to_overall (_matrix->type (), j)
+					);
+				
+				render_channel_name (cr, background_colour (), c, 0, y, bc);
 				y += grid_spacing();
 				++M;
 			}
@@ -335,8 +339,7 @@ PortMatrixRowLabels::motion (double x, double y)
 			list<PortMatrixNode> n;
 
 			for (uint32_t i = 0; i < w.bundle->nchannels().n_total(); ++i) {
-
-				if (!_matrix->should_show (w.bundle->channel_type(i))) {
+				if (!_matrix->should_show (w.bundle->channel_type (i))) {
 					continue;
 				}
 

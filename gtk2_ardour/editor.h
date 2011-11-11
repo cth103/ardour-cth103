@@ -48,6 +48,7 @@
 #include "ardour/types.h"
 
 #include "gtk-custom-ruler.h"
+#include "ardour_button.h"
 #include "ardour_dialog.h"
 #include "public_editor.h"
 #include "editing.h"
@@ -1520,10 +1521,9 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void editor_list_button_toggled ();
 
 	AudioClock*               zoom_range_clock;
-	Gtk::Button              zoom_in_button;
-	Gtk::Button              zoom_out_button;
-	Gtk::Button              zoom_out_full_button;
-	Gtk::Button              zoom_onetoone_button;
+	ArdourButton              zoom_in_button;
+	ArdourButton              zoom_out_button;
+	ArdourButton              zoom_out_full_button;
 
 	Gtk::Button              tav_expand_button;
 	Gtk::Button              tav_shrink_button;
@@ -1534,20 +1534,20 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	Gtk::Label               toolbar_selection_cursor_label;
 
 	Gtkmm2ext::TearOff*      _mouse_mode_tearoff;
-	Gtkmm2ext::StatefulToggleButton mouse_select_button;
-	Gtkmm2ext::StatefulToggleButton mouse_move_button;
-	Gtkmm2ext::StatefulToggleButton mouse_gain_button;
-	Gtkmm2ext::StatefulToggleButton mouse_zoom_button;
-	Gtkmm2ext::StatefulToggleButton mouse_timefx_button;
-	Gtkmm2ext::StatefulToggleButton mouse_audition_button;
-	Gtkmm2ext::StatefulToggleButton join_object_range_button;
+	ArdourButton mouse_select_button;
+	ArdourButton mouse_move_button;
+	ArdourButton mouse_gain_button;
+	ArdourButton mouse_zoom_button;
+	ArdourButton mouse_timefx_button;
+	ArdourButton mouse_audition_button;
+	ArdourButton join_object_range_button;
 
 	void                     mouse_mode_toggled (Editing::MouseMode m);
 	void			 mouse_mode_object_range_toggled () {}
 	bool                     ignore_mouse_mode_toggle;
 
-	Gtkmm2ext::StatefulToggleButton internal_edit_button;
-	void                     toggle_internal_editing ();
+	ArdourButton internal_edit_button;
+	void         toggle_internal_editing ();
 
 	bool                     mouse_select_button_release (GdkEventButton*);
 
@@ -1604,9 +1604,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	/* midi toolbar */
 
 	Gtk::HBox                panic_box;
-	Gtk::Button              midi_panic_button;
 	Gtkmm2ext::StatefulToggleButton midi_sound_notes;
-	void                     midi_panic ();
 	bool                     sound_notes () const { return midi_sound_notes.get_active(); }
 
 	void setup_midi_toolbar ();

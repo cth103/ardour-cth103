@@ -62,6 +62,7 @@
 #include "evoral/Parameter.hpp"
 
 #include "ardour_ui.h"
+#include "ardour_button.h"
 #include "debug.h"
 #include "global_signals.h"
 #include "route_time_axis.h"
@@ -91,6 +92,7 @@ using namespace Gtkmm2ext;
 using namespace Gtk;
 using namespace Editing;
 using namespace std;
+using std::list;
 
 Glib::RefPtr<Gdk::Pixbuf> RouteTimeAxisView::slider;
 
@@ -170,19 +172,16 @@ RouteTimeAxisView::set_route (boost::shared_ptr<Route> rt)
 	if (is_track()) {
 
 		/* use icon */
-
-		rec_enable_button->remove ();
-
+		
 		switch (track()->mode()) {
 		case ARDOUR::Normal:
 		case ARDOUR::NonLayered:
-			rec_enable_button->add (*(manage (new Image (::get_icon (X_("record_normal_red"))))));
+			rec_enable_button->set_image (::get_icon (X_("record_normal_red")));
 			break;
 		case ARDOUR::Destructive:
-			rec_enable_button->add (*(manage (new Image (::get_icon (X_("record_tape_red"))))));
+			rec_enable_button->set_image (::get_icon (X_("record_tape_red")));
 			break;
 		}
-		rec_enable_button->show_all ();
 
 		controls_table.attach (*rec_enable_button, 5, 6, 0, 1, Gtk::FILL|Gtk::EXPAND, Gtk::FILL|Gtk::EXPAND, 0, 0);
 
@@ -751,10 +750,12 @@ RouteTimeAxisView::set_track_mode (TrackMode mode, bool apply_to_selection)
 		switch (mode) {
 		case ARDOUR::NonLayered:
 		case ARDOUR::Normal:
-			rec_enable_button->add (*(manage (new Image (::get_icon (X_("record_normal_red"))))));
+			rec_enable_button->set_image (::get_icon (X_("record_normal_red")));
+			rec_enable_button->set_text (string());
 			break;
 		case ARDOUR::Destructive:
-			rec_enable_button->add (*(manage (new Image (::get_icon (X_("record_tape_red"))))));
+			rec_enable_button->set_image (::get_icon (X_("record_tape_red")));
+			rec_enable_button->set_text (string());
 			break;
 		}
 
@@ -2338,33 +2339,29 @@ RouteTimeAxisView::remove_underlay (StreamView* v)
 void
 RouteTimeAxisView::set_button_names ()
 {
-	rec_enable_button_label.set_text (_("r"));
-
         if (_route && _route->solo_safe()) {
 		solo_button->remove ();
-		if (solo_safe_image == 0) {
-			solo_safe_image = new Gtk::Image (::get_icon("solo-safe-enabled"));
-			solo_safe_image->show ();
+		if (solo_safe_pixbuf == 0) {
+			solo_safe_pixbuf = ::get_icon("solo-safe-icon");
 		}
-		solo_button->add (*solo_safe_image);
+		solo_button->set_image (solo_safe_pixbuf);
+		solo_button->set_text (string());
         } else {
-		solo_button->remove ();
-		solo_button->add (solo_button_label);
-		solo_button_label.show ();
+		solo_button->set_image (Glib::RefPtr<Gdk::Pixbuf>());
                 if (Config->get_solo_control_is_listen_control()) {
                         switch (Config->get_listen_position()) {
                         case AfterFaderListen:
-                                solo_button_label.set_text (_("A"));
+                                solo_button->set_text (_("A"));
                                 break;
                         case PreFaderListen:
-                                solo_button_label.set_text (_("P"));
+                                solo_button->set_text (_("P"));
                                 break;
                         }
                 } else {
-                        solo_button_label.set_text (_("s"));
+                        solo_button->set_text (_("s"));
                 }
         }
-	mute_button_label.set_text (_("m"));
+	mute_button->set_text (_("m"));
 }
 
 Gtk::CheckMenuItem*

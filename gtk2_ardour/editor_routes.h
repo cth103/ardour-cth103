@@ -21,6 +21,7 @@
 #define __ardour_gtk_editor_route_h__
 
 #include "pbd/signals.h"
+#include "gtkmm2ext/widget_state.h"
 #include "editor_component.h"
 
 class EditorRoutes : public EditorComponent, public PBD::ScopedConnectionList, public ARDOUR::SessionHandlePtr

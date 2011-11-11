@@ -93,6 +93,7 @@ Graph::parameter_changed (std::string param)
         }
 }
 
+/** Set up threads for running the graph */
 void
 Graph::reset_thread_list ()
 {
@@ -220,8 +221,9 @@ Graph::prep()
         }
         _finished_refcount = _init_finished_refcount[chain];
 
+	/* Trigger the initial nodes for processing, which are the ones at the `input' end */
         for (i=_init_trigger_list[chain].begin(); i!=_init_trigger_list[chain].end(); i++) {
-                this->trigger( i->get() );
+                trigger (i->get ());
         }
 }
 
@@ -233,15 +235,19 @@ Graph::trigger (GraphNode* n)
         pthread_mutex_unlock (&_trigger_mutex);
 }
 
+/** Called when a node at the `output' end of the chain (ie one that has no-one to feed)
+ *  is finished.
+ */
 void
 Graph::dec_ref()
 {
         if (g_atomic_int_dec_and_test (&_finished_refcount)) {
 
-                // ok... this cycle is finished now.
-                // we are the only thread alive.
+		/* We have run all the nodes that are at the `output' end of
+		   the graph, so there is nothing more to do this time around.
+		*/
 
-                this->restart_cycle();
+		restart_cycle ();
         }
 }
 
@@ -253,14 +259,14 @@ Graph::restart_cycle()
   again:
         _callback_done_sem.signal ();
 
-        // block until we are triggered.
+        /* Block until the a process callback triggers us */
         _callback_start_sem.wait();
 
         if (_quit_threads) {
                 return;
         }
 
-        this->prep();
+	prep ();
 
         if (_graph_empty) {
                 goto again;
@@ -270,97 +276,83 @@ Graph::restart_cycle()
         // starting with waking up the others.
 }
 
-static bool
-is_feedback (boost::shared_ptr<RouteList> routelist, Route* from, boost::shared_ptr<Route> to)
-{
-        for (RouteList::iterator ri=routelist->begin(); ri!=routelist->end(); ri++) {
-                if ((*ri).get() == from)
-                        return false;
-                if ((*ri) == to)
-                        return true;
-        }
-        assert(0);
-        return false;
-}
-
-static bool
-is_feedback (boost::shared_ptr<RouteList> routelist, boost::shared_ptr<Route> from, Route* to)
-{
-        for (RouteList::iterator ri=routelist->begin(); ri!=routelist->end(); ri++) {
-                if ((*ri).get() == to)
-                        return true;
-                if ((*ri) == from)
-                        return false;
-        }
-        assert(0);
-        return false;
-}
+/** Rechain our stuff using a list of routes (which can be in any order) and
+ *  a directed graph of their interconnections, which is guaranteed to be
+ *  acyclic.
+ */
 
 void
-Graph::rechain (boost::shared_ptr<RouteList> routelist)
+Graph::rechain (boost::shared_ptr<RouteList> routelist, GraphEdges const & edges)
 {
-        node_list_t::iterator ni;
         Glib::Mutex::Lock ls (_swap_mutex);
 
         int chain = _setup_chain;
         DEBUG_TRACE (DEBUG::Graph, string_compose ("============== setup %1\n", chain));
-        // set all refcounts to 0;
 
+	/* This will become the number of nodes that do not feed any other node;
+	   once we have processed this number of those nodes, we have finished.
+	*/
         _init_finished_refcount[chain] = 0;
+
+	/* This will become a list of nodes that are not fed by another node, ie
+	   those at the `input' end.
+	*/
         _init_trigger_list[chain].clear();
 
         _nodes_rt[chain].clear();
 
+	/* Clear things out, and make _nodes_rt[chain] a copy of routelist */
         for (RouteList::iterator ri=routelist->begin(); ri!=routelist->end(); ri++) {
-                node_ptr_t n = boost::dynamic_pointer_cast<GraphNode> (*ri);
-
-                n->_init_refcount[chain] = 0;
-                n->_activation_set[chain].clear();
-                _nodes_rt[chain].push_back(n);
+                (*ri)->_init_refcount[chain] = 0;
+                (*ri)->_activation_set[chain].clear();
+                _nodes_rt[chain].push_back (*ri);
         }
 
         // now add refs for the connections.
 
-        for (ni=_nodes_rt[chain].begin(); ni!=_nodes_rt[chain].end(); ni++) {
-                bool has_input  = false;
-                bool has_output = false;
+        for (node_list_t::iterator ni = _nodes_rt[chain].begin(); ni != _nodes_rt[chain].end(); ni++) {
 
-                boost::shared_ptr<Route> rp = boost::dynamic_pointer_cast<Route>( *ni);
+                boost::shared_ptr<Route> r = boost::dynamic_pointer_cast<Route> (*ni);
 
-                for (RouteList::iterator ri=routelist->begin(); ri!=routelist->end(); ri++) {
-                        if (rp->direct_feeds (*ri)) {
-                                if (is_feedback (routelist, rp.get(), *ri)) {
-                                        continue;
-                                }
+		/* The routes that are directly fed by r */
+		set<GraphVertex> fed_from_r = edges.from (r);
 
-                                has_output = true;
-                                (*ni)->_activation_set[chain].insert (boost::dynamic_pointer_cast<GraphNode> (*ri) );
-                        }
-                }
+		/* Hence whether r has an output */
+		bool const has_output = !fed_from_r.empty ();
 
-                for (Route::FedBy::iterator fi=rp->fed_by().begin(); fi!=rp->fed_by().end(); fi++) {
-                        if (boost::shared_ptr<Route> r = fi->r.lock()) {
-                                if (!is_feedback (routelist, r, rp.get())) {
-                                        has_input = true;
-                                }
-                        }
-                }
+		/* Set up r's activation set */
+		for (set<GraphVertex>::iterator i = fed_from_r.begin(); i != fed_from_r.end(); ++i) {
+			r->_activation_set[chain].insert (*i);
+		}
 
-                for (node_set_t::iterator ai=(*ni)->_activation_set[chain].begin(); ai!=(*ni)->_activation_set[chain].end(); ai++) {
+		/* r has an input if there are some incoming edges to r in the graph */
+		bool const has_input = !edges.has_none_to (r);
+
+		/* Increment the refcount of any route that we directly feed */
+                for (node_set_t::iterator ai = r->_activation_set[chain].begin(); ai != r->_activation_set[chain].end(); ai++) {
                         (*ai)->_init_refcount[chain] += 1;
                 }
 
-                if (!has_input)
+                if (!has_input) {
+			/* no input, so this node needs to be triggered initially to get things going */
                         _init_trigger_list[chain].push_back (*ni);
+		}
 
-                if (!has_output)
+                if (!has_output) {
+			/* no output, so this is one of the nodes that we can count off to decide
+			   if we've finished
+			*/
                         _init_finished_refcount[chain] += 1;
+		}
         }
 
         _pending_chain = chain;
         dump(chain);
 }
 
+/** Called by both the main thread and all helpers.
+ *  @return true to quit, false to carry on.
+ */
 bool
 Graph::run_one()
 {
@@ -374,10 +366,14 @@ Graph::run_one()
                 to_run = 0;
         }
 
+	/* the number of threads that are asleep */
 	int et = _execution_tokens;
+	/* the number of nodes that need to be run */
 	int ts = _trigger_queue.size();
 
+	/* hence how many threads to wake up */
         int wakeup = min (et, ts);
+	/* update the number of threads that will still be sleeping */
         _execution_tokens -= wakeup;
 
         DEBUG_TRACE(DEBUG::ProcessThreads, string_compose ("%1 signals %2\n", pthread_self(), wakeup));
@@ -448,6 +444,7 @@ Graph::helper_thread()
         pt->drop_buffers();
 }
 
+/** Here's the main graph thread */
 void
 Graph::main_thread()
 {
@@ -460,20 +457,22 @@ Graph::main_thread()
 
   again:
         _callback_start_sem.wait ();
+	
 	DEBUG_TRACE(DEBUG::ProcessThreads, "main thread is awake\n");
 
         if (_quit_threads) {
                 return;
         }
 
-        this->prep();
+	prep ();
 
         if (_graph_empty && !_quit_threads) {
                 _callback_done_sem.signal ();
-                DEBUG_TRACE(DEBUG::ProcessThreads, "main thread sees graph done, goes back to slee\n");
+                DEBUG_TRACE(DEBUG::ProcessThreads, "main thread sees graph done, goes back to sleep\n");
                 goto again;
         }
 
+	/* This loop will run forever */
         while (1) {
 		DEBUG_TRACE(DEBUG::ProcessThreads, "main thread runs one graph node\n");
                 if (run_one()) {

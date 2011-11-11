@@ -64,6 +64,8 @@ using namespace ARDOUR;
 using namespace PBD;
 
 uint32_t RouteUI::_max_invert_buttons = 3;
+sigc::signal<void, boost::shared_ptr<Route> > RouteUI::BusSendDisplayChanged;
+boost::weak_ptr<Route> RouteUI::_showing_sends_to;
 
 RouteUI::RouteUI (ARDOUR::Session* sess)
 	: AxisView(sess)
@@ -81,7 +83,6 @@ RouteUI::~RouteUI()
 	delete sends_menu;
         delete record_menu;
 	delete _invert_menu;
-	delete solo_safe_image;
 }
 
 void
@@ -108,35 +109,24 @@ RouteUI::init ()
 	multiple_mute_change = false;
 	multiple_solo_change = false;
 	_i_am_the_modifier = 0;
-	solo_safe_image = 0;
 
 	setup_invert_buttons ();
 
-	mute_button = manage (new BindableToggleButton ());
-	// mute_button->set_self_managed (true);
-	mute_button->set_name ("MuteButton");
-	mute_button->add (mute_button_label);
-	mute_button_label.show ();
+	mute_button = manage (new ArdourButton);
+	mute_button->set_name ("mute button");
 	UI::instance()->set_tip (mute_button, _("Mute this track"), "");
 
-	solo_button = manage (new BindableToggleButton ());
-	// solo_button->set_self_managed (true);
-	solo_button->set_name ("SoloButton");
-	solo_button->add (solo_button_label);
-	solo_button_label.show ();
+	solo_button = manage (new ArdourButton);
+	solo_button->set_name ("solo button");
 	UI::instance()->set_tip (solo_button, _("Mute other (non-soloed) tracks"), "");
 	solo_button->set_no_show_all (true);
 
-	rec_enable_button = manage (new BindableToggleButton ());
-	rec_enable_button->set_name ("RecordEnableButton");
-	// rec_enable_button->set_self_managed (true);
-	rec_enable_button->add (rec_enable_button_label);
-	rec_enable_button_label.show ();
+	rec_enable_button = manage (new ArdourButton);
+	rec_enable_button->set_name ("record enable button");
 	UI::instance()->set_tip (rec_enable_button, _("Enable recording on this track"), "");
 
-	show_sends_button = manage (new BindableToggleButton (""));
-	show_sends_button->set_name ("SendAlert");
-	// show_sends_button->set_self_managed (true);
+	show_sends_button = manage (new ArdourButton);
+	show_sends_button->set_name ("send alert button");
 	UI::instance()->set_tip (show_sends_button, _("make mixer strips show sends to this bus"), "");
 
 	monitor_input_button = manage (new ArdourButton (ArdourButton::led_default_elements));
@@ -177,6 +167,8 @@ RouteUI::init ()
 
 	monitor_disk_button->signal_button_press_event().connect (sigc::mem_fun(*this, &RouteUI::monitor_disk_press));
 	monitor_disk_button->signal_button_release_event().connect (sigc::mem_fun(*this, &RouteUI::monitor_disk_release));
+
+	BusSendDisplayChanged.connect (sigc::mem_fun (*this, &RouteUI::bus_send_display_changed));
 }
 
 void
@@ -270,6 +262,9 @@ RouteUI::set_route (boost::shared_ptr<Route> rp)
 
 	setup_invert_buttons ();
 	set_invert_button_state ();
+
+	boost::shared_ptr<Route> s = _showing_sends_to.lock ();
+	bus_send_display_changed (s);
 }
 
 void
@@ -560,7 +555,7 @@ RouteUI::rec_enable_press(GdkEventButton* ev)
 
 		} else if (Keyboard::modifier_state_equals (ev->state, Keyboard::ModifierMask (Keyboard::PrimaryModifier|Keyboard::TertiaryModifier))) {
 
-			_session->set_record_enabled (_session->get_routes(), !rec_enable_button->get_active());
+			_session->set_record_enabled (_session->get_routes(), !rec_enable_button->active_state());
 
 		} else if (Keyboard::modifier_state_equals (ev->state, Keyboard::PrimaryModifier)) {
 
@@ -568,7 +563,7 @@ RouteUI::rec_enable_press(GdkEventButton* ev)
 			   NOTE: Primary-button2 is MIDI learn.
 			*/
 			if (ev->button == 1 && _route->route_group()) {
-				_session->set_record_enabled (_route->route_group()->route_list(), !rec_enable_button->get_active(), Session::rt_cleanup, true);
+				_session->set_record_enabled (_route->route_group()->route_list(), !rec_enable_button->active_state(), Session::rt_cleanup, true);
 			}
 
 		} else if (Keyboard::is_context_menu_event (ev)) {
@@ -579,7 +574,7 @@ RouteUI::rec_enable_press(GdkEventButton* ev)
 
 			boost::shared_ptr<RouteList> rl (new RouteList);
 			rl->push_back (route());
-			_session->set_record_enabled (rl, !rec_enable_button->get_active());
+			_session->set_record_enabled (rl, !rec_enable_button->active_state());
 		}
 	}
 
@@ -744,7 +739,7 @@ RouteUI::step_edit_changed (bool yn)
 {
         if (yn) {
                 if (rec_enable_button) {
-                        rec_enable_button->set_visual_state (3);
+                        rec_enable_button->set_active_state (Active);
                 }
 
                 start_step_editing ();
@@ -756,7 +751,7 @@ RouteUI::step_edit_changed (bool yn)
         } else {
 
                 if (rec_enable_button) {
-                        rec_enable_button->set_visual_state (0);
+                        rec_enable_button->unset_active_state ();
                 }
 
                 stop_step_editing ();
@@ -896,22 +891,13 @@ RouteUI::show_sends_press(GdkEventButton* ev)
 
 		} else {
 
-			/* change button state */
+			boost::shared_ptr<Route> s = _showing_sends_to.lock ();
 
-			show_sends_button->set_active (!show_sends_button->get_active());
-
-			/* start blinking */
-
-			if (show_sends_button->get_active()) {
-				/* show sends to this bus */
-				MixerStrip::SwitchIO (_route);
-				send_blink_connection = ARDOUR_UI::instance()->Blink.connect (sigc::mem_fun(*this, &RouteUI::send_blink));
+			if (s == _route) {
+				set_showing_sends_to (boost::shared_ptr<Route> ());
 			} else {
-				/* everybody back to normal */
-				send_blink_connection.disconnect ();
-				MixerStrip::SwitchIO (boost::shared_ptr<Route>());
+				set_showing_sends_to (_route);
 			}
-
 		}
 	}
 
@@ -932,95 +918,65 @@ RouteUI::send_blink (bool onoff)
 	}
 
 	if (onoff) {
-		show_sends_button->set_state (STATE_ACTIVE);
+		show_sends_button->set_active_state (Gtkmm2ext::Active);
 	} else {
-		show_sends_button->set_state (STATE_NORMAL);
+		show_sends_button->unset_active_state ();
 	}
 }
 
-int
-RouteUI::solo_visual_state (boost::shared_ptr<Route> r)
+Gtkmm2ext::ActiveState
+RouteUI::solo_active_state (boost::shared_ptr<Route> r)
 {
 	if (r->is_master() || r->is_monitor()) {
-		return 0;
+		return ActiveState (0);
 	}
 
 	if (Config->get_solo_control_is_listen_control()) {
 
 		if (r->listening_via_monitor()) {
-			return 1;
+			return Active;
 		} else {
-			return 0;
+			return ActiveState (0);
 		}
 
 	}
 
 	if (r->soloed()) {
                 if (!r->self_soloed()) {
-                        return 3;
+                        return Mid;
                 } else {
-                        return 1;
+                        return Active;
                 }
 	} else {
-		return 0;
+		return ActiveState(0);
 	}
 }
 
-int
-RouteUI::solo_visual_state_with_isolate (boost::shared_ptr<Route> r)
+Gtkmm2ext::ActiveState
+RouteUI::solo_isolate_active_state (boost::shared_ptr<Route> r)
 {
 	if (r->is_master() || r->is_monitor()) {
-		return 0;
-	}
-
-	if (Config->get_solo_control_is_listen_control()) {
-
-		if (r->listening_via_monitor()) {
-			return 1;
-		} else {
-                        return 0;
-		}
-
+		return ActiveState (0);
 	}
 
 	if (r->solo_isolated()) {
-		return 2;
-	} else if (r->soloed()) {
-                if (!r->self_soloed()) {
-                        return 3;
-                } else {
-                        return 1;
-                }
+		return Active;
 	} else {
-		return 0;
+		return ActiveState(0);
 	}
 }
 
-int
-RouteUI::solo_isolate_visual_state (boost::shared_ptr<Route> r)
+Gtkmm2ext::ActiveState
+RouteUI::solo_safe_active_state (boost::shared_ptr<Route> r)
 {
 	if (r->is_master() || r->is_monitor()) {
-		return 0;
-	}
-
-	if (r->solo_isolated()) {
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
-int
-RouteUI::solo_safe_visual_state (boost::shared_ptr<Route> r)
-{
-	if (r->is_master() || r->is_monitor()) {
-		return 0;
+		return ActiveState (0);
 	}
 
 	if (r->solo_safe()) {
-		return 1;
+		return Active;
 	} else {
-		return 0;
+		return ActiveState (0);
 	}
 }
 
@@ -1031,17 +987,21 @@ RouteUI::update_solo_display ()
 
 	if (Config->get_solo_control_is_listen_control()) {
 
-		if (solo_button->get_active() != (x = _route->listening_via_monitor())) {
+		if ((bool) solo_button->active_state() != (x = _route->listening_via_monitor())) {
 			++_i_am_the_modifier;
-			solo_button->set_active(x);
+			solo_button->set_active_state (Active);
 			--_i_am_the_modifier;
 		}
 
 	} else {
 
-		if (solo_button->get_active() != (x = _route->soloed())) {
+		if ((bool) solo_button->active_state() != (x = _route->soloed())) {
 			++_i_am_the_modifier;
-			solo_button->set_active (x);
+			if (x) {
+				solo_button->set_active_state (Active);
+			} else {
+				solo_button->unset_active_state();
+			}
 			--_i_am_the_modifier;
 		}
 
@@ -1077,7 +1037,7 @@ RouteUI::update_solo_display ()
 		}
         }
 
-	solo_button->set_visual_state (solo_visual_state (_route));
+	solo_button->set_active_state (solo_active_state (_route));
 
         /* some changes to solo status can affect mute display, so catch up
          */
@@ -1097,11 +1057,11 @@ RouteUI::mute_changed(void* /*src*/)
 	update_mute_display ();
 }
 
-int
-RouteUI::mute_visual_state (Session* s, boost::shared_ptr<Route> r)
+ActiveState
+RouteUI::mute_active_state (Session* s, boost::shared_ptr<Route> r)
 {
-	if (r->is_master() || r->is_monitor()) {
-		return 0;
+	if (r->is_monitor()) {
+		return ActiveState(0);
 	}
 
 
@@ -1109,26 +1069,26 @@ RouteUI::mute_visual_state (Session* s, boost::shared_ptr<Route> r)
 
 		if (r->muted ()) {
 			/* full mute */
-			return 2;
+			return Active;
 		} else if (s->soloing() && !r->soloed() && !r->solo_isolated()) {
-			return 1;
+			return Mid;
 		} else {
 			/* no mute at all */
-			return 0;
+			return ActiveState(0);
 		}
 
 	} else {
 
 		if (r->muted()) {
 			/* full mute */
-			return 2;
+			return Active;
 		} else {
 			/* no mute at all */
-			return 0;
+			return ActiveState(0);
 		}
 	}
 
-	return 0;
+	return ActiveState(0);
 }
 
 void
@@ -1138,20 +1098,7 @@ RouteUI::update_mute_display ()
                 return;
         }
 
-	bool model = _route->muted();
-	bool view = mute_button->get_active();
-
-	/* first make sure the button's "depressed" visual
-	   is correct.
-	*/
-
-	if (model != view) {
-		++_i_am_the_modifier;
-		mute_button->set_active (model);
-		--_i_am_the_modifier;
-	}
-
-        mute_button->set_visual_state (mute_visual_state (_session, _route));
+        mute_button->set_active_state (mute_active_state (_session, _route));
 }
 
 void
@@ -1175,30 +1122,15 @@ RouteUI::update_rec_display ()
 		return;
 	}
 
-	bool model = _route->record_enabled();
-	bool view = rec_enable_button->get_active();
-
-	/* first make sure the button's "depressed" visual
-	   is correct.
-	*/
-
-	if (model != view) {
-		++_i_am_the_modifier;
-		rec_enable_button->set_active (model);
-		--_i_am_the_modifier;
-	}
-
-	/* now make sure its color state is correct */
-
-	if (model) {
+	if (_route->record_enabled()) {
                 switch (_session->record_status ()) {
                 case Session::Recording:
-                        rec_enable_button->set_visual_state (1);
+                        rec_enable_button->set_active_state (Active);
                         break;
 
                 case Session::Disabled:
                 case Session::Enabled:
-                        rec_enable_button->set_visual_state (2);
+                        rec_enable_button->set_active_state (Mid);
                         break;
 
                 }
@@ -1208,7 +1140,7 @@ RouteUI::update_rec_display ()
                 }
 
 	} else {
-		rec_enable_button->set_visual_state (0);
+		rec_enable_button->unset_active_state ();
 
                 if (step_edit_item) {
                         step_edit_item->set_sensitive (true);
@@ -1748,7 +1680,7 @@ RouteUI::save_as_template ()
 void
 RouteUI::check_rec_enable_sensitivity ()
 {
-	if (_session->transport_rolling() && rec_enable_button->get_active() && Config->get_disable_disarm_during_roll()) {
+	if (_session->transport_rolling() && rec_enable_button->active_state() && Config->get_disable_disarm_during_roll()) {
 		rec_enable_button->set_sensitive (false);
 	} else {
 		rec_enable_button->set_sensitive (true);
@@ -1984,4 +1916,29 @@ RouteUI::color () const
 	}
 
 	return _color;
+}
+
+void
+RouteUI::set_showing_sends_to (boost::shared_ptr<Route> send_to)
+{
+	_showing_sends_to = send_to;
+	BusSendDisplayChanged (send_to); /* EMIT SIGNAL */
+}
+
+void
+RouteUI::bus_send_display_changed (boost::shared_ptr<Route> send_to)
+{
+	if (_route == send_to) {
+		show_sends_button->set_active_state (Gtkmm2ext::Active);
+		send_blink_connection = ARDOUR_UI::instance()->Blink.connect (sigc::mem_fun (*this, &RouteUI::send_blink));
+	} else {
+		show_sends_button->unset_active_state ();
+		send_blink_connection.disconnect ();
+	}
+}
+
+RouteGroup*
+RouteUI::route_group() const
+{
+	return _route->route_group();
 }

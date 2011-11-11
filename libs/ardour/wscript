@@ -170,6 +170,7 @@ libardour_sources = [
         'return.cc',
         'reverse.cc',
         'route.cc',
+        'route_graph.cc',
         'route_group.cc',
         'route_group_member.cc',
         'rb_effect.cc',
@@ -277,7 +278,6 @@ def configure(conf):
     conf.define('CURRENT_SESSION_FILE_VERSION', CURRENT_SESSION_FILE_VERSION)
 
     conf.check(header_name='sys/vfs.h', define_name='HAVE_SYS_VFS_H',mandatory=False)
-    conf.check(header_name='wordexp.h', define_name='HAVE_WORDEXP',mandatory=False)
 
     conf.check(header_name='jack/session.h', uselib = [ 'JACK' ],
                define_name='HAVE_JACK_SESSION')
@@ -351,7 +351,7 @@ def build(bld):
     obj.name         = 'libardour'
     obj.target       = 'ardour'
     obj.uselib       = ['GLIBMM','GTHREAD','AUBIO','SIGCPP','XML','UUID',
-                        'JACK','SNDFILE','SAMPLERATE','LRDF','AUDIOUNIT',
+                        'JACK','SNDFILE','SAMPLERATE','LRDF','AUDIOUNITS',
                         'OSX','BOOST','CURL','DL']
     obj.use          = ['libpbd','libmidipp','libevoral','libvamphost',
                         'libvampplugin','libtaglib','librubberband',
@@ -407,7 +407,7 @@ def build(bld):
     if bld.is_defined('ENABLE_NLS'):
         mo_files = bld.path.ant_glob('po/*.mo')
         for mo in mo_files:
-            lang = os.path.basename(mo).replace('.mo', '')
+            lang = os.path.basename(mo.srcpath()).replace('.mo', '')
             bld.install_as(os.path.join(bld.env['PREFIX'], 'share', 'locale',
                                         lang, 'LC_MESSAGES', 'libardour3.mo'),
                            mo)
@@ -451,4 +451,5 @@ def shutdown():
     autowaf.shutdown()
 
 def i18n(bld):
-    autowaf.build_i18n (bld, '.', 'libs/ardour', APPNAME, libardour_sources)
+    autowaf.build_i18n(bld, top, 'libs/ardour', APPNAME, libardour_sources,
+                       'Paul Davis')

@@ -35,6 +35,7 @@ children = [
         'gtk2_ardour',
         'templates',
         'export',
+        'midi_maps'
 ]
 
 i18n_children = [
@@ -45,8 +46,10 @@ i18n_children = [
 
 if sys.platform != 'darwin':
     children += [ 'tools/sanity_check' ]
+    lxvst_default = True
 else:
     children += [ 'libs/appleutility' ]
+    lxvst_default = False
 
 # Version stuff
 
@@ -251,9 +254,6 @@ def set_compiler_flags (conf,opt):
 
     if opt.lxvst:
         if conf.env['build_target'] == 'x86_64':
-            print("\n\n********************************************************")
-            print("* Building with 64Bit linuxVST support is experimental *")
-            print("********************************************************\n\n")
             conf.env.append_value('CXXFLAGS', "-DLXVST_64BIT")
         else:
             conf.env.append_value('CXXFLAGS', "-DLXVST_32BIT")
@@ -356,7 +356,7 @@ def set_compiler_flags (conf,opt):
 def options(opt):
     opt.load('compiler_c')
     opt.load('compiler_cxx')
-    autowaf.set_options(opt)
+    autowaf.set_options(opt, debug_by_default=True)
     opt.add_option('--program-name', type='string', action='store', default='Ardour', dest='program_name',
                     help='The user-visible name of the program being built')
     opt.add_option('--arch', type='string', action='store', dest='arch',
@@ -378,12 +378,11 @@ def options(opt):
                     help='Compile for use with gprofile')
     opt.add_option('--lv2', action='store_true', default=False, dest='lv2',
                     help='Compile with support for LV2 (if Lilv+Suil is available)')
-    opt.add_option('--lxvst', action='store_true', default=True, dest='lxvst',
+    opt.add_option('--lxvst', action='store_true', default=lxvst_default, dest='lxvst',
                     help='Compile with support for linuxVST plugins')
     opt.add_option('--nls', action='store_true', default=True, dest='nls',
                     help='Enable i18n (native language support) (default)')
     opt.add_option('--no-nls', action='store_false', dest='nls')
-    opt.add_option('--optimize', action='store_false', dest='debug')
     opt.add_option('--phone-home', action='store_false', default=False, dest='phone_home')
     opt.add_option('--stl-debug', action='store_true', default=False, dest='stl_debug',
                     help='Build with debugging for the STL')
@@ -406,6 +405,8 @@ def options(opt):
                     'Multiple modifiers must be separated by \'><\'')
     opt.add_option('--boost-include', type='string', action='store', dest='boost_include', default='',
                     help='directory where Boost header files can be found')
+    opt.add_option('--also-include', type='string', action='store', dest='also_include', default='',
+                    help='additional include directory where header files can be found')
     opt.add_option('--wine-include', type='string', action='store', dest='wine_include', default='/usr/include/wine/windows',
                     help='directory where Wine\'s Windows header files can be found')
     opt.add_option('--noconfirm', action='store_true', default=False, dest='noconfirm',
@@ -483,18 +484,24 @@ def configure(conf):
 
         conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'AppKit'])
         conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'CoreAudio'])
+        conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'CoreAudioKit'])
         conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'CoreFoundation'])
         conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'CoreServices'])
 
-        conf.env.append_value('LINKFLAGS_OSX', ['-undefined', 'suppress' ])
-        conf.env.append_value('LINKFLAGS_OSX', '-flat_namespace')
+	conf.env.append_value('LINKFLAGS_OSX', ['-undefined', 'dynamic_lookup' ])
+	conf.env.append_value('LINKFLAGS_OSX', ['-flat_namespace'])
 
         conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DAUDIOUNIT_SUPPORT")
         conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DAU_STATE_SUPPORT")
-        conf.env.append_value('LINKFLAGS_AUDIOUNITS', ['-framework', 'Audiotoolbox', '-framework', 'AudioUnit'])
+        conf.env.append_value('LINKFLAGS_AUDIOUNITS', ['-framework', 'Carbon', 
+		'-framework', 'Audiotoolbox', '-framework', 'AudioUnit'])
 
     if Options.options.boost_include != '':
-        conf.env.append_value('CPPPATH', Options.options.boost_include)
+        conf.env.append_value('CXXFLAGS', '-I' + Options.options.boost_include)
+
+    if Options.options.also_include != '':
+        conf.env.append_value('CXXFLAGS', '-I' + Options.options.also_include)
+        conf.env.append_value('CFLAGS', '-I' + Options.options.also_include)
 
     autowaf.check_header(conf, 'cxx', 'boost/signals2.hpp', mandatory = True)
 
