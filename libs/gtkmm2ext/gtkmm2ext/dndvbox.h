@@ -218,6 +218,24 @@ public:
 	sigc::signal<void> SelectionChanged;
 
 private:
+
+	/** @return the bottom y position of a child, pretending any placeholder
+	 *  is not there.
+	 */
+	double bottom_of_child_ignoring_placeholder (T* child) const
+	{
+		Gtk::Allocation const a = child->widget().get_allocation ();
+		double bottom = a.get_y() + a.get_height();
+
+		if (_placeholder) {
+			Gtk::Allocation const b = _placeholder->get_allocation ();
+			if (b.get_y() < a.get_y()) {
+				bottom -= (b.get_height () + _internal_vbox.get_spacing ());
+			}
+		}
+
+		return bottom;
+	}
 	
 	/** Look at a y coordinate and find the children below y, and the ones either side.
 	 *  @param y y position.
@@ -242,8 +260,7 @@ private:
 		/* top of current child */
 		double top = 0;
 		/* bottom of current child */
-		Gtk::Allocation const a = (*j)->widget().get_allocation();
-		double bottom = a.get_y() + a.get_height();
+		double bottom = bottom_of_child_ignoring_placeholder (*j);
 
 		while (y >= bottom && j != _children.end()) {
 
@@ -254,8 +271,7 @@ private:
 			++j;
 
 			if (j != _children.end()) {
-				Gtk::Allocation const a = (*j)->widget().get_allocation();
-				bottom = a.get_y() + a.get_height();
+				bottom = bottom_of_child_ignoring_placeholder (*j);
 			}
 		}
 
@@ -270,7 +286,7 @@ private:
 		++j;
 		*after = j != _children.end() ? *j : 0;
 
-		return i + ((y - top) / (*at)->widget().get_allocation().get_height());
+		return i + ((y - top) / (bottom - top));
 	}
 
 	void drag_begin (Glib::RefPtr<Gdk::DragContext> const & context, T* child)
@@ -416,13 +432,19 @@ private:
 		/* whether we're in the top or bottom half of the child that we're over */
 		bool top_half = (c - int (c)) < 0.5;
 
-		if (top_half && (before == _drag_child || at == _drag_child)) {
+		/* Note that when checking on whether to remove a placeholder, we never do
+		   so if _drag_child is 0 as this means that the child being dragged is
+		   coming from a different DnDVBox, so it will never be the same as any
+		   of our children.
+		*/
+
+		if (top_half && _drag_child && (before == _drag_child || at == _drag_child)) {
 			/* dropping here would have no effect, so remove the visual cue */
 			remove_placeholder ();
 			return false;
 		}
 
-		if (!top_half && (at == _drag_child || after == _drag_child)) {
+		if (!top_half && _drag_child && (at == _drag_child || after == _drag_child)) {
 			/* dropping here would have no effect, so remove the visual cue */
 			remove_placeholder ();
 			return false;

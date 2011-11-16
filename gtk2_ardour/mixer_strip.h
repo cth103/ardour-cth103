@@ -208,7 +208,8 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 
 	void comment_editor_done_editing ();
 	void setup_comment_editor ();
-	void toggle_comment ();
+	void open_comment_editor ();
+	void toggle_comment_editor ();
 	void setup_comment_button ();
 
 	Gtk::Button   group_button;
@@ -312,6 +313,12 @@ class MixerStrip : public RouteUI, public Gtk::EventBox
 
 	void add_input_port (ARDOUR::DataType);
 	void add_output_port (ARDOUR::DataType);
+
+	bool level_meter_button_press (GdkEventButton *);
+	void popup_level_meter_menu (GdkEventButton *);
+	void add_level_meter_item (Gtk::Menu_Helpers::MenuList &, Gtk::RadioMenuItem::Group &, std::string const &, ARDOUR::MeterPoint);
+	void set_meter_point (ARDOUR::MeterPoint);
+	PBD::ScopedConnection _level_meter_connection;
 
 	static std::string meter_point_string (ARDOUR::MeterPoint);
 };

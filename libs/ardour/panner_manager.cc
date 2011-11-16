@@ -1,4 +1,26 @@
+/*
+    Copyright (C) 2011 Paul Davis
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+*/
+
+#include <unistd.h>
+
 #include <glibmm/pattern.h>
+#include <glibmm/fileutils.h>
 
 #include "pbd/error.h"
 #include "pbd/compose.h"
@@ -62,8 +84,19 @@ PannerManager::panner_discover (string path)
 	PannerInfo* pinfo;
 
 	if ((pinfo = get_descriptor (path)) != 0) {
-		panner_info.push_back (pinfo);
-		info << string_compose(_("Panner discovered: \"%1\""), pinfo->descriptor.name) << endmsg;
+
+		list<PannerInfo*>::iterator i;
+
+		for (i = panner_info.begin(); i != panner_info.end(); ++i) {
+			if (pinfo->descriptor.name == (*i)->descriptor.name) {
+				break;
+			}
+		}
+
+		if (i == panner_info.end()) {
+			panner_info.push_back (pinfo);
+			info << string_compose(_("Panner discovered: \"%1\" in %2"), pinfo->descriptor.name, path) << endmsg;
+		}
 	}
 
 	return 0;

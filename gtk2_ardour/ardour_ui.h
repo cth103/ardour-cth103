@@ -438,7 +438,6 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	ArdourButton auto_play_button;
 	ArdourButton auto_input_button;
 	ArdourButton click_button;
-	ArdourButton time_master_button;
 	ArdourButton sync_button;
 
 	ArdourButton auditioning_alert_button;
@@ -739,6 +738,8 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 
 	void successful_graph_sort ();
 	bool _feedback_exists;
+
+	void resize_text_widgets ();
 };
 
 #endif /* __ardour_gui_h__ */

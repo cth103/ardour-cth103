@@ -116,6 +116,7 @@
 #include "marker.h"
 #include "midi_time_axis.h"
 #include "mixer_strip.h"
+#include "mixer_ui.h"
 #include "mouse_cursors.h"
 #include "playlist_selector.h"
 #include "public_editor.h"
@@ -291,6 +292,7 @@ Editor::Editor ()
 	, _last_cut_copy_source_track (0)
 
 	, _region_selection_change_updates_region_list (true)
+	, _following_mixer_selection (false)
 {
 	constructed = false;
 
@@ -2831,8 +2833,8 @@ Editor::setup_toolbar ()
 
 	/* Zoom */
 
-	_zoom_box.set_spacing (1);
-	_zoom_box.set_border_width (0);
+	_zoom_box.set_spacing (2);
+	_zoom_box.set_border_width (2);
 
 	RefPtr<Action> act;
 
@@ -2913,7 +2915,7 @@ Editor::setup_toolbar ()
 	/* Nudge */
 
 	HBox *nudge_box = manage (new HBox);
-	nudge_box->set_spacing(1);
+	nudge_box->set_spacing (2);
 	nudge_box->set_border_width (2);
 
 	nudge_forward_button.signal_button_release_event().connect (sigc::mem_fun(*this, &Editor::nudge_forward_release), false);
@@ -4736,11 +4738,11 @@ Editor::first_idle ()
 	_time_bars_canvas->suspend_updates ();
 
 	if (track_views.size() > 1) {
-		dialog = new MessageDialog (*this,
-					    string_compose (_("Please wait while %1 loads visual data"), PROGRAM_NAME),
-					    true,
-					    Gtk::MESSAGE_INFO,
-					    Gtk::BUTTONS_NONE);
+		dialog = new MessageDialog (
+			*this,
+			string_compose (_("Please wait while %1 loads visual data."), PROGRAM_NAME),
+			true
+			);
 		dialog->present ();
 		ARDOUR_UI::instance()->flush_pending ();
 	}
@@ -4753,10 +4755,13 @@ Editor::first_idle ()
 	_routes->redisplay ();
 
 	delete dialog;
+<<<<<<< HEAD
 
 	_track_canvas->resume_updates ();
 	_time_bars_canvas->resume_updates ();
 	
+=======
+>>>>>>> origin/master
 	_have_idled = true;
 }
 
@@ -5046,7 +5051,7 @@ Editor::foreach_time_axis_view (sigc::slot<void,TimeAxisView&> theslot)
 
 /** Find a RouteTimeAxisView by the ID of its route */
 RouteTimeAxisView*
-Editor::get_route_view_by_route_id (PBD::ID& id) const
+Editor::get_route_view_by_route_id (const PBD::ID& id) const
 {
 	RouteTimeAxisView* v;
 
@@ -5549,3 +5554,4 @@ Editor::popup_control_point_context_menu (Canvas::Item* item, GdkEvent* event)
 
 	_control_point_context_menu.popup (event->button.button, event->button.time);
 }
+

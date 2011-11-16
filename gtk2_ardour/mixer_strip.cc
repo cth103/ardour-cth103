@@ -267,7 +267,7 @@ MixerStrip::init ()
 	group_label.set_name ("MixerGroupButtonLabel");
 
 	_comment_button.set_name (X_("MixerCommentButton"));
-	_comment_button.signal_clicked().connect (sigc::mem_fun (*this, &MixerStrip::toggle_comment));
+	_comment_button.signal_clicked().connect (sigc::mem_fun (*this, &MixerStrip::toggle_comment_editor));
 
 	global_vpacker.set_border_width (0);
 	global_vpacker.set_spacing (0);
@@ -364,6 +364,8 @@ MixerStrip::init ()
 	parameter_changed (X_("mixer-strip-visibility"));
 
 	Config->ParameterChanged.connect (_config_connection, MISSING_INVALIDATOR, ui_bind (&MixerStrip::parameter_changed, this, _1), gui_context());
+
+	gpm.LevelMeterButtonPress.connect_same_thread (_level_meter_connection, boost::bind (&MixerStrip::level_meter_button_press, this, _1));
 }
 
 MixerStrip::~MixerStrip ()
@@ -715,6 +717,7 @@ MixerStrip::output_press (GdkEventButton *ev)
 		}
 		
 		citems.push_back (SeparatorElem());
+		uint32_t const n_with_separator = citems.size ();
 
 		ARDOUR::BundleList current = _route->output()->bundles_connected ();
 
@@ -741,7 +744,7 @@ MixerStrip::output_press (GdkEventButton *ev)
 			maybe_add_bundle_to_output_menu ((*i)->input()->bundle(), current);
 		}
 
-		if (citems.size() == 2) {
+		if (citems.size() == n_with_separator) {
 			/* no routes added; remove the separator */
 			citems.pop_back ();
 		}
@@ -836,6 +839,8 @@ MixerStrip::input_press (GdkEventButton *ev)
 		}
 
 		citems.push_back (SeparatorElem());
+		uint32_t const n_with_separator = citems.size ();
+		
 		input_menu_bundles.clear ();
 
 		ARDOUR::BundleList current = _route->input()->bundles_connected ();
@@ -863,7 +868,7 @@ MixerStrip::input_press (GdkEventButton *ev)
 			maybe_add_bundle_to_input_menu ((*i)->output()->bundle(), current);
 		}
 
-		if (citems.size() == 2) {
+		if (citems.size() == n_with_separator) {
 			/* no routes added; remove the separator */
 			citems.pop_back ();
 		}
@@ -1311,19 +1316,24 @@ MixerStrip::comment_editor_done_editing ()
 }
 
 void
-MixerStrip::toggle_comment ()
+MixerStrip::toggle_comment_editor ()
 {
 	if (ignore_toggle) {
 		return;
 	}
 
+	if (comment_window && comment_window->is_visible ()) {
+		comment_window->hide ();
+	} else {
+		open_comment_editor ();
+	}
+}
+
+void
+MixerStrip::open_comment_editor ()
+{
 	if (comment_window == 0) {
 		setup_comment_editor ();
-	}
-
-	if (comment_window->is_visible ()) {
-		comment_window->hide ();
-		return;
 	}
 
 	string title;
@@ -1439,16 +1449,14 @@ MixerStrip::build_route_ops_menu ()
 
 	MenuList& items = route_ops_menu->items();
 
-	items.push_back (CheckMenuElem (_("Comments..."), sigc::mem_fun (*this, &MixerStrip::toggle_comment)));
-	CheckMenuItem* i = dynamic_cast<CheckMenuItem*> (&items.back ());
-	i->set_active (comment_window && comment_window->is_visible ());
+	items.push_back (MenuElem (_("Comments..."), sigc::mem_fun (*this, &MixerStrip::open_comment_editor)));
 	items.push_back (MenuElem (_("Save As Template..."), sigc::mem_fun(*this, &RouteUI::save_as_template)));
 	items.push_back (MenuElem (_("Rename..."), sigc::mem_fun(*this, &RouteUI::route_rename)));
 	rename_menu_item = &items.back();
 
 	items.push_back (SeparatorElem());
 	items.push_back (CheckMenuElem (_("Active")));
-	i = dynamic_cast<CheckMenuItem *> (&items.back());
+	CheckMenuItem* i = dynamic_cast<CheckMenuItem *> (&items.back());
 	i->set_active (_route->active());
 	i->signal_activate().connect (sigc::bind (sigc::mem_fun (*this, &RouteUI::set_route_active), !_route->active(), false));
 
@@ -2010,3 +2018,48 @@ MixerStrip::ab_plugins ()
 	processor_box.processor_operation (ProcessorBox::ProcessorsAB);
 }
 
+bool
+MixerStrip::level_meter_button_press (GdkEventButton* ev)
+{
+	if (ev->button == 3) {
+		popup_level_meter_menu (ev);
+		return true;
+	}
+
+	return false;
+}
+
+void
+MixerStrip::popup_level_meter_menu (GdkEventButton* ev)
+{
+	using namespace Gtk::Menu_Helpers;
+
+	Gtk::Menu* m = manage (new Menu);
+	MenuList& items = m->items ();
+
+	RadioMenuItem::Group group;
+
+	add_level_meter_item (items, group, _("Input"), MeterInput);
+	add_level_meter_item (items, group, _("Pre-fader"), MeterPreFader);
+	add_level_meter_item (items, group, _("Post-fader"), MeterPostFader);
+	add_level_meter_item (items, group, _("Output"), MeterOutput);
+	add_level_meter_item (items, group, _("Custom"), MeterCustom);
+
+	m->popup (ev->button, ev->time);
+}
+
+void
+MixerStrip::add_level_meter_item (Menu_Helpers::MenuList& items, RadioMenuItem::Group& group, string const & name, MeterPoint point)
+{
+	using namespace Menu_Helpers;
+	
+	items.push_back (RadioMenuElem (group, name, sigc::bind (sigc::mem_fun (*this, &MixerStrip::set_meter_point), point)));
+	RadioMenuItem* i = dynamic_cast<RadioMenuItem *> (&items.back ());
+	i->set_active (_route->meter_point() == point);
+}
+
+void
+MixerStrip::set_meter_point (MeterPoint p)
+{
+	_route->set_meter_point (p);
+}

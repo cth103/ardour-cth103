@@ -385,7 +385,8 @@ RouteUI::solo_press(GdkEventButton* ev)
 
 		if (Keyboard::is_context_menu_event (ev)) {
 
-                        if (!solo_isolated_led) {
+                        if (! (solo_isolated_led && solo_isolated_led->is_visible()) ||
+			    ! (solo_safe_led && solo_safe_led->is_visible())) {
 
                                 if (solo_menu == 0) {
                                         build_solo_menu ();
@@ -1070,7 +1071,8 @@ RouteUI::mute_active_state (Session* s, boost::shared_ptr<Route> r)
 		if (r->muted ()) {
 			/* full mute */
 			return Active;
-		} else if (s->soloing() && !r->soloed() && !r->solo_isolated()) {
+		} else if (!r->is_master() && s->soloing() && !r->soloed() && !r->solo_isolated()) {
+			/* master is NEVER muted by others */
 			return Mid;
 		} else {
 			/* no mute at all */

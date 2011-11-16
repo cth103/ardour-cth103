@@ -62,6 +62,7 @@
 #include "ardour/ardour.h"
 #include "ardour/callback.h"
 #include "ardour/profile.h"
+#include "ardour/plugin_manager.h"
 #include "ardour/session_directory.h"
 #include "ardour/session_route.h"
 #include "ardour/session_state_utils.h"
@@ -157,11 +158,9 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 	, auto_play_button (ArdourButton::led_default_elements)
 	, auto_input_button (ArdourButton::led_default_elements)
 
-	, time_master_button (ArdourButton::led_default_elements)
-
-	, auditioning_alert_button (_("Audition"))
-	, solo_alert_button (_("Solo"))
-	, feedback_alert_button (_("Feedback"))
+	, auditioning_alert_button (_("audition"))
+	, solo_alert_button (_("solo"))
+	, feedback_alert_button (_("feedback"))
 
 	, error_log_button (_("Errors"))
 
@@ -341,6 +340,8 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 
 	_process_thread = new ProcessThread ();
 	_process_thread->init ();
+
+	DPIReset.connect (sigc::mem_fun (*this, &ARDOUR_UI::resize_text_widgets));
 }
 
 /** @return true if a session was chosen and `apply' clicked, otherwise false if `cancel' was clicked */
@@ -414,7 +415,10 @@ ARDOUR_UI::post_engine ()
 
 	ARDOUR::init_post_engine ();
 
+	/* load up the UI manager */
+
 	ActionManager::init ();
+
 	_tooltips.enable();
 
 	if (setup_windows ()) {
@@ -1067,7 +1071,7 @@ ARDOUR_UI::update_cpu_load ()
 {
 	char buf[64];
 
-	/* If this text is changed, the set_size_request_to_display_given_text call in ARDOUR_UI::build_menu_bar
+	/* If this text is changed, the set_size_request_to_display_given_text call in ARDOUR_UI::resize_text_widgets
 	   should also be changed.
 	*/
 
@@ -1084,7 +1088,7 @@ ARDOUR_UI::update_buffer_load ()
 	uint32_t const playback = _session ? _session->playback_load () : 100;
 	uint32_t const capture = _session ? _session->capture_load () : 100;
 
-	/* If this text is changed, the set_size_request_to_display_given_text call in ARDOUR_UI::build_menu_bar
+	/* If this text is changed, the set_size_request_to_display_given_text call in ARDOUR_UI::resize_text_widgets
 	   should also be changed.
 	*/
 	
@@ -1669,7 +1673,7 @@ ARDOUR_UI::transport_record (bool roll)
 		switch (_session->record_status()) {
 		case Session::Disabled:
 			if (_session->ntracks() == 0) {
-				MessageDialog msg (*editor, _("Please create 1 or more track\nbefore trying to record.\nCheck the Session menu."));
+				MessageDialog msg (*editor, _("Please create one or more tracks before trying to record.\nYou can do this with the \"Add Track or Bus\" option in the Session menu."));
 				msg.run ();
 				return;
 			}
@@ -2511,8 +2515,6 @@ ARDOUR_UI::build_session_from_nsd (const std::string& session_path, const std::s
 		} else {
 			bus_profile.input_ac = AutoConnectOption (0);
 		}
-
-		/// @todo some minor tweaks.
 
 		bus_profile.output_ac = AutoConnectOption (0);
 

@@ -114,6 +114,7 @@ ARDOUR_UI::setup_windows ()
 	editor->add_toplevel_controls (top_packer);
 
 	setup_transport();
+
 	build_menu_bar ();
 
 	setup_tooltips ();
@@ -138,7 +139,6 @@ ARDOUR_UI::setup_tooltips ()
 	set_tip (auto_play_button, _("Start playback after any locate"));
 	set_tip (auto_input_button, _("Be sensible about input monitoring"));
 	set_tip (click_button, _("Enable/Disable audio click"));
-	set_tip (time_master_button, string_compose (_("Does %1 control the time?"), PROGRAM_NAME));
 	set_tip (solo_alert_button, _("When active, something is soloed.\nClick to de-solo everything"));
 	set_tip (auditioning_alert_button, _("When active, auditioning is taking place\nClick to stop the audition"));
 	set_tip (feedback_alert_button, _("When active, there is a feedback loop."));
@@ -255,14 +255,11 @@ ARDOUR_UI::setup_transport ()
 	auto_return_button.set_name ("transport option button");
 	auto_play_button.set_name ("transport option button");
 	auto_input_button.set_name ("transport option button");
-	time_master_button.set_name ("transport option button");
 
 	/* these have to provide a clear indication of active state */
 
 	click_button.set_name ("transport active option button");
 	sync_button.set_name ("transport active option button");
-
-	time_master_button.set_text (_("time master"));
 
 	stop_button.set_active_state (Active);
 
@@ -295,9 +292,6 @@ ARDOUR_UI::setup_transport ()
 	play_selection_button.set_related_action (act);
 	act = ActionManager::get_action (X_("MIDI"), X_("panic"));
 	midi_panic_button.set_related_action (act);
-
-	act = ActionManager::get_action (X_("Transport"), X_("ToggleTimeMaster"));
-	time_master_button.set_related_action (act);
 	act = ActionManager::get_action (X_("Transport"), X_("ToggleExternalSync"));
 	sync_button.set_related_action (act);
 
@@ -377,7 +371,6 @@ ARDOUR_UI::setup_transport ()
 	tbox->pack_start (rec_button, false, false, 6);
 
 	HBox* clock_box = manage (new HBox);
-	clock_box->set_border_width (2);
 	primary_clock->set_border_width (2);
 	clock_box->pack_start (*primary_clock, false, false);
 	if (!ARDOUR::Profile->get_small_screen()) {
@@ -409,14 +402,6 @@ ARDOUR_UI::setup_transport ()
         if (!Profile->get_small_screen()) {
 		transport_tearoff_hbox.pack_start (*auto_box, false, false);
         }
-
-/*
-	VBox* time_controls = manage (new VBox);
-	time_controls->set_spacing (2);
-	time_controls->set_homogeneous (true);
-	time_controls->pack_start (sync_button, true, false);
-	time_controls->pack_start (time_master_button, true, false);
-*/
 
 	transport_tearoff_hbox.pack_start (*clock_box, false, false);
 	transport_tearoff_hbox.pack_start (click_button, false, false);
@@ -477,10 +462,8 @@ ARDOUR_UI::soloing_changed (bool onoff)
 void
 ARDOUR_UI::_auditioning_changed (bool onoff)
 {
-	if (auditioning_alert_button.get_active() != onoff) {
-		auditioning_alert_button.set_active (onoff);
-		set_transport_sensitivity (!onoff);
-	}
+	auditioning_alert_button.set_active (onoff);
+	set_transport_sensitivity (!onoff);
 }
 
 void
@@ -526,13 +509,12 @@ ARDOUR_UI::solo_blink (bool onoff)
 
 	if (_session->soloing() || _session->listening()) {
 		if (onoff) {
-			solo_alert_button.set_state (STATE_ACTIVE);
+			solo_alert_button.set_active (true);
 		} else {
-			solo_alert_button.set_state (STATE_NORMAL);
+			solo_alert_button.set_active (false);
 		}
 	} else {
 		solo_alert_button.set_active (false);
-		solo_alert_button.set_state (STATE_NORMAL);
 	}
 }
 
@@ -541,7 +523,7 @@ ARDOUR_UI::sync_blink (bool onoff)
 {
 	if (_session == 0 || !_session->config.get_external_sync()) {
 		/* internal sync */
-		sync_button.unset_active_state ();
+		sync_button.set_active (false);
 		return;
 	}
 
@@ -549,13 +531,13 @@ ARDOUR_UI::sync_blink (bool onoff)
 		/* not locked, so blink on and off according to the onoff argument */
 
 		if (onoff) {
-			sync_button.set_active_state (Gtkmm2ext::Active); // "-active"
+			sync_button.set_active (true);
 		} else {
-			sync_button.unset_active_state (); // normal
+			sync_button.set_active (false);
 		}
 	} else {
 		/* locked */
-		  sync_button.set_active_state (Gtkmm2ext::Active); // "-active"
+		sync_button.set_active (true);
 	}
 }
 
@@ -568,12 +550,12 @@ ARDOUR_UI::audition_blink (bool onoff)
 
 	if (_session->is_auditioning()) {
 		if (onoff) {
-			auditioning_alert_button.set_active_state (Gtkmm2ext::Active);
+			auditioning_alert_button.set_active (true);
 		} else {
-			auditioning_alert_button.unset_active_state();
+			auditioning_alert_button.set_active (false);
 		}
 	} else {
-		auditioning_alert_button.unset_active_state ();
+		auditioning_alert_button.set_active (false);
 	}
 }
 

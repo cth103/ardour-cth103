@@ -1470,7 +1470,7 @@ Editor::button_release_handler (Canvas::Item* item, GdkEvent* event, ItemType it
 			case AutomationTrackItem:
 				atv = dynamic_cast<AutomationTimeAxisView*>(clicked_axisview);
 				if (atv) {
-					atv->add_automation_event (item, event, where, event->button.y);
+					atv->add_automation_event (event, where, event->button.y);
 				}
 				return true;
 				break;
@@ -1498,7 +1498,7 @@ Editor::button_release_handler (Canvas::Item* item, GdkEvent* event, ItemType it
 
 			case AutomationTrackItem:
 				dynamic_cast<AutomationTimeAxisView*>(clicked_axisview)->
-					add_automation_event (item, event, where, event->button.y);
+					add_automation_event (event, where, event->button.y);
 				return true;
 				break;
 			default:

@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 # Variables for 'waf dist'
-VERSION = '3.0alpha10'
+VERSION = '3.0beta1a'
 APPNAME = 'Ardour'
 
 # Mandatory variables
@@ -372,6 +372,8 @@ def options(opt):
     opt.add_option('--no-fpu-optimization', action='store_false', dest='fpu_optimization')
     opt.add_option('--freedesktop', action='store_true', default=False, dest='freedesktop',
                     help='Install MIME type, icons and .desktop file as per freedesktop.org standards')
+    opt.add_option('--freebie', action='store_true', default=False, dest='freebie',
+                    help='Build a version suitable for distribution as a zero-cost binary')
     opt.add_option('--freesound', action='store_true', default=False, dest='freesound',
                     help='Include Freesound database lookup')
     opt.add_option('--gprofile', action='store_true', default=False, dest='gprofile',
@@ -422,7 +424,7 @@ def configure(conf):
     conf.load('compiler_c')
     conf.load('compiler_cxx')
     if not Options.options.noconfirm:
-        print ('\n\nThis is an alpha version of Ardour 3.0.\n\n' +
+        print ('\n\nThis is a beta version of Ardour 3.0.\n\n' +
                'You are respectfully requested NOT to ask for assistance with build issues\n' +
                'and not to report issues with Ardour 3.0 on the forums at ardour.org.\n\n' +
                'Please use IRC, the bug tracker and/or the ardour mailing lists (-dev or -user)\n\n' +
@@ -449,7 +451,8 @@ def configure(conf):
 
         conf.define ('HAVE_COREAUDIO', 1)
         conf.define ('AUDIOUNIT_SUPPORT', 1)
-        conf.define ('AU_STATE_SUPPORT', 1)
+        if not Options.options.freebie:
+            conf.define ('AU_STATE_SUPPORT', 1)
         conf.define ('GTKOSX', 1)
         conf.define ('TOP_MENUBAR',1)
         conf.define ('GTKOSX',1)
@@ -617,7 +620,7 @@ const char* const ardour_config_info = "\\n\\
 #    write_config_text('Soundtouch',            conf.is_defined('HAVE_SOUNDTOUCH'))
     write_config_text('Translation',           opts.nls)
     write_config_text('Tranzport',             opts.tranzport)
-    write_config_text('Unit tests',            conf.is_defined('BUILD_TESTS'))
+    write_config_text('Unit tests',            conf.env['BUILD_TESTS'])
     write_config_text('Universal binary',      opts.universal)
     write_config_text('VST support',           opts.vst)
     write_config_text('Wiimote support',       opts.wiimote)

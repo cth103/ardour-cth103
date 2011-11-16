@@ -127,7 +127,7 @@ fi
 
 # the waf build tree to use when copying built/generated files
 
-BUILD_ROOT=../../build/default
+BUILD_ROOT=../../build
 
 # setup directory structure
 
@@ -432,14 +432,14 @@ mv $Surfaces/libardourcp.so* $Libraries
 
 # MidiMaps
 # got to be careful with names here
-for x in $BUILD_ROOT/../../midi_maps/*.map ; do
+for x in $BUILD_ROOT/../midi_maps/*.map ; do
     cp "$x" $MidiMaps
     echo Copied MIDI map $x 
 done
 
 # ExportFormats
 # got to be careful with names here
-for x in $BUILD_ROOT/../../export/*.preset $BUILD_ROOT/../../export/*.format ; do
+for x in $BUILD_ROOT/../export/*.preset $BUILD_ROOT/../export/*.format ; do
     cp "$x" $ExportFormats
 done
 
@@ -554,10 +554,14 @@ cp $BUILD_ROOT/gtk2_ardour/ardour3*.rc $Etc
 
 # these are copied straight from the source tree
 
+cp ../../gtk2_ardour/ardour3_ui_default.conf $Etc/ardour3_ui_default.conf
 cp ../../gtk2_ardour/ardour3_ui_default.conf $Etc/ardour3_ui.conf
 cp ../../instant.xml $Etc/instant.xml
 cp -r ../../gtk2_ardour/icons $Etc
 cp -r ../../gtk2_ardour/pixmaps $Etc
+cp ../../gtk2_ardour/step_editing.bindings $Etc
+cp ../../gtk2_ardour/mixer.bindings $Etc
+
 
 #
 # put sooper sekrit ingredients here and they will be copied

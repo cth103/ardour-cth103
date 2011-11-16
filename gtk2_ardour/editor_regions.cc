@@ -103,7 +103,7 @@ EditorRegions::EditorRegions (Editor* e)
 	//_display.set_grid_lines (TREE_VIEW_GRID_LINES_BOTH);
 
 	/* show path as the row tooltip */
-	_display.set_tooltip_column (15); /* path */
+	_display.set_tooltip_column (14); /* path */
 
 	CellRendererText* region_name_cell = dynamic_cast<CellRendererText*>(_display.get_column_cell_renderer (0));
 	region_name_cell->property_editable() = true;
@@ -409,7 +409,7 @@ EditorRegions::add_region (boost::shared_ptr<Region> region)
 }
 
 void
-EditorRegions::delete_unused_regions ()
+EditorRegions::remove_unused_regions ()
 {
 	vector<string> choices;
 	string prompt;
@@ -1543,7 +1543,7 @@ EditorRegions::show_action () const
 }
 
 RefPtr<Action>
-EditorRegions::delete_unused_regions_action () const
+EditorRegions::remove_unused_regions_action () const
 {
 	return ActionManager::get_action (X_("RegionList"), X_("removeUnusedRegions"));
 }

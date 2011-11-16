@@ -202,6 +202,7 @@ class PublicEditor : public Gtk::Window, public PBD::StatefulDestructible {
 	virtual gulong frame_to_pixel (framepos_t frame) const = 0;
 	virtual Selection& get_selection () const = 0;
 	virtual Selection& get_cut_buffer () const = 0;
+	virtual void track_mixer_selection () = 0;
 	virtual bool extend_selection_to_track (TimeAxisView&) = 0;
 	virtual void play_selection () = 0;
 	virtual void set_show_measures (bool yn) = 0;
@@ -284,7 +285,7 @@ class PublicEditor : public Gtk::Window, public PBD::StatefulDestructible {
 	virtual TimeAxisView* get_named_time_axis(const std::string & name)  = 0;
 #endif
 
-	virtual RouteTimeAxisView* get_route_view_by_route_id (PBD::ID& id) const = 0;
+	virtual RouteTimeAxisView* get_route_view_by_route_id (const PBD::ID& id) const = 0;
 
 	virtual void get_equivalent_regions (RegionView* rv, std::vector<RegionView*>&, PBD::PropertyID) const = 0;
 
@@ -386,6 +387,8 @@ class PublicEditor : public Gtk::Window, public PBD::StatefulDestructible {
 	virtual ARDOUR::Location* find_location_from_marker (Marker *, bool &) const = 0;
 	virtual Marker* find_marker_from_location_id (PBD::ID const &, bool) const = 0;
 
+	virtual void snap_to_with_modifier (framepos_t &, GdkEvent const *, int32_t direction = 0, bool for_mark = false) = 0;
+	
 	/// Singleton instance, set up by Editor::Editor()
 
 	static PublicEditor* _instance;

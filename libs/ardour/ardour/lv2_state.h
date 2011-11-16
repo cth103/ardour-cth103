@@ -29,13 +29,13 @@
 #include "pbd/error.h"
 
 #include "ardour/uri_map.h"
-#include "lv2/lv2plug.in/ns/ext/persist/persist.h"
+#include "lv2/lv2plug.in/ns/ext/state/state.h"
 #include "rdff.h"
 
 namespace ARDOUR {
 
-struct LV2PersistState {
-	LV2PersistState(URIMap& map) : uri_map(map) {}
+struct LV2State {
+	LV2State(URIMap& map) : uri_map(map) {}
 
 	struct Value {
 		inline Value(uint32_t k, const void* v, size_t s, uint32_t t, uint32_t f)
@@ -105,7 +105,7 @@ struct LV2PersistState {
 				          body->object,
 				          body->object_size,
 				          body->object_type,
-				          LV2_PERSIST_IS_POD | LV2_PERSIST_IS_PORTABLE);
+				          LV2_STATE_IS_POD | LV2_STATE_IS_PORTABLE);
 			}
 		}
 		free(chunk);
@@ -122,8 +122,8 @@ struct LV2PersistState {
 
 		// Write all values to state file
 		for (Values::const_iterator i = values.begin(); i != values.end(); ++i) {
-			const uint32_t                key = i->first;
-			const LV2PersistState::Value& val = i->second;
+			const uint32_t         key = i->first;
+			const LV2State::Value& val = i->second;
 			rdff_write_triple(file,
 			                  0,
 			                  key,

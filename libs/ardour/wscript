@@ -387,9 +387,8 @@ def build(bld):
         obj.defines += [ 'VST_SUPPORT' ]
 
     if bld.is_defined('LXVST_SUPPORT'):
-        obj.source += [ 'lxvst_plugin.cc', 'session_lxvst.cc', 'vstfx.cc', 'vstfxwin.cc', 'vstfxinfofile.cc' ]
+        obj.source += [ 'lxvst_plugin.cc', 'session_lxvst.cc', 'vstfx.cc', 'vstfxinfofile.cc' ]
         obj.defines += [ 'LXVST_SUPPORT' ]
-
 
     if bld.is_defined('HAVE_COREAUDIO'):
         obj.source += [ 'coreaudiosource.cc', 'caimportable.cc' ]
@@ -412,10 +411,11 @@ def build(bld):
                                         lang, 'LC_MESSAGES', 'libardour3.mo'),
                            mo)
 
-    if bld.is_defined('BUILD_TESTS') and bld.is_defined('HAVE_CPPUNIT'):
+    if bld.env['BUILD_TESTS'] and bld.is_defined('HAVE_CPPUNIT'):
         # Unit tests
         testobj              = bld(features = 'cxx cxxprogram')
         testobj.source       = '''
+                test/dummy_lxvst.cc
                 test/bbt_test.cpp
                 test/interpolation_test.cpp
                 test/midi_clock_slave_test.cpp
