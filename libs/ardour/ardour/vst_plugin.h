@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2004 Paul Davis
+    Copyright (C) 2010 Paul Davis
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,104 +20,82 @@
 #ifndef __ardour_vst_plugin_h__
 #define __ardour_vst_plugin_h__
 
-#include <list>
-#include <map>
-#include <set>
-#include <vector>
-#include <string>
-#include <dlfcn.h>
-
-#include "pbd/stateful.h"
 #include "ardour/plugin.h"
 
-struct _FSTHandle;
-struct _FST;
-typedef struct _FSTHandle FSTHandle;
-typedef struct _FST FST;
-class AEffect;
+struct _AEffect;
+typedef struct _AEffect AEffect;
+struct _VSTHandle;
+typedef struct _VSTHandle VSTHandle;
+struct _VSTState;
+typedef struct _VSTState VSTState;
 
 namespace ARDOUR {
-class AudioEngine;
-class Session;
 
-class VSTPlugin : public ARDOUR::Plugin
+/** Parent class for VST plugins of both Windows and Linux varieties */
+class VSTPlugin : public Plugin
 {
-  public:
-	VSTPlugin (ARDOUR::AudioEngine&, ARDOUR::Session&, FSTHandle* handle);
-	VSTPlugin (const VSTPlugin &);
-	~VSTPlugin ();
+public:
+	VSTPlugin (AudioEngine &, Session &, VSTHandle *);
+	virtual ~VSTPlugin ();
 
-	/* Plugin interface */
-
-	std::string unique_id() const;
-	const char * label() const;
-	const char * name() const;
-	const char * maker() const;
-	uint32_t parameter_count() const;
-	float default_value (uint32_t port);
-	framecnt_t signal_latency() const;
-	void set_parameter (uint32_t port, float val);
-	float get_parameter (uint32_t port) const;
-	int get_parameter_descriptor (uint32_t which, ParameterDescriptor&) const;
-	std::set<Evoral::Parameter> automatable() const;
-	uint32_t nth_parameter (uint32_t port, bool& ok) const;
 	void activate ();
 	void deactivate ();
+
 	int set_block_size (pframes_t);
-
-	int connect_and_run (BufferSet&,
-			ChanMapping in, ChanMapping out,
-			pframes_t nframes, framecnt_t offset);
-
-	std::string describe_parameter (Evoral::Parameter);
-	std::string state_node_name() const { return "vst"; }
-	void print_parameter (uint32_t, char*, uint32_t len) const;
-
-	bool parameter_is_audio(uint32_t i) const { return false; }
-	bool parameter_is_control(uint32_t i) const { return true; }
-	bool parameter_is_input(uint32_t i) const { return true; }
-	bool parameter_is_output(uint32_t i) const { return false; }
-
+	float default_value (uint32_t port);
+	float get_parameter (uint32_t port) const;
+	uint32_t nth_parameter (uint32_t port, bool& ok) const;
+	void set_parameter (uint32_t port, float val);
 	bool load_preset (PresetRecord);
-	int first_user_preset_index () const;
+	int get_parameter_descriptor (uint32_t which, ParameterDescriptor&) const;
+	std::string describe_parameter (Evoral::Parameter);
+	framecnt_t signal_latency() const;
+	std::set<Evoral::Parameter> automatable() const;
+
+	bool parameter_is_audio (uint32_t) const { return false; }
+	bool parameter_is_control (uint32_t) const { return true; }
+	bool parameter_is_input (uint32_t) const { return true; }
+	bool parameter_is_output (uint32_t) const { return false; }
+	
+	int connect_and_run (
+		BufferSet&, ChanMapping in, ChanMapping out,
+		pframes_t nframes, framecnt_t offset
+		);
+
+	std::string unique_id () const;
+	const char * label () const;
+	const char * name () const;
+	const char * maker () const;
+	uint32_t parameter_count () const;
+        void print_parameter (uint32_t, char*, uint32_t len) const;
 
 	bool has_editor () const;
+	
+	AEffect * plugin () const { return _plugin; }
+	VSTState * state () const { return _state; }
 
 	int set_state (XMLNode const &, int);
 
-	AEffect * plugin () const { return _plugin; }
-	FST * fst () const { return _fst; }
-
-private:
-
-	void do_remove_preset (std::string name);
-	std::string do_save_preset (std::string name);
+	int first_user_preset_index () const;
+	
+protected:
+	void set_plugin (AEffect *);
 	gchar* get_chunk (bool) const;
 	int set_chunk (gchar const *, bool);
+	void add_state (XMLNode *) const;
+	bool load_user_preset (PresetRecord);
+	bool load_plugin_preset (PresetRecord);
+	std::string do_save_preset (std::string name);
+	void do_remove_preset (std::string name);
 	XMLTree * presets_tree () const;
 	std::string presets_file () const;
 	void find_presets ();
-	bool load_user_preset (PresetRecord);
-	bool load_plugin_preset (PresetRecord);
-	void add_state (XMLNode *) const;
-
-	FSTHandle* handle;
-	FST*       _fst;
+	
+	VSTHandle* _handle;
+	VSTState*  _state;
 	AEffect*   _plugin;
-	bool        been_resumed;
 };
 
-class VSTPluginInfo : public PluginInfo
-{
-  public:
-	VSTPluginInfo ();
-	~VSTPluginInfo () {}
+}
 
-	PluginPtr load (Session& session);
-};
-
-typedef boost::shared_ptr<VSTPluginInfo> VSTPluginInfoPtr;
-
-} // namespace ARDOUR
-
-#endif /* __ardour_vst_plugin_h__ */
+#endif

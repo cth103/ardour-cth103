@@ -43,7 +43,6 @@
 #include "editor_drag.h"
 #include "region_view.h"
 #include "editor_group_tabs.h"
-#include "editor_routes.h"
 #include "editor_summary.h"
 #include "keyboard.h"
 #include "editor_cursors.h"
@@ -443,11 +442,43 @@ Editor::drop_regions (const RefPtr<Gdk::DragContext>& /*context*/,
 	_drags->end_grab (0);
 }
 
+/** If the editor window is arranged such that the edge of the trackview is right up
+ *  against the edge of the screen, autoscroll will not work very well.  In this situation,
+ *  we start autoscrolling some distance in from the right-hand-side of the screen edge;
+ *  this is the distance at which that happens.
+ */
+int
+Editor::autoscroll_fudge_threshold () const
+{
+	return current_page_frames() / 6;
+}
+
 void
 Editor::maybe_autoscroll (bool allow_horiz, bool allow_vert)
 {
-	framepos_t rightmost_frame = leftmost_frame + current_page_frames();
 	bool startit = false;
+
+	/* Work out the distance between the right hand edge of the trackview and the edge of
+	   the monitor that it is on.
+	*/
+
+	Glib::RefPtr<Gdk::Window> gdk_window = get_window ();
+	Gdk::Rectangle window_rect;
+	gdk_window->get_frame_extents (window_rect);
+	
+	Glib::RefPtr<Gdk::Screen> screen = get_screen ();
+	Gdk::Rectangle root_rect;
+	screen->get_root_window()->get_frame_extents (root_rect);
+
+	Gtk::Allocation editor_list = _the_notebook.get_allocation ();
+
+	framecnt_t distance = pixel_to_frame (root_rect.get_x() + root_rect.get_width() - window_rect.get_x() - window_rect.get_width());
+	if (_the_notebook.is_visible ()) {
+		distance += pixel_to_frame (editor_list.get_width());
+	}
+
+	/* Note whether we're fudging the autoscroll (see autoscroll_fudge_threshold) */
+	_autoscroll_fudging = (distance < autoscroll_fudge_threshold ());
 
 	double const ty = _drags->current_pointer_y();
 
@@ -459,6 +490,11 @@ Editor::maybe_autoscroll (bool allow_horiz, bool allow_vert)
 	} else if (ty > _visible_canvas_height && allow_vert) {
 		autoscroll_y = 1;
 		startit = true;
+	}
+
+	framepos_t rightmost_frame = leftmost_frame + current_page_frames();
+	if (_autoscroll_fudging) {
+		rightmost_frame -= autoscroll_fudge_threshold ();
 	}
 
 	if (_drags->current_pointer_frame() > rightmost_frame && allow_horiz) {
@@ -499,11 +535,14 @@ Editor::autoscroll_canvas ()
 	GdkEventMotion ev;
 	double new_pixel;
 	double target_pixel;
-
+	
 	if (autoscroll_x_distance != 0) {
 
 		if (autoscroll_x > 0) {
 			autoscroll_x_distance = (_drags->current_pointer_frame() - (leftmost_frame + current_page_frames())) / 3;
+			if (_autoscroll_fudging) {
+				autoscroll_x_distance += autoscroll_fudge_threshold () / 3;
+			}
 		} else if (autoscroll_x < 0) {
 			autoscroll_x_distance = (leftmost_frame - _drags->current_pointer_frame()) / 3;
 

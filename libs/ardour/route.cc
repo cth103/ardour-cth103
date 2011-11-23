@@ -398,8 +398,7 @@ Route::maybe_declick (BufferSet&, framecnt_t, int)
 void
 Route::process_output_buffers (BufferSet& bufs,
 			       framepos_t start_frame, framepos_t end_frame, pframes_t nframes,
-			       bool /*with_processors*/, int declick,
-                               bool gain_automation_ok)
+			       int declick, bool gain_automation_ok)
 {
 	bool monitor = should_monitor ();
 
@@ -548,7 +547,7 @@ Route::passthru (framepos_t start_frame, framepos_t end_frame, pframes_t nframes
 	}
 
 	write_out_of_band_data (bufs, start_frame, end_frame, nframes);
-	process_output_buffers (bufs, start_frame, end_frame, nframes, true, declick, true);
+	process_output_buffers (bufs, start_frame, end_frame, nframes, declick, true);
 }
 
 void
@@ -558,7 +557,7 @@ Route::passthru_silence (framepos_t start_frame, framepos_t end_frame, pframes_t
 
 	bufs.set_count (_input->n_ports());
 	write_out_of_band_data (bufs, start_frame, end_frame, nframes);
-	process_output_buffers (bufs, start_frame, end_frame, nframes, true, declick, false);
+	process_output_buffers (bufs, start_frame, end_frame, nframes, declick, false);
 }
 
 void
@@ -1625,12 +1624,11 @@ Route::configure_processors_unlocked (ProcessorStreams* err)
 	return 0;
 }
 
-/** Set all processors with a given placement to a given active state.
- * @param p Placement of processors to change.
- * @param state New active state for those processors.
+/** Set all visible processors to a given active state (except Fader, whose state is not changed)
+ *  @param state New active state for those processors.
  */
 void
-Route::all_processors_active (Placement p, bool state)
+Route::all_visible_processors_active (bool state)
 {
 	Glib::RWLock::ReaderLock lm (_processor_lock);
 
@@ -1638,10 +1636,11 @@ Route::all_processors_active (Placement p, bool state)
 		return;
 	}
 	
-	ProcessorList::iterator start, end;
-	placement_range(p, start, end);
-
-	for (ProcessorList::iterator i = start; i != end; ++i) {
+	for (ProcessorList::iterator i = _processors.begin(); i != _processors.end(); ++i) {
+		if (!(*i)->display_to_user() || boost::dynamic_pointer_cast<Amp> (*i)) {
+			continue;
+		}
+		
 		if (state) {
 			(*i)->activate ();
 		} else {
@@ -1848,14 +1847,8 @@ Route::state(bool full_state)
 int
 Route::set_state (const XMLNode& node, int version)
 {
-	return _set_state (node, version);
-}
-
-int
-Route::_set_state (const XMLNode& node, int version)
-{
 	if (version < 3000) {
-		return _set_state_2X (node, version);
+		return set_state_2X (node, version);
 	}
 
 	XMLNodeList nlist;
@@ -2055,7 +2048,7 @@ Route::_set_state (const XMLNode& node, int version)
 }
 
 int
-Route::_set_state_2X (const XMLNode& node, int version)
+Route::set_state_2X (const XMLNode& node, int version)
 {
 	XMLNodeList nlist;
 	XMLNodeConstIterator niter;
@@ -3292,6 +3285,38 @@ Route::set_name (const string& str)
 	return ret;
 }
 
+/** Set the name of a route in an XML description.
+ *  @param node XML <Route> node to set the name in.
+ *  @param name New name.
+ */
+void
+Route::set_name_in_state (XMLNode& node, string const & name)
+{
+	node.add_property (X_("name"), name);
+
+	XMLNodeList children = node.children();
+	for (XMLNodeIterator i = children.begin(); i != children.end(); ++i) {
+		
+		if ((*i)->name() == X_("IO")) {
+
+			IO::set_name_in_state (**i, name);
+
+		} else if ((*i)->name() == X_("Processor")) {
+
+			XMLProperty* role = (*i)->property (X_("role"));
+			if (role && role->value() == X_("Main")) {
+				(*i)->add_property (X_("name"), name);
+			}
+			
+		} else if ((*i)->name() == X_("Diskstream")) {
+
+			(*i)->add_property (X_("playlist"), string_compose ("%1.1", name).c_str());
+			(*i)->add_property (X_("name"), name);
+			
+		}
+	}
+}
+
 boost::shared_ptr<Send>
 Route::internal_send_for (boost::shared_ptr<const Route> target) const
 {
@@ -3882,4 +3907,17 @@ Route::maybe_note_meter_position ()
 			}
 		}
 	}
+}
+
+boost::shared_ptr<Processor>
+Route::processor_by_id (PBD::ID id) const
+{
+	Glib::RWLock::ReaderLock lm (_processor_lock);
+	for (ProcessorList::const_iterator i = _processors.begin(); i != _processors.end(); ++i) {
+		if ((*i)->id() == id) {
+			return *i;
+		}
+	}
+
+	return boost::shared_ptr<Processor> ();
 }

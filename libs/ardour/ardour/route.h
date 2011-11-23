@@ -98,6 +98,7 @@ class Route : public SessionObject, public Automatable, public RouteGroupMember,
 	void set_comment (std::string str, void *src);
 
 	bool set_name (const std::string& str);
+	static void set_name_in_state (XMLNode &, const std::string &);
 
 	int32_t order_key (std::string const &) const;
 	void set_order_key (std::string const &, int32_t);
@@ -202,6 +203,8 @@ class Route : public SessionObject, public Automatable, public RouteGroupMember,
 		}
 	}
 
+	boost::shared_ptr<Processor> processor_by_id (PBD::ID) const;
+
 	boost::shared_ptr<Processor> nth_plugin (uint32_t n);
 	boost::shared_ptr<Processor> nth_send (uint32_t n);
 
@@ -246,7 +249,7 @@ class Route : public SessionObject, public Automatable, public RouteGroupMember,
 	void disable_plugins ();
 	void ab_plugins (bool forward);
 	void clear_processors (Placement);
-	void all_processors_active (Placement, bool state);
+	void all_visible_processors_active (bool);
 
 	framecnt_t set_private_port_latencies (bool playback) const;
 	void       set_public_port_latencies (framecnt_t, bool playback) const;
@@ -288,7 +291,7 @@ class Route : public SessionObject, public Automatable, public RouteGroupMember,
 	/* stateful */
 
 	XMLNode& get_state();
-	int set_state (const XMLNode&, int version);
+	virtual int set_state (const XMLNode&, int version);
 	virtual XMLNode& get_template();
 
 	XMLNode& get_processor_state ();
@@ -427,7 +430,7 @@ class Route : public SessionObject, public Automatable, public RouteGroupMember,
 
 	virtual void process_output_buffers (BufferSet& bufs,
 	                                     framepos_t start_frame, framepos_t end_frame,
-	                                     pframes_t nframes, bool with_processors, int declick,
+	                                     pframes_t nframes, int declick,
 	                                     bool gain_automation_ok);
 
 	boost::shared_ptr<IO> _input;
@@ -493,13 +496,11 @@ class Route : public SessionObject, public Automatable, public RouteGroupMember,
 	virtual bool should_monitor () const;
 	virtual void maybe_declick (BufferSet&, framecnt_t, int);
 
-	virtual int  _set_state (const XMLNode&, int);
-
 	boost::shared_ptr<Amp>       _amp;
 	boost::shared_ptr<PeakMeter> _meter;
 
   private:
-	int _set_state_2X (const XMLNode&, int);
+	int set_state_2X (const XMLNode&, int);
 	void set_processor_state_2X (XMLNodeList const &, int);
 
 	static uint32_t order_key_cnt;

@@ -284,6 +284,7 @@ MidiBuffer::merge_in_place(const MidiBuffer &other)
 	}
 
 #ifndef NDEBUG
+#ifdef  TEST_MIDI_MERGE
 	size_t   test_orig_us_size   = _size;
 	size_t   test_orig_them_size = other._size;
 	TimeType test_time           = 0;
@@ -303,6 +304,7 @@ MidiBuffer::merge_in_place(const MidiBuffer &other)
 		++test_them_count;
 	}
 #endif
+#endif
 
 	const_iterator them = other.begin();
 	iterator us = begin();
@@ -316,7 +318,7 @@ MidiBuffer::merge_in_place(const MidiBuffer &other)
 		   the event referenced by "us"
 		*/
 
-		while (them != other.end() && (*them).time() <= (*us).time()) {
+		while (them != other.end() && (*them).time() < (*us).time()) {
 			if (src == -1) {
 				src = them.offset;
 			}
@@ -362,6 +364,7 @@ MidiBuffer::merge_in_place(const MidiBuffer &other)
 	}
 
 #ifndef NDEBUG
+#ifdef  TEST_MIDI_MERGE
 	assert(_size == test_orig_us_size + test_orig_them_size);
 	size_t test_final_count = 0;
 	test_time = 0;
@@ -373,6 +376,7 @@ MidiBuffer::merge_in_place(const MidiBuffer &other)
 		++test_final_count;
 	}
 	assert(test_final_count = test_us_count + test_them_count);
+#endif
 #endif
 
 	return true;

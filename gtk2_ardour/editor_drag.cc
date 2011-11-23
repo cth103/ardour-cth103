@@ -2093,39 +2093,6 @@ CursorDrag::start_grab (GdkEvent* event, Gdk::Cursor* c)
 void
 CursorDrag::motion (GdkEvent* event, bool)
 {
-	if (_drags->current_pointer_y() != last_pointer_y()) {
-
-		/* zoom when we move the pointer up and down */
-
-		/* y range to operate over (pixels) */
-		double const y_range = 512;
-		/* we will multiply the grab zoom by a factor between scale_range and scale_range^-1 */
-		double const scale_range = 4;
-		/* dead zone around the grab point in which to do no zooming (pixels) */
-		double const dead_zone = 100;
-
-		/* current dy */
-		double dy = _drags->current_pointer_y() - grab_y();
-
-		if (dy < -dead_zone || dy > dead_zone) {
-			/* we are outside the dead zone; remove it from our calculation */
-			if (dy < 0) {
-				dy += dead_zone;
-			} else {
-				dy -= dead_zone;
-			}
-
-			/* get a number from -1 to 1 as dy ranges from -y_range to y_range */
-			double udy = max (min (dy / y_range, 1.0), -1.0);
-
-			/* and zoom, using playhead focus temporarily */
-			Editing::ZoomFocus const zf = _editor->get_zoom_focus ();
-			_editor->set_zoom_focus (Editing::ZoomFocusPlayhead);
-			_editor->temporal_zoom (_grab_zoom * pow (scale_range, -udy));
-			_editor->set_zoom_focus (zf);
-		}
-	}
-
 	framepos_t const adjusted_frame = adjusted_current_frame (event);
 	if (adjusted_frame != last_pointer_frame()) {
 		fake_locate (adjusted_frame);
@@ -3093,7 +3060,37 @@ RubberbandSelectDrag::motion (GdkEvent* event, bool)
 		_editor->rubberband_rect->raise_to_top();
 
 		show_verbose_cursor_time (pf);
+
+		do_select_things (event, true);
 	}
+}
+
+void
+RubberbandSelectDrag::do_select_things (GdkEvent* event, bool drag_in_progress)
+{
+	framepos_t x1;
+	framepos_t x2;
+	
+	if (grab_frame() < last_pointer_frame()) {
+		x1 = grab_frame ();
+		x2 = last_pointer_frame ();
+	} else {
+		x2 = grab_frame ();
+		x1 = last_pointer_frame ();
+	}
+
+	double y1;
+	double y2;
+	
+	if (_drags->current_pointer_y() < grab_y()) {
+		y1 = _drags->current_pointer_y();
+		y2 = grab_y();
+	} else {
+		y2 = _drags->current_pointer_y();
+		y1 = grab_y();
+	}
+
+	select_things (event->button.state, x1, x2, y1, y2, drag_in_progress);
 }
 
 void
@@ -3102,36 +3099,12 @@ RubberbandSelectDrag::finished (GdkEvent* event, bool movement_occurred)
 	if (movement_occurred) {
 
 		motion (event, false);
-
-		double y1,y2;
-		if (_drags->current_pointer_y() < grab_y()) {
-			y1 = _drags->current_pointer_y();
-			y2 = grab_y();
-		} else {
-			y2 = _drags->current_pointer_y();
-			y1 = grab_y();
-		}
-
-
-		Selection::Operation op = ArdourKeyboard::selection_type (event->button.state);
-
-		_editor->begin_reversible_command (_("rubberband selection"));
-
-		if (grab_frame() < last_pointer_frame()) {
-			_editor->select_all_within (grab_frame(), last_pointer_frame() - 1, y1, y2, _editor->track_views, op, false);
-		} else {
-			_editor->select_all_within (last_pointer_frame(), grab_frame() - 1, y1, y2, _editor->track_views, op, false);
-		}
-
-		_editor->commit_reversible_command ();
+		do_select_things (event, false);
 
 	} else {
-		if (!getenv("ARDOUR_SAE")) {
-			_editor->selection->clear_tracks();
-		}
-		_editor->selection->clear_regions();
-		_editor->selection->clear_points ();
-		_editor->selection->clear_lines ();
+
+		deselect_things ();
+
 	}
 
 	_editor->rubberband_rect->hide();
@@ -4223,3 +4196,67 @@ PatchChangeDrag::setup_pointer_frame_offset ()
 	_pointer_frame_offset = raw_grab_frame() - _region_view->source_beats_to_absolute_frames (_patch_change->patch()->time());
 }
 
+MidiRubberbandSelectDrag::MidiRubberbandSelectDrag (Editor* e, MidiRegionView* rv)
+	: RubberbandSelectDrag (e, rv->get_canvas_frame ())
+	, _region_view (rv)
+{
+
+}
+
+void
+MidiRubberbandSelectDrag::select_things (int button_state, framepos_t x1, framepos_t x2, double y1, double y2, bool drag_in_progress)
+{
+	framepos_t const p = _region_view->region()->position ();
+	double const y = _region_view->midi_view()->y_position ();
+
+	x1 = max ((framepos_t) 0, x1 - p);
+	x2 = max ((framepos_t) 0, x2 - p);
+	y1 = max (0.0, y1 - y);
+	y2 = max (0.0, y2 - y);
+	
+	_region_view->update_drag_selection (
+		_editor->frame_to_pixel (x1),
+		_editor->frame_to_pixel (x2),
+		y1,
+		y2,
+		Keyboard::modifier_state_contains (button_state, Keyboard::TertiaryModifier)
+		);
+}
+
+void
+MidiRubberbandSelectDrag::deselect_things ()
+{
+	/* XXX */
+}
+
+EditorRubberbandSelectDrag::EditorRubberbandSelectDrag (Editor* e, ArdourCanvas::Item* i)
+	: RubberbandSelectDrag (e, i)
+{
+
+}
+
+void
+EditorRubberbandSelectDrag::select_things (int button_state, framepos_t x1, framepos_t x2, double y1, double y2, bool drag_in_progress)
+{
+	if (drag_in_progress) {
+		/* We just want to select things at the end of the drag, not during it */
+		return;
+	}
+	
+	Selection::Operation op = ArdourKeyboard::selection_type (button_state);
+	
+	_editor->begin_reversible_command (_("rubberband selection"));
+	_editor->select_all_within (x1, x2 - 1, y1, y2, _editor->track_views, op, false);
+	_editor->commit_reversible_command ();
+}
+
+void
+EditorRubberbandSelectDrag::deselect_things ()
+{
+	if (!getenv("ARDOUR_SAE")) {
+		_editor->selection->clear_tracks();
+	}
+	_editor->selection->clear_regions();
+	_editor->selection->clear_points ();
+	_editor->selection->clear_lines ();
+}

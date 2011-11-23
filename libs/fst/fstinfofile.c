@@ -31,22 +31,23 @@ static char *read_string( FILE *fp ) {
     }
 }
 
-static FSTInfo *load_fst_info_file( char *filename ) {
+static VSTInfo *
+load_fst_info_file (char* filename)
+{
+	VSTInfo *info = (VSTInfo *) malloc (sizeof (VSTInfo));
+	FILE *fp;
+	int i;
+	
+	if (info == NULL) {
+		return NULL;
+	}
 
-    FSTInfo *info = (FSTInfo *) malloc( sizeof( FSTInfo ) );
-    FILE *fp;
-    int i;
-
-
-    if( info == NULL )
-	return NULL;
-
-    fp = fopen( filename, "r" );
-    
-    if( fp == NULL ) {
-	free( info );
-	return NULL;
-    }
+	fp = fopen( filename, "r" );
+	
+	if (fp == NULL) {
+		free (info);
+		return NULL;
+	}
 
     if( (info->name = read_string( fp )) == NULL ) goto error;
     if( (info->creator = read_string( fp )) == NULL ) goto error;
@@ -78,8 +79,9 @@ error:
     return NULL;
 }
 
-static int save_fst_info_file( FSTInfo *info, char *filename ) {
-
+static int
+save_fst_info_file (VSTInfo* info, char* filename)
+{
     FILE *fp;
     int i;
 
@@ -145,8 +147,10 @@ static int fst_info_file_is_valid( char *dllpath ) {
 	return TRUE;
 }
 
-static int fst_can_midi( FST *fst ) {
-	struct AEffect *plugin = fst->plugin;
+static int
+fst_can_midi (VSTState* fst)
+{
+	AEffect* plugin = fst->plugin;
 	int vst_version = plugin->dispatcher (plugin, effGetVstVersion, 0, 0, NULL, 0.0f);
 
 	if (vst_version >= 2) {
@@ -160,11 +164,13 @@ static int fst_can_midi( FST *fst ) {
 	return FALSE;
 
 }
-static FSTInfo *fst_info_from_plugin( FST *fst ) {
-    FSTInfo *info = (FSTInfo *) malloc( sizeof( FSTInfo ) );
-    struct AEffect *plugin;
-    int i;
-    char creator[65];
+static VSTInfo *
+fst_info_from_plugin (VSTState* fst)
+{
+	VSTInfo* info = (VSTInfo *) malloc (sizeof (VSTInfo));
+	AEffect* plugin;
+	int i;
+	char creator[65];
 
     if( ! fst ) {
 	fst_error( "fst is NULL\n" );
@@ -184,11 +190,7 @@ static FSTInfo *fst_info_from_plugin( FST *fst ) {
       info->creator = strdup (creator);
     }
 
-#ifdef VESTIGE_HEADER
-    info->UniqueID = *((int32_t *) &plugin->unused_id);
-#else
-    info->UniqueID = plugin->uniqueID;
-#endif
+    info->UniqueID = *((int32_t *) &plugin->uniqueID);
 
     info->Category = strdup( "None" );          // FIXME:  
     info->numInputs = plugin->numInputs;
@@ -216,29 +218,33 @@ static FSTInfo *fst_info_from_plugin( FST *fst ) {
 }
 
 // most simple one :) could be sufficient.... 
-static long simple_master_callback( struct AEffect *fx, long opcode, long index, long value, void *ptr, float opt ) {
-    if( opcode == audioMasterVersion )
-	return 2;
-    else
-	return 0;
+static intptr_t
+simple_master_callback (AEffect *fx, int32_t opcode, int32_t index, intptr_t value, void *ptr, float opt)
+{
+	if (opcode == audioMasterVersion) {
+		return 2;
+	} else {
+		return 0;
+	}
 }
 
-FSTInfo *fst_get_info( char *dllpath ) {
-
-    if( fst_info_file_is_valid( dllpath ) ) {
-	FSTInfo *info;
-	char *fstpath = fst_dllpath_to_infopath( dllpath );
-
-	info = load_fst_info_file( fstpath );
-	free( fstpath );
-	return info;
+VSTInfo *
+fst_get_info (char* dllpath)
+{
+	if( fst_info_file_is_valid( dllpath ) ) {
+		VSTInfo *info;
+		char *fstpath = fst_dllpath_to_infopath( dllpath );
+		
+		info = load_fst_info_file( fstpath );
+		free( fstpath );
+		return info;
 
     } else {
 
-	FSTHandle *h;
-	FST *fst;
-	FSTInfo *info;
-	char *fstpath;
+	VSTHandle* h;
+	VSTState* fst;
+	VSTInfo* info;
+	char* fstpath;
 
 	if( !(h = fst_load( dllpath )) ) return NULL;
 	if( !(fst = fst_instantiate( h, simple_master_callback, NULL )) ) {
@@ -263,8 +269,9 @@ FSTInfo *fst_get_info( char *dllpath ) {
     }
 }
 
-void fst_free_info( FSTInfo *info ) {
-
+void
+fst_free_info (VSTInfo *info)
+{
     int i;
 
     for( i=0; i<info->numParams; i++ ) {

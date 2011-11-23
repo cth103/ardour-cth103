@@ -20,12 +20,11 @@
 #include <stdbool.h>
 #include <cstdio>
 
-#include <fst.h>
-#include <fst/vestige/aeffectx.h>
-
 #include "ardour/session.h"
 #include "ardour/tempo.h"
-#include "ardour/vst_plugin.h"
+#include "ardour/windows_vst_plugin.h"
+#include "ardour/vestige/aeffectx.h"
+#include "ardour/vst_types.h"
 
 #include "i18n.h"
 
@@ -40,12 +39,14 @@ static int debug_callbacks = -1;
 
 using namespace ARDOUR;
 
-long Session::vst_callback (AEffect* effect,
-			    long opcode,
-			    long index,
-			    long value,
-			    void* ptr,
-			    float opt)
+intptr_t Session::vst_callback (
+	AEffect* effect,
+	int32_t opcode,
+	int32_t index,
+	intptr_t value,
+	void* ptr,
+	float opt
+	)
 {
 	static VstTimeInfo _timeInfo;
 	VSTPlugin* plug;
@@ -56,13 +57,13 @@ long Session::vst_callback (AEffect* effect,
 	}
 
 	if (effect && effect->user) {
-	        plug = (VSTPlugin*) (effect->user);
+	        plug = (VSTPlugin *) (effect->user);
 		session = &plug->session();
-		SHOW_CALLBACK ("am callback 0x%x, opcode = %ld, plugin = \"%s\" ", (int) pthread_self(), opcode, plug->name());
+		SHOW_CALLBACK ("am callback 0x%x, opcode = %d, plugin = \"%s\" ", (int) pthread_self(), opcode, plug->name());
 	} else {
 		plug = 0;
 		session = 0;
-		SHOW_CALLBACK ("am callback 0x%x, opcode = %ld", (int) pthread_self(), opcode);
+		SHOW_CALLBACK ("am callback 0x%x, opcode = %d", (int) pthread_self(), opcode);
 	}
 
 	switch(opcode){
@@ -183,7 +184,7 @@ long Session::vst_callback (AEffect* effect,
 		SHOW_CALLBACK ("amc: audioMasterNeedIdle\n");
 		// plug needs idle calls (outside its editor window)
 		if (plug) {
-			plug->fst()->wantIdle = 1;
+			plug->state()->wantIdle = 1;
 		}
 		return 0;
 
@@ -348,7 +349,7 @@ long Session::vst_callback (AEffect* effect,
 		return 0;
 
 	default:
-		SHOW_CALLBACK ("VST master dispatcher: undefed: %ld\n", opcode);
+		SHOW_CALLBACK ("VST master dispatcher: undefed: %d\n", opcode);
 		break;
 	}
 

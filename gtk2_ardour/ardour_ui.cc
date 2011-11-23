@@ -137,12 +137,12 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 	: Gtkmm2ext::UI (PROGRAM_NAME, argcp, argvp)
 
 	, gui_object_state (new GUIObjectState)
-	, primary_clock (new AudioClock (X_("primary"), false, X_("TransportClockDisplay"), true, true, false, true))
-	, secondary_clock (new AudioClock (X_("secondary"), false, X_("SecondaryClockDisplay"), true, true, false, true))
+	, primary_clock (new AudioClock (X_("primary"), false, X_("transport"), true, true, false, true))
+	, secondary_clock (new AudioClock (X_("secondary"), false, X_("secondary"), true, true, false, true))
 
 	  /* big clock */
 
-	, big_clock (new AudioClock (X_("bigclock"), false, "BigClockNonRecording", true, true, false, false))
+	, big_clock (new AudioClock (X_("bigclock"), false, "big", true, true, false, false))
 
 	  /* transport */
 
@@ -1021,29 +1021,29 @@ ARDOUR_UI::update_format ()
 	}
 
 	stringstream s;
-	s << "File: <span foreground=\"green\">";
+	s << _("File:") << X_(" <span foreground=\"green\">");
 
 	switch (_session->config.get_native_file_header_format ()) {
 	case BWF:
-		s << "BWF";
+		s << _("BWF");
 		break;
 	case WAVE:
-		s << "WAV";
+		s << _("WAV");
 		break;
 	case WAVE64:
-		s << "WAV64";
+		s << _("WAV64");
 		break;
 	case CAF:
-		s << "CAF";
+		s << _("CAF");
 		break;
 	case AIFF:
-		s << "AIFF";
+		s << _("AIFF");
 		break;
 	case iXML:
-		s << "iXML";
+		s << _("iXML");
 		break;
 	case RF64:
-		s << "RF64";
+		s << _("RF64");
 		break;
 	}
 
@@ -1051,17 +1051,17 @@ ARDOUR_UI::update_format ()
 	
 	switch (_session->config.get_native_file_data_format ()) {
 	case FormatFloat:
-		s << "32-float";
+		s << _("32-float");
 		break;
 	case FormatInt24:
-		s << "24-int";
+		s << _("24-int");
 		break;
 	case FormatInt16:
-		s << "16-int";
+		s << _("16-int");
 		break;
 	}
 
-	s << "</span>";
+	s << X_("</span>");
 
 	format_label.set_markup (s.str ());
 }
@@ -3055,7 +3055,7 @@ ARDOUR_UI::display_cleanup_results (ARDOUR::CleanupReport& rep, const gchar* lis
 				    _("No files were ready for clean-up"),
 				    true,
 				    Gtk::MESSAGE_INFO,
-				    (Gtk::ButtonsType)(Gtk::BUTTONS_OK)  );
+				    Gtk::BUTTONS_OK);
 		msgd.set_title (_("Clean-up"));
 		msgd.set_secondary_text (_("If this seems suprising, \n\
 check for any existing snapshots.\n\
@@ -3181,7 +3181,7 @@ ARDOUR_UI::cleanup ()
 	MessageDialog checker (_("Are you sure you want to clean-up?"),
 				true,
 				Gtk::MESSAGE_QUESTION,
-				(Gtk::ButtonsType)(Gtk::BUTTONS_NONE));
+				Gtk::BUTTONS_NONE);
 
 	checker.set_title (_("Clean-up"));
 
@@ -3601,13 +3601,13 @@ void
 ARDOUR_UI::update_transport_clocks (framepos_t pos)
 {
 	if (Config->get_primary_clock_delta_edit_cursor()) {
-		primary_clock->set (pos, false, editor->get_preferred_edit_position(), 1);
+		primary_clock->set (pos, false, editor->get_preferred_edit_position());
 	} else {
-		primary_clock->set (pos, 0, true);
+		primary_clock->set (pos);
 	}
 
 	if (Config->get_secondary_clock_delta_edit_cursor()) {
-		secondary_clock->set (pos, false, editor->get_preferred_edit_position(), 2);
+		secondary_clock->set (pos, false, editor->get_preferred_edit_position());
 	} else {
 		secondary_clock->set (pos);
 	}
@@ -3643,13 +3643,10 @@ ARDOUR_UI::record_state_changed ()
 		return;
 	}
 
-	Session::RecordState const r = _session->record_status ();
-	bool const h = _session->have_rec_enabled_track ();
-
-	if (r == Session::Recording && h)  {
-		big_clock->set_widget_name ("BigClockRecording");
+	if (_session->record_status () == Session::Recording && _session->have_rec_enabled_track ()) {
+		big_clock->set_active (true);
 	} else {
-		big_clock->set_widget_name ("BigClockNonRecording");
+		big_clock->set_active (false);
 	}
 }
 

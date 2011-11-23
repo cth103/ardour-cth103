@@ -131,6 +131,7 @@ static const char* authors[] = {
 	N_("Jesse Chappell"),
 	N_("Thomas Charbonnel"),
 	N_("Sam Chessman"),
+	N_("André Colomb"),
 	N_("Paul Davis"),
 	N_("Gerard van Dongen"),
 	N_("Colin Fletcher"),
@@ -178,7 +179,10 @@ static const char* translators[] = {
 	N_("French:\n\tAlain Fréhel <alain.frehel@free.fr>\n\tChristophe Combelles <ccomb@free.fr>\n\tMartin Blanchard\n"),
 	N_("German:\n\tKarsten Petersen <kapet@kapet.de>\
 \n\tSebastian Arnold <mail@sebastian-arnold.net>\
-\n\tRobert Schwede<schwede@ironshark.com>\n"),
+\n\tRobert Schwede <schwede@ironshark.com>\
+\n\tBenjamin Scherrer <realhangman@web.de>\
+\n\tEdgar Aichinger <edogawa@aon.at>\
+\n\tRichard Oax <richard@pagliacciempire.de>\n"),
 	N_("Italian:\n\tFilippo Pappalardo <filippo@email.it>\n"),
 	N_("Portuguese:\n\tRui Nuno Capela <rncbc@rncbc.org>\n"),
 	N_("Brazilian Portuguese:\n\tAlexander da Franca Fernandes <alexander@nautae.eti.br>\

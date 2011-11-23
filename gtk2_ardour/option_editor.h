@@ -26,7 +26,7 @@
 #include <gtkmm/spinbutton.h>
 #include <gtkmm/table.h>
 #include "gtkmm2ext/slider_controller.h"
-#include "ardour_dialog.h"
+#include "ardour_window.h"
 #include "audio_clock.h"
 #include "ardour/types.h"
 
@@ -387,6 +387,7 @@ public:
 
 private:
 	void file_set ();
+	void current_folder_set ();
 	
 	sigc::slot<std::string> _get; ///< slot to get the configuration variable's value
 	sigc::slot<bool, std::string> _set;  ///< slot to set the configuration variable's value
@@ -408,7 +409,7 @@ public:
 };
 
 /** The OptionEditor dialog base class */
-class OptionEditor : public ArdourDialog
+class OptionEditor : public ArdourWindow
 {
 public:
 	OptionEditor (ARDOUR::Configuration *, std::string const &);

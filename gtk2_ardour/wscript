@@ -15,8 +15,9 @@ MICRO = '0'
 GTK2_ARDOUR_VERSION = "%s.%s.%s" % (MAJOR, MINOR, MICRO)
 
 # Variables for 'waf dist'
-APPNAME = 'gtk2_ardour'
+APPNAME = 'gtk2_ardour3'
 VERSION = GTK2_ARDOUR_VERSION
+I18N_PACKAGE = 'gtk2_ardour3'
 
 # Mandatory variables
 top = '.'
@@ -40,6 +41,7 @@ gtk2_ardour_sources = [
         'ardour_ui_ed.cc',
         'ardour_ui_mixer.cc',
         'ardour_ui_options.cc',
+        'ardour_window.cc',
         'audio_clock.cc',
         'audio_region_editor.cc',
         'audio_region_view.cc',
@@ -330,7 +332,7 @@ def build_color_scheme(path, prefix):
 def build(bld):
     # GTK front-end; if we're using VST we build this as a shared library,
     # otherwise it's a normal executabale
-    if bld.is_defined('VST_SUPPORT'):
+    if bld.is_defined('WINDOWS_VST_SUPPORT'):
         obj = bld(features = 'cxx c cxxshlib')
     else:
         obj = bld(features = 'cxx c cxxprogram')
@@ -339,7 +341,7 @@ def build(bld):
     obj.source       = gtk2_ardour_sources
     obj.name         = 'gtk2_ardour'
     obj.linkflags    = []
-    if bld.is_defined('VST_SUPPORT'):
+    if bld.is_defined('WINDOWS_VST_SUPPORT'):
         obj.target = 'gtk2_ardour'
         obj.includes += ['../libs/fst']
     else:
@@ -358,7 +360,7 @@ def build(bld):
     if sys.platform == 'darwin':
         obj.use += ' libappleutility'
     obj.defines     = [
-        'PACKAGE="gtk2_ardour3"',
+        'PACKAGE="' + I18N_PACKAGE + '"',
         'VERSIONSTRING="' + bld.env['VERSION'] + '"',
         'DATA_DIR="' + os.path.normpath(bld.env['DATADIR']) + '"',
         'CONFIG_DIR="' + os.path.normpath(bld.env['SYSCONFDIR']) + '"',
@@ -377,15 +379,18 @@ def build(bld):
         obj.source +=  [ 'sfdb_freesound_mootcher.cc' ]
         obj.defines += [ 'FREESOUND' ]
 
-    if bld.is_defined('VST_SUPPORT'):
-        obj.source += [ 'vst_pluginui.cc' ]
-        obj.defines += [ 'VST_SUPPORT' ]
+    if bld.is_defined('WINDOWS_VST_SUPPORT'):
+        obj.source += [ 'windows_vst_plugin_ui.cc' ]
+        obj.defines += [ 'WINDOWS_VST_SUPPORT' ]
         obj.uselib += ' X11 '
 
     if bld.is_defined('LXVST_SUPPORT'):
-        obj.source += [ 'vstfxwin.cc', 'lxvst_pluginui.cc' ]
+        obj.source += [ 'vstfxwin.cc', 'lxvst_plugin_ui.cc' ]
         obj.defines += [ 'LXVST_SUPPORT' ]
         obj.uselib += ' X11 '
+
+    if bld.is_defined('WINDOWS_VST_SUPPORT') or bld.is_defined('LXVST_SUPPORT'):
+        obj.source += [ 'vst_plugin_ui.cc' ]
         
     if bld.is_defined('PHONE_HOME'):
         obj.defines += [ 'PHONE_HOME' ]
@@ -395,7 +400,7 @@ def build(bld):
         obj.source += [ 'cocoacarbon.mm', 'au_pluginui.mm' ]
         obj.use += ' libappleutility '
 
-    if bld.is_defined('VST_SUPPORT'):
+    if bld.is_defined('WINDOWS_VST_SUPPORT'):
         # If we require VST support we build a stub main() and the FST library
         # here using winegcc, and link it to the GTK front-end library
         obj = bld(features = 'cxx c cxxprogram wine')
@@ -408,7 +413,7 @@ def build(bld):
         '''
         obj.includes = '../libs/fst'
         obj.target = 'ardour-3.0-vst'
-        obj.linkflags += ['-mwindows', '-Wl,--export-dynamic', '-lpthread']
+        obj.linkflags = ['-mwindows', '-Wl,--export-dynamic', '-lpthread']
         obj.defines = ['_POSIX_SOURCE', 'USE_WS_PREFIX']
         obj.uselib = 'ALSA'
         obj.use = ['libpbd','libmidipp','libtaglib','libardour',
@@ -618,9 +623,21 @@ def build(bld):
         for mo in mo_files:
             lang = os.path.basename(mo.srcpath()).replace('.mo', '')
             bld.install_as(os.path.join(bld.env['PREFIX'], 'share', 'locale',
-                                        lang, 'LC_MESSAGES', APPNAME + '.mo'),
+                                        lang, 'LC_MESSAGES', I18N_PACKAGE + '.mo'),
                            mo)
 
 def i18n(bld):
-    autowaf.build_i18n(bld, top, 'gtk2_ardour', APPNAME, gtk2_ardour_sources,
+    autowaf.build_i18n(bld, top, 'gtk2_ardour', I18N_PACKAGE, gtk2_ardour_sources,
+                       'Paul Davis')
+
+def i18n_pot(bld):
+    autowaf.build_i18n_pot(bld, top, 'gtk2_ardour', I18N_PACKAGE, gtk2_ardour_sources,
+                       'Paul Davis')
+
+def i18n_po(bld):
+    autowaf.build_i18n_po(bld, top, 'gtk2_ardour', I18N_PACKAGE, gtk2_ardour_sources,
+                       'Paul Davis')
+
+def i18n_mo(bld):
+    autowaf.build_i18n_mo(bld, top, 'gtk2_ardour', I18N_PACKAGE, gtk2_ardour_sources,
                        'Paul Davis')

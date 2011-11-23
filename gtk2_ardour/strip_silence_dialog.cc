@@ -45,8 +45,8 @@ using namespace Canvas;
 StripSilenceDialog::StripSilenceDialog (Session* s, list<RegionView*> const & v)
 	: ArdourDialog (_("Strip Silence"))
 	, ProgressReporter ()
-        , _minimum_length (new AudioClock (X_("silence duration"), true, "SilenceDurationClock", true, false, true, false))
-        , _fade_length (new AudioClock (X_("silence duration"), true, "SilenceDurationClock", true, false, true, false))
+        , _minimum_length (new AudioClock (X_("silence duration"), true, "", true, false, true, false))
+        , _fade_length (new AudioClock (X_("silence duration"), true, "", true, false, true, false))
 	, _peaks_ready_connection (0)
 	, _destroying (false)
 {

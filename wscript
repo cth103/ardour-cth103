@@ -9,7 +9,7 @@ import sys
 
 # Variables for 'waf dist'
 VERSION = '3.0beta1a'
-APPNAME = 'Ardour'
+APPNAME = 'Ardour3'
 
 # Mandatory variables
 top = '.'
@@ -245,9 +245,9 @@ def set_compiler_flags (conf,opt):
     # no VST on x86_64
     #
 
-    if conf.env['build_target'] == 'x86_64' and opt.vst:
+    if conf.env['build_target'] == 'x86_64' and opt.windows_vst:
         print("\n\n==================================================")
-        print("You cannot use VST plugins with a 64 bit host. Please run waf with --vst=0")
+        print("You cannot use VST plugins with a 64 bit host. Please run waf with --windows-vst=0")
         print("\nIt is theoretically possible to build a 32 bit host on a 64 bit system.")
         print("However, this is tricky and not recommended for beginners.")
         sys.exit (-1)
@@ -324,11 +324,6 @@ def set_compiler_flags (conf,opt):
     conf.env.append_value('CFLAGS', "-Wall")
     conf.env.append_value('CXXFLAGS', [ '-Wall', '-Woverloaded-virtual'])
 
-    if opt.extra_warn:
-        flags = [ '-Wextra' ]
-        conf.env.append_value('CFLAGS', flags)
-        conf.env.append_value('CXXFLAGS', flags)
-
 
     #
     # more boilerplate
@@ -365,8 +360,6 @@ def options(opt):
                     help='Compile with Boost shared pointer debugging')
     opt.add_option('--dist-target', type='string', default='auto', dest='dist_target',
                     help='Specify the target for cross-compiling [auto,none,x86,i386,i686,x86_64,powerpc,tiger,leopard]')
-    opt.add_option('--extra-warn', action='store_true', default=False, dest='extra_warn',
-                    help='Build with even more compiler warning flags')
     opt.add_option('--fpu-optimization', action='store_true', default=True, dest='fpu_optimization',
                     help='Build runtime checked assembler code (default)')
     opt.add_option('--no-fpu-optimization', action='store_false', dest='fpu_optimization')
@@ -378,8 +371,10 @@ def options(opt):
                     help='Include Freesound database lookup')
     opt.add_option('--gprofile', action='store_true', default=False, dest='gprofile',
                     help='Compile for use with gprofile')
-    opt.add_option('--lv2', action='store_true', default=False, dest='lv2',
+    opt.add_option('--lv2', action='store_true', default=True, dest='lv2',
                     help='Compile with support for LV2 (if Lilv+Suil is available)')
+    opt.add_option('--no-lv2', action='store_false', dest='lv2',
+                    help='Do not compile with support for LV2')
     opt.add_option('--lxvst', action='store_true', default=lxvst_default, dest='lxvst',
                     help='Compile with support for linuxVST plugins')
     opt.add_option('--nls', action='store_true', default=True, dest='nls',
@@ -398,8 +393,8 @@ def options(opt):
                     help='Compile as universal binary (requires that external libraries are universal)')
     opt.add_option('--versioned', action='store_true', default=False, dest='versioned',
                     help='Add revision information to executable name inside the build directory')
-    opt.add_option('--vst', action='store_true', default=False, dest='vst',
-                    help='Compile with support for VST')
+    opt.add_option('--windows-vst', action='store_true', default=False, dest='windows_vst',
+                    help='Compile with support for Windows VST')
     opt.add_option('--wiimote', action='store_true', default=False, dest='wiimote',
                     help='Build the wiimote control surface')
     opt.add_option('--windows-key', type='string', action='store', dest='windows_key', default='Mod4><Super',
@@ -559,10 +554,11 @@ def configure(conf):
         conf.env['BUILD_TESTS'] = opts.build_tests
     if opts.tranzport:
         conf.env['TRANZPORT'] = 1
-    if opts.vst:
-        conf.define('VST_SUPPORT', 1)
-        conf.env['VST_SUPPORT'] = True
-        conf.env.append_value('CPPPATH', Options.options.wine_include)
+    if opts.windows_vst:
+        conf.define('WINDOWS_VST_SUPPORT', 1)
+        conf.env['WINDOWS_VST_SUPPORT'] = True
+        conf.env.append_value('CFLAGS', '-I' + Options.options.wine_include)
+        conf.env.append_value('CXXFLAGS', '-I' + Options.options.wine_include)
         autowaf.check_header(conf, 'cxx', 'windows.h', mandatory = True)
     if opts.lxvst:
         conf.define('LXVST_SUPPORT', 1)
@@ -622,7 +618,7 @@ const char* const ardour_config_info = "\\n\\
     write_config_text('Tranzport',             opts.tranzport)
     write_config_text('Unit tests',            conf.env['BUILD_TESTS'])
     write_config_text('Universal binary',      opts.universal)
-    write_config_text('VST support',           opts.vst)
+    write_config_text('Windows VST support',   opts.windows_vst)
     write_config_text('Wiimote support',       opts.wiimote)
     write_config_text('Windows key',           opts.windows_key)
 
@@ -675,4 +671,13 @@ def build(bld):
     obj.install_path = '${SYSCONFDIR}/ardour3'
 
 def i18n(bld):
+    bld.recurse (i18n_children)
+
+def i18n_pot(bld):
+    bld.recurse (i18n_children)
+
+def i18n_po(bld):
+    bld.recurse (i18n_children)
+
+def i18n_mo(bld):
     bld.recurse (i18n_children)

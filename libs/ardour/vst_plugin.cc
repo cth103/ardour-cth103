@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2004 Paul Davis
+    Copyright (C) 2010 Paul Davis
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,130 +17,97 @@
 
 */
 
-#include <algorithm>
-#include <vector>
-#include <string>
-#include <cctype>
-
-#include <cstdlib>
-#include <cstdio> // so libraptor doesn't complain
-#include <cmath>
-#include <dirent.h>
-#include <cstring> // for memmove
-#include <sys/stat.h>
-#include <cerrno>
-
-#include <glibmm/miscutils.h>
-
-#include <lrdf.h>
-#include <fst.h>
-
-#include "pbd/compose.h"
-#include "pbd/error.h"
+#include "pbd/locale_guard.h"
 #include "pbd/pathscanner.h"
-#include "pbd/xml++.h"
-
-#include <fst.h>
-
-#include "ardour/session.h"
-#include "ardour/audioengine.h"
-#include "ardour/filesystem_paths.h"
 #include "ardour/vst_plugin.h"
-#include "ardour/buffer_set.h"
+#include "ardour/vestige/aeffectx.h"
+#include "ardour/session.h"
+#include "ardour/vst_types.h"
+#include "ardour/filesystem_paths.h"
 #include "ardour/audio_buffer.h"
-#include "ardour/midi_buffer.h"
-
-#include "pbd/stl_delete.h"
 
 #include "i18n.h"
-#include <locale.h>
 
 using namespace std;
-using namespace ARDOUR;
 using namespace PBD;
-using std::min;
-using std::max;
+using namespace ARDOUR;
 
-VSTPlugin::VSTPlugin (AudioEngine& e, Session& session, FSTHandle* h)
-	: Plugin (e, session)
+VSTPlugin::VSTPlugin (AudioEngine& engine, Session& session, VSTHandle* handle)
+	: Plugin (engine, session)
+	, _handle (handle)
+	, _state (0)
+	, _plugin (0)
 {
-	handle = h;
-
-	if ((_fst = fst_instantiate (handle, Session::vst_callback, this)) == 0) {
-		throw failed_constructor();
-	}
-
-	_plugin = _fst->plugin;
-	_plugin->user = this;
-
-	/* set rate and blocksize */
-
-	_plugin->dispatcher (_plugin, effSetSampleRate, 0, 0, NULL,
-			     (float) session.frame_rate());
-	_plugin->dispatcher (_plugin, effSetBlockSize, 0,
-			     session.get_block_size(), NULL, 0.0f);
-
-	/* set program to zero */
-
-	_plugin->dispatcher (_plugin, effSetProgram, 0, 0, NULL, 0.0f);
-
-	// Plugin::setup_controls ();
-}
-
-VSTPlugin::VSTPlugin (const VSTPlugin &other)
-	: Plugin (other)
-{
-	handle = other.handle;
-
-	if ((_fst = fst_instantiate (handle, Session::vst_callback, this)) == 0) {
-		throw failed_constructor();
-	}
-	_plugin = _fst->plugin;
-
-	// Plugin::setup_controls ();
+	
 }
 
 VSTPlugin::~VSTPlugin ()
 {
-	deactivate ();
-	fst_close (_fst);
+	
 }
 
-int
+void
+VSTPlugin::set_plugin (AEffect* e)
+{
+	_plugin = e;
+	_plugin->user = this;
+
+	/* set rate and blocksize */
+
+	_plugin->dispatcher (_plugin, effSetSampleRate, 0, 0, NULL, (float) _session.frame_rate());
+	_plugin->dispatcher (_plugin, effSetBlockSize, 0, _session.get_block_size(), NULL, 0.0f);
+
+	/* set program to zero */
+
+	_plugin->dispatcher (_plugin, effSetProgram, 0, 0, NULL, 0.0f);
+}
+
+void
+VSTPlugin::deactivate ()
+{
+	_plugin->dispatcher (_plugin, effMainsChanged, 0, 0, NULL, 0.0f);
+}
+
+void
+VSTPlugin::activate ()
+{
+	_plugin->dispatcher (_plugin, effMainsChanged, 0, 1, NULL, 0.0f);
+}
+
+int 
 VSTPlugin::set_block_size (pframes_t nframes)
 {
 	deactivate ();
 	_plugin->dispatcher (_plugin, effSetBlockSize, 0, nframes, NULL, 0.0f);
 	activate ();
-        return 0;
+	return 0;
 }
 
 float
-VSTPlugin::default_value (uint32_t port)
+VSTPlugin::default_value (uint32_t)
 {
 	return 0;
 }
 
-void
-VSTPlugin::set_parameter (uint32_t which, float val)
-{
-	_plugin->setParameter (_plugin, which, val);
-
-	if (_fst->want_program == -1 && _fst->want_chunk == 0) {
-		/* Heinous hack: Plugin::set_parameter below updates the `modified' status of the
-		   current preset, but if _fst->want_program is not -1 then there is a preset
-		   setup pending or in progress, which we don't want any `modified' updates
-		   to happen for.  So we only do this if _fst->want_program is -1.
-		*/
-		Plugin::set_parameter (which, val);
-	}
-}
-
-float
+float 
 VSTPlugin::get_parameter (uint32_t which) const
 {
 	return _plugin->getParameter (_plugin, which);
+}
 
+void 
+VSTPlugin::set_parameter (uint32_t which, float val)
+{
+	_plugin->setParameter (_plugin, which, val);
+	
+	if (_state->want_program == -1 && _state->want_chunk == 0) {
+		/* Heinous hack: Plugin::set_parameter below updates the `modified' status of the
+		   current preset, but if _state->want_program is not -1 then there is a preset
+		   setup pending or in progress, which we don't want any `modified' updates
+		   to happen for.  So we only do this if _state->want_program is -1.
+		*/
+		Plugin::set_parameter (which, val);
+	}
 }
 
 uint32_t
@@ -186,9 +153,9 @@ VSTPlugin::add_state (XMLNode* root) const
 {
 	LocaleGuard lg (X_("POSIX"));
 
-	if (_fst->current_program != -1) {
+	if (_state->current_program != -1) {
 		char buf[32];
-		snprintf (buf, sizeof (buf), "%d", _fst->current_program);
+		snprintf (buf, sizeof (buf), "%d", _state->current_program);
 		root->add_property ("current-program", buf);
 	}
 
@@ -215,7 +182,7 @@ VSTPlugin::add_state (XMLNode* root) const
 		for (int32_t n = 0; n < _plugin->numParams; ++n) {
 			char index[64];
 			char val[32];
-			snprintf (index, sizeof (index), "param_%d", n);
+			snprintf (index, sizeof (index), "param-%d", n);
 			snprintf (val, sizeof (val), "%.12g", _plugin->getParameter (_plugin, n));
 			parameters->add_property (index, val);
 		}
@@ -237,7 +204,7 @@ VSTPlugin::set_state (const XMLNode& node, int version)
 	const XMLProperty* prop;
 
 	if ((prop = node.property ("current-program")) != 0) {
-		_fst->want_program = atoi (prop->value().c_str());
+		_state->want_program = atoi (prop->value().c_str());
 	}
 
 	XMLNode* child;
@@ -247,7 +214,6 @@ VSTPlugin::set_state (const XMLNode& node, int version)
 
 		XMLPropertyList::const_iterator i;
 		XMLNodeList::const_iterator n;
-		int ret = -1;
 
 		for (n = child->children ().begin (); n != child->children ().end (); ++n) {
 			if ((*n)->is_content ()) {
@@ -266,7 +232,7 @@ VSTPlugin::set_state (const XMLNode& node, int version)
 			int32_t param;
 			float val;
 
-			sscanf ((*i)->name().c_str(), "param_%d", &param);
+			sscanf ((*i)->name().c_str(), "param-%d", &param);
 			sscanf ((*i)->value().c_str(), "%f", &val);
 
 			_plugin->setParameter (_plugin, param, val);
@@ -274,7 +240,7 @@ VSTPlugin::set_state (const XMLNode& node, int version)
 
 		/* program number is not knowable */
 
-		_fst->current_program = -1;
+		_state->current_program = -1;
 
 		ret = 0;
 
@@ -283,6 +249,7 @@ VSTPlugin::set_state (const XMLNode& node, int version)
 	Plugin::set_state (node, version);
 	return ret;
 }
+
 
 int
 VSTPlugin::get_parameter_descriptor (uint32_t which, ParameterDescriptor& desc) const
@@ -376,7 +343,7 @@ VSTPlugin::load_preset (PresetRecord r)
 	return s;
 }
 
-bool
+bool 
 VSTPlugin::load_plugin_preset (PresetRecord r)
 {
 	/* This is a plugin-provided preset.
@@ -386,14 +353,18 @@ VSTPlugin::load_plugin_preset (PresetRecord r)
 	/* Extract the index of this preset from the URI */
 	int id;
 	int index;
+#ifndef NDEBUG
 	int const p = sscanf (r.uri.c_str(), "VST:%d:%d", &id, &index);
 	assert (p == 2);
-
-	_fst->want_program = index;
+#else 
+	sscanf (r.uri.c_str(), "VST:%d:%d", &id, &index);
+#endif
+	
+	_state->want_program = index;
 	return true;
 }
 
-bool
+bool 
 VSTPlugin::load_user_preset (PresetRecord r)
 {
 	/* This is a user preset; we load it, and this code also knows about the
@@ -408,11 +379,8 @@ VSTPlugin::load_user_preset (PresetRecord r)
 	XMLNode* root = t->root ();
 
 	for (XMLNodeList::const_iterator i = root->children().begin(); i != root->children().end(); ++i) {
-
-		XMLProperty* uri = (*i)->property (X_("uri"));
 		XMLProperty* label = (*i)->property (X_("label"));
 
-		assert (uri);
 		assert (label);
 
 		if (label->value() != r.label) {
@@ -423,8 +391,8 @@ VSTPlugin::load_user_preset (PresetRecord r)
 
 			/* Load a user preset chunk from our XML file and send it via a circuitous route to the plugin */
 
-			if (_fst->wanted_chunk) {
-				g_free (_fst->wanted_chunk);
+			if (_state->wanted_chunk) {
+				g_free (_state->wanted_chunk);
 			}
 
 			for (XMLNodeList::const_iterator j = (*i)->children().begin(); j != (*i)->children().end(); ++j) {
@@ -432,20 +400,19 @@ VSTPlugin::load_user_preset (PresetRecord r)
 					/* we can't dispatch directly here; too many plugins expect only one GUI thread */
 					gsize size = 0;
 					guchar* raw_data = g_base64_decode ((*j)->content().c_str(), &size);
-					_fst->wanted_chunk = raw_data;
-					_fst->wanted_chunk_size = size;
-					_fst->want_chunk = 1;
+					_state->wanted_chunk = raw_data;
+					_state->wanted_chunk_size = size;
+					_state->want_chunk = 1;
 					return true;
 				}
 			}
 
 			return false;
 
-		} else {
-
+		}
+		else {
 			for (XMLNodeList::const_iterator j = (*i)->children().begin(); j != (*i)->children().end(); ++j) {
 				if ((*j)->name() == X_("Parameter")) {
-
 						XMLProperty* index = (*j)->property (X_("index"));
 						XMLProperty* value = (*j)->property (X_("value"));
 
@@ -455,15 +422,13 @@ VSTPlugin::load_user_preset (PresetRecord r)
 						set_parameter (atoi (index->value().c_str()), atof (value->value().c_str ()));
 				}
 			}
-
 			return true;
 		}
 	}
-
 	return false;
 }
 
-string
+string 
 VSTPlugin::do_save_preset (string name)
 {
 	boost::shared_ptr<XMLTree> t (presets_tree ());
@@ -484,7 +449,8 @@ VSTPlugin::do_save_preset (string name)
 		p->add_content (string (data));
 		g_free (data);
 
-	} else {
+	}
+	else {
 
 		p = new XMLNode (X_("Preset"));
 		p->add_property (X_("uri"), uri);
@@ -498,7 +464,6 @@ VSTPlugin::do_save_preset (string name)
 				p->add_child_nocopy (*c);
 			}
 		}
-
 	}
 
 	t->root()->add_child_nocopy (*p);
@@ -511,7 +476,7 @@ VSTPlugin::do_save_preset (string name)
 	return uri;
 }
 
-void
+void 
 VSTPlugin::do_remove_preset (string name)
 {
 	boost::shared_ptr<XMLTree> t (presets_tree ());
@@ -528,34 +493,30 @@ VSTPlugin::do_remove_preset (string name)
 	t->write (f.to_string ());
 }
 
-string
+string 
 VSTPlugin::describe_parameter (Evoral::Parameter param)
 {
-	char name[64];
+	char name[64] = "Unkown";
 	_plugin->dispatcher (_plugin, effGetParamName, param.id(), 0, name, 0);
 	return name;
 }
 
-framecnt_t
+framecnt_t 
 VSTPlugin::signal_latency () const
 {
 	if (_user_latency) {
 		return _user_latency;
 	}
 
-#ifdef VESTIGE_HEADER
-        return *((framecnt_t *) (((char *) &_plugin->flags) + 12)); /* initialDelay */
-#else
-	return _plugin->initial_delay;
-#endif
+	return *((int32_t *) (((char *) &_plugin->flags) + 12)); /* initialDelay */
 }
 
-set<Evoral::Parameter>
+set<Evoral::Parameter> 
 VSTPlugin::automatable () const
 {
 	set<Evoral::Parameter> ret;
 
-	for (uint32_t i = 0; i < parameter_count(); ++i){
+	for (uint32_t i = 0; i < parameter_count(); ++i) {
 		ret.insert (ret.end(), Evoral::Parameter(PluginAutomation, 0, i));
 	}
 
@@ -564,8 +525,8 @@ VSTPlugin::automatable () const
 
 int
 VSTPlugin::connect_and_run (BufferSet& bufs,
-		ChanMapping in_map, ChanMapping out_map,
-		pframes_t nframes, framecnt_t offset)
+			    ChanMapping in_map, ChanMapping out_map,
+			    pframes_t nframes, framecnt_t offset)
 {
 	Plugin::connect_and_run (bufs, in_map, out_map, nframes, offset);
 
@@ -584,16 +545,8 @@ VSTPlugin::connect_and_run (BufferSet& bufs,
 	int out_index = 0;
 	for (i = 0; i < (int32_t) _plugin->numOutputs; ++i) {
 		outs[i] = bufs.get_audio(min((uint32_t) out_index, nbufs - 1)).data() + offset;
-
-		/* unbelievably, several VST plugins still rely on Cubase
-		   behaviour and do not silence the buffer in processReplacing
-		   when they have no output.
-		*/
-
-		// memset (outs[i], 0, sizeof (Sample) * nframes);
 		out_index++;
 	}
-
 
 	if (bufs.count().n_midi() > 0) {
 		VstEvents* v = bufs.get_vst_midi (0);
@@ -606,64 +559,49 @@ VSTPlugin::connect_and_run (BufferSet& bufs,
 	return 0;
 }
 
-void
-VSTPlugin::deactivate ()
-{
-	_plugin->dispatcher (_plugin, effMainsChanged, 0, 0, NULL, 0.0f);
-}
-
-void
-VSTPlugin::activate ()
-{
-	_plugin->dispatcher (_plugin, effMainsChanged, 0, 1, NULL, 0.0f);
-}
-
-string
-VSTPlugin::unique_id() const
+string 
+VSTPlugin::unique_id () const
 {
 	char buf[32];
 
-#ifdef VESTIGE_HEADER
-       snprintf (buf, sizeof (buf), "%d", *((int32_t*) &_plugin->unused_id));
-#else
-       snprintf (buf, sizeof (buf), "%d", _plugin->uniqueID);
-#endif
-       return string (buf);
+	snprintf (buf, sizeof (buf), "%d", _plugin->uniqueID);
+	
+	return string (buf);
 }
 
 
-const char *
+const char * 
 VSTPlugin::name () const
 {
-	return handle->name;
+	return _handle->name;
 }
 
-const char *
+const char * 
 VSTPlugin::maker () const
 {
 	return _info->creator.c_str();
 }
 
-const char *
+const char * 
 VSTPlugin::label () const
 {
-	return handle->name;
+	return _handle->name;
 }
 
-uint32_t
-VSTPlugin::parameter_count() const
+uint32_t 
+VSTPlugin::parameter_count () const
 {
 	return _plugin->numParams;
 }
 
-bool
+bool 
 VSTPlugin::has_editor () const
 {
 	return _plugin->flags & effFlagsHasEditor;
 }
 
-void
-VSTPlugin::print_parameter (uint32_t param, char *buf, uint32_t len) const
+void 
+VSTPlugin::print_parameter (uint32_t param, char *buf, uint32_t /*len*/) const
 {
 	char *first_nonws;
 
@@ -677,41 +615,12 @@ VSTPlugin::print_parameter (uint32_t param, char *buf, uint32_t len) const
 	while (*first_nonws && isspace (*first_nonws)) {
 		first_nonws++;
 	}
+
 	if (*first_nonws == '\0') {
 		return;
 	}
 
 	memmove (buf, first_nonws, strlen (buf) - (first_nonws - buf) + 1);
-}
-
-PluginPtr
-VSTPluginInfo::load (Session& session)
-{
-	try {
-		PluginPtr plugin;
-
-		if (Config->get_use_vst()) {
-			FSTHandle* handle;
-
-			handle = fst_load(path.c_str());
-
-			if ( (int)handle == -1) {
-				error << string_compose(_("VST: cannot load module from \"%1\""), path) << endmsg;
-			} else {
-				plugin.reset (new VSTPlugin (session.engine(), session, handle));
-			}
-		} else {
-			error << _("You asked ardour to not use any VST plugins") << endmsg;
-			return PluginPtr ((Plugin*) 0);
-		}
-
-		plugin->set_info(PluginInfoPtr(new VSTPluginInfo(*this)));
-		return plugin;
-	}
-
-	catch (failed_constructor &err) {
-		return PluginPtr ((Plugin*) 0);
-	}
 }
 
 void
@@ -800,10 +709,5 @@ string
 VSTPlugin::presets_file () const
 {
 	return string_compose ("vst-%1", unique_id ());
-}
-
-VSTPluginInfo::VSTPluginInfo()
-{
-       type = ARDOUR::VST;
 }
 

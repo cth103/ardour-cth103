@@ -201,6 +201,7 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 
 	AudioClock* primary_clock;
 	AudioClock* secondary_clock;
+	void focus_on_clock ();
 
 	TimeInfoBox* time_info_box;
 
@@ -354,6 +355,8 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	void big_clock_realized ();
 	bool big_clock_resize_in_progress;
 	int  big_clock_height;
+	void big_clock_catch_focus ();
+	void big_clock_reset_aspect_ratio ();
 
 	void float_big_clock (Gtk::Window* parent);
 	bool main_window_state_event_handler (GdkEventWindowState*, bool window_was_editor);

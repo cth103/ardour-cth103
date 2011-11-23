@@ -74,9 +74,9 @@ void
 gui_jack_error ()
 {
 	MessageDialog win (string_compose (_("%1 could not connect to JACK."), PROGRAM_NAME),
-		     false,
-		     Gtk::MESSAGE_INFO,
-		     (Gtk::ButtonsType)(Gtk::BUTTONS_NONE));
+	                   false,
+	                   Gtk::MESSAGE_INFO,
+	                   Gtk::BUTTONS_NONE);
 win.set_secondary_text(_("There are several possible reasons:\n\
 \n\
 1) JACK is not running.\n\
@@ -405,7 +405,7 @@ tell_about_jack_death (void* /* ignored */)
 {
 	if (AudioEngine::instance()->processed_frames() == 0) {
 		/* died during startup */
-		MessageDialog msg (_("JACK exited"), false, Gtk::MESSAGE_INFO, Gtk::BUTTONS_OK);
+		MessageDialog msg (_("JACK exited"), false);
 		msg.set_position (Gtk::WIN_POS_CENTER);
 		msg.set_secondary_text (string_compose (_(
 "JACK exited unexpectedly, and without notifying %1.\n\
@@ -421,7 +421,7 @@ Click OK to exit %1."), PROGRAM_NAME));
 
 		/* engine has already run, so this is a mid-session JACK death */
 
-		MessageDialog* msg = manage (new MessageDialog (_("JACK exited"), false, Gtk::MESSAGE_INFO, Gtk::BUTTONS_NONE));
+		MessageDialog* msg = manage (new MessageDialog (_("JACK exited"), false));
 		msg->set_secondary_text (string_compose (_(
 "JACK exited unexpectedly, and without notifying %1.\n\
 \n\
@@ -452,9 +452,9 @@ sigpipe_handler (int /*signal*/)
 void close_external_ui_windows();
 #endif
 
-#ifdef VST_SUPPORT
+#ifdef WINDOWS_VST_SUPPORT
 
-extern int gui_init (int* argc, char** argv[]);
+extern int windows_vst_gui_init (int* argc, char** argv[]);
 
 /* this is called from the entry point of a wine-compiled
    executable that is linked against gtk2_ardour built
@@ -474,11 +474,11 @@ int main (int argc, char *argv[])
 
 	gtk_set_locale ();
 
-#ifdef VST_SUPPORT
+#ifdef WINDOWS_VST_SUPPORT
 	/* this does some magic that is needed to make GTK and Wine's own
 	   X11 client interact properly.
 	*/
-	gui_init (&argc, &argv);
+	windows_vst_gui_init (&argc, &argv);
 #endif
 
 	(void) bindtextdomain (PACKAGE, localedir);
@@ -564,7 +564,7 @@ int main (int argc, char *argv[])
 #endif
 	return 0;
 }
-#ifdef VST_SUPPORT
+#ifdef WINDOWS_VST_SUPPORT
 } // end of extern C block
 #endif
 

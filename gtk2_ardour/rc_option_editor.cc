@@ -38,6 +38,8 @@
 #include "ardour/control_protocol_manager.h"
 #include "control_protocol/control_protocol.h"
 
+#include "ardour_window.h"
+#include "ardour_dialog.h"
 #include "gui_thread.h"
 #include "midi_tracer.h"
 #include "rc_option_editor.h"
@@ -56,7 +58,7 @@ using namespace ARDOUR;
 class ClickOptions : public OptionEditorBox
 {
 public:
-	ClickOptions (RCConfiguration* c, ArdourDialog* p)
+	ClickOptions (RCConfiguration* c, Gtk::Window* p)
 		: _rc_config (c),
 		  _parent (p)
 	{
@@ -149,7 +151,7 @@ private:
 	}
 
 	RCConfiguration* _rc_config;
-	ArdourDialog* _parent;
+	Gtk::Window* _parent;
 	Entry _click_path_entry;
 	Entry _click_emphasis_path_entry;
 };
@@ -657,7 +659,7 @@ private:
 class ControlSurfacesOptions : public OptionEditorBox
 {
 public:
-	ControlSurfacesOptions (ArdourDialog& parent)
+	ControlSurfacesOptions (Gtk::Window& parent)
 		: _parent (parent)
 	{
 		_store = ListStore::create (_model);
@@ -754,8 +756,8 @@ private:
 				Box* box = (Box*) cpi->protocol->get_gui ();
 				if (box) {
 					string title = row[_model.name];
-					ArdourDialog* win = new ArdourDialog (_parent, title);
-					win->get_vbox()->pack_start (*box, false, false);
+					ArdourWindow* win = new ArdourWindow (_parent, title);
+					win->add (*box);
 					box->show ();
 					win->present ();
 					row[_model.editor] = win;
@@ -1501,7 +1503,7 @@ RCOptionEditor::RCOptionEditor ()
 
 	/* INTERFACE */
 
-	add_option (_("Interface"),
+	add_option (_("Visual|Interface"),
 	     new BoolOption (
 		     "widget_prelight",
 		     _("Graphically indicate mouse pointer hovering over various widgets"),
@@ -1511,7 +1513,7 @@ RCOptionEditor::RCOptionEditor ()
 
 #ifndef GTKOSX
 	/* font scaling does nothing with GDK/Quartz */
-	add_option (_("Interface"), new FontScalingOptions (_rc_config));
+	add_option (_("Visual|Interface"), new FontScalingOptions (_rc_config));
 #endif
 
 	/* The names of these controls must be the same as those given in MixerStrip
@@ -1525,7 +1527,7 @@ RCOptionEditor::RCOptionEditor ()
 	_mixer_strip_visibility.add (0, X_("MeterPoint"), _("Meter Point"));
 	
 	add_option (
-		_("Interface"),
+		_("Visual|Interface"),
 		new VisibilityOption (
 			_("Mixer Strip"),
 			&_mixer_strip_visibility,
@@ -1534,7 +1536,7 @@ RCOptionEditor::RCOptionEditor ()
 			)
 		);
 
-	add_option (_("Interface"),
+	add_option (_("Visual|Interface"),
 	     new BoolOption (
 		     "default-narrow_ms",
 		     _("Use narrow mixer strips by default"),
@@ -1542,7 +1544,7 @@ RCOptionEditor::RCOptionEditor ()
 		     sigc::mem_fun (*_rc_config, &RCConfiguration::set_default_narrow_ms)
 		     ));
 
-	add_option (_("Interface"), new OptionEditorHeading (_("Metering")));
+	add_option (_("Visual|Interface"), new OptionEditorHeading (_("Metering")));
 
 	ComboOption<float>* mht = new ComboOption<float> (
 		"meter-hold",
@@ -1556,7 +1558,7 @@ RCOptionEditor::RCOptionEditor ()
 	mht->add (MeterHoldMedium, _("medium"));
 	mht->add (MeterHoldLong, _("long"));
 
-	add_option (_("Interface"), mht);
+	add_option (_("Visual|Interface"), mht);
 
 	ComboOption<float>* mfo = new ComboOption<float> (
 		"meter-falloff",
@@ -1573,7 +1575,7 @@ RCOptionEditor::RCOptionEditor ()
 	mfo->add (METER_FALLOFF_FASTER, _("faster"));
 	mfo->add (METER_FALLOFF_FASTEST, _("fastest"));
 
-	add_option (_("Interface"), mfo);
+	add_option (_("Visual|Interface"), mfo);
 }
 
 void

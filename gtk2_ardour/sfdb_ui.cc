@@ -118,8 +118,8 @@ importmode2string (ImportMode mode)
 
 SoundFileBox::SoundFileBox (bool persistent)
 	: table (6, 2),
-	  length_clock ("sfboxLengthClock", !persistent, "EditCursorClock", false, false, true, false),
-	  timecode_clock ("sfboxTimecodeClock", !persistent, "EditCursorClock", false, false, false, false),
+	  length_clock ("sfboxLengthClock", !persistent, "", false, false, true, false),
+	  timecode_clock ("sfboxTimecodeClock", !persistent, "", false, false, false, false),
 	  main_box (false, 6),
 	  autoplay_btn (_("Auto-play"))
 
@@ -1447,14 +1447,14 @@ SoundFileOmega::SoundFileOmega (Gtk::Window& parent, string title, ARDOUR::Sessi
 	t.push_back (_("one track per channel"));
 	t.push_back (_("sequence files"));
 	t.push_back (_("all files in one region"));
-	set_size_request_to_display_given_text (channel_combo, t, COMBO_FUDGE + 10, 15);
+	set_popdown_strings (channel_combo, t);
 
 	t.clear ();
 	t.push_back (importmode2string (ImportAsTrack));
 	t.push_back (importmode2string (ImportToTrack));
 	t.push_back (importmode2string (ImportAsRegion));
 	t.push_back (importmode2string (ImportAsTapeTrack));
-	set_size_request_to_display_given_text (action_combo, t, COMBO_FUDGE + 10, 15);
+	set_popdown_strings (action_combo, t);
 }
 
 void

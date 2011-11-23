@@ -139,6 +139,7 @@ EditorRoutes::EditorRoutes (Editor* e)
 	TreeViewColumn* solo_state_column = manage (new TreeViewColumn("S", *solo_col_renderer));
 
 	solo_state_column->add_attribute(solo_col_renderer->property_state(), _columns.solo_state);
+	solo_state_column->add_attribute(solo_col_renderer->property_visible(), _columns.solo_visible);
 	solo_state_column->set_sizing(TREE_VIEW_COLUMN_FIXED);
 	solo_state_column->set_alignment(ALIGN_CENTER);
 	solo_state_column->set_expand(false);
@@ -154,6 +155,7 @@ EditorRoutes::EditorRoutes (Editor* e)
 	TreeViewColumn* solo_isolate_state_column = manage (new TreeViewColumn("SI", *solo_iso_renderer));
 
 	solo_isolate_state_column->add_attribute(solo_iso_renderer->property_state(), _columns.solo_isolate_state);
+	solo_isolate_state_column->add_attribute(solo_iso_renderer->property_visible(), _columns.solo_visible);
 	solo_isolate_state_column->set_sizing(TREE_VIEW_COLUMN_FIXED);
 	solo_isolate_state_column->set_alignment(ALIGN_CENTER);
 	solo_isolate_state_column->set_expand(false);
@@ -168,6 +170,7 @@ EditorRoutes::EditorRoutes (Editor* e)
 
 	TreeViewColumn* solo_safe_state_column = manage (new TreeViewColumn(_("SS"), *solo_safe_renderer));
 	solo_safe_state_column->add_attribute(solo_safe_renderer->property_state(), _columns.solo_safe_state);
+	solo_safe_state_column->add_attribute(solo_safe_renderer->property_visible(), _columns.solo_visible);
 	solo_safe_state_column->set_sizing(TREE_VIEW_COLUMN_FIXED);
 	solo_safe_state_column->set_alignment(ALIGN_CENTER);
 	solo_safe_state_column->set_expand(false);
@@ -463,9 +466,18 @@ EditorRoutes::redisplay ()
 	TreeModel::Children rows = _model->children();
 	TreeModel::Children::iterator i;
 	uint32_t position;
+
+	/* n will be the count of tracks plus children (updated by TimeAxisView::show_at),
+	   so we will use that to know where to put things.
+	*/
 	int n;
 
-	for (n = 0, position = 0, i = rows.begin(); i != rows.end(); ++i) {
+	/* Order keys must not take children into account, so use a separate counter
+	   for that.
+	*/
+	int order_key;
+
+	for (n = 0, order_key = 0, position = 0, i = rows.begin(); i != rows.end(); ++i) {
 		TimeAxisView *tv = (*i)[_columns.tv];
 		boost::shared_ptr<Route> route = (*i)[_columns.route];
 
@@ -478,7 +490,7 @@ EditorRoutes::redisplay ()
 			/* this reorder is caused by user action, so reassign sort order keys
 			   to tracks.
 			*/
-			route->set_order_key (N_ ("editor"), n);
+			route->set_order_key (N_ ("editor"), order_key);
 		}
 
 		bool visible = tv->marked_for_display ();
@@ -492,6 +504,7 @@ EditorRoutes::redisplay ()
 		}
 
 		n++;
+		order_key++;
 	}
 
 	/* whenever we go idle, update the track view list to reflect the new order.
@@ -601,6 +614,7 @@ EditorRoutes::routes_added (list<RouteTimeAxisView*> routes)
 
 		row[_columns.mute_state] = (*x)->route()->muted() ? Active : ActiveState (0);
 		row[_columns.solo_state] = RouteUI::solo_active_state ((*x)->route());
+		row[_columns.solo_visible] = !(*x)->route()->is_master ();
 		row[_columns.solo_isolate_state] = (*x)->route()->solo_isolated();
 		row[_columns.solo_safe_state] = (*x)->route()->solo_safe();
 		row[_columns.name_editable] = true;
@@ -1323,9 +1337,15 @@ EditorRoutes::move_selected_tracks (bool up)
 		neworder.push_back (leading->second->order_key (N_ ("editor")));
 	}
 
+#ifndef NDEBUG
+	for (vector<int>::iterator i = neworder.begin(); i != neworder.end(); ++i) {
+		assert (*i < (int) neworder.size ());
+	}
+#endif	
+
 	_model->reorder (neworder);
 
-       _session->sync_order_keys (N_ ("editor"));
+	_session->sync_order_keys (N_ ("editor"));
 }
 
 void

@@ -195,7 +195,7 @@ FaderOption::add_to_page (OptionEditorPage* p)
 
 ClockOption::ClockOption (string const & i, string const & n, sigc::slot<framecnt_t> g, sigc::slot<bool, framecnt_t> s)
 	: Option (i, n)
-	, _clock (X_("timecode-offset"), false, X_("TimecodeOffsetClock"), true, false, true, false)
+	, _clock (X_("timecode-offset"), false, X_(""), true, false, true, false)
 	, _get (g)
 	, _set (s)
 {
@@ -237,7 +237,7 @@ OptionEditorPage::OptionEditorPage (Gtk::Notebook& n, std::string const & t)
  *  @param t Title for the dialog.
  */
 OptionEditor::OptionEditor (Configuration* c, std::string const & t)
-	: ArdourDialog (t, false), _config (c)
+	: ArdourWindow (t), _config (c)
 {
 	using namespace Notebook_Helpers;
 
@@ -249,8 +249,7 @@ OptionEditor::OptionEditor (Configuration* c, std::string const & t)
 
 	set_border_width (4);
 
-	get_vbox()->set_spacing (4);
-	get_vbox()->pack_start (_notebook);
+	add (_notebook);
 
 	_notebook.set_show_tabs (true);
 	_notebook.set_show_border (true);
@@ -327,13 +326,14 @@ DirectoryOption::DirectoryOption (string const & i, string const & n, sigc::slot
 {
 	_file_chooser.set_action (Gtk::FILE_CHOOSER_ACTION_SELECT_FOLDER);
 	_file_chooser.signal_file_set().connect (sigc::mem_fun (*this, &DirectoryOption::file_set));
+	_file_chooser.signal_current_folder_changed().connect (sigc::mem_fun (*this, &DirectoryOption::current_folder_set));
 }
 
 
 void
 DirectoryOption::set_state_from_config ()
 {
-	_file_chooser.set_filename (_get ());
+	_file_chooser.set_current_folder (_get ());
 }
 
 void
@@ -346,4 +346,10 @@ void
 DirectoryOption::file_set ()
 {
 	_set (_file_chooser.get_filename ());
+}
+
+void
+DirectoryOption::current_folder_set ()
+{
+	_set (_file_chooser.get_current_folder ());
 }

@@ -43,8 +43,7 @@ class Speakers;
 class Pannable;
 
 /** Class to manage panning by instantiating and controlling
- *  the appropriate specific PannerBase objects for a given
- *  in/out configuration.
+ *  an appropriate Panner object for a given in/out configuration.
  */
 class PannerShell : public SessionObject
 {
@@ -76,8 +75,6 @@ public:
 	boost::shared_ptr<Panner> _panner;
 	boost::shared_ptr<Pannable> _pannable;
 	bool _bypassed;
-
-	static float current_automation_version_number;
 };
 
 } // namespace ARDOUR

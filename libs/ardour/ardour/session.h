@@ -64,7 +64,8 @@
 
 class XMLTree;
 class XMLNode;
-class AEffect;
+struct _AEffect;
+typedef struct _AEffect AEffect;
 
 namespace MIDI {
 	class Port;
@@ -127,7 +128,7 @@ class Source;
 class Speakers;
 class TempoMap;
 class Track;
-class VSTPlugin;
+class WindowsVSTPlugin;
 
 extern void setup_enum_writer ();
 
@@ -739,22 +740,15 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 
 	/* VST support */
 
-	static long vst_callback (AEffect* effect,
-			long opcode,
-			long index,
-			long value,
-			void* ptr,
-			float opt);
+	static intptr_t vst_callback (
+		AEffect* effect,
+		int32_t opcode,
+		int32_t index,
+		intptr_t value,
+		void* ptr,
+		float opt
+		);
 			
-	/*Native linuxVST support*/
-	
-	static intptr_t lxvst_callback (AEffect* effect,
-				  int32_t opcode,
-				  int32_t index,
-				  intptr_t value,
-				  void* ptr,
-				  float opt);
-
 	static PBD::Signal0<void> SendFeedback;
 
 	/* Speakers */
@@ -1420,14 +1414,16 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	boost::shared_ptr<Route> _master_out;
 	boost::shared_ptr<Route> _monitor_out;
 
-	/* VST support */
+	/* Windows VST support */
 
-	long _vst_callback (VSTPlugin*,
-			long opcode,
-			long index,
-			long value,
-			void* ptr,
-			float opt);
+	long _windows_vst_callback (
+		WindowsVSTPlugin*,
+		long opcode,
+		long index,
+		long value,
+		void* ptr,
+		float opt
+		);
 
 	/* number of hardware ports we're using,
 	   based on max (requested,available)

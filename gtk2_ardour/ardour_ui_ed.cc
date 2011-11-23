@@ -246,7 +246,8 @@ ARDOUR_UI::install_actions ()
 	ActionManager::session_sensitive_actions.push_back (act);
 	ActionManager::register_action (common_actions, X_("About"), _("About"),  sigc::mem_fun(*this, &ARDOUR_UI::show_about));
 	ActionManager::register_action (common_actions, X_("Chat"), _("Chat"),  sigc::mem_fun(*this, &ARDOUR_UI::launch_chat));
-	ActionManager::register_action (common_actions, X_("Manual"), _("Manual"),  mem_fun(*this, &ARDOUR_UI::launch_manual));
+	/** TRANSLATORS: This is `Manual' in the sense of an instruction book that tells a user how to use Ardour */
+	ActionManager::register_action (common_actions, X_("Manual"), S_("Help|Manual"),  mem_fun(*this, &ARDOUR_UI::launch_manual));
 	ActionManager::register_action (common_actions, X_("Reference"), _("Reference"),  mem_fun(*this, &ARDOUR_UI::launch_reference));
 	ActionManager::register_toggle_action (common_actions, X_("ToggleThemeManager"), _("Theme Manager"), sigc::mem_fun(*this, &ARDOUR_UI::toggle_theme_manager));
 	ActionManager::register_toggle_action (common_actions, X_("ToggleKeyEditor"), _("Key Bindings"), sigc::mem_fun(*this, &ARDOUR_UI::toggle_key_editor));
@@ -354,7 +355,7 @@ ARDOUR_UI::install_actions ()
 	ActionManager::session_sensitive_actions.push_back (act);
 	ActionManager::transport_sensitive_actions.push_back (act);
 
-	act = ActionManager::register_action (transport_actions, X_("focus-on-clock"), _("Focus On Clock"), sigc::mem_fun(primary_clock, &AudioClock::focus));
+	act = ActionManager::register_action (transport_actions, X_("focus-on-clock"), _("Focus On Clock"), sigc::mem_fun(*this, &ARDOUR_UI::focus_on_clock));
 	ActionManager::session_sensitive_actions.push_back (act);
 	ActionManager::transport_sensitive_actions.push_back (act);
 
@@ -554,8 +555,6 @@ ARDOUR_UI::build_menu_bar ()
 	buffer_load_label.set_name ("BufferLoad");
 	buffer_load_label.set_use_markup ();
 
-	resize_text_widgets ();
-
 	sample_rate_box.add (sample_rate_label);
 	sample_rate_box.set_name ("SampleRate");
 	sample_rate_label.set_name ("SampleRate");
@@ -631,9 +630,19 @@ ARDOUR_UI::use_menubar_as_top_menubar ()
 }
 
 void
+ARDOUR_UI::big_clock_catch_focus ()
+{
+	PublicEditor::instance().reset_focus ();
+}
+
+void
 ARDOUR_UI::setup_clock ()
 {
-	ARDOUR_UI::Clock.connect (sigc::bind (sigc::mem_fun (big_clock, &AudioClock::set), false));
+	ARDOUR_UI::Clock.connect (sigc::mem_fun (big_clock, &AudioClock::set));
+
+	big_clock->set_corner_radius (0.0);
+	big_clock->set_fixed_width (false);
+	big_clock->mode_changed.connect (sigc::mem_fun (*this, &ARDOUR_UI::big_clock_reset_aspect_ratio));
 
 	big_clock_window->set (new Window (WINDOW_TOPLEVEL), false);
 
@@ -643,11 +652,27 @@ ARDOUR_UI::setup_clock ()
 
 	big_clock_window->get()->set_title (_("Big Clock"));
 	big_clock_window->get()->signal_realize().connect (sigc::mem_fun (*this, &ARDOUR_UI::big_clock_realized));
-	big_clock_window->get()->signal_unmap().connect (sigc::bind (sigc::ptr_fun(&ActionManager::uncheck_toggleaction), X_("<Actions>/Common/ToggleBigClock")));
 	big_clock_window->get()->signal_key_press_event().connect (sigc::bind (sigc::ptr_fun (relay_key_press), big_clock_window->get()), false);
 	big_clock_window->get()->signal_size_allocate().connect (sigc::mem_fun (*this, &ARDOUR_UI::big_clock_size_allocate));
 
+	big_clock_window->get()->signal_unmap().connect (sigc::bind (sigc::ptr_fun(&ActionManager::uncheck_toggleaction), X_("<Actions>/Common/ToggleBigClock")));
+	big_clock_window->get()->signal_unmap().connect (sigc::mem_fun (*this, &ARDOUR_UI::big_clock_catch_focus));
+
 	manage_window (*big_clock_window->get());
+}
+
+void
+ARDOUR_UI::big_clock_reset_aspect_ratio ()
+{
+	Gtk::Requisition req;
+	big_clock->size_request (req);
+	float aspect = req.width/(float)req.height;
+	Gdk::Geometry geom;
+
+	geom.min_aspect = aspect;
+	geom.max_aspect = aspect;
+
+	big_clock_window->get()->set_geometry_hints (*big_clock, geom, Gdk::HINT_ASPECT);
 }
 
 void
@@ -657,6 +682,8 @@ ARDOUR_UI::big_clock_realized ()
 
 	set_decoration (big_clock_window->get(), (Gdk::DECOR_BORDER|Gdk::DECOR_RESIZEH));
 	big_clock_window->get()->get_window()->get_geometry (x, y, w, big_clock_height, d);
+
+	big_clock_reset_aspect_ratio ();
 
 	original_big_clock_height = big_clock_height;
 	original_big_clock_width = w;
@@ -684,7 +711,7 @@ ARDOUR_UI::float_big_clock (Gtk::Window* parent)
 }
 
 void
-ARDOUR_UI::big_clock_size_allocate (Gtk::Allocation&)
+ARDOUR_UI::big_clock_size_allocate (Gtk::Allocation& alloc)
 {
 	if (!big_clock_resize_in_progress) {
 		Glib::signal_idle().connect (sigc::bind (sigc::mem_fun (*this, &ARDOUR_UI::idle_big_clock_text_resizer), 0, 0));
@@ -833,4 +860,13 @@ ARDOUR_UI::resize_text_widgets ()
 {
 	set_size_request_to_display_given_text (cpu_load_label, "DSP: 100.0%", 2, 2);
 	set_size_request_to_display_given_text (buffer_load_label, "Buffers: p:100% c:100%", 2, 2);
+}
+
+void
+ARDOUR_UI::focus_on_clock ()
+{
+	if (editor && primary_clock) {
+		editor->present ();
+		primary_clock->focus ();
+	}
 }

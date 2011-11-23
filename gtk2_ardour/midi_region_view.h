@@ -308,6 +308,8 @@ protected:
 
 private:
 
+	friend class MidiRubberbandSelectDrag;
+
 	/** Emitted when the selection has been cleared in one MidiRegionView */
 	static PBD::Signal1<void, MidiRegionView*> SelectionCleared;
 	PBD::ScopedConnection _selection_cleared_connection;

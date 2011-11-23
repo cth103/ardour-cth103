@@ -297,8 +297,8 @@ ARDOUR_UI::setup_transport ()
 
 	/* clocks, etc. */
 
-	ARDOUR_UI::Clock.connect (sigc::bind (sigc::mem_fun (primary_clock, &AudioClock::set), 'p'));
-	ARDOUR_UI::Clock.connect (sigc::bind (sigc::mem_fun (secondary_clock, &AudioClock::set), 's'));
+	ARDOUR_UI::Clock.connect (sigc::mem_fun (primary_clock, &AudioClock::set));
+	ARDOUR_UI::Clock.connect (sigc::mem_fun (secondary_clock, &AudioClock::set));
 
 	primary_clock->ValueChanged.connect (sigc::mem_fun(*this, &ARDOUR_UI::primary_clock_value_changed));
 	secondary_clock->ValueChanged.connect (sigc::mem_fun(*this, &ARDOUR_UI::secondary_clock_value_changed));
@@ -371,13 +371,13 @@ ARDOUR_UI::setup_transport ()
 	tbox->pack_start (rec_button, false, false, 6);
 
 	HBox* clock_box = manage (new HBox);
+
 	primary_clock->set_border_width (2);
 	clock_box->pack_start (*primary_clock, false, false);
 	if (!ARDOUR::Profile->get_small_screen()) {
 		secondary_clock->set_border_width (2);
 		clock_box->pack_start (*secondary_clock, false, false);
 	}
-
 
 	shuttle_box = new ShuttleControl;
 	shuttle_box->show ();

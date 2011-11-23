@@ -1698,6 +1698,9 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	framecnt_t autoscroll_x_distance;
 	double autoscroll_y_distance;
 
+	bool _autoscroll_fudging;
+	int autoscroll_fudge_threshold () const;
+
 	static gint _autoscroll_canvas (void *);
 	bool autoscroll_canvas ();
 	void start_canvas_autoscroll (int x, int y);
@@ -2066,8 +2069,6 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	MouseCursors* _cursors;
 
-	void resize_text_widgets ();
-
 	void follow_mixer_selection ();
 	bool _following_mixer_selection;
 
@@ -2086,6 +2087,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	friend class ControlPointDrag;
 	friend class LineDrag;
 	friend class RubberbandSelectDrag;
+	friend class EditorRubberbandSelectDrag;
 	friend class TimeFXDrag;
 	friend class ScrubDrag;
 	friend class SelectionDrag;

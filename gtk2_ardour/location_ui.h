@@ -34,7 +34,7 @@
 #include "ardour/location.h"
 #include "ardour/session_handle.h"
 
-#include "ardour_dialog.h"
+#include "ardour_window.h"
 #include "audio_clock.h"
 
 namespace ARDOUR {
@@ -119,7 +119,6 @@ class LocationEditRow  : public Gtk::HBox, public ARDOUR::SessionHandlePtr
 	void go_button_pressed (LocationPart part);
 
 	void clock_changed (LocationPart part);
-	void change_aborted (LocationPart part);
 
 	void cd_toggled ();
 	void hide_toggled ();
@@ -200,7 +199,7 @@ class LocationUI : public Gtk::HBox, public ARDOUR::SessionHandlePtr
         ClockGroup* _clock_group;
 };
 
-class LocationUIWindow : public ArdourDialog
+class LocationUIWindow : public ArdourWindow
 {
   public:
 	LocationUIWindow ();

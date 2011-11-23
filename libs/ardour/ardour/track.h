@@ -90,7 +90,7 @@ class Track : public Route, public PublicDiskstream
 
 	XMLNode&    get_state();
 	XMLNode&    get_template();
-	int set_state (const XMLNode&, int version);
+	virtual int set_state (const XMLNode&, int version);
 	static void zero_diskstream_id_in_xml (XMLNode&);
 
 	boost::shared_ptr<PBD::Controllable> rec_enable_control() { return _rec_enable_control; }
@@ -162,10 +162,13 @@ class Track : public Route, public PublicDiskstream
 
   protected:
 	XMLNode& state (bool full);
-	int _set_state (const XMLNode&, int version);
 
 	boost::shared_ptr<Diskstream> _diskstream;
 	MeterPoint    _saved_meter_point;
+	/** used to keep track of processors that we are deactivating during record,
+	    if `do-not-record-plugins' is enabled.
+	*/
+	std::list<boost::weak_ptr<Processor> > _deactivated_processors;
 	TrackMode     _mode;
 	bool          _needs_butler;
 	MonitorChoice _monitoring;
@@ -224,6 +227,10 @@ private:
 	void diskstream_record_enable_changed ();
 	void diskstream_speed_changed ();
 	void diskstream_alignment_style_changed ();
+
+	void parameter_changed (std::string);
+	void deactivate_visible_processors ();
+	void activate_deactivated_processors ();
 };
 
 }; /* namespace ARDOUR*/

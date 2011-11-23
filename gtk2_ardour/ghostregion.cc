@@ -187,20 +187,15 @@ MidiGhostRegion::~MidiGhostRegion()
 	clear_events ();
 }
 
-MidiGhostRegion::GhostEvent::GhostEvent (NoteBase* e)
-	: event(e)
+MidiGhostRegion::Event::Event (Note* e, Canvas::Group* g)
+	: event (e)
 {
-
+	rect = new Canvas::Rectangle (*g, e->x1(), e->y1(), e->x2(), e->y2());
 }
 
-MidiGhostRegion::GhostNote::GhostNote (Note* n, Canvas::Group* g)
-	: GhostEvent (n)
+MidiGhostRegion::Event::~Event ()
 {
-	rect = new Canvas::Rectangle (g, Canvas::Rect (n->x0(), n->y0(), n->x1(), n->y1()));
-}
-
-MidiGhostRegion::GhostNote::~GhostNote()
-{
+	/* event is not ours to delete */
 	delete rect;
 }
 
@@ -232,16 +227,13 @@ MidiGhostRegion::set_height ()
 void
 MidiGhostRegion::set_colors()
 {
-	GhostNote* note;
 	guint fill = source_track_color(200);
 
 	GhostRegion::set_colors();
 
 	for (EventList::iterator it = events.begin(); it != events.end(); ++it) {
-		if ((note = dynamic_cast<GhostNote*>(*it)) != 0) {
-			note->rect->set_fill_color (fill);
-			note->rect->set_outline_color (ARDOUR_UI::config()->canvasvar_GhostTrackMidiOutline.get());
-		}
+		(*it)->rect->set_fill_color (fill);
+		(*it)->rect->set_outline_color (ARDOUR_UI::config()->canvasvar_GhostTrackMidiOutline.get());
 	}
 }
 
@@ -254,6 +246,7 @@ MidiGhostRegion::update_range ()
 		return;
 	}
 
+<<<<<<< HEAD
 	GhostNote* note;
 	double const h = trackview.current_height() / double (mv->contents_note_range ());
 
@@ -269,6 +262,20 @@ MidiGhostRegion::update_range ()
 				note->rect->set_y0 (y);
 				note->rect->set_y1 (y + h);
 			}
+=======
+	double const h = trackview.current_height() / double (mv->contents_note_range ());
+
+	for (EventList::iterator it = events.begin(); it != events.end(); ++it) {
+		uint8_t const note_num = (*it)->event->note()->note();
+
+		if (note_num < mv->lowest_note() || note_num > mv->highest_note()) {
+			(*it)->rect->hide();
+		} else {
+			(*it)->rect->show();
+			double const y = trackview.current_height() - (note_num + 1 - mv->lowest_note()) * h + 1;
+			(*it)->rect->property_y1() = y;
+			(*it)->rect->property_y2() = y + h;
+>>>>>>> origin/master
 		}
 	}
 }
@@ -276,11 +283,19 @@ MidiGhostRegion::update_range ()
 void
 MidiGhostRegion::add_note (Note* n)
 {
+<<<<<<< HEAD
 	GhostNote* note = new GhostNote (n, group);
 	events.push_back (note);
 
 	note->rect->set_fill_color (source_track_color(200));
 	note->rect->set_outline_color (ARDOUR_UI::config()->canvasvar_GhostTrackMidiOutline.get());
+=======
+	Event* event = new Event (n, group);
+	events.push_back (event);
+
+	event->rect->property_fill_color_rgba() = source_track_color(200);
+	event->rect->property_outline_color_rgba() = ARDOUR_UI::config()->canvasvar_GhostTrackMidiOutline.get();
+>>>>>>> origin/master
 
 	MidiStreamView* mv = midi_view();
 
@@ -288,11 +303,16 @@ MidiGhostRegion::add_note (Note* n)
 		const uint8_t note_num = n->note()->note();
 
 		if (note_num < mv->lowest_note() || note_num > mv->highest_note()) {
-			note->rect->hide();
+			event->rect->hide();
 		} else {
 			const double y = mv->note_to_y(note_num);
+<<<<<<< HEAD
 			note->rect->set_y0 (y);
 			note->rect->set_y1 (y + mv->note_height());
+=======
+			event->rect->property_y1() = y;
+			event->rect->property_y2() = y + mv->note_height();
+>>>>>>> origin/master
 		}
 	}
 }
@@ -305,6 +325,7 @@ MidiGhostRegion::clear_events()
 	}
 
 	events.clear();
+	_optimization_iterator = events.end ();
 }
 
 /** Update the x positions of our representation of a parent's note.
@@ -318,11 +339,30 @@ MidiGhostRegion::update_note (Note* parent)
 		return;
 	}
 
+<<<<<<< HEAD
 	GhostNote* note = dynamic_cast<GhostNote *> (ev);
 	if (note) {
 		note->rect->set_x0 (parent->x0 ());
 		note->rect->set_x1 (parent->x1 ());
+=======
+	double const x1 = parent->property_x1 ();
+	double const x2 = parent->property_x2 ();
+	ev->rect->property_x1 () = x1;
+	ev->rect->property_x2 () = x2;
+}
+
+void
+MidiGhostRegion::remove_note (ArdourCanvas::CanvasNoteEvent* note)
+{
+	Event* ev = find_event (note);
+	if (!ev) {
+		return;
+>>>>>>> origin/master
 	}
+
+	events.remove (ev);
+	delete ev;
+	_optimization_iterator = events.end ();
 }
 
 /** Given a note in our parent region (ie the actual MidiRegionView), find our
@@ -330,8 +370,13 @@ MidiGhostRegion::update_note (Note* parent)
  *  @return Our Event, or 0 if not found.
  */
 
+<<<<<<< HEAD
 MidiGhostRegion::GhostEvent *
 MidiGhostRegion::find_event (Note* parent)
+=======
+MidiGhostRegion::Event *
+MidiGhostRegion::find_event (ArdourCanvas::CanvasNoteEvent* parent)
+>>>>>>> origin/master
 {
 	/* we are using _optimization_iterator to speed up the common case where a caller
 	   is going through our notes in order.

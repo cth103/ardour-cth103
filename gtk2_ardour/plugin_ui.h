@@ -46,6 +46,7 @@
 #include <gtkmm/socket.h>
 
 #include "ardour/types.h"
+#include "ardour/plugin.h"
 
 #include "automation_controller.h"
 #include "ardour_button.h"
@@ -53,10 +54,11 @@
 namespace ARDOUR {
 	class PluginInsert;
 	class Plugin;
-	class VSTPlugin;
+	class WindowsVSTPlugin;
 	class LXVSTPlugin;
 	class IOProcessor;
 	class AUPlugin;
+	class Processor;
 }
 
 namespace PBD {
@@ -72,7 +74,7 @@ namespace Gtkmm2ext {
 }
 
 class LatencyGUI;
-class ArdourDialog;
+class ArdourWindow;
 class PluginEqGui;
 
 class PlugUIBase : public virtual sigc::trackable, public PBD::ScopedConnectionList
@@ -119,7 +121,7 @@ class PlugUIBase : public virtual sigc::trackable, public PBD::ScopedConnectionL
 	void set_latency_label ();
 
 	LatencyGUI* latency_gui;
-	ArdourDialog* latency_dialog;
+	ArdourWindow* latency_dialog;
 
 	Gtk::Expander plugin_analysis_expander;
 	PluginEqGui* eqgui;
@@ -297,7 +299,7 @@ class PluginUIWindow : public Gtk::Window
 	void app_activated (bool);
 	void plugin_going_away ();
 
-	bool create_vst_editor (boost::shared_ptr<ARDOUR::PluginInsert>);
+	bool create_windows_vst_editor (boost::shared_ptr<ARDOUR::PluginInsert>);
 	bool create_lxvst_editor(boost::shared_ptr<ARDOUR::PluginInsert>);
 	bool create_audiounit_editor (boost::shared_ptr<ARDOUR::PluginInsert>);
 	bool create_lv2_editor (boost::shared_ptr<ARDOUR::PluginInsert>);

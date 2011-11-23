@@ -21,8 +21,9 @@ LIBARDOUR_LIB_VERSION = '3.0.0'
 CURRENT_SESSION_FILE_VERSION = 3000
 
 # Variables for 'waf dist'
-APPNAME = 'libardour'
+APPNAME = 'libardour3'
 VERSION = LIBARDOUR_VERSION
+I18N_PACKAGE = 'libardour3'
 
 # Mandatory variables
 top = '.'
@@ -216,7 +217,8 @@ libardour_sources = [
         'unknown_processor.cc',
         'user_bundle.cc',
         'utils.cc',
-        'version.cc'
+        'version.cc',
+        'vst_plugin.cc'
 ]
 
 def flac_supported():
@@ -255,11 +257,12 @@ def configure(conf):
                       atleast_version='0.1.0')
     autowaf.check_pkg(conf, 'sigc++-2.0', uselib_store='SIGCPP',
                       atleast_version='2.0')
-    autowaf.check_pkg(conf, 'lilv-0', uselib_store='LILV',
-                      atleast_version='0.0.0', mandatory=False)
-    if conf.is_defined('HAVE_LILV'):
-        autowaf.check_pkg(conf, 'suil-0', uselib_store='SUIL',
-                          atleast_version='0.2.0', mandatory=False)
+    if Options.options.lv2:
+        autowaf.check_pkg(conf, 'lilv-0', uselib_store='LILV',
+                          atleast_version='0.0.0', mandatory=False)
+        if conf.is_defined('HAVE_LILV'):
+            autowaf.check_pkg(conf, 'suil-0', uselib_store='SUIL',
+                              atleast_version='0.2.0', mandatory=False)
 #    autowaf.check_pkg(conf, 'soundtouch-1.0', uselib_store='SOUNDTOUCH',
 #                      mandatory=False)
     autowaf.check_pkg(conf, 'cppunit', uselib_store='CPPUNIT',
@@ -330,7 +333,8 @@ int main(int argc, char **argv) {
     if ogg_supported():
         conf.define ('HAVE_OGG', 1)
 
-    if conf.is_defined('HAVE_LILV'):
+    if Options.options.lv2 and conf.is_defined('HAVE_LILV'):
+        print "LV2 option was ", Options.options.lv2
         conf.define ('LV2_SUPPORT', 1)
 
     conf.write_config_header('libardour-config.h', remove=False)
@@ -359,7 +363,7 @@ def build(bld):
     obj.vnum         = LIBARDOUR_LIB_VERSION
     obj.install_path = os.path.join(bld.env['LIBDIR'], 'ardour3')
     obj.defines      = [
-        'PACKAGE="libardour3"',
+        'PACKAGE="' + I18N_PACKAGE + '"',
         'DATA_DIR="' + os.path.normpath(bld.env['DATADIR']) + '"',
         'CONFIG_DIR="' + os.path.normpath(bld.env['SYSCONFDIR']) + '"',
         'MODULE_DIR="' + os.path.normpath(bld.env['LIBDIR']) + '"',
@@ -381,14 +385,17 @@ def build(bld):
         if bld.is_defined('HAVE_SUIL'):
             obj.uselib += ['SUIL']
 
-    if bld.is_defined('VST_SUPPORT'):
-        obj.source += [ 'vst_plugin.cc', 'session_vst.cc' ]
+    if bld.is_defined('WINDOWS_VST_SUPPORT'):
+        obj.source += [ 'windows_vst_plugin.cc']
         obj.includes += [ '../fst' ]
-        obj.defines += [ 'VST_SUPPORT' ]
+        obj.defines += [ 'WINDOWS_VST_SUPPORT' ]
 
     if bld.is_defined('LXVST_SUPPORT'):
-        obj.source += [ 'lxvst_plugin.cc', 'session_lxvst.cc', 'vstfx.cc', 'vstfxinfofile.cc' ]
+        obj.source += [ 'lxvst_plugin.cc', 'vstfx.cc', 'vstfxinfofile.cc' ]
         obj.defines += [ 'LXVST_SUPPORT' ]
+
+    if bld.is_defined('WINDOWS_VST_SUPPORT') or bld.is_defined('LXVST_SUPPORT'):
+        obj.source += [ 'session_vst.cc' ]
 
     if bld.is_defined('HAVE_COREAUDIO'):
         obj.source += [ 'coreaudiosource.cc', 'caimportable.cc' ]
@@ -408,7 +415,7 @@ def build(bld):
         for mo in mo_files:
             lang = os.path.basename(mo.srcpath()).replace('.mo', '')
             bld.install_as(os.path.join(bld.env['PREFIX'], 'share', 'locale',
-                                        lang, 'LC_MESSAGES', 'libardour3.mo'),
+                                        lang, 'LC_MESSAGES', I18N_PACKAGE + '.mo'),
                            mo)
 
     if bld.env['BUILD_TESTS'] and bld.is_defined('HAVE_CPPUNIT'):
@@ -451,5 +458,17 @@ def shutdown():
     autowaf.shutdown()
 
 def i18n(bld):
-    autowaf.build_i18n(bld, top, 'libs/ardour', APPNAME, libardour_sources,
+    autowaf.build_i18n(bld, top, 'libs/ardour', I18N_PACKAGE, libardour_sources,
+                       'Paul Davis')
+
+def i18n_pot(bld):
+    autowaf.build_i18n(bld, top, 'libs/ardour', I18N_PACKAGE, libardour_sources,
+                       'Paul Davis')
+
+def i18n_po(bld):
+    autowaf.build_i18n_po(bld, top, 'libs/ardour', I18N_PACKAGE, libardour_sources,
+                       'Paul Davis')
+
+def i18n_mo(bld):
+    autowaf.build_i18n_mo(bld, top, 'libs/ardour', I18N_PACKAGE, libardour_sources,
                        'Paul Davis')

@@ -17,7 +17,7 @@
 #include <signal.h>
 #include <glib.h>
 
-#include <ardour/vstfx.h>
+#include "ardour/vstfx.h"
 
 #include <X11/X.h>
 #include <X11/Xlib.h>
@@ -36,7 +36,7 @@ struct ERect{
 
 static pthread_mutex_t plugin_mutex;
 
-static VSTFX* vstfx_first = NULL;
+static VSTState * vstfx_first = NULL;
 
 const char magic[] = "VSTFX Plugin State v002";
 
@@ -50,8 +50,6 @@ Display* LXVST_XDisplay = NULL;
 /*The thread handle for the GUI event loop*/
 
 pthread_t LXVST_gui_event_thread;
-
-#define DELAYED_WINDOW 1
 
 /*Util functions to get the value of a property attached to an XWindow*/
 
@@ -160,7 +158,8 @@ long getXWindowProperty(Window window, Atom atom)
 /*The event handler - called from within the main GUI thread to
 dispatch events to any VST UIs which have callbacks stuck to them*/
 
-static void dispatch_x_events(XEvent* event, VSTFX* vstfx)
+static void
+dispatch_x_events (XEvent* event, VSTState* vstfx)
 {
 	/*Handle some of the Events we might be interested in*/
 	
@@ -182,10 +181,8 @@ static void dispatch_x_events(XEvent* event, VSTFX* vstfx)
 			/*if the size has changed, we flag this so that in lxvst_pluginui.cc we can make the
 			change to the GTK parent window in ardour, from its UI thread*/ 
 			
-			if(window == (Window)(vstfx->window))
-			{
-				if((width!=vstfx->width) || (height!=vstfx->height))
-				{
+			if (window == (Window) (vstfx->linux_window)) {
+				if (width != vstfx->width || height!=vstfx->height) {
 					vstfx->width = width;
 					vstfx->height = height;
 					vstfx->want_resize = 1;
@@ -194,8 +191,9 @@ static void dispatch_x_events(XEvent* event, VSTFX* vstfx)
 					position at the same time. We need to re-position the window at the origin of
 					the parent window*/
 					
-					if(vstfx->plugin_ui_window)
-						XMoveWindow(LXVST_XDisplay, vstfx->plugin_ui_window, 0, 0);
+					if (vstfx->linux_plugin_ui_window) {
+						XMoveWindow (LXVST_XDisplay, vstfx->linux_plugin_ui_window, 0, 0);
+					}
 				}
 			}
 			
@@ -220,18 +218,19 @@ static void dispatch_x_events(XEvent* event, VSTFX* vstfx)
 			/* present time                                            */
 			/***********************************************************/
 			
-			if(ParentWindow == (Window)(vstfx->window))
-			{
+			if (ParentWindow == (Window) (vstfx->linux_window)) {
+
 				Window PluginUIWindowID = event->xreparent.window;
 				
-				vstfx->plugin_ui_window = PluginUIWindowID;
+				vstfx->linux_plugin_ui_window = PluginUIWindowID;
 #ifdef LXVST_32BIT
 				int result = getXWindowProperty(PluginUIWindowID, XInternAtom(LXVST_XDisplay, "_XEventProc", false));
 	
-				if(result == 0)
+				if (result == 0) {
 					vstfx->eventProc = NULL;
-				else
+				} else {
 					vstfx->eventProc = (void (*) (void* event))result;
+				}
 #endif
 #ifdef LXVST_64BIT
 				long result = getXWindowProperty(PluginUIWindowID, XInternAtom(LXVST_XDisplay, "_XEventProc", false));
@@ -254,15 +253,13 @@ static void dispatch_x_events(XEvent* event, VSTFX* vstfx)
 			that the plugin parent window is now valid and can be passed
 			to effEditOpen when the editor is launched*/
 			
-			if(window == (Window)(vstfx->window))
-			{
+			if (window == (Window) (vstfx->linux_window)) {
 				char* message = XGetAtomName(LXVST_XDisplay, message_type);
 				
-				if(strcmp(message,"LaunchEditor") == 0)
-				{
-				
-					if(event->xclient.data.l[0] == 0x0FEEDBAC)
-						vstfx_launch_editor(vstfx);
+				if (strcmp(message,"LaunchEditor") == 0) {
+					if (event->xclient.data.l[0] == 0x0FEEDBAC) {
+						vstfx_launch_editor (vstfx);
+					}
 				}
 				
 				XFree(message);
@@ -283,49 +280,11 @@ static void dispatch_x_events(XEvent* event, VSTFX* vstfx)
 	UI window after they create it.  If that is the case, we need to call it
 	here, passing the XEvent into it*/
 	
-	if(vstfx->eventProc == NULL)
+	if (vstfx->eventProc == NULL) {
 		return;
+	}
 				
 	vstfx->eventProc((void*)event);
-}
-
-
-/*Create and return a pointer to a new vstfx instance*/
-
-static VSTFX* vstfx_new ()
-{
-	VSTFX* vstfx = (VSTFX*) calloc (1, sizeof (VSTFX));
-	
-	/*Mutexes*/
-	
-	pthread_mutex_init (&vstfx->lock, NULL);
-	pthread_cond_init (&vstfx->window_status_change, NULL);
-	pthread_cond_init (&vstfx->plugin_dispatcher_called, NULL);
-	pthread_cond_init (&vstfx->window_created, NULL);
-
-	/*Safe values*/
-	
-	vstfx->want_program = -1;
-	vstfx->want_chunk = 0;
-	vstfx->current_program = -1;
-	vstfx->n_pending_keys = 0;
-	vstfx->has_editor = 0;
-	vstfx->program_set_without_editor = 0;
-	vstfx->window = 0;
-	vstfx->plugin_ui_window = 0;
-	vstfx->eventProc = NULL;
-	vstfx->extra_data = NULL;
-	vstfx->want_resize = 0;
-	
-	return vstfx;
-}
-
-/*Create and return a pointer to a new VSTFX handle*/
-
-static VSTFXHandle* vstfx_handle_new()
-{
-	VSTFXHandle* vstfx = (VSTFXHandle*)calloc(1, sizeof (VSTFXHandle));
-	return vstfx;
 }
 
 /** This is the main gui event loop for the plugin, we also need to pass
@@ -334,8 +293,7 @@ windows, that is if they don't manage their own UIs **/
 
 void* gui_event_loop (void* ptr)
 {
-
-	VSTFX* vstfx;
+	VSTState* vstfx;
 	int LXVST_sched_event_timer = 0;
 	int LXVST_sched_timer_interval = 50; //ms
 	XEvent event;
@@ -400,14 +358,13 @@ again:
 
 				/*Window scheduled for destruction*/
 				
-				if (vstfx->destroy)
-				{
-					if (vstfx->window)
-					{
-						vstfx->plugin->dispatcher( vstfx->plugin, effEditClose, 0, 0, NULL, 0.0 );
+				if (vstfx->destroy) {
+					if (vstfx->linux_window) {
+						vstfx->plugin->dispatcher (vstfx->plugin, effEditClose, 0, 0, NULL, 0.0);
 							
-						XDestroyWindow (LXVST_XDisplay, vstfx->window);
-						vstfx->window = 0;				//FIXME - probably safe to assume we never have an XID of 0 but not explicitly true
+						XDestroyWindow (LXVST_XDisplay, vstfx->linux_window);
+						/* FIXME - probably safe to assume we never have an XID of 0 but not explicitly true */
+						vstfx->linux_window = 0;
 						vstfx->destroy = FALSE;
 					}
 					
@@ -420,19 +377,16 @@ again:
 				} 
 				
 				/*Window does not yet exist - scheduled for creation*/
-				
-				if (vstfx->window == 0)		//FIXME - probably safe to assume 0 is not a valid XID but not explicitly true
-				{
-					if (vstfx_create_editor (vstfx))
-					{
+
+				/* FIXME - probably safe to assume 0 is not a valid XID but not explicitly true */
+				if (vstfx->linux_window == 0) {
+					if (vstfx_create_editor (vstfx)) {
 						vstfx_error ("** ERROR ** VSTFX : Cannot create editor for plugin %s", vstfx->handle->name);
 						vstfx_event_loop_remove_plugin (vstfx);
 						pthread_cond_signal (&vstfx->window_status_change);
 						pthread_mutex_unlock (&vstfx->lock);
 						goto again;
-					}
-					else
-					{
+					} else {
 						/* condition/unlock: it was signalled & unlocked in fst_create_editor()   */
 					}
 				}
@@ -566,27 +520,23 @@ void vstfx_exit()
 
 /*Adds a new plugin (VSTFX) instance to the linked list*/
 
-int vstfx_run_editor (VSTFX* vstfx)
+int vstfx_run_editor (VSTState* vstfx)
 {
 	pthread_mutex_lock (&plugin_mutex);
 
-	/*Add the new VSTFX instance to the linked list*/
+	/* Add the new VSTFX instance to the linked list */
 
-	if (vstfx_first == NULL)
-	{
+	if (vstfx_first == NULL) {
 		vstfx_first = vstfx;
-	}
-	else
-	{
-		VSTFX* p = vstfx_first;
+	} else {
+		VSTState* p = vstfx_first;
 		
-		while (p->next)
-		{
+		while (p->next) {
 			p = p->next;
 		}
 		p->next = vstfx;
 		
-		/*Mark the new end of the list*/
+		/* Mark the new end of the list */
 		
 		vstfx->next = NULL;
 	}
@@ -597,53 +547,24 @@ int vstfx_run_editor (VSTFX* vstfx)
 
 	pthread_mutex_lock (&vstfx->lock);
 	
-	if (!vstfx->window)
-	{
+	if (!vstfx->linux_window) {
 		pthread_cond_wait (&vstfx->window_status_change, &vstfx->lock);
 	}
 	
 	pthread_mutex_unlock (&vstfx->lock);
 
-	if (!vstfx->window)
-	{
+	if (!vstfx->linux_window) {
 		return -1;
 	}
 
 	return 0;
 }
 
-/*Set up a call to the plugins 'dispatcher' function*/
-
-int vstfx_call_dispatcher (VSTFX *vstfx, int opcode, int index, int val, void *ptr, float opt) 
-{
-	pthread_mutex_lock (&vstfx->lock);
-	
-	/*Set up the opcode and parameters*/
-	
-	vstfx->dispatcher_opcode = opcode;
-	vstfx->dispatcher_index = index;
-	vstfx->dispatcher_val = val;
-	vstfx->dispatcher_ptr = ptr;
-	vstfx->dispatcher_opt = opt;
-	
-	/*Signal that we want the call to happen*/
-	
-	vstfx->dispatcher_wantcall = 1;
-
-	/*Wait for the call to happen*/
-
-	pthread_cond_wait (&vstfx->plugin_dispatcher_called, &vstfx->lock);
-	pthread_mutex_unlock (&vstfx->lock);
-
-	/*Return the result*/
-	
-	return vstfx->dispatcher_retval;
-}
 
 /*Creates an editor for the plugin - normally called from within the gui event loop
 after run_editor has added the plugin (editor) to the linked list*/
 
-int vstfx_create_editor (VSTFX* vstfx)
+int vstfx_create_editor (VSTState* vstfx)
 {
 	Window parent_window;
 	
@@ -680,7 +601,7 @@ int vstfx_create_editor (VSTFX* vstfx)
 				parent_window,
 				SubstructureNotifyMask | ButtonPressMask | ButtonReleaseMask | ButtonMotionMask | ExposureMask);
 										
-	vstfx->window = parent_window;
+	vstfx->linux_window = parent_window;
 										
 	vstfx->xid = parent_window;  //vstfx->xid will be referenced to connect to GTK UI in ardour later
 	
@@ -720,7 +641,8 @@ int vstfx_create_editor (VSTFX* vstfx)
 	return 0;
 }
 
-int vstfx_launch_editor(VSTFX* vstfx)
+int
+vstfx_launch_editor (VSTState* vstfx)
 {
 	/*This is the second stage of launching the editor (see vstfx_create editor)
 	we get called here in response to receiving the ClientMessage on our Window,
@@ -738,7 +660,7 @@ int vstfx_launch_editor(VSTFX* vstfx)
 	int x_size = 1;
 	int y_size = 1;
 	
-	parent_window = vstfx->window;
+	parent_window = vstfx->linux_window;
 	
 	/*Open the editor - Bah! we have to pass the int windowID as a void pointer - yuck
 	it gets cast back to an int as the parent window XID in the plugin - and we have to pass the
@@ -790,368 +712,48 @@ int vstfx_launch_editor(VSTFX* vstfx)
 	return 0;
 }
 
-/*May not be needed in the XLib version*/
-
-void vstfx_move_window_into_view (VSTFX* vstfx)
-{
-
-	/*This is probably the equivalent of Mapping an XWindow
-	but we most likely don't need it because the window
-	will be Mapped by XReparentWindow*/
-
-}
-
-/*Destroy the editor window*/
-
-void vstfx_destroy_editor (VSTFX* vstfx)
+/** Destroy the editor window */
+void
+vstfx_destroy_editor (VSTState* vstfx)
 {
 	pthread_mutex_lock (&vstfx->lock);
-	if (vstfx->window)
-	{
+	if (vstfx->linux_window) {
 		vstfx->destroy = TRUE;
 		pthread_cond_wait (&vstfx->window_status_change, &vstfx->lock);
 	}
 	pthread_mutex_unlock (&vstfx->lock);
 }
 
-/*Remove a vstfx instance from the linked list parsed by the
-event loop*/
-
-void vstfx_event_loop_remove_plugin (VSTFX* vstfx)
+/** Remove a vstfx instance from the linked list parsed by the
+    event loop
+*/
+void
+vstfx_event_loop_remove_plugin (VSTState* vstfx)
 {
-	/*This only ever gets called from within our GUI thread
-	so we don't need to lock here - if we did there would be
-	a deadlock anyway*/
+	/* This only ever gets called from within our GUI thread
+	   so we don't need to lock here - if we did there would be
+	   a deadlock anyway
+	*/
 	
-	VSTFX* p;
-	VSTFX* prev;
+	VSTState* p;
+	VSTState* prev;
 	
-	for(p = vstfx_first, prev = NULL; p; prev = p, p = p->next)
-	{
-		if(p == vstfx)
-		{
-			if(prev)
-			{
+	for (p = vstfx_first, prev = NULL; p; prev = p, p = p->next) {
+		if (p == vstfx) {
+			if (prev) {
 				prev->next = p->next;
 				break;
 			}
 		}
 	}
 
-	if (vstfx_first == vstfx)
+	if (vstfx_first == vstfx) {
 		vstfx_first = vstfx_first->next;
-}
-
-/*This loads the plugin shared library*/
-
-void* vstfx_load_vst_library(const char* path)
-{
-	void* dll;
-	char* full_path;
-	char* envdup;
-	char* lxvst_path;
-	size_t len1;
-	size_t len2;
-
-	/*Try and load the shared library pointed to by the path - 
-	NOTE: You have to give RTLD_LAZY or RTLD_NOW to dlopen or
-	you get some occasional failures to load - dlerror reports
-	invalid arguments*/
-
-	if ((dll = dlopen (path, RTLD_LOCAL | RTLD_LAZY)) != NULL)
-		return dll;
-		
-	/*We didn't find the library so try and get the path specified in the
-	env variable LXVST_PATH*/
-
-	envdup = getenv ("LXVST_PATH");
-	
-	/*Path not specified - not much more we can do*/
-	
-	if (envdup == NULL)
-		return NULL;
-	
-	/*Copy the path into envdup*/
-		
-	envdup = strdup (envdup);
-	
-	if (envdup == NULL)
-		return NULL;
-		
-	len2 = strlen(path);
-
-	/*Try all the possibilities in the path - deliminated by : */
-
-	lxvst_path = strtok (envdup, ":");
-	
-	while (lxvst_path != NULL)
-	{
-		vstfx_error ("\"%s\"", lxvst_path);
-		len1 = strlen(lxvst_path);
-		
-		full_path = (char*)malloc(len1 + 1 + len2 + 1);
-		memcpy(full_path, lxvst_path, len1);
-		full_path[len1] = '/';
-		memcpy(full_path + len1 + 1, path, len2);
-		full_path[len1 + 1 + len2] = '\0';
-
-		/*Try and load the library*/
-
-		if ((dll = dlopen(full_path, RTLD_LOCAL | RTLD_LAZY)) != NULL)
-		{
-			/*Succeeded */
-			break;
-		}
-	
-		/*Try again*/
-
-		lxvst_path = strtok (NULL, ":");
-	}
-
-	/*Free the path*/
-
-	free(envdup);
-
-	return dll;
-}
-
-/*This loads up a plugin, given the path to its .so file and
- finds its main entry point etc*/
-
-VSTFXHandle* vstfx_load (const char *path)
-{
-	char* buf = NULL;
-	VSTFXHandle* fhandle;
-	int i;
-	
-	/*Create a new handle we can use to reference the plugin*/
-
-	fhandle = vstfx_handle_new();
-	
-	/*See if we have .so appended to the path - if not we need to make sure it is added*/
-	
-	if (strstr (path, ".so") == NULL)
-	{
-
-		/*Append the .so to the path - Make sure the path has enough space*/
-		
-		buf = (char *)malloc(strlen(path) + 4); //The .so and a terminating zero
-
-		sprintf (buf, "%s.so", path);
-		
-		fhandle->nameptr = strdup (path);
-
-	}
-	else
-	{
-		/*We already have .so appened to the filename*/
-		
-		buf = strdup(path);
-		
-		fhandle->nameptr = strdup (path);
-	}
-	
-	/*Use basename to shorten the path and then strip off the .so - the old VST problem,
-	we don't know anything about its name until we load and instantiate the plugin
-	which we don't want to do at this point*/
-	
-	for(i=0; i < (int)strlen(fhandle->nameptr); i++)
-	{
-		if(fhandle->nameptr[i] == '.')
-			fhandle->nameptr[i] = 0;
-	}
-			
-	
-	fhandle->name = basename (fhandle->nameptr);
-
-	/*call load_vstfx_library to actually load the .so into memory*/
-
-	if ((fhandle->dll = vstfx_load_vst_library (buf)) == NULL)
-	{
-		vstfx_unload (fhandle);
-		
-		free(buf);
-		
-		return NULL;
-	}
-
-	/*Find the main entry point into the plugin*/
-
-	if ((fhandle->main_entry = (main_entry_t) dlsym(fhandle->dll, "main")) == NULL)
-	{
-		/*If it can't be found, unload the plugin and return a NULL handle*/
-		
-		vstfx_unload (fhandle);
-		
-		free(buf);
-		
-		return NULL;
-	}
-
-	free(buf);
-
-	/*return the handle of the plugin*/
-
-	return fhandle;
-}
-
-/*This unloads a plugin*/
-
-int vstfx_unload (VSTFXHandle* fhandle)
-{
-	if (fhandle->plugincnt)
-	{
-		/*Still have plugin instances - can't unload the library
-		- actually dlclose keeps an instance count anyway*/
-		
-		return -1;
-	}
-
-	/*Valid plugin loaded?*/
-
-	if (fhandle->dll)
-	{
-		dlclose(fhandle->dll);
-		fhandle->dll = NULL;
-	}
-
-	if (fhandle->nameptr)
-	{
-		free (fhandle->nameptr);
-		fhandle->name = NULL;
-	}
-	
-	/*Don't need the plugin handle any more*/
-	
-	free (fhandle);
-	return 0;
-}
-
-/*This instantiates a plugin*/
-
-VSTFX* vstfx_instantiate (VSTFXHandle* fhandle, audioMasterCallback amc, void* userptr)
-{
-	VSTFX* vstfx = vstfx_new ();
-
-	if(fhandle == NULL)
-	{
-	    vstfx_error( "** ERROR ** VSTFX : The handle was NULL\n" );
-	    return NULL;
-	}
-
-	if ((vstfx->plugin = fhandle->main_entry (amc)) == NULL) 
-	{
-		vstfx_error ("** ERROR ** VSTFX : %s could not be instantiated :(\n", fhandle->name);
-		free (vstfx);
-		return NULL;
-	}
-	
-	vstfx->handle = fhandle;
-	vstfx->plugin->user = userptr;
-		
-	if (vstfx->plugin->magic != kEffectMagic)
-	{
-		vstfx_error ("** ERROR ** VSTFX : %s is not a VST plugin\n", fhandle->name);
-		free (vstfx);
-		return NULL;
-	}
-	
-	vstfx->plugin->dispatcher (vstfx->plugin, effOpen, 0, 0, 0, 0);
-	
-	/*May or May not need to 'switch the plugin on' here - unlikely
-	since FST doesn't and most plugins start up 'On' by default - I think this is the least of our worries*/
-	
-	//vstfx->plugin->dispatcher (vstfx->plugin, effMainsChanged, 0, 1, NULL, 0);
-	
-	vstfx->vst_version = vstfx->plugin->dispatcher (vstfx->plugin, effGetVstVersion, 0, 0, 0, 0);
-	
-	vstfx->handle->plugincnt++;
-	vstfx->wantIdle = 0;
-	
-	return vstfx;
-}
-
-/*Close a vstfx instance*/
-
-void vstfx_close (VSTFX* vstfx)
-{
-	vstfx_destroy_editor(vstfx);
-	
-	if(vstfx->plugin)
-	{
-		vstfx->plugin->dispatcher (vstfx->plugin, effMainsChanged, 0, 0, NULL, 0);
-		
-		/*Calling dispatcher with effClose will cause the plugin's destructor to
-		be called, which will also remove the editor if it exists*/
-		
-		vstfx->plugin->dispatcher (vstfx->plugin, effClose, 0, 0, 0, 0);
-	}
-
-	if (vstfx->handle->plugincnt)
-			vstfx->handle->plugincnt--;
-		
-	/*vstfx_unload will unload the dll if the instance count allows - 
-	we need to do this because some plugins keep their own instance count
-	and (JUCE) manages the plugin UI in its own thread.  When the plugins
-	internal instance count reaches zero, JUCE stops the UI thread and won't
-	restart it until the next time the library is loaded.  If we don't unload
-	the lib JUCE will never restart*/
-	
-	
-	if (vstfx->handle->plugincnt)
-	{
-		return;
-	}
-	
-	/*Valid plugin loaded - so we can unload it and NULL the pointer
-	to it.  We can't free the handle here because we don't know what else
-	might need it.  It should be / is freed when the plugin is deleted*/
-
-	if (vstfx->handle->dll)
-	{
-		dlclose(vstfx->handle->dll); //dlclose keeps its own reference count
-		vstfx->handle->dll = NULL;
 	}
 }
 
-
-/*Get the XID of the plugin editor window*/
-
-int vstfx_get_XID (VSTFX* vstfx)
-{
-	int id;
-	
-	/*Wait for the lock to become free - otherwise
-	the window might be in the process of being
-	created and we get bad Window errors when trying
-	to embed it in the GTK UI*/
-	
-	pthread_mutex_lock(&vstfx->lock);
-	
-	/*The Window may be scheduled for creation
-	but not actually created by the gui_event_loop yet - 
-	
-	spin here until it has been activated.  Possible
-	deadlock if the window never gets activated but
-	should not be called here if the window doesn't
-	exist or will never exist*/
-	
-	while(!(vstfx->been_activated))
-		usleep(1000);
-	
-	id = vstfx->xid;
-	
-	pthread_mutex_unlock(&vstfx->lock);
-	
-	/*Finally it might be safe to return the ID - 
-	problems will arise if we return either a zero ID
-	and GTK tries to socket it or if we return an ID
-	which hasn't yet become real to the server*/
-	
-	return id;
-}
-
-float htonf (float v)
+float
+htonf (float v)
 {
       float result;
       char * fin = (char*)&v;
@@ -1169,7 +771,7 @@ float htonf (float v)
 
 
 #if 0
-int vstfx_load_state (VSTFX* vstfx, char * filename)
+int vstfx_load_state (VSTState* vstfx, char * filename)
 {
 	FILE* f = fopen (filename, "rb");
 	if(f)
@@ -1300,104 +902,4 @@ int vstfx_load_state (VSTFX* vstfx, char * filename)
 
 }
 #endif
-
-int vstfx_save_state (VSTFX* vstfx, char * filename)
-{
-	FILE* f = fopen (filename, "wb");
-	if (f)
-	{
-		int bytelen;
-		int numParams = vstfx->plugin->numParams;
-		int i;
-		char productString[64];
-		char effectName[64];
-		char vendorString[64];
-		int success;
-
-		/* write header */
-		
-		fprintf(f, "<plugin_state>\n");
-
-		success = vstfx_call_dispatcher(vstfx, effGetProductString, 0, 0, productString, 0);
-		
-		if(success == 1)
-		{
-			fprintf (f, "  <check field=\"productString\" value=\"%s\"/>\n", productString);
-		}
-		else
-		{
-			printf ("No product string\n");
-		}
-
-		success = vstfx_call_dispatcher(vstfx, effGetEffectName, 0, 0, effectName, 0);
-		
-		if(success == 1)
-		{
-			fprintf (f, "  <check field=\"effectName\" value=\"%s\"/>\n", effectName);
-			printf ("Effect name: %s\n", effectName);
-		}
-		else
-		{
-			printf ("No effect name\n");
-		}
-
-		success = vstfx_call_dispatcher(vstfx, effGetVendorString, 0, 0, vendorString, 0);
-		
-		if( success == 1 )
-		{
-			fprintf (f, "  <check field=\"vendorString\" value=\"%s\"/>\n", vendorString);
-			printf ("Vendor string: %s\n", vendorString);
-		}
-		else
-		{
-			printf ("No vendor string\n");
-		}
-
-
-		if(vstfx->plugin->flags & 32 )
-		{
-			numParams = 0;
-		}
-
-		for(i=0; i < numParams; i++)
-		{
-			float val;
-			
-			pthread_mutex_lock( &vstfx->lock );
-			val = vstfx->plugin->getParameter(vstfx->plugin, i );
-			pthread_mutex_unlock( &vstfx->lock );
-			fprintf( f, "  <param index=\"%d\" value=\"%f\"/>\n", i, val );
-		}
-
-		if(vstfx->plugin->flags & 32 )
-		{
-			printf( "getting chunk...\n" );
-			void * chunk;
-			bytelen = vstfx_call_dispatcher(vstfx, 23, 0, 0, &chunk, 0 );
-			printf( "got tha chunk..\n" );
-			if( bytelen )
-			{
-				if( bytelen < 0 )
-				{
-					printf( "Chunke len < 0 !!! Not saving chunk.\n" );
-				}
-				else
-				{
-					//char *encoded = g_base64_encode( chunk, bytelen );
-					//fprintf( f, "  <chunk size=\"%d\">\n    %s\n  </chunk>\n", bytelen, encoded );
-					//g_free( encoded );
-				}
-			}
-		} 
-
-		fprintf( f, "</plugin_state>\n" );
-		fclose( f );
-	}
-	else
-	{
-		printf ("Could not open state file\n");
-		return FALSE;
-	}
-	return TRUE;
-}
 

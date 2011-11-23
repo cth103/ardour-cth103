@@ -54,7 +54,7 @@
 #include "ardour/port.h"
 
 #include "ardour_ui.h"
-#include "ardour_dialog.h"
+#include "ardour_window.h"
 #include "mixer_strip.h"
 #include "mixer_ui.h"
 #include "keyboard.h"
@@ -151,11 +151,13 @@ MixerStrip::init ()
 	img->show ();
 
 	width_button.add (*img);
+	ARDOUR_UI::instance()->set_tip (&width_button, _("Toggle the width of this mixer strip"));
 
 	img = manage (new Gtk::Image (::get_icon("hide")));
 	img->show ();
 
 	hide_button.add (*img);
+	ARDOUR_UI::instance()->set_tip (&hide_button, _("Hide this mixer strip"));
 
 	input_label.set_text (_("Input"));
 	ARDOUR_UI::instance()->set_tip (&input_button, _("Button 1 to choose inputs from a port matrix, button 3 to select inputs from a menu"), "");
@@ -543,6 +545,8 @@ MixerStrip::set_route (boost::shared_ptr<Route> rt)
 		hide_button.show();
 	}
 
+	gpm.reset_peak_display ();
+
 	width_button.show();
 	width_hide_box.show();
 	whvbox.show ();
@@ -645,8 +649,8 @@ MixerStrip::set_width_enum (Width w, void* owner)
 			panners.short_astate_string(_route->panner()->automation_state()));
 		}
 		
-		solo_isolated_led->set_text ("");
-		solo_safe_led->set_text ("");
+		solo_isolated_led->set_text (_("i"));
+		solo_safe_led->set_text (_("L"));
 
 		Gtkmm2ext::set_size_request_to_display_given_text (name_button, longest_label.c_str(), 2, 2);
 		set_size_request (max (50, gpm.get_gm_width()), -1);
@@ -1347,7 +1351,7 @@ MixerStrip::open_comment_editor ()
 void
 MixerStrip::setup_comment_editor ()
 {
-	comment_window = new ArdourDialog ("", false); // title will be reset to show route
+	comment_window = new ArdourWindow (""); // title will be reset to show route
 	comment_window->set_position (Gtk::WIN_POS_MOUSE);
 	comment_window->set_skip_taskbar_hint (true);
 	comment_window->signal_hide().connect (sigc::mem_fun(*this, &MixerStrip::comment_editor_done_editing));
@@ -1360,8 +1364,7 @@ MixerStrip::setup_comment_editor ()
 	comment_area->get_buffer()->set_text (_route->comment());
 	comment_area->show ();
 
-	comment_window->get_vbox()->pack_start (*comment_area);
-	comment_window->get_action_area()->hide();
+	comment_window->add (*comment_area);
 }
 
 void
