@@ -4754,13 +4754,10 @@ Editor::first_idle ()
 	_routes->redisplay ();
 
 	delete dialog;
-<<<<<<< HEAD
 
 	_track_canvas->resume_updates ();
 	_time_bars_canvas->resume_updates ();
 	
-=======
->>>>>>> origin/master
 	_have_idled = true;
 }
 

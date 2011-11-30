@@ -73,10 +73,10 @@ class MidiGhostRegion : public GhostRegion {
 public:
 	class Event : public sigc::trackable {
 	public:
-		Event (Note *, Canvas::Group *);
+		Event (NoteBase *, Canvas::Group *);
 		~Event ();
 
-		Note* event;
+		NoteBase* event;
 		Canvas::Rectangle* rect;
 	};
 
@@ -92,17 +92,17 @@ public:
 
 	void update_range();
 
-	void add_note (Note *);
-	void update_note (Note *);
-	void remove_note (Note *);
+	void add_note (NoteBase *);
+	void update_note (NoteBase *);
+	void remove_note (NoteBase *);
 
 	void clear_events();
 
 private:
 
-	MidiGhostRegion::Event* find_event (Note *);
+	MidiGhostRegion::Event* find_event (NoteBase *);
 
-	typedef std::list<MidiGhostRegion::GhostEvent*> EventList;
+	typedef std::list<MidiGhostRegion::Event*> EventList;
 	EventList events;
 	EventList::iterator _optimization_iterator;
 };

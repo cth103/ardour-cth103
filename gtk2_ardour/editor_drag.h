@@ -775,7 +775,7 @@ public:
 class EditorRubberbandSelectDrag : public RubberbandSelectDrag
 {
 public:
-	EditorRubberbandSelectDrag (Editor *, ArdourCanvas::Item *);
+	EditorRubberbandSelectDrag (Editor *, Canvas::Item *);
 
 	void select_things (int, framepos_t, framepos_t, double, double, bool);
 	void deselect_things ();

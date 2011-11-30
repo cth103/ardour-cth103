@@ -4229,7 +4229,7 @@ MidiRubberbandSelectDrag::deselect_things ()
 	/* XXX */
 }
 
-EditorRubberbandSelectDrag::EditorRubberbandSelectDrag (Editor* e, ArdourCanvas::Item* i)
+EditorRubberbandSelectDrag::EditorRubberbandSelectDrag (Editor* e, Canvas::Item* i)
 	: RubberbandSelectDrag (e, i)
 {
 
