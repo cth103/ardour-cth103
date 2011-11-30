@@ -17,7 +17,7 @@
 #include <signal.h>
 #include <glib.h>
 
-#include "ardour/vstfx.h"
+#include "ardour/linux_vst_support.h"
 
 #include <X11/X.h>
 #include <X11/Xlib.h>
@@ -287,6 +287,29 @@ dispatch_x_events (XEvent* event, VSTState* vstfx)
 	vstfx->eventProc((void*)event);
 }
 
+static void
+maybe_set_program (VSTState* vstfx)
+{
+	if (vstfx->want_program != -1) {
+		if (vstfx->vst_version >= 2) {
+			vstfx->plugin->dispatcher (vstfx->plugin, 67 /* effBeginSetProgram */, 0, 0, NULL, 0);
+		}
+
+		vstfx->plugin->dispatcher (vstfx->plugin, effSetProgram, 0, vstfx->want_program, NULL, 0);
+		
+		if (vstfx->vst_version >= 2) {
+			vstfx->plugin->dispatcher (vstfx->plugin, 68 /* effEndSetProgram */, 0, 0, NULL, 0);
+		}
+		
+		vstfx->want_program = -1; 
+	}
+
+	if (vstfx->want_chunk == 1) {
+		vstfx->plugin->dispatcher (vstfx->plugin, 24 /* effSetChunk */, 1, vstfx->wanted_chunk_size, vstfx->wanted_chunk, 0);
+		vstfx->want_chunk = 0;
+	}
+}
+
 /** This is the main gui event loop for the plugin, we also need to pass
 any Xevents to all the UI callbacks plugins 'may' have registered on their
 windows, that is if they don't manage their own UIs **/
@@ -391,27 +414,9 @@ again:
 					}
 				}
 
-				/*Scheduled for setting a new program*/
-
-				if (vstfx->want_program != -1 )
-				{
-					if (vstfx->vst_version >= 2)
-					{
-						vstfx->plugin->dispatcher (vstfx->plugin, 67 /* effBeginSetProgram */, 0, 0, NULL, 0);
-					}
-
-					vstfx->plugin->dispatcher (vstfx->plugin, effSetProgram, 0, vstfx->want_program, NULL, 0);
-
-					if (vstfx->vst_version >= 2)
-					{
-						vstfx->plugin->dispatcher (vstfx->plugin, 68 /* effEndSetProgram */, 0, 0, NULL, 0);
-					}
-					
-					/* did it work? */
-					
-					vstfx->current_program = vstfx->plugin->dispatcher (vstfx->plugin, 3, /* effGetProgram */ 0, 0, NULL, 0);
-					vstfx->want_program = -1; 
-				}
+				maybe_set_program (vstfx);
+				vstfx->want_program = -1;
+				vstfx->want_chunk = 0;
 				
 				/*scheduled call to dispatcher*/
 				
@@ -751,155 +756,4 @@ vstfx_event_loop_remove_plugin (VSTState* vstfx)
 		vstfx_first = vstfx_first->next;
 	}
 }
-
-float
-htonf (float v)
-{
-      float result;
-      char * fin = (char*)&v;
-      char * fout = (char*)&result;
-      fout[0] = fin[3];
-      fout[1] = fin[2];
-      fout[2] = fin[1];
-      fout[3] = fin[0];
-      return result;
-}
-
-
-/*load_state and save_state do not appear to be needed (yet) in ardour
-- untested at the moment, these are just replicas of the fst code*/
-
-
-#if 0
-int vstfx_load_state (VSTState* vstfx, char * filename)
-{
-	FILE* f = fopen (filename, "rb");
-	if(f)
-	{
-		char testMagic[sizeof (magic)];
-		fread (&testMagic, sizeof (magic), 1, f);
-		if (strcmp (testMagic, magic))
-		{
-			printf ("File corrupt\n");
-			return FALSE;
-		}
-
-		char productString[64];
-		char vendorString[64];
-		char effectName[64];
-		char testString[64];
-		unsigned length;
-		int success;
-
-		fread (&length, sizeof (unsigned), 1, f);
-		length = htonl (length);
-		fread (productString, length, 1, f);
-		productString[length] = 0;
-		printf ("Product string: %s\n", productString);
-
-		success = vstfx_call_dispatcher(vstfx, effGetProductString, 0, 0, testString, 0);
-		
-		if (success == 1)
-		{
-			if (strcmp (testString, productString) != 0)
-			{
-				printf ("Product string mismatch! Plugin has: %s\n", testString);
-				fclose (f);
-				return FALSE;
-			}
-		}
-		else if (length != 0)
-		{
-			printf ("Product string mismatch! Plugin has none.\n", testString);
-			fclose (f);
-			return FALSE;
-		}
-
-		fread (&length, sizeof (unsigned), 1, f);
-		length = htonl (length);
-		fread (effectName, length, 1, f);
-		effectName[length] = 0;
-		printf ("Effect name: %s\n", effectName);
-
-		success = vstfx_call_dispatcher(vstfx, effGetEffectName, 0, 0, testString, 0);
-		
-		if(success == 1)
-		{
-			if(strcmp(testString, effectName)!= 0)
-			{
-				printf ("Effect name mismatch! Plugin has: %s\n", testString);
-				fclose (f);
-				return FALSE;
-			}
-		}
-		else if(length != 0)
-		{
-			printf ("Effect name mismatch! Plugin has none.\n", testString);
-			fclose (f);
-			return FALSE;
-		}
-
-		fread (&length, sizeof (unsigned), 1, f);
-		length = htonl (length);
-		fread (vendorString, length, 1, f);
-		vendorString[length] = 0;
-		
-		printf ("Vendor string: %s\n", vendorString);
-
-		success = vstfx_call_dispatcher(vstfx, effGetVendorString, 0, 0, testString, 0);
-		if(success == 1)
-		{
-			if (strcmp(testString, vendorString)!= 0)
-			{
-				printf ("Vendor string mismatch! Plugin has: %s\n", testString);
-				fclose (f);
-				return FALSE;
-			}
-		}
-		else if(length != 0)
-		{
-			printf ("Vendor string mismatch! Plugin has none.\n", testString);
-			fclose (f);
-			return FALSE;
-		}
-
-		int numParam;
-		unsigned i;
-		fread (&numParam, sizeof (int), 1, f);
-		numParam = htonl (numParam);
-		
-		for (i = 0; i < numParam; ++i)
-		{
-			float val;
-			fread (&val, sizeof (float), 1, f);
-			val = htonf (val);
-
-			pthread_mutex_lock(&vstfx->lock );
-			vstfx->plugin->setParameter(vstfx->plugin, i, val);
-			pthread_mutex_unlock(&vstfx->lock );
-		}
-
-		int bytelen;
-		
-		fread (&bytelen, sizeof (int), 1, f);
-		bytelen = htonl (bytelen);
-		
-		if (bytelen)
-		{
-			char * buf = malloc (bytelen);
-			fread (buf, bytelen, 1, f);
-
-			vstfx_call_dispatcher(vstfx, 24, 0, bytelen, buf, 0);
-			free (buf);
-		}
-	}
-	else
-	{
-		printf ("Could not open state file\n");
-		return FALSE;
-	}
-	return TRUE;
-
-}
-#endif
 

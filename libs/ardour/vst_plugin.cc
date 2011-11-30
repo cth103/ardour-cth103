@@ -56,10 +56,6 @@ VSTPlugin::set_plugin (AEffect* e)
 
 	_plugin->dispatcher (_plugin, effSetSampleRate, 0, 0, NULL, (float) _session.frame_rate());
 	_plugin->dispatcher (_plugin, effSetBlockSize, 0, _session.get_block_size(), NULL, 0.0f);
-
-	/* set program to zero */
-
-	_plugin->dispatcher (_plugin, effSetProgram, 0, 0, NULL, 0.0f);
 }
 
 void
@@ -99,15 +95,7 @@ void
 VSTPlugin::set_parameter (uint32_t which, float val)
 {
 	_plugin->setParameter (_plugin, which, val);
-	
-	if (_state->want_program == -1 && _state->want_chunk == 0) {
-		/* Heinous hack: Plugin::set_parameter below updates the `modified' status of the
-		   current preset, but if _state->want_program is not -1 then there is a preset
-		   setup pending or in progress, which we don't want any `modified' updates
-		   to happen for.  So we only do this if _state->want_program is -1.
-		*/
-		Plugin::set_parameter (which, val);
-	}
+	Plugin::set_parameter (which, val);
 }
 
 uint32_t
@@ -153,12 +141,6 @@ VSTPlugin::add_state (XMLNode* root) const
 {
 	LocaleGuard lg (X_("POSIX"));
 
-	if (_state->current_program != -1) {
-		char buf[32];
-		snprintf (buf, sizeof (buf), "%d", _state->current_program);
-		root->add_property ("current-program", buf);
-	}
-
 	if (_plugin->flags & 32 /* effFlagsProgramsChunks */) {
 
 		gchar* data = get_chunk (false);
@@ -201,12 +183,6 @@ VSTPlugin::set_state (const XMLNode& node, int version)
 		return 0;
 	}
 
-	const XMLProperty* prop;
-
-	if ((prop = node.property ("current-program")) != 0) {
-		_state->want_program = atoi (prop->value().c_str());
-	}
-
 	XMLNode* child;
 	int ret = -1;
 
@@ -238,10 +214,6 @@ VSTPlugin::set_state (const XMLNode& node, int version)
 			_plugin->setParameter (_plugin, param, val);
 		}
 
-		/* program number is not knowable */
-
-		_state->current_program = -1;
-
 		ret = 0;
 
 	}
@@ -261,8 +233,6 @@ VSTPlugin::get_parameter_descriptor (uint32_t which, ParameterDescriptor& desc) 
 	prop.flags = 0;
 
 	if (_plugin->dispatcher (_plugin, effGetParameterProperties, which, 0, &prop, 0)) {
-
-#ifdef VESTIGE_COMPLETE
 
 		/* i have yet to find or hear of a VST plugin that uses this */
 
@@ -299,7 +269,6 @@ VSTPlugin::get_parameter_descriptor (uint32_t which, ParameterDescriptor& desc) 
 		desc.logarithmic = false;
 		desc.sr_dependent = false;
 		desc.label = prop.label;
-#endif
 
 	} else {
 
@@ -409,8 +378,8 @@ VSTPlugin::load_user_preset (PresetRecord r)
 
 			return false;
 
-		}
-		else {
+		} else {
+			
 			for (XMLNodeList::const_iterator j = (*i)->children().begin(); j != (*i)->children().end(); ++j) {
 				if ((*j)->name() == X_("Parameter")) {
 						XMLProperty* index = (*j)->property (X_("index"));
@@ -449,8 +418,7 @@ VSTPlugin::do_save_preset (string name)
 		p->add_content (string (data));
 		g_free (data);
 
-	}
-	else {
+	} else {
 
 		p = new XMLNode (X_("Preset"));
 		p->add_property (X_("uri"), uri);

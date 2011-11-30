@@ -334,7 +334,6 @@ int main(int argc, char **argv) {
         conf.define ('HAVE_OGG', 1)
 
     if Options.options.lv2 and conf.is_defined('HAVE_LILV'):
-        print "LV2 option was ", Options.options.lv2
         conf.define ('LV2_SUPPORT', 1)
 
     conf.write_config_header('libardour-config.h', remove=False)
@@ -379,7 +378,7 @@ def build(bld):
     #obj.add_objects = 'default/libs/surfaces/control_protocol/smpte_1.o'
 
     if bld.is_defined('HAVE_LILV') :
-        obj.source += [ 'lv2_plugin_lilv.cc', 'lv2_event_buffer.cc',
+        obj.source += [ 'lv2_plugin.cc', 'lv2_event_buffer.cc',
                         'uri_map.cc', 'rdff.c' ]
         obj.uselib += ['LILV']
         if bld.is_defined('HAVE_SUIL'):
@@ -391,7 +390,7 @@ def build(bld):
         obj.defines += [ 'WINDOWS_VST_SUPPORT' ]
 
     if bld.is_defined('LXVST_SUPPORT'):
-        obj.source += [ 'lxvst_plugin.cc', 'vstfx.cc', 'vstfxinfofile.cc' ]
+        obj.source += [ 'lxvst_plugin.cc', 'linux_vst_support.cc', 'linux_vst_info_file.cc' ]
         obj.defines += [ 'LXVST_SUPPORT' ]
 
     if bld.is_defined('WINDOWS_VST_SUPPORT') or bld.is_defined('LXVST_SUPPORT'):

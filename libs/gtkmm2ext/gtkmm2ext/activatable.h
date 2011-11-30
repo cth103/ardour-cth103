@@ -1,5 +1,6 @@
 /*
-    Copyright (C) 2000-2007 Paul Davis
+    Copyright (C) 2011 Paul Davis
+    Author: David Robillard
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,23 +18,34 @@
 
 */
 
-#ifndef __i18n_h__
-#define __i18n_h__
+#ifndef __libgtkmm2ext_activatable_h__
+#define __libgtkmm2ext_activatable_h__
 
-#include "pbd/compose.h"
-#include "pbd/convert.h"
-#include "gettext.h"
+#include <gtkmm/action.h>
 
-#include <vector>
-#include <string>
+namespace Gtkmm2ext {
 
-#define _(Text)  dgettext (PACKAGE,Text)
-#define N_(Text) gettext_noop (Text)
-#define X_(Text) Text
-#define I18N(Array) PBD::internationalize (PACKAGE, Array)
-/** Use this to translate strings that have different meanings in different places.
- *  Text should be of the form Context|Message.
- */
-#define S_(Text) PBD::sgettext (PACKAGE, Text)
+/**
+   A Widget with an associated Action.
 
-#endif // __i18n_h__
+   Gtkmm itself has a class for this.  I don't know why we don't use it.
+*/
+class Activatable {
+public:
+	virtual ~Activatable() {}
+
+	virtual void set_related_action(Glib::RefPtr<Gtk::Action> a) {
+		_action = a;
+	}
+
+	Glib::RefPtr<Gtk::Action> get_related_action() {
+		return _action;
+	}
+
+protected:
+	Glib::RefPtr<Gtk::Action> _action;
+};
+
+} /* namespace */
+
+#endif /* __libgtkmm2ext_actions_h__ */

@@ -53,6 +53,7 @@
 #include "utils.h"
 #include "window_proxy.h"
 #include "global_port_matrix.h"
+#include "location_ui.h"
 
 #include <gtkmm2ext/application.h>
 
@@ -225,7 +226,7 @@ ARDOUR_UI::install_actions ()
 	act = ActionManager::register_toggle_action (common_actions, X_("KeepTearoffs"), _("Toolbars when Maximised"), mem_fun (*this, &ARDOUR_UI::toggle_keep_tearoffs));
 	ActionManager::session_sensitive_actions.push_back (act);
 
-	ActionManager::register_toggle_action (common_actions, X_("toggle-mixer"), _("Mixer"),  sigc::mem_fun(*this, &ARDOUR_UI::toggle_mixer_window));
+	ActionManager::register_toggle_action (common_actions, X_("toggle-mixer"), S_("Window|Mixer"),  sigc::mem_fun(*this, &ARDOUR_UI::toggle_mixer_window));
 	ActionManager::register_toggle_action (common_actions, X_("toggle-mixer-on-top"), _("Mixer on Top"),  sigc::mem_fun(*this, &ARDOUR_UI::toggle_mixer_on_top));
 	ActionManager::register_toggle_action (common_actions, X_("ToggleRCOptionsEditor"), _("Preferences"), sigc::mem_fun(*this, &ARDOUR_UI::toggle_rc_options_window));
 	ActionManager::register_toggle_action (common_actions, X_("ToggleSessionOptionsEditor"), _("Properties"), sigc::mem_fun(*this, &ARDOUR_UI::toggle_session_options_window));
@@ -825,9 +826,15 @@ ARDOUR_UI::save_ardour_state ()
 	if (_session) {
 		_session->add_instant_xml (enode);
 		_session->add_instant_xml (mnode);
+		if (location_ui->get ()) {
+			_session->add_instant_xml (location_ui->get()->ui().get_state ());
+		}
 	} else {
 		Config->add_instant_xml (enode);
 		Config->add_instant_xml (mnode);
+		if (location_ui->get ()) {
+			Config->add_instant_xml (location_ui->get()->ui().get_state ());
+		}
 	}
 
 	Keyboard::save_keybindings ();

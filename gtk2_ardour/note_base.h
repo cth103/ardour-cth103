@@ -162,6 +162,7 @@ protected:
 	bool                              _valid;
         float                             _mouse_x_fraction;
         float                             _mouse_y_fraction;
+	uint16_t                          _channel_selection;
 
         void set_mouse_fractions (GdkEvent*);
 

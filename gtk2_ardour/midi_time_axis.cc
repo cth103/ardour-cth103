@@ -122,11 +122,23 @@ MidiTimeAxisView::MidiTimeAxisView (PublicEditor& ed, Session* sess, Canvas::Can
 void
 MidiTimeAxisView::set_route (boost::shared_ptr<Route> rt)
 {
+	_route = rt;
+	
+	_view = new MidiStreamView (*this);
+	
+	if (is_track ()) {
+		_piano_roll_header = new PianoRollHeader(*midi_view());
+		_range_scroomer = new MidiScroomer(midi_view()->note_range_adjustment);
+	}
+
+	/* This next call will result in our height being set up, so it must come after
+	   the creation of the piano roll / range scroomer as their visibility is set up
+	   when our height is.
+	*/
 	RouteTimeAxisView::set_route (rt);
 
 	subplugin_menu.set_name ("ArdourContextMenu");
 
-	_view = new MidiStreamView (*this);
 	if (!gui_property ("note-range-min").empty ()) {
 		midi_view()->apply_note_range (atoi (gui_property ("note-range-min").c_str()), atoi (gui_property ("note-range-max").c_str()), true);
 	}
@@ -148,13 +160,9 @@ MidiTimeAxisView::set_route (boost::shared_ptr<Route> rt)
 	_route->processors_changed.connect (*this, invalidator (*this), ui_bind (&MidiTimeAxisView::processors_changed, this, _1), gui_context());
 
 	if (is_track()) {
-		_piano_roll_header = new PianoRollHeader(*midi_view());
-
 		_piano_roll_header->AddNoteSelection.connect (sigc::mem_fun (*this, &MidiTimeAxisView::add_note_selection));
 		_piano_roll_header->ExtendNoteSelection.connect (sigc::mem_fun (*this, &MidiTimeAxisView::extend_note_selection));
 		_piano_roll_header->ToggleNoteSelection.connect (sigc::mem_fun (*this, &MidiTimeAxisView::toggle_note_selection));
-
-		_range_scroomer = new MidiScroomer(midi_view()->note_range_adjustment);
 
 		/* Suspend updates of the StreamView during scroomer drags to speed things up */
 		_range_scroomer->DragStarting.connect (sigc::mem_fun (*midi_view(), &MidiStreamView::suspend_updates));
@@ -324,15 +332,13 @@ MidiTimeAxisView::midi_view()
 void
 MidiTimeAxisView::set_height (uint32_t h)
 {
-	RouteTimeAxisView::set_height (h);
-
-	if (height >= MIDI_CONTROLS_BOX_MIN_HEIGHT) {
+	if (h >= MIDI_CONTROLS_BOX_MIN_HEIGHT) {
 		_midi_controls_box.show_all ();
 	} else {
 		_midi_controls_box.hide();
 	}
 	
-	if (height >= KEYBOARD_MIN_HEIGHT) {
+	if (h >= KEYBOARD_MIN_HEIGHT) {
 		if (is_track() && _range_scroomer) {
 			_range_scroomer->show();
 		}
@@ -347,6 +353,13 @@ MidiTimeAxisView::set_height (uint32_t h)
 			_piano_roll_header->hide();
 		}
 	}
+
+	/* We need to do this after changing visibility of our stuff, as it will
+	   eventually trigger a call to Editor::reset_controls_layout_width(),
+	   which needs to know if we have just shown or hidden a scroomer /
+	   piano roll.
+	*/
+	RouteTimeAxisView::set_height (h);
 }
 
 void
