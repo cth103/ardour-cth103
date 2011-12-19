@@ -160,24 +160,24 @@ Region::register_properties ()
 }
 
 #define REGION_DEFAULT_STATE(s,l) \
-	_muted (Properties::muted, false)	     \
-	, _opaque (Properties::opaque, true) \
-	, _locked (Properties::locked, false) \
-	, _automatic (Properties::automatic, false) \
-	, _whole_file (Properties::whole_file, false) \
-	, _import (Properties::import, false) \
-	, _external (Properties::external, false) \
-	, _sync_marked (Properties::sync_marked, false) \
+	_sync_marked (Properties::sync_marked, false) \
 	, _left_of_split (Properties::left_of_split, false) \
 	, _right_of_split (Properties::right_of_split, false) \
-	, _hidden (Properties::hidden, false) \
-	, _position_locked (Properties::position_locked, false) \
 	, _valid_transients (Properties::valid_transients, false) \
 	, _start (Properties::start, (s))	\
 	, _length (Properties::length, (l))	\
 	, _position (Properties::position, 0) \
 	, _sync_position (Properties::sync_position, (s)) \
 	, _layer (Properties::layer, 0)	\
+	, _muted (Properties::muted, false) \
+	, _opaque (Properties::opaque, true) \
+	, _locked (Properties::locked, false) \
+	, _automatic (Properties::automatic, false) \
+	, _whole_file (Properties::whole_file, false) \
+	, _import (Properties::import, false) \
+	, _external (Properties::external, false) \
+	, _hidden (Properties::hidden, false) \
+	, _position_locked (Properties::position_locked, false) \
 	, _ancestral_start (Properties::ancestral_start, (s)) \
 	, _ancestral_length (Properties::ancestral_length, (l)) \
 	, _stretch (Properties::stretch, 1.0) \
@@ -185,24 +185,24 @@ Region::register_properties ()
 	, _position_lock_style (Properties::position_lock_style, _type == DataType::AUDIO ? AudioTime : MusicTime)
 
 #define REGION_COPY_STATE(other) \
-	  _muted (Properties::muted, other->_muted)			\
-	, _opaque (Properties::opaque, other->_opaque)		\
-	, _locked (Properties::locked, other->_locked)		\
-	, _automatic (Properties::automatic, other->_automatic)	\
-	, _whole_file (Properties::whole_file, other->_whole_file) \
-	, _import (Properties::import, other->_import)		\
-	, _external (Properties::external, other->_external)	\
-	, _sync_marked (Properties::sync_marked, other->_sync_marked) \
+	  _sync_marked (Properties::sync_marked, other->_sync_marked) \
 	, _left_of_split (Properties::left_of_split, other->_left_of_split) \
 	, _right_of_split (Properties::right_of_split, other->_right_of_split) \
-	, _hidden (Properties::hidden, other->_hidden)		\
-	, _position_locked (Properties::position_locked, other->_position_locked) \
 	, _valid_transients (Properties::valid_transients, other->_valid_transients) \
 	, _start(Properties::start, other->_start)		\
 	, _length(Properties::length, other->_length)		\
 	, _position(Properties::position, other->_position)	\
 	, _sync_position(Properties::sync_position, other->_sync_position) \
 	, _layer (Properties::layer, other->_layer)		\
+        , _muted (Properties::muted, other->_muted)	        \
+	, _opaque (Properties::opaque, other->_opaque)		\
+	, _locked (Properties::locked, other->_locked)		\
+	, _automatic (Properties::automatic, other->_automatic)	\
+	, _whole_file (Properties::whole_file, other->_whole_file) \
+	, _import (Properties::import, other->_import)		\
+	, _external (Properties::external, other->_external)	\
+	, _hidden (Properties::hidden, other->_hidden)		\
+	, _position_locked (Properties::position_locked, other->_position_locked) \
 	, _ancestral_start (Properties::ancestral_start, other->_ancestral_start) \
 	, _ancestral_length (Properties::ancestral_length, other->_ancestral_length) \
 	, _stretch (Properties::stretch, other->_stretch)	\
@@ -559,7 +559,7 @@ Region::set_position_lock_style (PositionLockStyle ps)
 }
 
 void
-Region::update_position_after_tempo_map_change ()
+Region::update_after_tempo_map_change ()
 {
 	boost::shared_ptr<Playlist> pl (playlist());
 
@@ -595,8 +595,13 @@ Region::set_position (framepos_t pos)
 void
 Region::set_position_internal (framepos_t pos, bool allow_bbt_recompute)
 {
+	/* We emit a change of Properties::position even if the position hasn't changed
+	   (see Region::set_position), so we must always set this up so that
+	   e.g. Playlist::notify_region_moved doesn't use an out-of-date last_position.
+	*/
+	_last_position = _position;
+	
 	if (_position != pos) {
-		_last_position = _position;
 		_position = pos;
 
 		/* check that the new _position wouldn't make the current
@@ -616,29 +621,6 @@ Region::set_position_internal (framepos_t pos, bool allow_bbt_recompute)
 
 		//invalidate_transients ();
 	}
-}
-
-void
-Region::set_position_on_top (framepos_t pos)
-{
-	if (locked()) {
-		return;
-	}
-
-	if (_position != pos) {
-		set_position_internal (pos, true);
-	}
-
-	boost::shared_ptr<Playlist> pl (playlist());
-
-	if (pl) {
-		pl->raise_region_to_top (shared_from_this ());
-	}
-
-	/* do this even if the position is the same. this helps out
-	   a GUI that has moved its representation already.
-	*/
-	send_change (Properties::position);
 }
 
 void
@@ -1318,7 +1300,7 @@ Region::send_change (const PropertyChange& what_changed)
 
 	Stateful::send_change (what_changed);
 
-	if (!Stateful::frozen()) {
+	if (!Stateful::property_changes_suspended()) {
 
 		/* Try and send a shared_pointer unless this is part of the constructor.
 		   If so, do nothing.
@@ -1479,20 +1461,6 @@ Region::uses_source (boost::shared_ptr<const Source> source) const
 		}
 	}
 
-	return false;
-}
-
-bool
-Region::uses_source_path (const std::string& path) const
-{
-	for (SourceList::const_iterator i = _sources.begin(); i != _sources.end(); ++i) {
-                boost::shared_ptr<const FileSource> fs = boost::dynamic_pointer_cast<const FileSource> (*i);
-                if (fs) {
-                        if (fs->path() == path) {
-                                return true;
-                        }
-                }
-	}
 	return false;
 }
 
@@ -1683,4 +1651,12 @@ bool
 Region::is_compound () const
 {
 	return max_source_level() > 0;
+}
+
+void
+Region::post_set (const PropertyChange& pc)
+{
+	if (pc.contains (Properties::position)) {
+		recompute_position_from_lock_style ();
+	}
 }

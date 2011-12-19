@@ -218,7 +218,6 @@ libardour_sources = [
         'user_bundle.cc',
         'utils.cc',
         'version.cc',
-        'vst_plugin.cc'
 ]
 
 def flac_supported():
@@ -394,11 +393,13 @@ def build(bld):
         obj.defines += [ 'LXVST_SUPPORT' ]
 
     if bld.is_defined('WINDOWS_VST_SUPPORT') or bld.is_defined('LXVST_SUPPORT'):
-        obj.source += [ 'session_vst.cc' ]
+        obj.source += [ 'session_vst.cc', 'vst_plugin.cc' ]
 
     if bld.is_defined('HAVE_COREAUDIO'):
         obj.source += [ 'coreaudiosource.cc', 'caimportable.cc' ]
         obj.use    += ['libappleutility']
+
+    if bld.is_defined('AUDIOUNIT_SUPPORT'):
         obj.source += [ 'audio_unit.cc' ]
 
     if Options.options.fpu_optimization:
@@ -422,12 +423,20 @@ def build(bld):
         testobj              = bld(features = 'cxx cxxprogram')
         testobj.source       = '''
                 test/dummy_lxvst.cc
-                test/bbt_test.cpp
-                test/interpolation_test.cpp
-                test/midi_clock_slave_test.cpp
-                test/resampled_source.cc
-                test/testrunner.cpp
+                test/bbt_test.cc
+                test/interpolation_test.cc
+                test/midi_clock_slave_test.cc
+                test/resampled_source_test.cc
+                test/framewalk_to_beats_test.cc
+                test/framepos_plus_beats_test.cc
+                test/framepos_minus_beats_test.cc
+                test/playlist_layering_test.cc
+                test/testrunner.cc
         '''.split()
+
+# Tests that don't work
+#                test/mantis_3356_test.cc
+
         testobj.includes     = obj.includes + ['test', '../pbd']
         testobj.uselib       = ['CPPUNIT','SIGCPP','JACK','GLIBMM','GTHREAD',
                                 'SAMPLERATE','XML','LRDF','COREAUDIO']

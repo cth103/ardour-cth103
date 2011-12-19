@@ -67,6 +67,18 @@ Track::init ()
         return 0;
 }
 
+void
+Track::use_new_diskstream ()
+{
+	boost::shared_ptr<Diskstream> ds = create_diskstream ();
+
+	ds->do_refill_with_alloc ();
+	ds->set_block_size (_session.get_block_size ());
+	ds->playlist()->set_orig_track_id (id());
+
+	set_diskstream (ds);
+}
+
 XMLNode&
 Track::get_state ()
 {
@@ -113,6 +125,10 @@ Track::set_state (const XMLNode& node, int version)
 			ds->do_refill_with_alloc ();
 			set_diskstream (ds);
 		}
+	}
+
+	if (_diskstream) {
+		_diskstream->playlist()->set_orig_track_id (id());
 	}
 
 	/* set rec-enable control *AFTER* setting up diskstream, because it may
@@ -688,19 +704,35 @@ Track::playlist_modified ()
 int
 Track::use_playlist (boost::shared_ptr<Playlist> p)
 {
-	return _diskstream->use_playlist (p);
+	int ret = _diskstream->use_playlist (p);
+	if (ret == 0) {
+		p->set_orig_track_id (id());
+	}
+	return ret;
 }
 
 int
 Track::use_copy_playlist ()
 {
-	return _diskstream->use_copy_playlist ();
+	int ret =  _diskstream->use_copy_playlist ();
+
+	if (ret == 0) {
+		_diskstream->playlist()->set_orig_track_id (id());
+	}
+
+	return ret;
 }
 
 int
 Track::use_new_playlist ()
 {
-	return _diskstream->use_new_playlist ();
+	int ret = _diskstream->use_new_playlist ();
+
+	if (ret == 0) {
+		_diskstream->playlist()->set_orig_track_id (id());
+	}
+
+	return ret;
 }
 
 void
@@ -715,10 +747,10 @@ Track::set_align_choice (AlignChoice s, bool force)
 	_diskstream->set_align_choice (s, force);
 }
 
-PBD::ID const &
-Track::diskstream_id () const
+bool
+Track::using_diskstream_id (PBD::ID id) const
 {
-	return _diskstream->id ();
+	return (id == _diskstream->id ());
 }
 
 void

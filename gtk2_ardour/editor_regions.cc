@@ -59,6 +59,12 @@ using namespace Glib;
 using namespace Editing;
 using Gtkmm2ext::Keyboard;
 
+struct ColumnInfo {
+    int         index;
+    const char* label;
+    const char* tooltip;
+};
+
 EditorRegions::EditorRegions (Editor* e)
 	: EditorComponent (e)
 	, old_focus (0)
@@ -72,7 +78,6 @@ EditorRegions::EditorRegions (Editor* e)
 	, expanded (false)
 {
 	_display.set_size_request (100, -1);
-	_display.set_name ("RegionListDisplay");
 	_display.set_rules_hint (true);
 
 	/* Try to prevent single mouse presses from initiating edits.
@@ -86,21 +91,51 @@ EditorRegions::EditorRegions (Editor* e)
 
 	_display.set_model (_model);
 
-	_display.append_column (_("Regions"), _columns.name);
-	_display.append_column (_("Position"), _columns.position);
-	_display.append_column (_("End"), _columns.end);
-	_display.append_column (_("Length"), _columns.length);
-	_display.append_column (_("Sync"), _columns.sync);
-	_display.append_column (_("Fade In"), _columns.fadein);
-	_display.append_column (_("Fade Out"), _columns.fadeout);
-	_display.append_column (_("L"), _columns.locked);
-	_display.append_column (_("G"), _columns.glued);
-	_display.append_column (_("M"), _columns.muted);
-	_display.append_column (_("O"), _columns.opaque);
-	// _display.append_column (_("Used"), _columns.used);
-	// _display.append_column (_("Path"), _columns.path);
+	_display.append_column ("", _columns.name);
+	_display.append_column ("", _columns.position);
+	_display.append_column ("", _columns.end);
+	_display.append_column ("", _columns.length);
+	_display.append_column ("", _columns.sync);
+	_display.append_column ("", _columns.fadein);
+	_display.append_column ("", _columns.fadeout);
+	_display.append_column ("", _columns.locked);
+	_display.append_column ("", _columns.glued);
+	_display.append_column ("", _columns.muted);
+	_display.append_column ("", _columns.opaque);
+
+	TreeViewColumn* col;
+	Gtk::Label* l;
+
+	ColumnInfo ci[] = {
+		{ 0, _("Region"), _("Region name, with number of channels in []'s") },
+		{ 1, _("Position"),  _("Position of start of region") },
+		{ 2, _("End"),  _("Position of end of region") },
+		{ 3, _("Length"),  _("Length of the region") },
+		{ 4, _("Sync"),  _("Position of region sync point, relative to start of the region") },
+		{ 5, _("Fade In"),  _("Length of region fade-in (units: secondary clock), () if disabled") },
+		{ 6, _("Fade Out"),  _("Length of region fade-out (units: secondary clock), () if dsisabled") },
+		{ 7, _("L"),  _("Region position locked?") },
+		{ 8, _("G"),  _("Region position glued to Bars|Beats time?") },
+		{ 9, _("M"),  _("Region muted?") },
+		{ 10, _("O"),  _("Region opaque (blocks regions below it from being heard)?") },
+		{ -1, 0, 0 }
+	};
+	
+	for (int i = 0; ci[i].index >= 0; ++i) {
+		col = _display.get_column (ci[i].index);
+		l = manage (new Label (ci[i].label));
+		ARDOUR_UI::instance()->set_tip (*l, ci[i].tooltip);
+		col->set_widget (*l);
+		l->show ();
+
+		if (ci[i].index > 6) {
+			col->set_expand (false);
+			col->set_alignment (ALIGN_CENTER);
+		} 
+	}
+
 	_display.set_headers_visible (true);
-	//_display.set_grid_lines (TREE_VIEW_GRID_LINES_BOTH);
+	_display.set_rules_hint ();
 
 	/* show path as the row tooltip */
 	_display.set_tooltip_column (14); /* path */
@@ -116,6 +151,7 @@ EditorRegions::EditorRegions (Editor* e)
 	CellRendererText* renderer = dynamic_cast<CellRendererText*>(_display.get_column_cell_renderer (0));
 	tv_col->add_attribute(renderer->property_text(), _columns.name);
 	tv_col->add_attribute(renderer->property_foreground_gdk(), _columns.color_);
+	tv_col->set_expand (true);
 
 	CellRendererToggle* locked_cell = dynamic_cast<CellRendererToggle*> (_display.get_column_cell_renderer (7));
 	locked_cell->property_activatable() = true;

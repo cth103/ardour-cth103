@@ -31,7 +31,7 @@
 #include <pbd/touchable.h>
 #include <pbd/failed_constructor.h>
 #include <pbd/pthread_utils.h>
-#include <pbd/stacktrace.h>
+#include <pbd/replace_all.h>
 
 #include <gtkmm2ext/application.h>
 #include <gtkmm2ext/gtk_ui.h>
@@ -66,9 +66,6 @@ UI::UI (string namestr, int *argc, char ***argv)
 	: AbstractUI<UIRequest> (namestr)
 {
 	theMain = new Main (argc, argv);
-#ifndef GTK_NEW_TOOLTIP_API
-	tips = new Tooltips;
-#endif
 
 	_active = false;
 
@@ -354,8 +351,13 @@ UI::set_tip (Widget *w, const gchar *tip, const gchar *hlp)
 		ustring ap = action->get_accel_path();
 		if (!ap.empty()) {
 			bool has_key = ActionManager::lookup_entry(ap, key);
-			if (has_key && key.get_abbrev() != "") {
-				msg.append("\n\nKey: ").append(key.get_abbrev());
+			if (has_key) {
+				string  abbrev = key.get_abbrev();
+				if (!abbrev.empty()) {
+					replace_all (abbrev, "<", "");
+					replace_all (abbrev, ">", "-");
+					msg.append("\n\nKey: ").append (abbrev);
+				}
 			}
 		}
 	}
@@ -363,6 +365,7 @@ UI::set_tip (Widget *w, const gchar *tip, const gchar *hlp)
 	if (req == 0) {
 		return;
 	}
+
 
 	req->widget = w;
 	req->msg = msg.c_str();
@@ -454,16 +457,7 @@ UI::do_request (UIRequest* req)
 
 	} else if (req->type == SetTip) {
 
-#ifdef GTK_NEW_TOOLTIP_API
-		/* even if the installed GTK is up to date,
-		   at present (November 2008) our included
-		   version of gtkmm is not. so use the GTK
-		   API that we've verified has the right function.
-		*/
-		gtk_widget_set_tooltip_text (req->widget->gobj(), req->msg);
-#else
-		tips->set_tip (*req->widget, req->msg, "");
-#endif
+		gtk_widget_set_tooltip_markup (req->widget->gobj(), req->msg);
 
 	} else {
 

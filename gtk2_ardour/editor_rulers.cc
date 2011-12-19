@@ -179,12 +179,12 @@ Editor::ruler_scroll (GdkEventScroll* event)
 
 	switch (direction) {
 	case GDK_SCROLL_UP:
-		temporal_zoom_step (true);
+		temporal_zoom_step (false);
 		handled = true;
 		break;
 
 	case GDK_SCROLL_DOWN:
-		temporal_zoom_step (false);
+		temporal_zoom_step (true);
 		handled = true;
 		break;
 
@@ -1328,7 +1328,7 @@ Editor::metric_get_bbt (GtkCustomRulerMark **marks, gdouble lower, gdouble /*upp
 			next_beat.bars = (*i).bar;
 			next_beat.ticks = 0;
 
-			if ((*i).meter->beats_per_bar() > (next_beat.beats + 1)) {
+			if ((*i).meter->divisions_per_bar() > (next_beat.beats + 1)) {
 				  next_beat.beats += 1;
 			} else {
 				  next_beat.bars += 1;
@@ -1420,7 +1420,7 @@ Editor::metric_get_bbt (GtkCustomRulerMark **marks, gdouble lower, gdouble /*upp
 			next_beat.beats = (*i).beat;
 			next_beat.bars = (*i).bar;
 
-			if ((*i).meter->beats_per_bar() > (next_beat.beats + 1)) {
+			if ((*i).meter->divisions_per_bar() > (next_beat.beats + 1)) {
 				  next_beat.beats += 1;
 			} else {
 				  next_beat.bars += 1;
@@ -1517,7 +1517,7 @@ Editor::metric_get_bbt (GtkCustomRulerMark **marks, gdouble lower, gdouble /*upp
 			next_beat.beats = (*i).beat;
 			next_beat.bars = (*i).bar;
 
-			if ((*i).meter->beats_per_bar() > (next_beat.beats + 1)) {
+			if ((*i).meter->divisions_per_bar() > (next_beat.beats + 1)) {
 				  next_beat.beats += 1;
 			} else {
 				  next_beat.bars += 1;

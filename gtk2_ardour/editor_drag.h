@@ -452,6 +452,26 @@ class NoteDrag : public Drag
 	double _note_height;
 };
 
+class NoteCreateDrag : public Drag
+{
+public:
+	NoteCreateDrag (Editor *, ArdourCanvas::Item *, MidiRegionView *);
+	~NoteCreateDrag ();
+
+	void start_grab (GdkEvent *, Gdk::Cursor* c = 0);
+	void motion (GdkEvent *, bool);
+	void finished (GdkEvent *, bool);
+	void aborted (bool);
+
+private:
+	double y_to_region (double) const;
+	framecnt_t grid_frames (framepos_t) const;
+	
+	MidiRegionView* _region_view;
+	ArdourCanvas::SimpleRect* _drag_rect;
+	framepos_t _note[2];
+};
+
 /** Drag to move MIDI patch changes */
 class PatchChangeDrag : public Drag
 {

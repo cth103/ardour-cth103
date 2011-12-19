@@ -57,6 +57,12 @@ using namespace Gtkmm2ext;
 using namespace Glib;
 using Gtkmm2ext::Keyboard;
 
+struct ColumnInfo {
+    int         index;
+    const char* label;
+    const char* tooltip;
+};
+
 EditorRoutes::EditorRoutes (Editor* e)
 	: EditorComponent (e)
         , _ignore_reorder (false)
@@ -183,12 +189,35 @@ EditorRoutes::EditorRoutes (Editor* e)
 	_display.append_column (*solo_isolate_state_column);
 	_display.append_column (*solo_safe_state_column);
 
-        _name_column = _display.append_column (_("Name"), _columns.text) - 1;
-	_visible_column = _display.append_column (_("V"), _columns.visible) - 1;
-	_active_column = _display.append_column (_("A"), _columns.active) - 1;
+        _name_column = _display.append_column ("", _columns.text) - 1;
+	_visible_column = _display.append_column ("", _columns.visible) - 1;
+	_active_column = _display.append_column ("", _columns.active) - 1;
+
+	TreeViewColumn* col;
+	Gtk::Label* l;
+
+	ColumnInfo ci[] = {
+		{ 0, _("I"), _("MIDI input enabled") },
+		{ 1, _("R"), _("Record enabled") },
+		{ 2, _("M"), _("Muted") },
+		{ 3, _("S"), _("Soloed") },
+		{ 4, _("SI"), _("Solo Isolated") },
+		{ 5, _("SS"), _("Solo Safe (Locked)") },
+		{ 6, _("Name"), _("Track/Bus Name") },
+		{ 7, _("V"), _("Track/Bus visible ?") },
+		{ 8, _("A"), _("Track/Bus active ?") },
+		{ -1, 0, 0 }
+	};
+
+	for (int i = 0; ci[i].index >= 0; ++i) {
+		col = _display.get_column (ci[i].index);
+		l = manage (new Label (ci[i].label));
+		ARDOUR_UI::instance()->set_tip (*l, ci[i].tooltip);
+		col->set_widget (*l);
+		l->show ();
+	}
 
 	_display.set_headers_visible (true);
-	_display.set_name ("TrackListDisplay");
 	_display.get_selection()->set_mode (SELECTION_SINGLE);
 	_display.get_selection()->set_select_function (sigc::mem_fun (*this, &EditorRoutes::selection_filter));
 	_display.set_reorderable (true);
@@ -1109,15 +1138,21 @@ EditorRoutes::button_press (GdkEventButton* ev)
 		return true;
 	}
 
+	TreeModel::Path path;
+	TreeViewColumn *tvc;
+	int cell_x;
+	int cell_y;
+
+	if (!_display.get_path_at_pos ((int) ev->x, (int) ev->y, path, tvc, cell_x, cell_y)) {
+		/* cancel selection */
+		_display.get_selection()->unselect_all ();
+		/* end any editing by grabbing focus */
+		_display.grab_focus ();
+		return true;
+	}
+
 	//Scroll editor canvas to selected track
 	if (Keyboard::modifier_state_equals (ev->state, Keyboard::PrimaryModifier)) {
-
-		TreeModel::Path path;
-		TreeViewColumn *tvc;
-		int cell_x;
-		int cell_y;
-
-		_display.get_path_at_pos ((int) ev->x, (int) ev->y, path, tvc, cell_x, cell_y);
 
 		// Get the model row.
 		Gtk::TreeModel::Row row = *_model->get_iter (path);

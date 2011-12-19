@@ -30,6 +30,7 @@
 #include "pbd/stateful.h"
 #include "pbd/statefuldestructible.h"
 
+#include "evoral/types.hpp"
 
 #include "ardour/ardour.h"
 
@@ -44,7 +45,7 @@ class Tempo {
 
 	double beats_per_minute () const { return _beats_per_minute;}
 	double note_type () const { return _note_type;}
-	double frames_per_beat (framecnt_t sr, const Meter& meter) const;
+	double frames_per_beat (framecnt_t sr) const;
 
   protected:
 	double _beats_per_minute;
@@ -53,22 +54,23 @@ class Tempo {
 
 class Meter {
   public:
-	Meter (double bpb, double bt)
-		: _beats_per_bar (bpb), _note_type (bt) {}
+	Meter (double dpb, double bt)
+		: _divisions_per_bar (dpb), _note_type (bt) {}
 
-	double beats_per_bar () const { return _beats_per_bar; }
+	double divisions_per_bar () const { return _divisions_per_bar; }
 	double note_divisor() const { return _note_type; }
 
 	double frames_per_bar (const Tempo&, framecnt_t sr) const;
+	double frames_per_division (const Tempo&, framecnt_t sr) const;
 
   protected:
-	/** The number of beats in a bar.  This is a real value because
+	/** The number of divisions in a bar.  This is a floating point value because
 	    there are musical traditions on our planet that do not limit
 	    themselves to integral numbers of beats per bar.
 	*/
-	double _beats_per_bar;
+	double _divisions_per_bar;
 
-	/** The type of "note" that a beat represents.  For example, 4.0 is
+	/** The type of "note" that a division represents.  For example, 4.0 is
 	    a quarter (crotchet) note, 8.0 is an eighth (quaver) note, etc.
 	*/
 	double _note_type;
@@ -247,7 +249,9 @@ class TempoMap : public PBD::StatefulDestructible
 	Timecode::BBT_Time bbt_subtract (const Timecode::BBT_Time&, const Timecode::BBT_Time&) const;
 
 	framepos_t framepos_plus_bbt (framepos_t pos, Timecode::BBT_Time b) const;
-	double framewalk_to_beats (framepos_t pos, framecnt_t distance) const;
+	framepos_t framepos_plus_beats (framepos_t, Evoral::MusicalTime) const;
+	framepos_t framepos_minus_beats (framepos_t, Evoral::MusicalTime) const;
+	Evoral::MusicalTime framewalk_to_beats (framepos_t pos, framecnt_t distance) const;
 
 	void change_existing_tempo_at (framepos_t, double bpm, double note_type);
 	void change_initial_tempo (double bpm, double note_type);
@@ -292,5 +296,9 @@ class TempoMap : public PBD::StatefulDestructible
 };
 
 }; /* namespace ARDOUR */
+
+std::ostream& operator<< (std::ostream&, const ARDOUR::Meter&);
+std::ostream& operator<< (std::ostream&, const ARDOUR::Tempo&);
+std::ostream& operator<< (std::ostream&, const ARDOUR::MetricSection&);
 
 #endif /* __ardour_tempo_h__ */

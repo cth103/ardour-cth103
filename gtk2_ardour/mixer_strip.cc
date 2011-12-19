@@ -219,7 +219,7 @@ MixerStrip::init ()
         rec_solo_table.show ();
 
 	button_table.set_homogeneous (false);
-	button_table.set_spacings (0);
+	button_table.set_spacings (2);
 
 	if (solo_isolated_led) {
 		button_size_group->add_widget (*solo_isolated_led);
@@ -244,11 +244,15 @@ MixerStrip::init ()
 	middle_button_table.set_homogeneous (true);
 	middle_button_table.set_spacings (2);
 
-	bottom_button_table.set_col_spacings (0);
+	bottom_button_table.set_spacings (2);
 	bottom_button_table.set_homogeneous (true);
 	bottom_button_table.attach (group_button, 0, 1, 0, 1);
 
 	name_button.set_name ("mixer strip name button");
+	name_button.set_text (" "); /* non empty text, forces creation of the layout */
+	name_button.set_text (""); /* back to empty */
+	name_button.layout()->set_ellipsize (Pango::ELLIPSIZE_END);
+	name_button.signal_size_allocate().connect (sigc::mem_fun (*this, &MixerStrip::name_button_resized));
 	Gtkmm2ext::set_size_request_to_display_given_text (name_button, longest_label.c_str(), 2, 2);
 
 	ARDOUR_UI::instance()->set_tip (&group_button, _("Mix group"), "");
@@ -274,13 +278,14 @@ MixerStrip::init ()
 
 	whvbox.pack_start (width_hide_box, true, true);
 
+	global_vpacker.set_spacing (2);
 	global_vpacker.pack_start (whvbox, Gtk::PACK_SHRINK);
 	global_vpacker.pack_start (button_table, Gtk::PACK_SHRINK);
 	global_vpacker.pack_start (processor_box, true, true);
 	global_vpacker.pack_start (panners, Gtk::PACK_SHRINK);
-	global_vpacker.pack_start (top_button_table, Gtk::PACK_SHRINK, 2);
-	global_vpacker.pack_start (rec_solo_table, Gtk::PACK_SHRINK, 2);
-	global_vpacker.pack_start (middle_button_table, Gtk::PACK_SHRINK, 2);
+	global_vpacker.pack_start (top_button_table, Gtk::PACK_SHRINK);
+	global_vpacker.pack_start (rec_solo_table, Gtk::PACK_SHRINK);
+	global_vpacker.pack_start (middle_button_table, Gtk::PACK_SHRINK);
 	global_vpacker.pack_start (gpm, Gtk::PACK_SHRINK);
 	global_vpacker.pack_start (bottom_button_table, Gtk::PACK_SHRINK);
 	global_vpacker.pack_start (output_button, Gtk::PACK_SHRINK);
@@ -504,6 +509,7 @@ MixerStrip::set_route (boost::shared_ptr<Route> rt)
 	}
 
 	_route->comment_changed.connect (route_connections, invalidator (*this), ui_bind (&MixerStrip::comment_changed, this, _1), gui_context());
+	_route->PropertyChanged.connect (route_connections, invalidator (*this), ui_bind (&MixerStrip::property_changed, this, _1), gui_context());
 
 	set_stuff_from_route ();
 
@@ -588,7 +594,8 @@ MixerStrip::set_width_enum (Width w, void* owner)
 	switch (w) {
 	case Wide:
 		if (show_sends_button)  {
-			show_sends_button->set_text (_("Sends"));
+			show_sends_button->set_text (_("Aux\nSends"));
+			show_sends_button->layout()->set_alignment (Pango::ALIGN_CENTER);
 		}
 
 		((Gtk::Label*)gpm.gain_automation_style_button.get_child())->set_text (
@@ -1070,13 +1077,14 @@ MixerStrip::update_io_button (boost::shared_ptr<ARDOUR::Route> route, Width widt
 	ostringstream tooltip;
 	char * tooltip_cstr;
 
-	tooltip << route->name();
-
 	if (for_input) {
 		io_count = route->n_inputs().n_total();
+		tooltip << string_compose (_("<b>INPUT</b> to %1"), route->name());
 	} else {
 		io_count = route->n_outputs().n_total();
+		tooltip << string_compose (_("<b>OUTPUT</b> from %1"), route->name());
 	}
+
 
 	for (io_index = 0; io_index < io_count; ++io_index) {
 		if (for_input) {
@@ -1462,15 +1470,16 @@ MixerStrip::build_route_ops_menu ()
 gboolean
 MixerStrip::name_button_button_press (GdkEventButton* ev)
 {
-	if (ev->button == 3) {
+	/* show menu for either button 1 or 3, so as not to confuse people
+	   and also not hide stuff from them.
+	*/
+
+	if (ev->button == 3 || ev->button == 1) {
 		list_route_operations ();
 
 		/* do not allow rename if the track is record-enabled */
 		rename_menu_item->set_sensitive (!_route->record_enabled());
 		route_ops_menu->popup (1, ev->time);
-
-	} else if (ev->button == 1) {
-		revert_to_default_display ();
 	}
 
 	return false;
@@ -1498,6 +1507,16 @@ MixerStrip::set_selected (bool yn)
 }
 
 void
+MixerStrip::property_changed (const PropertyChange& what_changed)
+{
+	RouteUI::property_changed (what_changed);
+
+	if (what_changed.contains (ARDOUR::Properties::name)) {
+		name_changed ();
+	}
+}
+
+void
 MixerStrip::name_changed ()
 {
 	switch (_width) {
@@ -1508,6 +1527,14 @@ MixerStrip::name_changed ()
 		name_button.set_text (PBD::short_version (_route->name(), 5));
 		break;
 	}
+
+	ARDOUR_UI::instance()->set_tip (name_button, _route->name());
+}
+
+void
+MixerStrip::name_button_resized (Gtk::Allocation& alloc)
+{
+	name_button.layout()->set_width (alloc.get_width() * PANGO_SCALE);
 }
 
 bool
@@ -1705,6 +1732,7 @@ MixerStrip::bus_send_display_changed (boost::shared_ptr<Route> send_to)
 
 	if (send_to) {
 		boost::shared_ptr<Send> send = _route->internal_send_for (send_to);
+
 		if (send) {
 			show_send (send);
 		} else {
@@ -1720,7 +1748,7 @@ MixerStrip::drop_send ()
 {
 	boost::shared_ptr<Send> current_send;
 
-	if (_current_delivery && (current_send = boost::dynamic_pointer_cast<Send>(_current_delivery))) {
+	if (_current_delivery && ((current_send = boost::dynamic_pointer_cast<Send>(_current_delivery)) != 0)) {
 		current_send->set_metering (false);
 	}
 

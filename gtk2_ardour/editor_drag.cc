@@ -1528,7 +1528,10 @@ NoteResizeDrag::finished (GdkEvent*, bool /*movement_occurred*/)
 void
 NoteResizeDrag::aborted (bool)
 {
-	/* XXX: TODO */
+	MidiRegionSelection& ms (_editor->get_selection().midi_regions);
+	for (MidiRegionSelection::iterator r = ms.begin(); r != ms.end(); ++r) {
+		(*r)->abort_resizing ();
+	}
 }
 
 RegionGainDrag::RegionGainDrag (Editor* e, Canvas::Item* i)
@@ -1841,7 +1844,6 @@ MeterMarkerDrag::MeterMarkerDrag (Editor* e, Canvas::Item* i, bool c)
 	  _copy (c)
 {
 	DEBUG_TRACE (DEBUG::Drags, "New MeterMarkerDrag\n");
-
 	_marker = reinterpret_cast<MeterMarker*> (_item->get_data ("marker"));
 	assert (_marker);
 }
@@ -1849,35 +1851,7 @@ MeterMarkerDrag::MeterMarkerDrag (Editor* e, Canvas::Item* i, bool c)
 void
 MeterMarkerDrag::start_grab (GdkEvent* event, Gdk::Cursor* cursor)
 {
-	if (_copy) {
-		// create a dummy marker for visual representation of moving the copy.
-		// The actual copying is not done before we reach the finish callback.
-		char name[64];
-		snprintf (name, sizeof(name), "%g/%g", _marker->meter().beats_per_bar(), _marker->meter().note_divisor ());
-
-		MeterMarker* new_marker = new MeterMarker (
-			*_editor,
-			*_editor->meter_group,
-			ARDOUR_UI::config()->canvasvar_MeterMarker.get(),
-			name,
-			*new MeterSection (_marker->meter())
-			);
-
-		_item = &new_marker->the_item ();
-		_marker = new_marker;
-
-	} else {
-
-		MetricSection& section (_marker->meter());
-
-		if (!section.movable()) {
-			return;
-		}
-
-	}
-
 	Drag::start_grab (event, cursor);
-
 	show_verbose_cursor_time (adjusted_current_frame(event));
 }
 
@@ -1888,12 +1862,44 @@ MeterMarkerDrag::setup_pointer_frame_offset ()
 }
 
 void
-MeterMarkerDrag::motion (GdkEvent* event, bool)
+MeterMarkerDrag::motion (GdkEvent* event, bool first_move)
 {
+	if (first_move) {
+
+		// create a dummy marker for visual representation of moving the
+		// section, because whether its a copy or not, we're going to 
+		// leave or lose the original marker (leave if its a copy; lose if its
+		// not, because we'll remove it from the map).
+		
+		MeterSection section (_marker->meter());
+		
+		if (!section.movable()) {
+			return;
+		}
+		
+		char name[64];
+		snprintf (name, sizeof(name), "%g/%g", _marker->meter().divisions_per_bar(), _marker->meter().note_divisor ());
+		
+		_marker = new MeterMarker (
+			*_editor,
+			*_editor->meter_group,
+			ARDOUR_UI::config()->canvasvar_MeterMarker.get(),
+			name,
+			*new MeterSection (_marker->meter())
+		);
+		
+		/* use the new marker for the grab */
+		swap_grab (&_marker->the_item(), 0, GDK_CURRENT_TIME);
+
+		if (!_copy) {
+			TempoMap& map (_editor->session()->tempo_map());
+			/* remove the section while we drag it */
+			map.remove_meter (section);
+		}
+	}
+
 	framepos_t const pf = adjusted_current_frame (event);
-
 	_marker->set_position (pf);
-
 	show_verbose_cursor_time (pf);
 }
 
@@ -1910,7 +1916,7 @@ MeterMarkerDrag::finished (GdkEvent* event, bool movement_occurred)
 
 	TempoMap& map (_editor->session()->tempo_map());
 	map.bbt_time (last_pointer_frame(), when);
-
+	
 	if (_copy == true) {
 		_editor->begin_reversible_command (_("copy meter mark"));
 		XMLNode &before = map.get_state();
@@ -1919,17 +1925,21 @@ MeterMarkerDrag::finished (GdkEvent* event, bool movement_occurred)
 		_editor->session()->add_command(new MementoCommand<TempoMap>(map, &before, &after));
 		_editor->commit_reversible_command ();
 
-		// delete the dummy marker we used for visual representation of copying.
-		// a new visual marker will show up automatically.
-		delete _marker;
 	} else {
 		_editor->begin_reversible_command (_("move meter mark"));
 		XMLNode &before = map.get_state();
-		map.move_meter (_marker->meter(), when);
+
+		/* we removed it before, so add it back now */
+		
+		map.add_meter (_marker->meter(), when);
 		XMLNode &after = map.get_state();
 		_editor->session()->add_command(new MementoCommand<TempoMap>(map, &before, &after));
 		_editor->commit_reversible_command ();
 	}
+
+	// delete the dummy marker we used for visual representation while moving.
+	// a new visual marker will show up automatically.
+	delete _marker;
 }
 
 void
@@ -4259,4 +4269,106 @@ EditorRubberbandSelectDrag::deselect_things ()
 	_editor->selection->clear_regions();
 	_editor->selection->clear_points ();
 	_editor->selection->clear_lines ();
+}
+
+NoteCreateDrag::NoteCreateDrag (Editor* e, ArdourCanvas::Item* i, MidiRegionView* rv)
+	: Drag (e, i)
+	, _region_view (rv)
+	, _drag_rect (0)
+{
+	
+}
+
+NoteCreateDrag::~NoteCreateDrag ()
+{
+	delete _drag_rect;
+}
+
+framecnt_t
+NoteCreateDrag::grid_frames (framepos_t t) const
+{
+	bool success;
+	Evoral::MusicalTime grid_beats = _editor->get_grid_type_as_beats (success, t);
+	if (!success) {
+		grid_beats = 1;
+	}
+
+	return _region_view->region_beats_to_region_frames (grid_beats);
+}
+
+void
+NoteCreateDrag::start_grab (GdkEvent* event, Gdk::Cursor* cursor)
+{
+	Drag::start_grab (event, cursor);
+						 
+	_drag_rect = new ArdourCanvas::SimpleRect (*_region_view->get_canvas_group ());
+
+	framepos_t pf = _drags->current_pointer_frame ();
+	framecnt_t const g = grid_frames (pf);
+
+	/* Hack so that we always snap to the note that we are over, instead of snapping
+	   to the next one if we're more than halfway through the one we're over.
+	*/
+	if (_editor->snap_mode() == SnapNormal && pf > g / 2) {
+		pf -= g / 2;
+	}
+
+	_note[0] = adjusted_frame (pf, event) - _region_view->region()->position ();
+
+	MidiStreamView* sv = _region_view->midi_stream_view ();
+	double const x = _editor->frame_to_pixel (_note[0]);
+	double const y = sv->note_to_y (sv->y_to_note (y_to_region (event->button.y)));
+
+	_drag_rect->property_x1() = x;
+	_drag_rect->property_y1() = y;
+	_drag_rect->property_x2() = x;
+	_drag_rect->property_y2() = y + floor (_region_view->midi_stream_view()->note_height ());
+
+	_drag_rect->property_outline_what() = 0xff;
+	_drag_rect->property_outline_color_rgba() = 0xffffff99;
+	_drag_rect->property_fill_color_rgba()    = 0xffffff66;
+}
+
+void
+NoteCreateDrag::motion (GdkEvent* event, bool)
+{
+	_note[1] = adjusted_current_frame (event) - _region_view->region()->position ();
+	double const x = _editor->frame_to_pixel (_note[1]);
+	if (_note[1] > _note[0]) {
+		_drag_rect->property_x2() = x;
+	} else {
+		_drag_rect->property_x1() = x;
+	}
+}
+
+void
+NoteCreateDrag::finished (GdkEvent* event, bool had_movement)
+{
+	if (!had_movement) {
+		return;
+	}
+	
+	framepos_t const start = min (_note[0], _note[1]);
+	framecnt_t length = abs (_note[0] - _note[1]);
+
+	framecnt_t const g = grid_frames (start);
+	if (_editor->snap_mode() == SnapNormal && length < g) {
+		length = g;
+	}
+
+	_region_view->create_note_at (start, _drag_rect->property_y1(), _region_view->region_frames_to_region_beats (length), true, false);
+}
+
+double
+NoteCreateDrag::y_to_region (double y) const
+{
+	double x = 0;
+	_region_view->get_canvas_group()->w2i (x, y);
+	return y;
+}
+
+void
+NoteCreateDrag::aborted (bool)
+{
+	
 }

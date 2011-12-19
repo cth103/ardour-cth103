@@ -302,7 +302,7 @@ public:
 
 		vector<string> dumb;
 		for (int i = 0; modifiers[i].name; ++i) {
-			dumb.push_back (_(modifiers[i].name));
+			dumb.push_back (S_(modifiers[i].name));
 		}
 
 		set_popdown_strings (_edit_modifier_combo, dumb);
@@ -310,9 +310,7 @@ public:
 
 		for (int x = 0; modifiers[x].name; ++x) {
 			if (modifiers[x].modifier == Keyboard::edit_modifier ()) {
-				string lookup_str = "key|";
-				lookup_str += modifiers[x].name;
-				_edit_modifier_combo.set_active_text (S_(lookup_str.c_str()));
+				_edit_modifier_combo.set_active_text (S_(modifiers[x].name));
 				break;
 			}
 		}
@@ -342,7 +340,7 @@ public:
 
 		for (int x = 0; modifiers[x].name; ++x) {
 			if (modifiers[x].modifier == Keyboard::delete_modifier ()) {
-				_delete_modifier_combo.set_active_text (_(modifiers[x].name));
+				_delete_modifier_combo.set_active_text (S_(modifiers[x].name));
 				break;
 			}
 		}
@@ -370,7 +368,7 @@ public:
 
 		for (int x = 0; modifiers[x].name; ++x) {
 			if (modifiers[x].modifier == Keyboard::insert_note_modifier ()) {
-				_insert_note_modifier_combo.set_active_text (_(modifiers[x].name));
+				_insert_note_modifier_combo.set_active_text (S_(modifiers[x].name));
 				break;
 			}
 		}
@@ -398,7 +396,7 @@ public:
 
 		for (int x = 0; modifiers[x].name; ++x) {
 			if (modifiers[x].modifier == (guint) Keyboard::snap_modifier ()) {
-				_snap_modifier_combo.set_active_text (_(modifiers[x].name));
+				_snap_modifier_combo.set_active_text (S_(modifiers[x].name));
 				break;
 			}
 		}
@@ -1479,6 +1477,22 @@ RCOptionEditor::RCOptionEditor ()
 			    sigc::mem_fun (*_rc_config, &RCConfiguration::get_first_midi_bank_is_zero),
 			    sigc::mem_fun (*_rc_config, &RCConfiguration::set_first_midi_bank_is_zero)
 			    ));
+
+	add_option (_("MIDI"),
+	     new BoolOption (
+		     "never-display-periodic-midi",
+		     _("Never display periodic MIDI messages (MTC, MIDI Clock)"),
+		     sigc::mem_fun (*_rc_config, &RCConfiguration::get_never_display_periodic_midi),
+		     sigc::mem_fun (*_rc_config, &RCConfiguration::set_never_display_periodic_midi)
+		     ));
+
+	add_option (_("MIDI"),
+	     new BoolOption (
+		     "sound-midi-notes",
+		     _("Sound MIDI notes as they are selected"),
+		     sigc::mem_fun (*_rc_config, &RCConfiguration::get_sound_midi_notes),
+		     sigc::mem_fun (*_rc_config, &RCConfiguration::set_sound_midi_notes)
+		     ));
 
 	/* USER INTERACTION */
 

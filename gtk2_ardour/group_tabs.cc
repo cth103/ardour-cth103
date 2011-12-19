@@ -309,23 +309,24 @@ GroupTabs::get_menu (RouteGroup* g)
 	_menu->set_name ("ArdourContextMenu");
 	MenuList& items = _menu->items();
 
-	items.push_back (MenuElem (_("New..."), hide_return (sigc::mem_fun(*this, &GroupTabs::create_and_add_group))));
-	items.push_back (MenuElem (_("New From"), *new_from));
+	items.push_back (MenuElem (_("Create New Group ..."), hide_return (sigc::mem_fun(*this, &GroupTabs::create_and_add_group))));
+	items.push_back (MenuElem (_("Create New Group From"), *new_from));
 
 	if (g) {
-		items.push_back (MenuElem (_("Edit..."), sigc::bind (sigc::mem_fun (*this, &GroupTabs::edit_group), g)));
+		items.push_back (MenuElem (_("Edit Group..."), sigc::bind (sigc::mem_fun (*this, &GroupTabs::edit_group), g)));
+		items.push_back (MenuElem (_("Collect Group"), sigc::bind (sigc::mem_fun (*this, &GroupTabs::collect), g)));
+		items.push_back (MenuElem (_("Remove Group"), sigc::bind (sigc::mem_fun (*this, &GroupTabs::remove_group), g)));
+		items.push_back (SeparatorElem());
 		items.push_back (MenuElem (_("Add New Subgroup Bus"), sigc::bind (sigc::mem_fun (*this, &GroupTabs::subgroup), g, false, PreFader)));
 		items.push_back (MenuElem (_("Add New Aux Bus (pre-fader)"), sigc::bind (sigc::mem_fun (*this, &GroupTabs::subgroup), g, true, PreFader)));
 		items.push_back (MenuElem (_("Add New Aux Bus (post-fader)"), sigc::bind (sigc::mem_fun (*this, &GroupTabs::subgroup), g, true, PostFader)));
-		items.push_back (MenuElem (_("Collect"), sigc::bind (sigc::mem_fun (*this, &GroupTabs::collect), g)));
-		items.push_back (MenuElem (_("Remove"), sigc::bind (sigc::mem_fun (*this, &GroupTabs::remove_group), g)));
 	}
 
 	add_menu_items (_menu, g);
 
 	items.push_back (SeparatorElem());
-	items.push_back (MenuElem (_("Activate All"), sigc::mem_fun(*this, &GroupTabs::activate_all)));
-	items.push_back (MenuElem (_("Disable All"), sigc::mem_fun(*this, &GroupTabs::disable_all)));
+	items.push_back (MenuElem (_("Enable All Groups"), sigc::mem_fun(*this, &GroupTabs::activate_all)));
+	items.push_back (MenuElem (_("Disable All Groups"), sigc::mem_fun(*this, &GroupTabs::disable_all)));
 
 	return _menu;
 
@@ -543,6 +544,12 @@ GroupTabs::set_group_color (RouteGroup* group, Gdk::Color color)
 	char buf[64];
 	snprintf (buf, sizeof (buf), "%d:%d:%d", color.get_red(), color.get_green(), color.get_blue());
 	gui_state.set (group_gui_id (group), "color", buf);
+	
+	/* the group color change notification */
+	
+	PBD::PropertyChange change;
+	change.add (Properties::color);
+	group->PropertyChanged (change);
 
 	/* This is a bit of a hack, but this might change
 	   our route's effective color, so emit gui_changed

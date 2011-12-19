@@ -2171,7 +2171,7 @@ ARDOUR_UI::stop_blinking ()
 }
 
 
-/** Ask the user for the name of a new shapshot and then take it.
+/** Ask the user for the name of a new snapshot and then take it.
  */
 
 void
@@ -2205,21 +2205,10 @@ ARDOUR_UI::snapshot_session (bool switch_to_it)
 		bool do_save = (snapname.length() != 0);
 
 		if (do_save) {
-			if (snapname.find ('/') != string::npos) {
-				MessageDialog msg (_("To ensure compatibility with various systems\n"
-				                     "snapshot names may not contain a '/' character"));
-				msg.run ();
-				goto again;
-			}
-			if (snapname.find ('\\') != string::npos) {
-				MessageDialog msg (_("To ensure compatibility with various systems\n"
-				                     "snapshot names may not contain a '\\' character"));
-				msg.run ();
-				goto again;
-			}
-			if (snapname.find (':') != string::npos) {
-				MessageDialog msg (_("To ensure compatibility with various systems\n"
-				                     "snapshot names may not contain a ':' character"));
+			char illegal = Session::session_name_is_legal(snapname);
+			if (illegal) {
+				MessageDialog msg (string_compose (_("To ensure compatibility with various systems\n"
+				                     "snapshot names may not contain a '%1' character"), illegal));
 				msg.run ();
 				goto again;
 			}
@@ -2253,7 +2242,7 @@ ARDOUR_UI::snapshot_session (bool switch_to_it)
 	}
 }
 
-/** Ask the user for the name of a new shapshot and then take it.
+/** Ask the user for a new session name and then rename the session to it.
  */
 
 void
@@ -2280,15 +2269,11 @@ ARDOUR_UI::rename_session ()
 		bool do_rename = (name.length() != 0);
 
 		if (do_rename) {
-			if (name.find ('/') != string::npos) {
-				MessageDialog msg (_("To ensure compatibility with various systems\n"
-				                     "session names may not contain a '/' character"));
-				msg.run ();
-				goto again;
-			}
-			if (name.find ('\\') != string::npos) {
-				MessageDialog msg (_("To ensure compatibility with various systems\n"
-				                     "session names may not contain a '\\' character"));
+			char illegal = Session::session_name_is_legal (name);
+
+			if (illegal) {
+				MessageDialog msg (string_compose (_("To ensure compatibility with various systems\n"
+								     "session names may not contain a '%1' character"), illegal));
 				msg.run ();
 				goto again;
 			}
@@ -2671,19 +2656,13 @@ ARDOUR_UI::get_session_parameters (bool quit_on_cancel, bool should_be_new, stri
 
 				session_path = _startup->session_folder();
 
-				if (session_name.find ('/') != string::npos) {
-					MessageDialog msg (*_startup,
-					                   _("To ensure compatibility with various systems\n"
-					                     "session names may not contain a '/' character"));
-					msg.run ();
-					ARDOUR_COMMAND_LINE::session_name = ""; // cancel that
-					continue;
-				}
+				char illegal = Session::session_name_is_legal (session_name);
 
-				if (session_name.find ('\\') != string::npos) {
+				if (illegal) {
 					MessageDialog msg (*_startup,
-					                   _("To ensure compatibility with various systems\n"
-					                     "session names may not contain a '\\' character"));
+							   string_compose (_("To ensure compatibility with various systems\n"
+									     "session names may not contain a '%1' character"),
+									   illegal));
 					msg.run ();
 					ARDOUR_COMMAND_LINE::session_name = ""; // cancel that
 					continue;

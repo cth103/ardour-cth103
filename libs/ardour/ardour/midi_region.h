@@ -35,6 +35,7 @@ namespace ARDOUR {
 		   MidiModel used by the MidiRegion
 		*/
 		extern PBD::PropertyDescriptor<void*> midi_data;
+		extern PBD::PropertyDescriptor<Evoral::MusicalTime> start_beats;
 		extern PBD::PropertyDescriptor<Evoral::MusicalTime> length_beats;
 	}
 }
@@ -95,8 +96,6 @@ class MidiRegion : public Region
 
 	/* export */
 
-	int exportme (ARDOUR::Session&, ARDOUR::ExportSpecification&);
-
 	boost::shared_ptr<MidiModel> model();
 	boost::shared_ptr<const MidiModel> model() const;
 
@@ -111,6 +110,7 @@ class MidiRegion : public Region
 
   private:
 	friend class RegionFactory;
+	PBD::Property<Evoral::MusicalTime> _start_beats;
 	PBD::Property<Evoral::MusicalTime> _length_beats;
 
 	MidiRegion (const SourceList&);
@@ -137,6 +137,9 @@ class MidiRegion : public Region
 	void model_changed ();
 	void model_automation_state_changed (Evoral::Parameter const &);
 	void model_contents_changed ();
+
+	void set_start_beats_from_start_frames ();
+	void update_after_tempo_map_change ();
 
 	std::set<Evoral::Parameter> _filtered_parameters; ///< parameters that we ask our source not to return when reading
 	PBD::ScopedConnection _model_connection;

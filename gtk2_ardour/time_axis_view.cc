@@ -157,6 +157,7 @@ TimeAxisView::TimeAxisView (ARDOUR::Session* sess, PublicEditor& ed, TimeAxisVie
 				  Gdk::SCROLL_MASK);
 	controls_ebox.set_flags (CAN_FOCUS);
 
+	/* note that this handler connects *before* the default handler */
 	controls_ebox.signal_scroll_event().connect (sigc::mem_fun (*this, &TimeAxisView::controls_ebox_scroll), true);
 	controls_ebox.signal_button_press_event().connect (sigc::mem_fun (*this, &TimeAxisView::controls_ebox_button_press));
 	controls_ebox.signal_button_release_event().connect (sigc::mem_fun (*this, &TimeAxisView::controls_ebox_button_release));
@@ -314,10 +315,6 @@ TimeAxisView::clip_to_viewport ()
 bool
 TimeAxisView::controls_ebox_scroll (GdkEventScroll* ev)
 {
-	if (Keyboard::some_magic_widget_has_focus()) {
-		return false;
-	}
-
 	switch (ev->direction) {
 	case GDK_SCROLL_UP:
 		if (Keyboard::modifier_state_equals (ev->state, Keyboard::TertiaryModifier)) {
@@ -646,7 +643,7 @@ bool
 TimeAxisView::name_entry_focus_in (GdkEventFocus*)
 {
 	name_entry.select_region (0, -1);
-	name_entry.set_name ("EditorActiveTrackNameDisplay");
+	name_entry.set_state (STATE_SELECTED);
 	return false;
 }
 
@@ -657,8 +654,8 @@ TimeAxisView::name_entry_focus_out (GdkEventFocus*)
 
 	last_name_entry_key_press_event = 0;
 	name_entry_key_timeout.disconnect ();
-	name_entry.set_name ("EditorTrackNameDisplay");
 	name_entry.select_region (0,0);
+	name_entry.set_state (STATE_NORMAL);
 
 	/* do the real stuff */
 
@@ -1287,4 +1284,31 @@ TimeAxisView::reset_visual_state ()
 	} else {
 		set_height (preset_height (HeightNormal));
 	}
+}
+
+TrackViewList
+TrackViewList::filter_to_unique_playlists ()
+{
+	std::set<boost::shared_ptr<ARDOUR::Playlist> > playlists;
+	TrackViewList ts;
+
+	for (iterator i = begin(); i != end(); ++i) {
+		RouteTimeAxisView* rtav = dynamic_cast<RouteTimeAxisView*> (*i);
+		if (!rtav) {
+			/* not a route: include it anyway */
+			ts.push_back (*i);
+		} else {
+			boost::shared_ptr<ARDOUR::Track> t = rtav->track();
+			if (t) {
+				if (playlists.insert (t->playlist()).second) {
+					/* playlist not seen yet */
+					ts.push_back (*i);
+				}
+			} else {
+				/* not a track: include it anyway */
+				ts.push_back (*i);
+			}
+		}
+	}
+	return ts;
 }

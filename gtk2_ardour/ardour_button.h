@@ -28,8 +28,7 @@
 #include "pbd/signals.h"
 #include "gtkmm2ext/binding_proxy.h"
 #include "gtkmm2ext/activatable.h"
-
-#include "cairo_widget.h"
+#include "gtkmm2ext/cairo_widget.h"
 
 class ArdourButton : public CairoWidget , public Gtkmm2ext::Activatable
 {
@@ -71,6 +70,8 @@ class ArdourButton : public CairoWidget , public Gtkmm2ext::Activatable
 
 	void set_led_left (bool yn);
 	void set_distinct_led_click (bool yn);
+
+	Glib::RefPtr<Pango::Layout> layout() const { return _layout; }
 
 	sigc::signal<void> signal_led_clicked;
 	sigc::signal<void> signal_clicked;

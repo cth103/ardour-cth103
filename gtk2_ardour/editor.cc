@@ -340,7 +340,6 @@ Editor::Editor ()
 	current_interthread_info = 0;
 	_show_measures = true;
 	show_gain_after_trim = false;
-	last_item_entered = 0;
 
 	have_pending_keyboard_selection = false;
 	_follow_playhead = true;
@@ -654,7 +653,6 @@ Editor::Editor ()
 	// load_bindings ();
 
 	setup_toolbar ();
-	setup_midi_toolbar ();
 
 	_snap_type = SnapToBeat;
 	set_snap_to (_snap_type);
@@ -3004,25 +3002,7 @@ Editor::setup_tooltips ()
 	ARDOUR_UI::instance()->set_tip (snap_type_selector, _("Snap/Grid Units"));
 	ARDOUR_UI::instance()->set_tip (snap_mode_selector, _("Snap/Grid Mode"));
 	ARDOUR_UI::instance()->set_tip (edit_point_selector, _("Edit point"));
-	ARDOUR_UI::instance()->set_tip (midi_sound_notes, _("Sound Notes"));
 	ARDOUR_UI::instance()->set_tip (edit_mode_selector, _("Edit Mode"));
-}
-
-
-void
-Editor::setup_midi_toolbar ()
-{
-	RefPtr<Action> act;
-
-	/* Midi sound notes */
-	midi_sound_notes.add (*(manage (new Image (::get_icon("midi_sound_notes")))));
-	midi_sound_notes.unset_flags (CAN_FOCUS);
-	midi_sound_notes.set_name (X_("MidiSoundNotesButton"));
-
-	/* Panic */
-
-	panic_box.pack_start (midi_sound_notes , true, true);
-	// panic_box.pack_start (midi_panic_button, true, true);
 }
 
 int
@@ -3599,7 +3579,9 @@ Editor::pane_allocation_handler (Allocation &alloc, Paned* which)
 void
 Editor::detach_tearoff (Box* /*b*/, Window* /*w*/)
 {
-	if (_tools_tearoff->torn_off() && _mouse_mode_tearoff->torn_off()) {
+	if ((_tools_tearoff->torn_off() || !_tools_tearoff->visible()) && 
+	    (_mouse_mode_tearoff->torn_off() || !_mouse_mode_tearoff->visible()) && 
+	    (_zoom_tearoff->torn_off() || !_zoom_tearoff->visible())) {
 		top_hbox.remove (toolbar_frame);
 	}
 }
@@ -3785,7 +3767,7 @@ Editor::get_grid_type_as_beats (bool& success, framepos_t position)
 
 	case SnapToBar:
 		if (_session) {
-			return _session->tempo_map().meter_at (position).beats_per_bar();
+			return _session->tempo_map().meter_at (position).divisions_per_bar();
 		}
 		break;
 
@@ -3939,6 +3921,9 @@ Editor::session_state_saved (string)
 void
 Editor::maximise_editing_space ()
 {
+	/* these calls will leave each tearoff visible *if* it is torn off
+	 */
+
 	_mouse_mode_tearoff->set_visible (false);
 	_tools_tearoff->set_visible (false);
 	_zoom_tearoff->set_visible (false);
@@ -4398,15 +4383,10 @@ struct EditorOrderTimeAxisSorter {
 };
 
 void
-Editor::sort_track_selection (TrackViewList* sel)
+Editor::sort_track_selection (TrackViewList& sel)
 {
 	EditorOrderTimeAxisSorter cmp;
-
-	if (sel) {
-		sel->sort (cmp);
-	} else {
-		selection->tracks.sort (cmp);
-	}
+	sel.sort (cmp);
 }
 
 framepos_t

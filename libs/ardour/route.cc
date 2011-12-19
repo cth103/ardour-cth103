@@ -402,7 +402,7 @@ Route::process_output_buffers (BufferSet& bufs,
 {
 	bool monitor = should_monitor ();
 
-	bufs.is_silent (false);
+	bufs.set_is_silent (false);
 
 	/* figure out if we're going to use gain automation */
 	if (gain_automation_ok) {
@@ -805,6 +805,11 @@ Route::set_mute (bool yn, void *src)
 
 	if (muted() != yn) {
 		_mute_master->set_muted_by_self (yn);
+		/* allow any derived classes to respond to the mute change
+		   before anybody else knows about it.
+		*/
+		act_on_mute ();
+		/* tell everyone else */
 		mute_changed (src); /* EMIT SIGNAL */
 		_mute_control->Changed (); /* EMIT SIGNAL */
 	}

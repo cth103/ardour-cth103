@@ -183,7 +183,8 @@ def set_compiler_flags (conf,opt):
 
         #
         # ARCH_X86 means anything in the x86 family from i386 to x86_64
-        # USE_X86_64_ASM is used to distingush 32 and 64 bit assembler
+        # the compile-time presence of the macro _LP64 is used to 
+        # distingush 32 and 64 bit assembler
         #
 
         if (re.search ("(i[0-9]86|x86_64)", config[config_cpu]) != None):
@@ -228,9 +229,6 @@ def set_compiler_flags (conf,opt):
         elif conf.env['build_target'] == 'i686' or conf.env['build_target'] == 'x86_64':
             optimization_flags.append ("-DBUILD_SSE_OPTIMIZATIONS")
             debug_flags.append ("-DBUILD_SSE_OPTIMIZATIONS")
-        elif conf.env['build_target'] == 'x86_64':
-            optimization_flags.append ("-DUSE_X86_64_ASM")
-            debug_flags.append ("-DUSE_X86_64_ASM")
         if not build_host_supports_sse:
             print("\nWarning: you are building Ardour with SSE support even though your system does not support these instructions. (This may not be an error, especially if you are a package maintainer)")
 
@@ -313,9 +311,14 @@ def set_compiler_flags (conf,opt):
         conf.env.append_value('LINKFLAGS', '-ldl')
 
     if opt.universal:
-        conf.env.append_value('CFLAGS', "-arch i386 -arch ppc")
-        conf.env.append_value('CXXFLAGS', "-arch i386 -arch ppc")
-        conf.env.append_value('LINKFLAGS', "-arch i386 -arch ppc")
+        if not Options.options.nocarbon:
+            conf.env.append_value('CFLAGS', ["-arch", "i386", "-arch", "ppc"])
+            conf.env.append_value('CXXFLAGS', ["-arch", "i386", "-arch", "ppc"])
+            conf.env.append_value('LINKFLAGS', ["-arch", "i386", "-arch", "ppc"])
+        else:
+            conf.env.append_value('CFLAGS', ["-arch", "x86_64", "-arch", "i386", "-arch", "ppc"])
+            conf.env.append_value('CXXFLAGS', ["-arch", "x86_64", "-arch", "i386", "-arch", "ppc"])
+            conf.env.append_value('LINKFLAGS', ["-arch", "x86_64", "-arch", "i386", "-arch", "ppc"])
 
     #
     # warnings flags
@@ -356,6 +359,8 @@ def options(opt):
                     help='The user-visible name of the program being built')
     opt.add_option('--arch', type='string', action='store', dest='arch',
                     help='Architecture-specific compiler flags')
+    opt.add_option('--no-carbon', action='store_true', default=False, dest='nocarbon',
+                    help='Compile without support for AU Plugins with only CARBON UI (needed for 64bit)')
     opt.add_option('--boost-sp-debug', action='store_true', default=False, dest='boost_sp_debug',
                     help='Compile with Boost shared pointer debugging')
     opt.add_option('--dist-target', type='string', default='auto', dest='dist_target',
@@ -367,8 +372,8 @@ def options(opt):
                     help='Install MIME type, icons and .desktop file as per freedesktop.org standards')
     opt.add_option('--freebie', action='store_true', default=False, dest='freebie',
                     help='Build a version suitable for distribution as a zero-cost binary')
-    opt.add_option('--freesound', action='store_true', default=False, dest='freesound',
-                    help='Include Freesound database lookup')
+    opt.add_option('--no-freesound', action='store_false', default=True, dest='freesound',
+                    help='Do not build with Freesound database support')
     opt.add_option('--gprofile', action='store_true', default=False, dest='gprofile',
                     help='Compile for use with gprofile')
     opt.add_option('--lv2', action='store_true', default=True, dest='lv2',
@@ -446,8 +451,11 @@ def configure(conf):
 
         conf.define ('HAVE_COREAUDIO', 1)
         conf.define ('AUDIOUNIT_SUPPORT', 1)
+        if not Options.options.nocarbon:
+            conf.define ('WITH_CARBON', 1)
         if not Options.options.freebie:
             conf.define ('AU_STATE_SUPPORT', 1)
+
         conf.define ('GTKOSX', 1)
         conf.define ('TOP_MENUBAR',1)
         conf.define ('GTKOSX',1)
@@ -486,13 +494,18 @@ def configure(conf):
         conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'CoreFoundation'])
         conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'CoreServices'])
 
-	conf.env.append_value('LINKFLAGS_OSX', ['-undefined', 'dynamic_lookup' ])
-	conf.env.append_value('LINKFLAGS_OSX', ['-flat_namespace'])
+        conf.env.append_value('LINKFLAGS_OSX', ['-undefined', 'dynamic_lookup' ])
+        conf.env.append_value('LINKFLAGS_OSX', ['-flat_namespace'])
 
         conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DAUDIOUNIT_SUPPORT")
-        conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DAU_STATE_SUPPORT")
-        conf.env.append_value('LINKFLAGS_AUDIOUNITS', ['-framework', 'Carbon', 
-		'-framework', 'Audiotoolbox', '-framework', 'AudioUnit'])
+        conf.env.append_value('LINKFLAGS_AUDIOUNITS', ['-framework', 'Audiotoolbox', '-framework', 'AudioUnit'])
+        conf.env.append_value('LINKFLAGS_AUDIOUNITS', ['-framework', 'Cocoa'])
+
+        if not Options.options.freebie:
+            conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DAU_STATE_SUPPORT")
+        if not Options.options.nocarbon:
+            conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DWITH_CARBON")
+            conf.env.append_value('LINKFLAGS_AUDIOUNITS', ['-framework', 'Carbon'])
 
     if Options.options.boost_include != '':
         conf.env.append_value('CXXFLAGS', '-I' + Options.options.boost_include)

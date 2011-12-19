@@ -24,14 +24,22 @@
 
 namespace ARDOUR {
 
+/** Takes a duration in beats and considers it as a distance from the origin
+ *  supplied to the constructor.  Returns the equivalent number of frames,
+ *  taking tempo changes into account.
+ */
 framecnt_t
 BeatsFramesConverter::to (double beats) const
 {
 	assert (beats >= 0);
 
-	return _tempo_map.framepos_plus_bbt (_origin_b, Timecode::BBT_Time(beats)) - _origin_b;
+	return _tempo_map.framepos_plus_beats (_origin_b, beats) - _origin_b;
 }
 
+/** Takes a duration in frames and considers it as a distance from the origin
+ *  supplied to the constructor.  Returns the equivalent number of beats,
+ *  taking tempo changes into account.
+ */
 double
 BeatsFramesConverter::from (framecnt_t frames) const
 {

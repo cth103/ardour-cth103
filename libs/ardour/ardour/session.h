@@ -238,10 +238,12 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	template<class T> void foreach_route (T *obj, void (T::*func)(boost::shared_ptr<Route>));
 	template<class T, class A> void foreach_route (T *obj, void (T::*func)(Route&, A), A arg);
 
+	static char session_name_is_legal (const std::string&);
 	bool io_name_is_legal (const std::string&);
 	boost::shared_ptr<Route> route_by_name (std::string);
 	boost::shared_ptr<Route> route_by_id (PBD::ID);
 	boost::shared_ptr<Route> route_by_remote_id (uint32_t id);
+	boost::shared_ptr<Track> track_by_diskstream_id (PBD::ID);
 	void routes_using_input_from (const std::string& str, RouteList& rl);
 
 	bool route_name_unique (std::string) const;
@@ -387,9 +389,6 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	void rename_state (std::string old_name, std::string new_name);
 	void remove_pending_capture_state ();
 	int rename (const std::string&);
-
-	static int rename_template (std::string old_name, std::string new_name);
-	static int delete_template (std::string name);
 
 	PBD::Signal1<void,std::string> StateSaved;
 	PBD::Signal0<void> StateReady;
@@ -1356,8 +1355,6 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	SerializedRCUManager<BundleList> _bundles;
 	XMLNode* _bundle_xml_node;
 	int load_bundles (XMLNode const &);
-
-	void reverse_track_buffers ();
 
 	UndoHistory      _history;
 	/** current undo transaction, or 0 */

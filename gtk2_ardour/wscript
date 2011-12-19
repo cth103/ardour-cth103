@@ -54,7 +54,6 @@ gtk2_ardour_sources = [
         'automation_time_axis.cc',
         'axis_view.cc',
         'bundle_manager.cc',
-        'cairo_widget.cc',
         'clock_group.cc',
         'configinfo.cc',
         'control_point.cc',
@@ -135,6 +134,7 @@ gtk2_ardour_sources = [
         'midi_port_dialog.cc',
         'midi_region_view.cc',
         'midi_scroomer.cc',
+        'midi_selection.cc',
         'midi_streamview.cc',
         'midi_time_axis.cc',
         'midi_tracer.cc',
@@ -397,8 +397,11 @@ def build(bld):
 
     if bld.is_defined('HAVE_COREAUDIO'):
         TaskGen.task_gen.mappings['.mm'] = TaskGen.task_gen.mappings['.cc']
-        obj.source += [ 'cocoacarbon.mm', 'au_pluginui.mm' ]
+        obj.source += [ 'cocoacarbon.mm' ]
         obj.use += ' libappleutility '
+
+    if bld.is_defined('AUDIOUNIT_SUPPORT'):
+        obj.source += [ 'au_pluginui.mm' ]
 
     if bld.is_defined('WINDOWS_VST_SUPPORT'):
         # If we require VST support we build a stub main() and the FST library

@@ -262,10 +262,10 @@ BufferSet::get_lv2_midi(bool input, size_t i)
 			const Evoral::MIDIEvent<framepos_t> ev(*e, false);
 			uint32_t type = LV2Plugin::midi_event_type();
 #ifndef NDEBUG
-                        DEBUG_TRACE (PBD::DEBUG::LV2, string_compose ("(FLUSH) MIDI event of size %1\n", ev.size()));
-                        for (uint16_t x = 0; x < ev.size(); ++x) {
-                                DEBUG_TRACE (PBD::DEBUG::LV2, string_compose ("\tByte[%1] = %2\n", x, (int) ev.buffer()[x]));
-                        }
+			DEBUG_TRACE (PBD::DEBUG::LV2, string_compose ("(FLUSH) MIDI event of size %1\n", ev.size()));
+			for (uint16_t x = 0; x < ev.size(); ++x) {
+				DEBUG_TRACE (PBD::DEBUG::LV2, string_compose ("\tByte[%1] = %2\n", x, (int) ev.buffer()[x]));
+			}
 #endif
 			ebuf->append(ev.time(), 0, type, ev.size(), ev.buffer());
 		}
@@ -289,10 +289,10 @@ BufferSet::flush_lv2_midi(bool input, size_t i)
 		uint8_t* data;
 		ebuf->get_event(&frames, &subframes, &type, &size, &data);
 #ifndef NDEBUG
-                DEBUG_TRACE (PBD::DEBUG::LV2, string_compose ("(FLUSH) MIDI event of size %1\n", size));
-                for (uint16_t x = 0; x < size; ++x) {
-                        DEBUG_TRACE (PBD::DEBUG::LV2, string_compose ("\tByte[%1] = %2\n", x, (int) data[x]));
-                }
+		DEBUG_TRACE (PBD::DEBUG::LV2, string_compose ("(FLUSH) MIDI event of size %1\n", size));
+		for (uint16_t x = 0; x < size; ++x) {
+			DEBUG_TRACE (PBD::DEBUG::LV2, string_compose ("\tByte[%1] = %2\n", x, (int) data[x]));
+		}
 #endif
 		mbuf.push_back(frames, size, data);
 	}
@@ -434,11 +434,11 @@ BufferSet::silence (framecnt_t nframes, framecnt_t offset)
 }
 
 void
-BufferSet::is_silent (bool yn)
+BufferSet::set_is_silent (bool yn)
 {
 	for (std::vector<BufferVec>::iterator i = _buffers.begin(); i != _buffers.end(); ++i) {
 		for (BufferVec::iterator b = i->begin(); b != i->end(); ++b) {
-			(*b)->is_silent (yn);
+			(*b)->set_is_silent (yn);
 		}
 	}
 

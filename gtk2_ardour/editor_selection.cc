@@ -401,6 +401,63 @@ Editor::mapover_tracks (sigc::slot<void, RouteTimeAxisView&, uint32_t> sl, TimeA
 	}
 }
 
+/** Call a slot for a given `basis' track and also for any track that is in the same
+ *  active route group with a particular set of properties.
+ *
+ *  @param sl Slot to call.
+ *  @param basis Basis track.
+ *  @param prop Properties that active edit groups must share to be included in the map.
+ */
+
+void
+Editor::mapover_tracks_with_unique_playlists (sigc::slot<void, RouteTimeAxisView&, uint32_t> sl, TimeAxisView* basis, PBD::PropertyID prop) const
+{
+	RouteTimeAxisView* route_basis = dynamic_cast<RouteTimeAxisView*> (basis);
+	set<boost::shared_ptr<Playlist> > playlists;
+
+	if (route_basis == 0) {
+		return;
+	}
+
+	set<RouteTimeAxisView*> tracks;
+	tracks.insert (route_basis);
+
+	RouteGroup* group = route_basis->route()->route_group(); // could be null, not a problem
+
+	if (group && group->enabled_property(prop) && group->enabled_property (Properties::active.property_id) ) {
+
+		/* the basis is a member of an active route group, with the appropriate
+		   properties; find other members */
+
+		for (TrackViewList::const_iterator i = track_views.begin(); i != track_views.end(); ++i) {
+			RouteTimeAxisView* v = dynamic_cast<RouteTimeAxisView*> (*i);
+
+			if (v && v->route()->route_group() == group) {
+				
+				boost::shared_ptr<Track> t = v->track();
+				if (t) {
+					if (playlists.insert (t->playlist()).second) {
+						/* haven't seen this playlist yet */
+						tracks.insert (v);
+					}
+				} else {
+					/* not actually a "Track", but a timeaxis view that
+					   we should mapover anyway.
+					*/
+					tracks.insert (v);
+				}
+			}
+		}
+	}
+
+	/* call the slots */
+	uint32_t const sz = tracks.size ();
+
+	for (set<RouteTimeAxisView*>::iterator i = tracks.begin(); i != tracks.end(); ++i) {
+		sl (**i, sz);
+	}
+}
+
 void
 Editor::mapped_get_equivalent_regions (RouteTimeAxisView& tv, uint32_t, RegionView * basis, vector<RegionView*>* all_equivs) const
 {
@@ -433,7 +490,7 @@ Editor::mapped_get_equivalent_regions (RouteTimeAxisView& tv, uint32_t, RegionVi
 void
 Editor::get_equivalent_regions (RegionView* basis, vector<RegionView*>& equivalent_regions, PBD::PropertyID property) const
 {
-	mapover_tracks (sigc::bind (sigc::mem_fun (*this, &Editor::mapped_get_equivalent_regions), basis, &equivalent_regions), &basis->get_time_axis_view(), property);
+	mapover_tracks_with_unique_playlists (sigc::bind (sigc::mem_fun (*this, &Editor::mapped_get_equivalent_regions), basis, &equivalent_regions), &basis->get_time_axis_view(), property);
 
 	/* add clicked regionview since we skipped all other regions in the same track as the one it was in */
 
@@ -449,7 +506,7 @@ Editor::get_equivalent_regions (RegionSelection & basis, PBD::PropertyID prop) c
 
 		vector<RegionView*> eq;
 
-		mapover_tracks (
+		mapover_tracks_with_unique_playlists (
 			sigc::bind (sigc::mem_fun (*this, &Editor::mapped_get_equivalent_regions), *i, &eq),
 			&(*i)->get_time_axis_view(), prop);
 
@@ -973,6 +1030,7 @@ Editor::sensitize_the_right_region_actions ()
 	/* Look through the regions that are selected and make notes about what we have got */
 
 	bool have_audio = false;
+	bool have_multichannel_audio = false;
 	bool have_midi = false;
 	bool have_locked = false;
 	bool have_unlocked = false;
@@ -997,6 +1055,9 @@ Editor::sensitize_the_right_region_actions ()
 
 		if (ar) {
 			have_audio = true;
+			if (ar->n_channels() > 1) {
+				have_multichannel_audio = true;
+			}
 		}
 
 		if (boost::dynamic_pointer_cast<MidiRegion> (r)) {
@@ -1041,12 +1102,16 @@ Editor::sensitize_the_right_region_actions ()
 			   its current setting.
 			*/
 
-			have_envelope_invisible = true;
+			have_envelope_invisible = false;
 
 			if (*i) {
 				AudioRegionView* arv = dynamic_cast<AudioRegionView*> (*i);
-				if (arv && arv->envelope_visible()) {
-					have_envelope_visible = true;
+				if (arv) {
+					if (arv->envelope_visible()) {
+						have_envelope_visible = true;
+					} else {
+						have_envelope_invisible = true;
+					}
 				}
 			}
 
@@ -1075,6 +1140,10 @@ Editor::sensitize_the_right_region_actions ()
 		_region_actions->get_action("add-range-markers-from-region")->set_sensitive (false);
 		_region_actions->get_action("close-region-gaps")->set_sensitive (false);
 		_region_actions->get_action("combine-regions")->set_sensitive (false);
+	}
+
+	if (!have_multichannel_audio) {
+		_region_actions->get_action("split-multichannel-region")->set_sensitive (false);
 	}
 
 	if (!have_midi) {

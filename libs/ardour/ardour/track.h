@@ -69,7 +69,8 @@ class Track : public Route, public PublicDiskstream
 
 	bool can_record();
 
-	virtual void use_new_diskstream () = 0;
+	void use_new_diskstream ();
+	virtual boost::shared_ptr<Diskstream> create_diskstream() = 0;
 	virtual void set_diskstream (boost::shared_ptr<Diskstream>);
 
 	void set_latency_compensation (framecnt_t);
@@ -98,8 +99,7 @@ class Track : public Route, public PublicDiskstream
 	bool record_enabled() const;
 	void set_record_enabled (bool yn, void *src);
 
-	/* XXX: unfortunate that this is exposed */
-	PBD::ID const & diskstream_id () const;
+	bool using_diskstream_id (PBD::ID) const;
 
 	void set_block_size (pframes_t);
 

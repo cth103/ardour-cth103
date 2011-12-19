@@ -292,6 +292,15 @@ IO::add_port (string destination, void* src, DataType type)
 		type = _default_type;
 	}
 
+	ChanCount before = _ports.count ();
+	ChanCount after = before;
+	after.set (type, after.get (type) + 1);
+	
+	bool const r = PortCountChanging (after); /* EMIT SIGNAL */
+	if (r) {
+		return -1;
+	}
+	
 	IOChange change;
 
 	{
@@ -1544,6 +1553,11 @@ void
 IO::process_input (boost::shared_ptr<Processor> proc, framepos_t start_frame, framepos_t end_frame, pframes_t nframes)
 {
 	/* don't read the data into new buffers - just use the port buffers directly */
+
+	if (n_ports().n_total() == 0) {
+		/* We have no ports, so nothing to process */
+		return;
+	}
 
 	_buffers.get_jack_port_addresses (_ports, nframes);
 	proc->run (_buffers, start_frame, end_frame, nframes, true);

@@ -2603,6 +2603,21 @@ Session::route_by_id (PBD::ID id)
 	return boost::shared_ptr<Route> ((Route*) 0);
 }
 
+boost::shared_ptr<Track>
+Session::track_by_diskstream_id (PBD::ID id)
+{
+	boost::shared_ptr<RouteList> r = routes.reader ();
+
+	for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
+		boost::shared_ptr<Track> t = boost::dynamic_pointer_cast<Track> (*i);
+		if (t && t->using_diskstream_id (id)) {
+			return t;
+		}
+	}
+
+	return boost::shared_ptr<Track> ();
+}
+
 boost::shared_ptr<Route>
 Session::route_by_remote_id (uint32_t id)
 {
@@ -4216,35 +4231,32 @@ Session::end_time_changed (framepos_t old)
 string
 Session::source_search_path (DataType type) const
 {
-	string search_path;
+	vector<string> s;
 
 	if (session_dirs.size() == 1) {
 		switch (type) {
 		case DataType::AUDIO:
-			search_path = _session_dir->sound_path().to_string();
+			s.push_back ( _session_dir->sound_path().to_string());
 			break;
 		case DataType::MIDI:
-			search_path = _session_dir->midi_path().to_string();
+			s.push_back (_session_dir->midi_path().to_string());
 			break;
 		}
 	} else {
 		for (vector<space_and_path>::const_iterator i = session_dirs.begin(); i != session_dirs.end(); ++i) {
 			SessionDirectory sdir (i->path);
-			if (!search_path.empty()) {
-				search_path += ':';
-			}
 			switch (type) {
 			case DataType::AUDIO:
-				search_path += sdir.sound_path().to_string();
+				s.push_back (sdir.sound_path().to_string());
 				break;
 			case DataType::MIDI:
-				search_path += sdir.midi_path().to_string();
+			        s.push_back (sdir.midi_path().to_string());
 				break;
 			}
 		}
 	}
 
-	/* now add user-specified locations
+	/* now check the explicit (possibly user-specified) search path
 	 */
 
 	vector<string> dirs;
@@ -4259,9 +4271,27 @@ Session::source_search_path (DataType type) const
 	}
 
 	for (vector<string>::iterator i = dirs.begin(); i != dirs.end(); ++i) {
-		search_path += ':';
-		search_path += *i;
 
+		vector<string>::iterator si;
+
+		for (si = s.begin(); si != s.end(); ++si) {
+			if ((*si) == *i) {
+				break;
+			}
+		}
+
+		if (si == s.end()) {
+			s.push_back (*i);
+		}
+	}
+	
+	string search_path;
+
+	for (vector<string>::iterator si = s.begin(); si != s.end(); ++si) {
+		if (!search_path.empty()) {
+			search_path += ':';
+		}
+		search_path += *si;
 	}
 
 	return search_path;
@@ -4285,7 +4315,7 @@ Session::ensure_search_path_includes (const string& path, DataType type)
 		search_path = config.get_midi_search_path ();
 		break;
 	}
-
+	
 	split (search_path, dirs, ':');
 
 	for (vector<string>::iterator i = dirs.begin(); i != dirs.end(); ++i) {
@@ -4528,3 +4558,16 @@ Session::update_latency_compensation (bool force_whole_graph)
 	}
 }
 
+char
+Session::session_name_is_legal (const string& path)
+{
+	char illegal_chars[] = { '/', '\\', ':', ';', '\0' };
+
+	for (int i = 0; illegal_chars[i]; ++i) {
+		if (path.find (illegal_chars[i]) != string::npos) {
+			return illegal_chars[i];
+		}
+	}
+
+	return 0;
+}

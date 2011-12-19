@@ -472,7 +472,6 @@ ProcessorBox::ProcessorBox (ARDOUR::Session* sess, boost::function<PluginSelecto
 
 	_width = Wide;
 	processor_menu = 0;
-	send_action_menu = 0;
 	no_processor_redisplay = false;
 
 	processor_scroller.set_policy (Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
@@ -506,6 +505,15 @@ ProcessorBox::ProcessorBox (ARDOUR::Session* sess, boost::function<PluginSelecto
 
 ProcessorBox::~ProcessorBox ()
 {
+	/* it may appear as if we should delete processor_menu but that is a
+	 * pointer to a widget owned by the UI Manager, and has potentially
+	 * be returned to many other ProcessorBoxes. GTK doesn't really make
+	 * clear the ownership of this widget, which is a menu and thus is
+	 * never packed into any container other than an implict GtkWindow.
+	 *
+	 * For now, until or if we ever get clarification over the ownership
+	 * story just let it continue to exist. At worst, its a small memory leak.
+	 */
 }
 
 void
@@ -573,7 +581,6 @@ ProcessorBox::object_drop(DnDVBox<ProcessorEntry>* source, ProcessorEntry* posit
 	if ((context->get_suggested_action() == Gdk::ACTION_MOVE) && source) {
 		ProcessorBox* other = reinterpret_cast<ProcessorBox*> (source->get_data ("processorbox"));
 		if (other) {
-			cerr << "source was another processor box, delete the selected items\n";
 			other->delete_dragged_processors (procs);
 		}
 	}
@@ -600,19 +607,6 @@ ProcessorBox::set_width (Width w)
 	}
 
 	redisplay_processors ();
-}
-
-void
-ProcessorBox::build_send_action_menu ()
-{
-	using namespace Menu_Helpers;
-
-	send_action_menu = new Menu;
-	send_action_menu->set_name ("ArdourContextMenu");
-	MenuList& items = send_action_menu->items();
-
-	items.push_back (MenuElem (_("New send"), sigc::mem_fun(*this, &ProcessorBox::new_send)));
-	items.push_back (MenuElem (_("Show send controls"), sigc::mem_fun(*this, &ProcessorBox::show_send_controls)));
 }
 
 Gtk::Menu*
@@ -1909,7 +1903,7 @@ ProcessorBox::register_actions ()
 	act = ActionManager::register_action (popup_act_grp, X_("newinsert"), _("New Insert"),
 			sigc::ptr_fun (ProcessorBox::rb_choose_insert));
 	ActionManager::jack_sensitive_actions.push_back (act);
-	act = ActionManager::register_action (popup_act_grp, X_("newsend"), _("New Send ..."),
+	act = ActionManager::register_action (popup_act_grp, X_("newsend"), _("New External Send ..."),
 			sigc::ptr_fun (ProcessorBox::rb_choose_send));
 	ActionManager::jack_sensitive_actions.push_back (act);
 

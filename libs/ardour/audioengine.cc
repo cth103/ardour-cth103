@@ -492,7 +492,6 @@ AudioEngine::process_callback (pframes_t nframes)
 	Delivery::CycleStart (nframes);
 	Port::set_global_port_buffer_offset (0);
         Port::set_cycle_framecnt (nframes);
-	InternalReturn::CycleStart (nframes);
 
 	/* tell all Ports that we're starting a new cycle */
 
@@ -1513,4 +1512,11 @@ AudioEngine::update_latencies ()
                 GET_PRIVATE_JACK_POINTER (_jack);
                 jack_recompute_total_latencies (_priv_jack);
         }
+}
+
+void
+AudioEngine::destroy ()
+{
+	delete _instance;
+	_instance = 0;
 }
