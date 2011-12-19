@@ -4271,7 +4271,7 @@ EditorRubberbandSelectDrag::deselect_things ()
 	_editor->selection->clear_lines ();
 }
 
-NoteCreateDrag::NoteCreateDrag (Editor* e, ArdourCanvas::Item* i, MidiRegionView* rv)
+NoteCreateDrag::NoteCreateDrag (Editor* e, Canvas::Item* i, MidiRegionView* rv)
 	: Drag (e, i)
 	, _region_view (rv)
 	, _drag_rect (0)
@@ -4301,7 +4301,7 @@ NoteCreateDrag::start_grab (GdkEvent* event, Gdk::Cursor* cursor)
 {
 	Drag::start_grab (event, cursor);
 						 
-	_drag_rect = new ArdourCanvas::SimpleRect (*_region_view->get_canvas_group ());
+	_drag_rect = new Canvas::Rectangle (_region_view->get_canvas_group ());
 
 	framepos_t pf = _drags->current_pointer_frame ();
 	framecnt_t const g = grid_frames (pf);
@@ -4319,14 +4319,14 @@ NoteCreateDrag::start_grab (GdkEvent* event, Gdk::Cursor* cursor)
 	double const x = _editor->frame_to_pixel (_note[0]);
 	double const y = sv->note_to_y (sv->y_to_note (y_to_region (event->button.y)));
 
-	_drag_rect->property_x1() = x;
-	_drag_rect->property_y1() = y;
-	_drag_rect->property_x2() = x;
-	_drag_rect->property_y2() = y + floor (_region_view->midi_stream_view()->note_height ());
+	_drag_rect->set_x0 (x);
+	_drag_rect->set_y0 (y);
+	_drag_rect->set_x1 (x);
+	_drag_rect->set_y1 (y + floor (_region_view->midi_stream_view()->note_height ()));
 
-	_drag_rect->property_outline_what() = 0xff;
-	_drag_rect->property_outline_color_rgba() = 0xffffff99;
-	_drag_rect->property_fill_color_rgba()    = 0xffffff66;
+	_drag_rect->set_outline_what (0xff);
+	_drag_rect->set_outline_color (0xffffff99);
+	_drag_rect->set_fill_color (0xffffff66);
 }
 
 void
@@ -4335,9 +4335,9 @@ NoteCreateDrag::motion (GdkEvent* event, bool)
 	_note[1] = adjusted_current_frame (event) - _region_view->region()->position ();
 	double const x = _editor->frame_to_pixel (_note[1]);
 	if (_note[1] > _note[0]) {
-		_drag_rect->property_x2() = x;
+		_drag_rect->set_x1 (x);
 	} else {
-		_drag_rect->property_x1() = x;
+		_drag_rect->set_x0 (x);
 	}
 }
 
@@ -4356,14 +4356,14 @@ NoteCreateDrag::finished (GdkEvent* event, bool had_movement)
 		length = g;
 	}
 
-	_region_view->create_note_at (start, _drag_rect->property_y1(), _region_view->region_frames_to_region_beats (length), true, false);
+	_region_view->create_note_at (start, _drag_rect->y0(), _region_view->region_frames_to_region_beats (length), true, false);
 }
 
 double
 NoteCreateDrag::y_to_region (double y) const
 {
 	double x = 0;
-	_region_view->get_canvas_group()->w2i (x, y);
+	_region_view->get_canvas_group()->canvas_to_item (x, y);
 	return y;
 }
 
@@ -4372,3 +4372,4 @@ NoteCreateDrag::aborted (bool)
 {
 	
 }
+

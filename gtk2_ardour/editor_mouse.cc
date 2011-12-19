@@ -311,9 +311,9 @@ Editor::set_canvas_cursor ()
 	if (join_object_range_button.get_active()) {
 		double x, y;
 		get_pointer_position (x, y);
-		ArdourCanvas::Item* i = track_canvas->get_item_at (x, y);
-		if (i && i->property_parent() && (*i->property_parent()).get_data (X_("timeselection"))) {
-			pair<TimeAxisView*, int> tvp = trackview_by_y_position (_last_motion_y + vertical_adjustment.get_value() - canvas_timebars_vsize);
+		Canvas::Item const * i = _track_canvas->top_item_at (x, y);
+		if (i && i->parent() && i->parent()->get_data (X_("timeselection"))) {
+			pair<TimeAxisView*, int> tvp = trackview_by_y_position (_last_motion_y + vertical_adjustment.get_value());
 			if (dynamic_cast<AutomationTimeAxisView*> (tvp.first)) {
 				current_canvas_cursor = _cursors->up_down;
 			}

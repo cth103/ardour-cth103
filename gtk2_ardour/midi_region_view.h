@@ -215,6 +215,7 @@ public:
 
 	void update_resizing (NoteBase*, bool, double, bool);
 	void commit_resizing (NoteBase*, bool, double, bool);
+	void abort_resizing ();
 
 	/** Change the channel of the selection.
 	 * @param channel - the channel number of the new channel, zero-based
@@ -392,7 +393,6 @@ private:
         Evoral::MusicalTime                  _step_edit_cursor_position;
 	NoteBase*	     		     _channel_selection_scoped_note;
 
->>>>>>> origin/master
 
 	/** A group used to temporarily reparent _note_group to during start trims, so
 	 *  that the notes don't move with the parent region view.

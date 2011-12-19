@@ -115,6 +115,8 @@ public:
 	void paint_from_tiles (Rect const &, Cairo::RefPtr<Cairo::Context> const &) const;
 	void render_to_tile (Cairo::RefPtr<Cairo::Context>, int, int) const;
 
+	Item const * top_item_at (Coord, Coord) const;
+
 	/** @return Root group */
 	Group* root () {
 		return &_root;

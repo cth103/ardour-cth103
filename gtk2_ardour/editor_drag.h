@@ -455,7 +455,7 @@ class NoteDrag : public Drag
 class NoteCreateDrag : public Drag
 {
 public:
-	NoteCreateDrag (Editor *, ArdourCanvas::Item *, MidiRegionView *);
+	NoteCreateDrag (Editor *, Canvas::Item *, MidiRegionView *);
 	~NoteCreateDrag ();
 
 	void start_grab (GdkEvent *, Gdk::Cursor* c = 0);
@@ -468,7 +468,7 @@ private:
 	framecnt_t grid_frames (framepos_t) const;
 	
 	MidiRegionView* _region_view;
-	ArdourCanvas::SimpleRect* _drag_rect;
+	Canvas::Rectangle* _drag_rect;
 	framepos_t _note[2];
 };
 

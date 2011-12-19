@@ -390,6 +390,22 @@ Canvas::Canvas::get_state () const
 	return tree;
 }
 
+/** @param x Canvas x coordinate.
+ *  @param y Canvas y coordinate.
+ *  @return One of the "Top" (ie furthest down the item tree) items at the given point, or 0.
+ */
+Canvas::Item const *
+Canvas::Canvas::top_item_at (Coord x, Coord y) const
+{
+	vector<Item const *> items;
+	_root.add_items_at_point (Duple (x, y), items);
+	if (items.empty ()) {
+		return 0;
+	}
+	
+	return items.back ();
+}
+
 /** Construct a GtkCanvas */
 GtkCanvas::GtkCanvas ()
 	: _grabbed_item (0)

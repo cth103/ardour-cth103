@@ -3681,3 +3681,14 @@ MidiRegionView::selection_cleared (MidiRegionView* rv)
 	/* Clear our selection in sympathy; but don't signal the fact */
 	clear_selection (false);
 }
+
+void
+MidiRegionView::abort_resizing ()
+{
+	for (std::vector<NoteResizeData *>::iterator i = _resize_data.begin(); i != _resize_data.end(); ++i) {
+		delete (*i)->resize_rect;
+		delete *i;
+	}
+
+	_resize_data.clear ();
+}

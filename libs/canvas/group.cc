@@ -229,6 +229,9 @@ Group::child_changed ()
 }
 
 /** Find the items in this Group which contain a certain point, and add them to a vector.
+ *  Later items in the vector will be deeper in the item tree (ie the last item in the
+ *  vector will be at the top of one branch of the tree).
+ *
  *  @param point Point to examine, in this Group's coordinates.
  *  @param items Vector to add items to.
  */
