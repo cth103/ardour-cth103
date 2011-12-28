@@ -1418,9 +1418,9 @@ AUPlugin::get_beat_and_tempo_callback (Float64* outCurrentBeat,
 
 	if (outCurrentBeat) {
 		float beat;
-		beat = metric.meter().beats_per_bar() * bbt.bars;
+		beat = metric.meter().divisions_per_bar() * bbt.bars;
 		beat += bbt.beats;
-		beat += bbt.ticks / Timecode::BBT_Time::ticks_per_beat;
+		beat += bbt.ticks / Timecode::BBT_Time::ticks_per_bar_division;
 		*outCurrentBeat = beat;
 	}
 
@@ -1461,13 +1461,13 @@ AUPlugin::get_musical_time_location_callback (UInt32*   outDeltaSampleOffsetToNe
 			*outDeltaSampleOffsetToNextBeat = 0;
 		} else {
 			*outDeltaSampleOffsetToNextBeat = (UInt32) 
-				floor (((Timecode::BBT_Time::ticks_per_beat - bbt.ticks)/Timecode::BBT_Time::ticks_per_beat) * // fraction of a beat to next beat
-				       metric.tempo().frames_per_beat(_session.frame_rate(), metric.meter())); // frames per beat
+				floor (((Timecode::BBT_Time::ticks_per_bar_division - bbt.ticks)/Timecode::BBT_Time::ticks_per_bar_division) * // fraction of a beat to next beat
+				       metric.tempo().frames_per_beat(_session.frame_rate())); // frames per beat
 		}
 	}
 
 	if (outTimeSig_Numerator) {
-		*outTimeSig_Numerator = (UInt32) lrintf (metric.meter().beats_per_bar());
+		*outTimeSig_Numerator = (UInt32) lrintf (metric.meter().divisions_per_bar());
 	}
 	if (outTimeSig_Denominator) {
 		*outTimeSig_Denominator = (UInt32) lrintf (metric.meter().note_divisor());
@@ -1477,12 +1477,12 @@ AUPlugin::get_musical_time_location_callback (UInt32*   outDeltaSampleOffsetToNe
 
 		/* beat for the start of the bar.
 		   1|1|0 -> 1
-		   2|1|0 -> 1 + beats_per_bar
-		   3|1|0 -> 1 + (2 * beats_per_bar)
+		   2|1|0 -> 1 + divisions_per_bar
+		   3|1|0 -> 1 + (2 * divisions_per_bar)
 		   etc.
 		*/
 
-		*outCurrentMeasureDownBeat = 1 + metric.meter().beats_per_bar() * (bbt.bars - 1);
+		*outCurrentMeasureDownBeat = 1 + metric.meter().divisions_per_bar() * (bbt.bars - 1);
 	}
 
 	return noErr;
@@ -1551,9 +1551,9 @@ AUPlugin::get_transport_state_callback (Boolean*  outIsPlaying,
 					_session.tempo_map().bbt_time_with_metric (loc->start(), bbt, metric);
 
 					float beat;
-					beat = metric.meter().beats_per_bar() * bbt.bars;
+					beat = metric.meter().divisions_per_bar() * bbt.bars;
 					beat += bbt.beats;
-					beat += bbt.ticks / Timecode::BBT_Time::ticks_per_beat;
+					beat += bbt.ticks / Timecode::BBT_Time::ticks_per_bar_division;
 
 					*outCycleStartBeat = beat;
 				}
@@ -1563,9 +1563,9 @@ AUPlugin::get_transport_state_callback (Boolean*  outIsPlaying,
 					_session.tempo_map().bbt_time_with_metric (loc->end(), bbt, metric);
 
 					float beat;
-					beat = metric.meter().beats_per_bar() * bbt.bars;
+					beat = metric.meter().divisions_per_bar() * bbt.bars;
 					beat += bbt.beats;
-					beat += bbt.ticks / Timecode::BBT_Time::ticks_per_beat;
+					beat += bbt.ticks / Timecode::BBT_Time::ticks_per_bar_division;
 
 					*outCycleEndBeat = beat;
 				}

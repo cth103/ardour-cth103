@@ -1779,7 +1779,7 @@ AudioClock::bbt_validate_edit (const string& str)
 		return false;
 	}
 
-	if (any.bbt.ticks > Timecode::BBT_Time::ticks_per_beat) {
+	if (any.bbt.ticks > Timecode::BBT_Time::ticks_per_bar_division) {
 		return false;
 	}
 
@@ -1915,10 +1915,10 @@ AudioClock::frame_duration_from_bbt_string (framepos_t pos, const string& str) c
 
 	Timecode::BBT_Time bbt;
 
-	if (sscanf (str.c_str(), BBT_SCANF_FORMAT, &bbt.bars, &bbt.beats, &bbt.ticks) != 0) {
+	if (sscanf (str.c_str(), BBT_SCANF_FORMAT, &bbt.bars, &bbt.beats, &bbt.ticks) != 3) {
 		return 0;
 	}
-
+	
 	return _session->tempo_map().bbt_duration_at(pos,bbt,1);
 }
 

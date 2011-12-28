@@ -121,6 +121,8 @@ public:
 
 	void check_record_layers (boost::shared_ptr<ARDOUR::Region>, ARDOUR::framepos_t);
 
+	virtual void playlist_layered (boost::weak_ptr<ARDOUR::Track>);
+	
 	sigc::signal<void, RegionView*> RegionViewAdded;
 	sigc::signal<void> RegionViewRemoved;
 
@@ -144,7 +146,6 @@ protected:
 	void         layer_regions ();
 
 	virtual void playlist_switched (boost::weak_ptr<ARDOUR::Track>);
-	virtual void playlist_layered (boost::weak_ptr<ARDOUR::Track>);
 
 	virtual void color_handler () = 0;
 

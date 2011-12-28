@@ -129,7 +129,6 @@ public:
 
 	int request_buffer_size (pframes_t);
 
-	framecnt_t set_monitor_check_interval (framecnt_t);
 	framecnt_t processed_frames() const { return _processed_frames; }
 
 	float get_cpu_load() {
@@ -166,7 +165,7 @@ public:
 	int unregister_port (boost::shared_ptr<Port>);
 
 	bool port_is_physical (const std::string&) const;
-	void ensure_monitor_input (const std::string&, bool) const;
+	void request_jack_monitors_input (const std::string&, bool) const;
 
 	void split_cycle (pframes_t offset);
 

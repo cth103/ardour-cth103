@@ -55,6 +55,8 @@ namespace PBD {
 		extern uint64_t AudioUnits;
 		extern uint64_t ControlProtocols;
 		extern uint64_t CycleTimers;
+		extern uint64_t MidiTrackers;
+		extern uint64_t Layering;
 	}
 }
 

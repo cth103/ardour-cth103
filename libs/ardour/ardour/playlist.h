@@ -44,6 +44,9 @@
 #include "ardour/session_object.h"
 #include "ardour/data_type.h"
 
+class PlaylistOverlapCacheTest;
+class PlaylistLayeringTest;
+
 namespace ARDOUR  {
 
 class Session;
@@ -180,7 +183,6 @@ public:
 	PBD::Signal1<void,boost::weak_ptr<Region> > RegionAdded;
 	PBD::Signal1<void,boost::weak_ptr<Region> > RegionRemoved;
 	PBD::Signal0<void>      NameChanged;
-	PBD::Signal0<void>      LengthChanged;
 	PBD::Signal0<void>      LayeringChanged;
 
 	/** Emitted when regions have moved (not when regions have only been trimmed) */
@@ -216,12 +218,6 @@ public:
 
 	void drop_regions ();
 
-	bool explicit_relayering () const {
-		return _explicit_relayering;
-	}
-
-	void set_explicit_relayering (bool e);
-
 	virtual boost::shared_ptr<Crossfade> find_crossfade (const PBD::ID &) const {
 		return boost::shared_ptr<Crossfade> ();
 	}
@@ -229,6 +225,11 @@ public:
 	framepos_t find_next_top_layer_position (framepos_t) const;
 	uint32_t combine_ops() const { return _combine_ops; }
 
+	void relayer (boost::shared_ptr<Region>);
+	void relayer (boost::shared_ptr<Region>, double);
+	void suspend_relayer ();
+	void resume_relayer ();
+	
   protected:
 	friend class Session;
 
@@ -265,7 +266,6 @@ public:
 	RegionList       pending_bounds;
 	bool             pending_contents_change;
 	bool             pending_layering;
-	bool             pending_length;
 
 	/** Movements of time ranges caused by region moves; note that
 	 *  region trims are not included in this list; it is used to
@@ -290,16 +290,9 @@ public:
 	bool            _frozen;
 	uint32_t         subcnt;
 	PBD::ID         _orig_track_id;
-	uint64_t         layer_op_counter;
 	framecnt_t       freeze_length;
 	bool             auto_partition;
 	uint32_t        _combine_ops;
-
-	/** true if relayering should be done using region's current layers and their `pending explicit relayer'
-	 *  flags; otherwise false if relayering should be done using the layer-model (most recently moved etc.)
-	 *  Explicit relayering is used by tracks in stacked regionview mode.
-	 */
-	bool            _explicit_relayering;
 
 	void init (bool hide);
 
@@ -317,7 +310,6 @@ public:
 
 	void notify_region_removed (boost::shared_ptr<Region>);
 	void notify_region_added (boost::shared_ptr<Region>);
-	void notify_length_changed ();
 	void notify_layering_changed ();
 	void notify_contents_changed ();
 	void notify_state_changed (const PBD::PropertyChange&);
@@ -364,15 +356,12 @@ public:
 	boost::shared_ptr<Playlist> cut (framepos_t start, framecnt_t cnt, bool result_is_hidden);
 	boost::shared_ptr<Playlist> copy (framepos_t start, framecnt_t cnt, bool result_is_hidden);
 
-	int move_region_to_layer (layer_t, boost::shared_ptr<Region> r, int dir);
-	void relayer ();
+	void relayer (RegionList const &);
 
 	void begin_undo ();
 	void end_undo ();
 	void unset_freeze_parent (Playlist*);
 	void unset_freeze_child (Playlist*);
-
-	void timestamp_layer_op (boost::shared_ptr<Region>);
 
 	void _split_region (boost::shared_ptr<Region>, framepos_t position);
 
@@ -394,6 +383,71 @@ public:
 	   with its constituent regions
 	*/
 	virtual void pre_uncombine (std::vector<boost::shared_ptr<Region> >&, boost::shared_ptr<Region>) {}
+
+private:
+	friend class ::PlaylistOverlapCacheTest;
+	friend class ::PlaylistLayeringTest;
+	
+	/** A class which is used to store temporary (fractional)
+	 *  layer assignments for some regions.
+	 */
+	class TemporaryLayers
+	{
+	public:
+		void set (boost::shared_ptr<Region>, double);
+		double get (boost::shared_ptr<Region>) const;
+
+	private:		
+		typedef std::map<boost::shared_ptr<Region>, double> Map;
+		Map _map;
+	};
+
+	/** Class to sort by temporary layer, for use with std::list<>::sort() */
+	class SortByTemporaryLayer
+	{
+	public:
+		SortByTemporaryLayer (TemporaryLayers const & t)
+			: _temporary_layers (t) {}
+		
+		bool operator() (boost::shared_ptr<Region> a, boost::shared_ptr<Region> b) const {
+			return _temporary_layers.get (a) < _temporary_layers.get (b);
+		}
+
+	private:
+		Playlist::TemporaryLayers const & _temporary_layers;
+	};
+
+	/** A cache of what overlaps what, for a given playlist in a given state.
+	 *  Divides a playlist up into time periods and notes which regions cover those
+	 *  periods, so that get() is reasonably quick.
+	 */
+	class OverlapCache
+	{
+	public:
+		OverlapCache (Playlist *);
+
+		RegionList get (Evoral::Range<framepos_t>) const;
+
+	private:
+		std::pair<int, int> cache_indices (Evoral::Range<framepos_t>) const;
+		
+		double _division_size;
+		std::vector<RegionList> _cache;
+		Evoral::Range<framepos_t> _range;
+
+		static int const _divisions;
+	};
+	
+	TemporaryLayers compute_temporary_layers (RegionList const &);
+	void commit_temporary_layers (TemporaryLayers const &);
+
+	RegionList recursive_regions_touched (boost::shared_ptr<Region>, OverlapCache const &, boost::shared_ptr<Region>) const;
+	void recursive_regions_touched_sub (boost::shared_ptr<Region>, OverlapCache const &, boost::shared_ptr<Region>, RegionList &) const;
+
+	void timestamp_layer_op (LayerOp, boost::shared_ptr<Region>);
+	uint64_t layer_op_counter;
+
+	bool _relayer_suspended;
 };
 
 } /* namespace ARDOUR */

@@ -1296,6 +1296,8 @@ Editor::button_release_handler (Canvas::Item* item, GdkEvent* event, ItemType it
 
 	if (Keyboard::is_context_menu_event (&event->button)) {
 
+		context_click_event = *event;
+
 		if (!_drags->active ()) {
 
 			/* no matter which button pops up the context menu, tell the menu

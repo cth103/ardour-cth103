@@ -18,6 +18,11 @@
 */
 
 #include <iostream>
+
+#include "pbd/compose.h"
+#include "pbd/stacktrace.h"
+
+#include "ardour/debug.h"
 #include "ardour/event_type_map.h"
 #include "ardour/midi_ring_buffer.h"
 #include "ardour/midi_source.h"
@@ -35,6 +40,7 @@ MidiStateTracker::MidiStateTracker ()
 void
 MidiStateTracker::reset ()
 {
+	DEBUG_TRACE (PBD::DEBUG::MidiTrackers, string_compose ("%1: reset\n", this));
 	memset (_active_notes, 0, sizeof (_active_notes));
 	_on = 0;
 }
@@ -52,13 +58,23 @@ MidiStateTracker::track_note_onoffs (const Evoral::MIDIEvent<MidiBuffer::TimeTyp
 void
 MidiStateTracker::add (uint8_t note, uint8_t chn)
 {
+	if (_active_notes[note+128 * chn] == 0) {
+		++_on;
+	}
 	++_active_notes[note + 128 * chn];
-	++_on;
+
+	if (_active_notes[note+128 * chn] > 1) {
+		cerr << this << " note " << (int) note << '/' << (int) chn << " was already on, now at " << (int) _active_notes[note+128*chn] << endl;
+	}
+
+	DEBUG_TRACE (PBD::DEBUG::MidiTrackers, string_compose ("%1 ON %2/%3 voices %5 total on %4\n",
+							       this, (int) note, (int) chn, _on,
+							       (int) _active_notes[note+128 * chn]));
 }
 
 void
 MidiStateTracker::remove (uint8_t note, uint8_t chn)
-{
+{	
 	switch (_active_notes[note + 128 * chn]) {
 	case 0:
 		break;
@@ -68,15 +84,20 @@ MidiStateTracker::remove (uint8_t note, uint8_t chn)
 		break;
 	default:
 		--_active_notes [note + 128 * chn];
-				break;
+		break;
 
 	}
+	DEBUG_TRACE (PBD::DEBUG::MidiTrackers, string_compose ("%1 OFF %2/%3 current voices = %5 total on %4\n",
+							       this, (int) note, (int) chn, _on, 
+							       (int) _active_notes[note+128 * chn]));
 }
 
 void
 MidiStateTracker::track (const MidiBuffer::iterator &from, const MidiBuffer::iterator &to, bool& looped)
 {
 	looped = false;
+
+	// DEBUG_TRACE (PBD::DEBUG::MidiTrackers, string_compose ("%1 track notes, looped = %2\n", this, looped));
 
 	for (MidiBuffer::iterator i = from; i != to; ++i) {
 		const Evoral::MIDIEvent<MidiBuffer::TimeType> ev(*i, false);
@@ -91,15 +112,18 @@ MidiStateTracker::track (const MidiBuffer::iterator &from, const MidiBuffer::ite
 		if (ev.type() == MIDI_CTL_ALL_NOTES_OFF) {
 			cerr << "State tracker sees ALL_NOTES_OFF, silenceing " << sizeof (_active_notes) << endl;
 			memset (_active_notes, 0, sizeof (_active_notes));
+			_on = 0;
+		} else {
+			track_note_onoffs (ev);
 		}
-
-		track_note_onoffs (ev);
 	}
 }
 
 void
 MidiStateTracker::resolve_notes (MidiBuffer &dst, framepos_t time)
 {
+	DEBUG_TRACE (PBD::DEBUG::MidiTrackers, string_compose ("%1 MB-resolve notes @ %2 on = %3\n", this, time, _on));
+
 	if (!_on) {
 		return;
 	}
@@ -110,8 +134,13 @@ MidiStateTracker::resolve_notes (MidiBuffer &dst, framepos_t time)
 				uint8_t buffer[3] = { MIDI_CMD_NOTE_OFF | channel, note, 0 };
 				Evoral::MIDIEvent<MidiBuffer::TimeType> noteoff
 					(MIDI_CMD_NOTE_OFF, time, 3, buffer, false);
+				/* note that we do not care about failure from
+				   push_back() ... should we warn someone ?
+				*/
 				dst.push_back (noteoff);
 				_active_notes[note + 128 * channel]--;
+				DEBUG_TRACE (PBD::DEBUG::MidiTrackers, string_compose ("%1: MB-resolved note %2/%3 at %4\n", 
+										       this, (int) note, (int) channel, time));
 			}
 		}
 	}
@@ -123,6 +152,8 @@ MidiStateTracker::resolve_notes (Evoral::EventSink<framepos_t> &dst, framepos_t 
 {
 	uint8_t buf[3];
 
+	DEBUG_TRACE (PBD::DEBUG::MidiTrackers, string_compose ("%1 EVS-resolve notes @ %2 on = %3\n", this, time, _on));
+
 	if (!_on) {
 		return;
 	}
@@ -133,8 +164,13 @@ MidiStateTracker::resolve_notes (Evoral::EventSink<framepos_t> &dst, framepos_t 
 				buf[0] = MIDI_CMD_NOTE_OFF|channel;
 				buf[1] = note;
 				buf[2] = 0;
+				/* note that we do not care about failure from
+				   write() ... should we warn someone ?
+				*/
 				dst.write (time, EventTypeMap::instance().midi_event_type (buf[0]), 3, buf);
 				_active_notes[note + 128 * channel]--;
+				DEBUG_TRACE (PBD::DEBUG::MidiTrackers, string_compose ("%1: EVS-resolved note %2/%3 at %4\n", 
+										       this, (int) note, (int) channel, time));
 			}
 		}
 	}
@@ -144,6 +180,8 @@ MidiStateTracker::resolve_notes (Evoral::EventSink<framepos_t> &dst, framepos_t 
 void
 MidiStateTracker::resolve_notes (MidiSource& src, Evoral::MusicalTime time)
 {
+	DEBUG_TRACE (PBD::DEBUG::MidiTrackers, string_compose ("%1 MS-resolve notes @ %2 on = %3\n", this, time, _on));
+
 	if (!_on) {
 		return;
 	}
@@ -159,6 +197,8 @@ MidiStateTracker::resolve_notes (MidiSource& src, Evoral::MusicalTime time)
 				ev.set_note (note);
 				ev.set_velocity (0);
 				src.append_event_unlocked_beats (ev);
+				DEBUG_TRACE (PBD::DEBUG::MidiTrackers, string_compose ("%1: MS-resolved note %2/%3 at %4\n", 
+										       this, (int) note, (int) channel, time));
 				_active_notes[note + 128 * channel]--;
 				/* don't stack events up at the same time */
 				time += 1.0/128.0;

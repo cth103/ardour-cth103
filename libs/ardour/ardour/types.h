@@ -75,6 +75,7 @@ namespace ARDOUR {
 
 	static const framepos_t max_framepos = INT64_MAX;
 	static const framecnt_t max_framecnt = INT64_MAX;
+	static const layer_t    max_layer    = UINT32_MAX;
 
 	// a set of (time) intervals: first of pair is the offset of the start within the region, second is the offset of the end
 	typedef std::list<std::pair<frameoffset_t, frameoffset_t> > AudioIntervalResult;
@@ -353,9 +354,9 @@ namespace ARDOUR {
 	};
 
 	enum MonitorModel {
-		HardwareMonitoring,
-		SoftwareMonitoring,
-		ExternalMonitoring
+		HardwareMonitoring, ///< JACK does monitoring
+		SoftwareMonitoring, ///< Ardour does monitoring
+		ExternalMonitoring  ///< we leave monitoring to the audio hardware
 	};
 
 	enum MonitorChoice {
@@ -369,6 +370,11 @@ namespace ARDOUR {
 		MonitoringSilence = 0x1,
 		MonitoringInput = 0x2,
 		MonitoringDisk = 0x4,
+	};
+
+	enum MeterState {
+		MeteringInput, ///< meter the input IO, regardless of what is going through the route
+		MeteringRoute  ///< meter what is going through the route
 	};
 
 	enum PFLPosition {
@@ -405,7 +411,7 @@ namespace ARDOUR {
 
 	enum LayerModel {
 		LaterHigher,
-		MoveAddHigher,
+		AddOrBoundsChangeHigher,
 		AddHigher
 	};
 
@@ -584,6 +590,11 @@ namespace ARDOUR {
 		FadeSlow,
 		FadeLogA,
 		FadeLogB
+	};
+
+	enum LayerOp {
+		LayerOpAdd,
+		LayerOpBoundsChange
 	};
 
 } // namespace ARDOUR

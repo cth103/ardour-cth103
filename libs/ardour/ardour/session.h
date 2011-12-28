@@ -369,8 +369,6 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	void set_auto_loop_location (Location *);
 	int location_name(std::string& result, std::string base = std::string(""));
 
-	void reset_input_monitor_state ();
-
 	pframes_t get_block_size()        const { return current_block_size; }
 	framecnt_t worst_output_latency () const { return _worst_output_latency; }
 	framecnt_t worst_input_latency ()  const { return _worst_input_latency; }
@@ -1174,7 +1172,6 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	MidiControlUI* midi_control_ui;
 
 	int           start_midi_thread ();
-	void          terminate_midi_thread ();
 
 	void set_play_loop (bool yn);
 	void unset_play_loop ();

@@ -50,9 +50,11 @@ class Track : public Route, public PublicDiskstream
 
 	virtual void set_monitoring (MonitorChoice);
 	MonitorChoice monitoring_choice() const { return _monitoring; }
-	MonitorState monitoring_state();
+	MonitorState monitoring_state () const;
 	PBD::Signal0<void> MonitoringChanged;
 
+	MeterState metering_state () const;
+	
 	virtual int no_roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame,
 	                     bool state_changing);
 
@@ -63,7 +65,6 @@ class Track : public Route, public PublicDiskstream
 	                  int declick, bool& need_butler) = 0;
 
 	bool needs_butler() const { return _needs_butler; }
-	void toggle_monitor_input ();
 
 	virtual DataType data_type () const = 0;
 
@@ -110,7 +111,8 @@ class Track : public Route, public PublicDiskstream
 
 	/* PublicDiskstream interface */
 	boost::shared_ptr<Playlist> playlist ();
-	void monitor_input (bool);
+	void request_jack_monitors_input (bool);
+	void ensure_jack_monitors_input (bool);
 	bool destructive () const;
 	std::list<boost::shared_ptr<Source> > & last_capture_sources ();
 	void set_capture_offset ();
@@ -212,8 +214,6 @@ class Track : public Route, public PublicDiskstream
 	bool                  _destructive;
 
 	void maybe_declick (BufferSet&, framecnt_t, int);
-
-	virtual bool send_silence () const;
 
 	boost::shared_ptr<RecEnableControllable> _rec_enable_control;
 	

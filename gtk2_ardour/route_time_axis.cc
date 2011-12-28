@@ -466,6 +466,7 @@ RouteTimeAxisView::build_display_menu ()
 				++overlaid;
 				break;
 			case Stacked:
+			case Expanded:
 				++stacked;
 				break;
 			}
