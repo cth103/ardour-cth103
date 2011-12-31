@@ -66,6 +66,11 @@ BBTLines::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 		rint ((area.x1 - 0.5) * _frames_per_pixel) - 1
 		);
 
+	if (points->empty()) {
+		/* no points; plot nothing */
+		return;
+	}
+
 	/* Work out the number of beats per pixel; the number of points minus the number of
 	   bars in the points vector gives us the number of beats, and then we divide
 	   that by the number of pixels that we are plotting this time.

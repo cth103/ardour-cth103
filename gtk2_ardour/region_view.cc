@@ -804,14 +804,14 @@ RegionView::update_coverage_frames (LayerDisplay d)
 			cr = new Canvas::Rectangle (group);
 			CANVAS_DEBUG_NAME (cr, "RV coverage frame");
 			_coverage_frames.push_back (cr);
-			cr->property_x1() = trackview.editor().frame_to_pixel (t - position);
-			cr->property_y1() = 1;
-			cr->property_y2() = _height + 1;
-			cr->property_outline_pixels() = 0;
+			cr->set_x0 (trackview.editor().frame_to_pixel (t - position));
+			cr->set_y0 (1);
+			cr->set_y1 (_height + 1);
+			cr->set_outline (false);
 			if (new_me) {
-				cr->property_fill_color_rgba () = UINT_RGBA_CHANGE_A (non_playing_color, 0);
+				cr->set_fill_color (UINT_RGBA_CHANGE_A (non_playing_color, 0));
 			} else {
-				cr->property_fill_color_rgba () = non_playing_color;
+				cr->set_fill_color (non_playing_color);
 			}
 		}
 

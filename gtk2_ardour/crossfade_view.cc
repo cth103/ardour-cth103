@@ -204,7 +204,7 @@ CrossfadeView::redraw_curves ()
 		Canvas::Duple &p = (*points)[pci++];
 		p.x = xoff + i + 1;
 		double const ho = crossfade->in()->layer() > crossfade->out()->layer() ? _child_height : _height;
-		p.y = _ho - ((_child_height - 2) * vec[i]);
+		p.y = ho - ((_child_height - 2) * vec[i]);
 	}
 
 	fade_in->set (*points);
