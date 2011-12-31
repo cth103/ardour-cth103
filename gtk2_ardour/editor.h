@@ -393,7 +393,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void reset_zoom (double);
 	void reposition_and_zoom (framepos_t, double);
 
-	framepos_t get_preferred_edit_position (bool ignore_playhead = false);
+	framepos_t get_preferred_edit_position (bool ignore_playhead = false, bool use_context_click = false);
 
 	bool update_mouse_speed ();
 	bool decelerate_mouse_speed ();
@@ -1151,7 +1151,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void reset_region_scale_amplitude ();
 	void adjust_region_gain (bool up);
 	void quantize_region ();
-	void insert_patch_change ();
+	void insert_patch_change (bool from_context);
 	void fork_region ();
 
 	void do_insert_time ();
@@ -1177,7 +1177,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void delete_ ();
 	void cut ();
 	void copy ();
-	void paste (float times);
+	void paste (float times, bool from_context_menu = false);
 
 	void place_transient ();
 	void remove_transient (Canvas::Item* item);

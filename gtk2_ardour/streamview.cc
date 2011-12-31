@@ -182,7 +182,7 @@ StreamView::add_region_view (boost::weak_ptr<Region> wr)
 
 	add_region_view_internal (r, true);
 
-	if (_layer_display == Stacked) {
+	if (_layer_display == Stacked || _layer_display == Expanded) {
 		update_contents_height ();
 	}
 }
@@ -302,7 +302,7 @@ StreamView::playlist_layered (boost::weak_ptr<Track> wtr)
 		_layers = tr->playlist()->top_layer() + 1;
 	}
 
-	if (_layer_display == Stacked || _layer_display == Expanded) {
+	if (_layer_display == Stacked) {
 		update_contents_height ();
 		update_coverage_frames ();
 	} else {
@@ -325,14 +325,14 @@ StreamView::playlist_switched (boost::weak_ptr<Track> wtr)
 	playlist_connections.drop_connections ();
 	undisplay_track ();
 
+	/* draw it */
+
+	redisplay_track ();
+
 	/* update layers count and the y positions and heights of our regions */
 	_layers = tr->playlist()->top_layer() + 1;
 	update_contents_height ();
 	update_coverage_frames ();
-
-	/* draw it */
-
-	redisplay_track ();
 
 	/* catch changes */
 
@@ -341,6 +341,7 @@ StreamView::playlist_switched (boost::weak_ptr<Track> wtr)
 	tr->playlist()->RegionRemoved.connect (playlist_connections, invalidator (*this), ui_bind (&StreamView::remove_region_view, this, _1), gui_context());
 	tr->playlist()->ContentsChanged.connect (playlist_connections, invalidator (*this), ui_bind (&StreamView::update_coverage_frames, this), gui_context());
 }
+
 
 void
 StreamView::diskstream_changed ()
@@ -574,7 +575,7 @@ StreamView::child_height () const
 	case Expanded:
 		return height / (_layers * 2 + 1);
 	}
-
+	
 	/* NOTREACHED */
 	return height;
 }

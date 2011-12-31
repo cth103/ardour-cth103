@@ -51,15 +51,13 @@ public:
 	AudioRegionView& left_view;    // and these too
 	AudioRegionView& right_view;
 
-	void set_height (double);
+	void set_heights (double, double);
 
 	bool valid() const { return _valid; }
 	bool visible() const { return _visible; }
 	void set_valid (bool yn);
 
 	static PBD::Signal1<void,CrossfadeView*> CatchDeletion;
-
-	AudioRegionView& upper_regionview () const;
 
 	void fake_hide ();
 	void hide ();
@@ -72,7 +70,8 @@ protected:
 private:
 	bool _valid;
 	bool _visible;
-	bool _all_in_view;   
+	bool _all_in_view;
+	double _child_height;
 	
 	Canvas::PolyLine *fade_in;
 	Canvas::PolyLine *fade_out;

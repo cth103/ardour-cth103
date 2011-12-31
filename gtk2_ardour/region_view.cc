@@ -784,8 +784,8 @@ RegionView::update_coverage_frames (LayerDisplay d)
 	Canvas::Rectangle* cr = 0;
 	bool me = false;
 
-	uint32_t const color = frame->fill_color ();
-	uint32_t const base_alpha = UINT_RGBA_A (color);
+	/* the color that will be used to show parts of regions that will not be heard */
+	uint32_t non_playing_color = RGBA_TO_UINT (32, 32, 32, 192);
 
 	while (t < end) {
 
@@ -804,16 +804,15 @@ RegionView::update_coverage_frames (LayerDisplay d)
 			cr = new Canvas::Rectangle (group);
 			CANVAS_DEBUG_NAME (cr, "RV coverage frame");
 			_coverage_frames.push_back (cr);
-			cr->set_x0 (trackview.editor().frame_to_pixel (t - position));
-			cr->set_y0 (1);
-			cr->set_y1 (_height + 1);
-			cr->set_outline (false);
-			/* areas that will be played get a lower alpha */
-			uint32_t alpha = base_alpha;
+			cr->property_x1() = trackview.editor().frame_to_pixel (t - position);
+			cr->property_y1() = 1;
+			cr->property_y2() = _height + 1;
+			cr->property_outline_pixels() = 0;
 			if (new_me) {
-				alpha /= 2;
+				cr->property_fill_color_rgba () = UINT_RGBA_CHANGE_A (non_playing_color, 0);
+			} else {
+				cr->property_fill_color_rgba () = non_playing_color;
 			}
-			cr->set_fill_color (UINT_RGBA_CHANGE_A (color, alpha));
 		}
 
 		t = pl->find_next_region_boundary (t, 1);

@@ -1,6 +1,5 @@
 /*
     Copyright (C) 2011 Paul Davis
-    Author: Carl Hetherington <cth@carlh.net>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,43 +17,20 @@
 
 */
 
-/** @file  canvas/fill.h
- *  @brief Declaration of a mixin for items which can be filled.
+#ifndef __gtk2_ardour_fix_carbon_h__
+#define __gtk2_ardour_fix_carbon_h__
+
+#ifdef __APPLE__
+
+/* an awful hack to stop Carbon #defines from messing with other code
  */
 
-#ifndef __CANVAS_FILL_H__
-#define __CANVAS_FILL_H__
-
-#include <stdint.h>
-#include "canvas/item.h"
-
-namespace Canvas {
-
-class Fill : virtual public Item
-{
-public:
-	Fill (Group *);
-	Fill (Group *, TransformIndex);
-
-	void add_fill_state (XMLNode *) const;
-	void set_fill_state (XMLNode const *);
-
-	Color fill_color () const {
-		return _fill_color;
-	}
-	void set_fill_color (Color);
-	bool fill () const {
-		return _fill;
-	}
-	void set_fill (bool);
-	
-protected:
-	void setup_fill_context (Cairo::RefPtr<Cairo::Context>) const;
-	
-	Color _fill_color;
-	bool _fill;
-};
-
-}
+#include "/System/Library/Frameworks/CoreServices.framework/Headers/../Frameworks/CarbonCore.framework/Headers/MacTypes.h" 
+#undef Style
+#undef Fixed
+#undef Yes
+#undef No
+#undef nil
+#endif
 
 #endif
