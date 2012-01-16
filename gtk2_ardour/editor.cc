@@ -314,7 +314,6 @@ Editor::Editor ()
         pre_press_cursor = 0;
 	_drags = new DragManager (this);
 	current_mixer_strip = 0;
-	current_bbt_points = 0;
 
 	snap_type_strings =  I18N (_snap_type_strings);
 	snap_mode_strings =  I18N (_snap_mode_strings);

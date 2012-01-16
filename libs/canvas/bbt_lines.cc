@@ -61,12 +61,15 @@ BBTLines::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 	   the render area, since we will add 0.5 onto the x coordinates of the lines
 	   to keep cairo from blurring them across 2 pixels.
 	*/
-	ARDOUR::TempoMap::BBTPointList const * points = _session->tempo_map().get_points (
+	ARDOUR::TempoMap::BBTPointList::const_iterator begin;
+	ARDOUR::TempoMap::BBTPointList::const_iterator end;
+	_session->tempo_map().get_grid (
+		begin, end,
 		rint ((area.x0 - 0.5) * _frames_per_pixel),
 		rint ((area.x1 - 0.5) * _frames_per_pixel) - 1
 		);
 
-	if (points->empty()) {
+	if (begin == end) {
 		/* no points; plot nothing */
 		return;
 	}
@@ -75,16 +78,21 @@ BBTLines::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 	   bars in the points vector gives us the number of beats, and then we divide
 	   that by the number of pixels that we are plotting this time.
 	*/
+
+#if 0
+	/* XXX: CANVAS */
+	
 	double const beats_per_pixel = (points->size() - (points->back().bar - points->front().bar)) / area.width ();
 
 	if (beats_per_pixel > 0.4) {
 		/* too dense; plot nothing */
 		return;
 	}
+#endif	
 	
-	for (ARDOUR::TempoMap::BBTPointList::const_iterator i = points->begin(); i != points->end(); ++i) {
+	for (ARDOUR::TempoMap::BBTPointList::const_iterator i = begin; i != end; ++i) {
 
-		if (i->type == ARDOUR::TempoMap::Bar) {
+		if (i->is_bar ()) {
 			continue;
 		}
 
@@ -92,10 +100,13 @@ BBTLines::render (Rect const & area, Cairo::RefPtr<Cairo::Context> context) cons
 			set_source_rgba (context, _bar_color);
 		} else {
 			set_source_rgba (context, _beat_color);
+#if 0
+			/* XXX: CANVAS */
 			if (beats_per_pixel > 0.2) {
 				/* beats too dense, so just plot bars */
 				continue;
 			}
+#endif			
 		}
 		
 		Coord const x = rint (i->frame / _frames_per_pixel) + 0.5;
