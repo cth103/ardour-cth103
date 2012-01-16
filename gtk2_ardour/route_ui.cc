@@ -114,11 +114,11 @@ RouteUI::init ()
 
 	mute_button = manage (new ArdourButton);
 	mute_button->set_name ("mute button");
-	UI::instance()->set_tip (mute_button, _("Mute this track"), _("Left-click to mute this track.  Right-click to open the mute menu."));
+	UI::instance()->set_tip (mute_button, _("Mute this track"), _("Left-click to mute this track or bus.  Right-click to open the mute menu."));
 
 	solo_button = manage (new ArdourButton);
 	solo_button->set_name ("solo button");
-	UI::instance()->set_tip (solo_button, _("Mute other (non-soloed) tracks"), _("Left-click to mute other (non-soloed) tracks.  Right-click to open the solo menu."));
+	UI::instance()->set_tip (solo_button, _("Mute other (non-soloed) tracks"), _("Left-click to mute other (non-soloed) tracks and busses.  Right-click to open the solo menu."));
 	solo_button->set_no_show_all (true);
 
 	rec_enable_button = manage (new ArdourButton);
