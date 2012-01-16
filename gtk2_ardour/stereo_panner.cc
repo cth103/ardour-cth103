@@ -57,10 +57,9 @@ bool StereoPanner::have_colors = false;
 using namespace ARDOUR;
 
 StereoPanner::StereoPanner (boost::shared_ptr<Panner> panner)
-	: _panner (panner)
+	: PannerInterface (panner)
 	, position_control (_panner->pannable()->pan_azimuth_control)
 	, width_control (_panner->pannable()->pan_width_control)
-	, dragging (false)
 	, dragging_position (false)
 	, dragging_left (false)
 	, dragging_right (false)
@@ -68,8 +67,6 @@ StereoPanner::StereoPanner (boost::shared_ptr<Panner> panner)
 	, last_drag_x (0)
 	, accumulated_delta (0)
 	, detented (false)
-	, drag_data_window (0)
-	, drag_data_label (0)
 	, position_binder (position_control)
 	, width_binder (width_control)
 {
@@ -81,26 +78,18 @@ StereoPanner::StereoPanner (boost::shared_ptr<Panner> panner)
 	position_control->Changed.connect (connections, invalidator(*this), boost::bind (&StereoPanner::value_change, this), gui_context());
 	width_control->Changed.connect (connections, invalidator(*this), boost::bind (&StereoPanner::value_change, this), gui_context());
 
-	set_flags (Gtk::CAN_FOCUS);
-
-	add_events (Gdk::ENTER_NOTIFY_MASK|Gdk::LEAVE_NOTIFY_MASK|
-	            Gdk::KEY_PRESS_MASK|Gdk::KEY_RELEASE_MASK|
-	            Gdk::BUTTON_PRESS_MASK|Gdk::BUTTON_RELEASE_MASK|
-	            Gdk::SCROLL_MASK|
-	            Gdk::POINTER_MOTION_MASK);
-
 	ColorsChanged.connect (sigc::mem_fun (*this, &StereoPanner::color_handler));
 }
 
 StereoPanner::~StereoPanner ()
 {
-	delete drag_data_window;
+
 }
 
 void
 StereoPanner::set_drag_data ()
 {
-	if (!drag_data_label) {
+	if (!_drag_data_label) {
 		return;
 	}
 
@@ -118,14 +107,7 @@ StereoPanner::set_drag_data ()
 	snprintf (buf, sizeof (buf), "L:%3d R:%3d Width:%d%%", (int) rint (100.0 * (1.0 - pos)),
 	          (int) rint (100.0 * pos),
 	          (int) floor (100.0 * width_control->get_value()));
-	drag_data_label->set_markup (buf);
-}
-
-void
-StereoPanner::value_change ()
-{
-	set_drag_data ();
-	queue_draw ();
+	_drag_data_label->set_markup (buf);
 }
 
 bool
@@ -287,7 +269,7 @@ StereoPanner::on_button_press_event (GdkEventButton* ev)
 	dragging_position = false;
 	dragging_left = false;
 	dragging_right = false;
-	dragging = false;
+	_dragging = false;
 	accumulated_delta = 0;
 	detented = false;
 
@@ -364,7 +346,7 @@ StereoPanner::on_button_press_event (GdkEventButton* ev)
 			}
 		}
 
-		dragging = false;
+		_dragging = false;
 
 	} else if (ev->type == GDK_BUTTON_PRESS) {
 
@@ -372,6 +354,8 @@ StereoPanner::on_button_press_event (GdkEventButton* ev)
 			/* handled by button release */
 			return true;
 		}
+
+		show_drag_data_window ();
 
 		if (ev->y < 20) {
 			/* top section of widget is for position drags */
@@ -405,7 +389,7 @@ StereoPanner::on_button_press_event (GdkEventButton* ev)
 			StartWidthGesture ();
 		}
 
-		dragging = true;
+		_dragging = true;
 	}
 
 	return true;
@@ -420,16 +404,14 @@ StereoPanner::on_button_release_event (GdkEventButton* ev)
 
 	bool const dp = dragging_position;
 
-	dragging = false;
+	_dragging = false;
 	dragging_position = false;
 	dragging_left = false;
 	dragging_right = false;
 	accumulated_delta = 0;
 	detented = false;
 
-	if (drag_data_window) {
-		drag_data_window->hide ();
-	}
+	hide_drag_data_window ();
 
 	if (Keyboard::modifier_state_contains (ev->state, Keyboard::TertiaryModifier)) {
 		_panner->reset ();
@@ -483,35 +465,8 @@ StereoPanner::on_scroll_event (GdkEventScroll* ev)
 bool
 StereoPanner::on_motion_notify_event (GdkEventMotion* ev)
 {
-	if (!dragging) {
+	if (!_dragging) {
 		return false;
-	}
-
-	if (!drag_data_window) {
-		drag_data_window = new Window (WINDOW_POPUP);
-		drag_data_window->set_name (X_("ContrastingPopup"));
-		drag_data_window->set_position (WIN_POS_MOUSE);
-		drag_data_window->set_decorated (false);
-
-		drag_data_label = manage (new Label);
-		drag_data_label->set_use_markup (true);
-
-		drag_data_window->set_border_width (6);
-		drag_data_window->add (*drag_data_label);
-		drag_data_label->show ();
-
-		Window* toplevel = dynamic_cast<Window*> (get_toplevel());
-		if (toplevel) {
-			drag_data_window->set_transient_for (*toplevel);
-		}
-	}
-
-	if (!drag_data_window->is_visible ()) {
-		/* move the popup window vertically down from the panner display */
-		int rx, ry;
-		get_window()->get_origin (rx, ry);
-		drag_data_window->move (rx, ry+get_height());
-		drag_data_window->present ();
 	}
 
 	int w = get_width();
@@ -614,27 +569,6 @@ StereoPanner::on_key_press_event (GdkEventKey* ev)
 	}
 
 	return true;
-}
-
-bool
-StereoPanner::on_key_release_event (GdkEventKey*)
-{
-	return false;
-}
-
-bool
-StereoPanner::on_enter_notify_event (GdkEventCrossing*)
-{
-	grab_focus ();
-	Keyboard::magic_widget_grab_focus ();
-	return false;
-}
-
-bool
-StereoPanner::on_leave_notify_event (GdkEventCrossing*)
-{
-	Keyboard::magic_widget_drop_focus ();
-	return false;
 }
 
 void

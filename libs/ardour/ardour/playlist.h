@@ -151,11 +151,11 @@ public:
 
 	const RegionListProperty& region_list () const { return regions; }
 
-	RegionList*                regions_at (framepos_t frame);
+	boost::shared_ptr<RegionList> regions_at (framepos_t frame);
 	uint32_t                   count_regions_at (framepos_t) const;
 	uint32_t                   count_joined_regions () const;
-	RegionList*                regions_touched (framepos_t start, framepos_t end);
-	RegionList*                regions_to_read (framepos_t start, framepos_t end);
+	boost::shared_ptr<RegionList> regions_touched (framepos_t start, framepos_t end);
+	boost::shared_ptr<RegionList> regions_to_read (framepos_t start, framepos_t end);
 	uint32_t                   region_use_count (boost::shared_ptr<Region>) const;
 	boost::shared_ptr<Region>  find_region (const PBD::ID&) const;
 	boost::shared_ptr<Region>  top_region_at (framepos_t frame);
@@ -180,7 +180,6 @@ public:
 	PBD::Signal1<void,boost::weak_ptr<Region> > RegionAdded;
 	PBD::Signal1<void,boost::weak_ptr<Region> > RegionRemoved;
 	PBD::Signal0<void>      NameChanged;
-	PBD::Signal0<void>      LengthChanged;
 	PBD::Signal0<void>      LayeringChanged;
 
 	/** Emitted when regions have moved (not when regions have only been trimmed) */
@@ -216,12 +215,6 @@ public:
 
 	void drop_regions ();
 
-	bool explicit_relayering () const {
-		return _explicit_relayering;
-	}
-
-	void set_explicit_relayering (bool e);
-
 	virtual boost::shared_ptr<Crossfade> find_crossfade (const PBD::ID &) const {
 		return boost::shared_ptr<Crossfade> ();
 	}
@@ -229,6 +222,10 @@ public:
 	framepos_t find_next_top_layer_position (framepos_t) const;
 	uint32_t combine_ops() const { return _combine_ops; }
 
+	uint64_t highest_layering_index () const;
+
+	void set_layer (boost::shared_ptr<Region>, double);
+	
   protected:
 	friend class Session;
 
@@ -265,7 +262,6 @@ public:
 	RegionList       pending_bounds;
 	bool             pending_contents_change;
 	bool             pending_layering;
-	bool             pending_length;
 
 	/** Movements of time ranges caused by region moves; note that
 	 *  region trims are not included in this list; it is used to
@@ -277,7 +273,7 @@ public:
 	bool             save_on_thaw;
 	std::string      last_save_reason;
 	uint32_t         in_set_state;
-	bool             in_update;
+	bool             in_undo;
 	bool             first_set_state;
 	bool            _hidden;
 	bool            _splicing;
@@ -290,16 +286,8 @@ public:
 	bool            _frozen;
 	uint32_t         subcnt;
 	PBD::ID         _orig_track_id;
-	uint64_t         layer_op_counter;
-	framecnt_t       freeze_length;
 	bool             auto_partition;
 	uint32_t        _combine_ops;
-
-	/** true if relayering should be done using region's current layers and their `pending explicit relayer'
-	 *  flags; otherwise false if relayering should be done using the layer-model (most recently moved etc.)
-	 *  Explicit relayering is used by tracks in stacked regionview mode.
-	 */
-	bool            _explicit_relayering;
 
 	void init (bool hide);
 
@@ -317,7 +305,6 @@ public:
 
 	void notify_region_removed (boost::shared_ptr<Region>);
 	void notify_region_added (boost::shared_ptr<Region>);
-	void notify_length_changed ();
 	void notify_layering_changed ();
 	void notify_contents_changed ();
 	void notify_state_changed (const PBD::PropertyChange&);
@@ -353,7 +340,6 @@ public:
 	bool add_region_internal (boost::shared_ptr<Region>, framepos_t position);
 
 	int remove_region_internal (boost::shared_ptr<Region>);
-	RegionList *find_regions_at (framepos_t);
 	void copy_regions (RegionList&) const;
 	void partition_internal (framepos_t start, framepos_t end, bool cutting, RegionList& thawlist);
 
@@ -364,15 +350,12 @@ public:
 	boost::shared_ptr<Playlist> cut (framepos_t start, framecnt_t cnt, bool result_is_hidden);
 	boost::shared_ptr<Playlist> copy (framepos_t start, framecnt_t cnt, bool result_is_hidden);
 
-	int move_region_to_layer (layer_t, boost::shared_ptr<Region> r, int dir);
 	void relayer ();
 
 	void begin_undo ();
 	void end_undo ();
 	void unset_freeze_parent (Playlist*);
 	void unset_freeze_child (Playlist*);
-
-	void timestamp_layer_op (boost::shared_ptr<Region>);
 
 	void _split_region (boost::shared_ptr<Region>, framepos_t position);
 
@@ -394,6 +377,11 @@ public:
 	   with its constituent regions
 	*/
 	virtual void pre_uncombine (std::vector<boost::shared_ptr<Region> >&, boost::shared_ptr<Region>) {}
+
+private:
+
+	void setup_layering_indices (RegionList const &) const;
+	boost::shared_ptr<RegionList> find_regions_at (framepos_t);
 };
 
 } /* namespace ARDOUR */

@@ -73,6 +73,7 @@ namespace ARDOUR {
 		PBD::PropertyDescriptor<float> stretch;
 		PBD::PropertyDescriptor<float> shift;
 		PBD::PropertyDescriptor<PositionLockStyle> position_lock_style;
+		PBD::PropertyDescriptor<uint64_t> layering_index;
 	}
 }
 
@@ -127,6 +128,8 @@ Region::make_property_quarks ()
 	DEBUG_TRACE (DEBUG::Properties, string_compose ("quark for shift = %1\n", 	Properties::shift.property_id));
 	Properties::position_lock_style.property_id = g_quark_from_static_string (X_("positional-lock-style"));
 	DEBUG_TRACE (DEBUG::Properties, string_compose ("quark for position_lock_style = %1\n", 	Properties::position_lock_style.property_id));
+	Properties::layering_index.property_id = g_quark_from_static_string (X_("layering-index"));
+	DEBUG_TRACE (DEBUG::Properties, string_compose ("quark for layering_index = %1\n", 	Properties::layering_index.property_id));
 }
 
 void
@@ -151,63 +154,63 @@ Region::register_properties ()
 	add_property (_length);
 	add_property (_position);
 	add_property (_sync_position);
-	add_property (_layer);
 	add_property (_ancestral_start);
 	add_property (_ancestral_length);
 	add_property (_stretch);
 	add_property (_shift);
 	add_property (_position_lock_style);
+	add_property (_layering_index);
 }
 
 #define REGION_DEFAULT_STATE(s,l) \
-	_muted (Properties::muted, false)	     \
+	_sync_marked (Properties::sync_marked, false) \
+	, _left_of_split (Properties::left_of_split, false) \
+	, _right_of_split (Properties::right_of_split, false) \
+	, _valid_transients (Properties::valid_transients, false) \
+	, _start (Properties::start, (s))	\
+	, _length (Properties::length, (l))	\
+	, _position (Properties::position, 0) \
+	, _sync_position (Properties::sync_position, (s)) \
+	, _muted (Properties::muted, false) \
 	, _opaque (Properties::opaque, true) \
 	, _locked (Properties::locked, false) \
 	, _automatic (Properties::automatic, false) \
 	, _whole_file (Properties::whole_file, false) \
 	, _import (Properties::import, false) \
 	, _external (Properties::external, false) \
-	, _sync_marked (Properties::sync_marked, false) \
-	, _left_of_split (Properties::left_of_split, false) \
-	, _right_of_split (Properties::right_of_split, false) \
 	, _hidden (Properties::hidden, false) \
 	, _position_locked (Properties::position_locked, false) \
-	, _valid_transients (Properties::valid_transients, false) \
-	, _start (Properties::start, (s))	\
-	, _length (Properties::length, (l))	\
-	, _position (Properties::position, 0) \
-	, _sync_position (Properties::sync_position, (s)) \
-	, _layer (Properties::layer, 0)	\
 	, _ancestral_start (Properties::ancestral_start, (s)) \
 	, _ancestral_length (Properties::ancestral_length, (l)) \
 	, _stretch (Properties::stretch, 1.0) \
 	, _shift (Properties::shift, 1.0) \
-	, _position_lock_style (Properties::position_lock_style, _type == DataType::AUDIO ? AudioTime : MusicTime)
+	, _position_lock_style (Properties::position_lock_style, _type == DataType::AUDIO ? AudioTime : MusicTime) \
+	, _layering_index (Properties::layering_index, 0)
 
 #define REGION_COPY_STATE(other) \
-	  _muted (Properties::muted, other->_muted)			\
+	  _sync_marked (Properties::sync_marked, other->_sync_marked) \
+	, _left_of_split (Properties::left_of_split, other->_left_of_split) \
+	, _right_of_split (Properties::right_of_split, other->_right_of_split) \
+	, _valid_transients (Properties::valid_transients, other->_valid_transients) \
+	, _start(Properties::start, other->_start)		\
+	, _length(Properties::length, other->_length)		\
+	, _position(Properties::position, other->_position)	\
+	, _sync_position(Properties::sync_position, other->_sync_position) \
+        , _muted (Properties::muted, other->_muted)	        \
 	, _opaque (Properties::opaque, other->_opaque)		\
 	, _locked (Properties::locked, other->_locked)		\
 	, _automatic (Properties::automatic, other->_automatic)	\
 	, _whole_file (Properties::whole_file, other->_whole_file) \
 	, _import (Properties::import, other->_import)		\
 	, _external (Properties::external, other->_external)	\
-	, _sync_marked (Properties::sync_marked, other->_sync_marked) \
-	, _left_of_split (Properties::left_of_split, other->_left_of_split) \
-	, _right_of_split (Properties::right_of_split, other->_right_of_split) \
 	, _hidden (Properties::hidden, other->_hidden)		\
 	, _position_locked (Properties::position_locked, other->_position_locked) \
-	, _valid_transients (Properties::valid_transients, other->_valid_transients) \
-	, _start(Properties::start, other->_start)		\
-	, _length(Properties::length, other->_length)		\
-	, _position(Properties::position, other->_position)	\
-	, _sync_position(Properties::sync_position, other->_sync_position) \
-	, _layer (Properties::layer, other->_layer)		\
 	, _ancestral_start (Properties::ancestral_start, other->_ancestral_start) \
 	, _ancestral_length (Properties::ancestral_length, other->_ancestral_length) \
 	, _stretch (Properties::stretch, other->_stretch)	\
 	, _shift (Properties::shift, other->_shift)		\
-	, _position_lock_style (Properties::position_lock_style, other->_position_lock_style)
+	, _position_lock_style (Properties::position_lock_style, other->_position_lock_style) \
+	, _layering_index (Properties::layering_index, other->_layering_index)
 
 /* derived-from-derived constructor (no sources in constructor) */
 Region::Region (Session& s, framepos_t start, framecnt_t length, const string& name, DataType type)
@@ -217,8 +220,7 @@ Region::Region (Session& s, framepos_t start, framecnt_t length, const string& n
 	, _last_length (length)
 	, _last_position (0)
 	, _first_edit (EditChangesNothing)
-	, _last_layer_op(0)
-	, _pending_explicit_relayer (false)
+	, _layer (0)
 {
 	register_properties ();
 
@@ -233,8 +235,7 @@ Region::Region (const SourceList& srcs)
 	, _last_length (0)
 	, _last_position (0)
 	, _first_edit (EditChangesNothing)
-	, _last_layer_op (0)
-	, _pending_explicit_relayer (false)
+	, _layer (0)
 {
 	register_properties ();
 
@@ -254,9 +255,7 @@ Region::Region (boost::shared_ptr<const Region> other)
 	, _last_length (other->_last_length)
 	, _last_position(other->_last_position) \
 	, _first_edit (EditChangesNothing)
-	, _last_layer_op (0)
-	, _pending_explicit_relayer (false)
-
+	, _layer (other->_layer)
 {
 	register_properties ();
 
@@ -326,9 +325,7 @@ Region::Region (boost::shared_ptr<const Region> other, frameoffset_t offset)
 	, _last_length (other->_last_length)
 	, _last_position(other->_last_position) \
 	, _first_edit (EditChangesNothing)
-	, _last_layer_op (0)
-	, _pending_explicit_relayer (false)
-
+	, _layer (other->_layer)
 {
 	register_properties ();
 
@@ -383,8 +380,7 @@ Region::Region (boost::shared_ptr<const Region> other, const SourceList& srcs)
 	, _last_length (other->_last_length)
 	, _last_position (other->_last_position)
 	, _first_edit (EditChangesID)
-	, _last_layer_op (other->_last_layer_op)
-	, _pending_explicit_relayer (false)
+	, _layer (other->_layer)
 {
 	register_properties ();
 
@@ -551,7 +547,7 @@ Region::set_position_lock_style (PositionLockStyle ps)
 		_position_lock_style = ps;
 
 		if (_position_lock_style == MusicTime) {
-			_session.tempo_map().bbt_time (_position, _bbt_time);
+			_session.bbt_time (_position, _bbt_time);
 		}
 
 		send_change (Properties::position_lock_style);
@@ -625,33 +621,10 @@ Region::set_position_internal (framepos_t pos, bool allow_bbt_recompute)
 }
 
 void
-Region::set_position_on_top (framepos_t pos)
-{
-	if (locked()) {
-		return;
-	}
-
-	if (_position != pos) {
-		set_position_internal (pos, true);
-	}
-
-	boost::shared_ptr<Playlist> pl (playlist());
-
-	if (pl) {
-		pl->raise_region_to_top (shared_from_this ());
-	}
-
-	/* do this even if the position is the same. this helps out
-	   a GUI that has moved its representation already.
-	*/
-	send_change (Properties::position);
-}
-
-void
 Region::recompute_position_from_lock_style ()
 {
 	if (_position_lock_style == MusicTime) {
-		_session.tempo_map().bbt_time (_position, _bbt_time);
+		_session.bbt_time (_position, _bbt_time);
 	}
 }
 
@@ -1144,11 +1117,7 @@ Region::lower_to_bottom ()
 void
 Region::set_layer (layer_t l)
 {
-	if (_layer != l) {
-		_layer = l;
-
-		send_change (Properties::layer);
-	}
+	_layer = l;
 }
 
 XMLNode&
@@ -1324,7 +1293,7 @@ Region::send_change (const PropertyChange& what_changed)
 
 	Stateful::send_change (what_changed);
 
-	if (!Stateful::frozen()) {
+	if (!Stateful::property_changes_suspended()) {
 
 		/* Try and send a shared_pointer unless this is part of the constructor.
 		   If so, do nothing.
@@ -1337,12 +1306,6 @@ Region::send_change (const PropertyChange& what_changed)
 			/* no shared_ptr available, relax; */
 		}
 	}
-}
-
-void
-Region::set_last_layer_op (uint64_t when)
-{
-	_last_layer_op = when;
 }
 
 bool
@@ -1485,20 +1448,6 @@ Region::uses_source (boost::shared_ptr<const Source> source) const
 		}
 	}
 
-	return false;
-}
-
-bool
-Region::uses_source_path (const std::string& path) const
-{
-	for (SourceList::const_iterator i = _sources.begin(); i != _sources.end(); ++i) {
-                boost::shared_ptr<const FileSource> fs = boost::dynamic_pointer_cast<const FileSource> (*i);
-                if (fs) {
-                        if (fs->path() == path) {
-                                return true;
-                        }
-                }
-	}
 	return false;
 }
 
@@ -1698,3 +1647,4 @@ Region::post_set (const PropertyChange& pc)
 		recompute_position_from_lock_style ();
 	}
 }
+

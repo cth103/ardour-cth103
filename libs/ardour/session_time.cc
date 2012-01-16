@@ -484,20 +484,26 @@ Session::jack_timebase_callback (jack_transport_state_t /*state*/,
 	if (_tempo_map) {
 
 		TempoMetric metric (_tempo_map->metric_at (_transport_frame));
-		_tempo_map->bbt_time_with_metric (_transport_frame, bbt, metric);
 
-		pos->bar = bbt.bars;
-		pos->beat = bbt.beats;
-		pos->tick = bbt.ticks;
+		try {
+			_tempo_map->bbt_time_rt (_transport_frame, bbt);
 
-		// XXX still need to set bar_start_tick
+			pos->bar = bbt.bars;
+			pos->beat = bbt.beats;
+			pos->tick = bbt.ticks;
+			
+			// XXX still need to set bar_start_tick
+			
+			pos->beats_per_bar = metric.meter().divisions_per_bar();
+			pos->beat_type = metric.meter().note_divisor();
+			pos->ticks_per_beat = Timecode::BBT_Time::ticks_per_beat;
+			pos->beats_per_minute = metric.tempo().beats_per_minute();
+			
+			pos->valid = jack_position_bits_t (pos->valid | JackPositionBBT);
 
-		pos->beats_per_bar = metric.meter().divisions_per_bar();
-		pos->beat_type = metric.meter().note_divisor();
-		pos->ticks_per_beat = Timecode::BBT_Time::ticks_per_beat;
-		pos->beats_per_minute = metric.tempo().beats_per_minute();
-
-		pos->valid = jack_position_bits_t (pos->valid | JackPositionBBT);
+		} catch (...) {
+			/* no message */
+		}
 	}
 
 #ifdef HAVE_JACK_VIDEO_SUPPORT

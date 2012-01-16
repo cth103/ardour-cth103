@@ -206,9 +206,16 @@ RouteTimeAxisView::set_route (boost::shared_ptr<Route> rt)
 	controls_table.attach (route_group_button, 7, 8, 1, 2, Gtk::FILL|Gtk::EXPAND, Gtk::FILL|Gtk::EXPAND, 0, 0);
 	controls_table.attach (gm.get_gain_slider(), 0, 5, 1, 2, Gtk::SHRINK, Gtk::SHRINK, 0, 0);
 
-	ARDOUR_UI::instance()->set_tip(route_group_button, _("Route Group"), _("Click to open the route group menu."));
-	ARDOUR_UI::instance()->set_tip(playlist_button,_("Playlist"), _("Click to open the playlist menu."));
-	ARDOUR_UI::instance()->set_tip(automation_button, _("Automation"), _("Click to open the automation menu."));
+	ARDOUR_UI::instance()->set_tip (*solo_button, _("Solo"), _("Click to solo this track or bus."));
+	ARDOUR_UI::instance()->set_tip (*mute_button, _("Mute"), _("Click to mute this track or bus."));
+	ARDOUR_UI::instance()->set_tip (route_group_button, _("Route Group"), _("Click to open the route group menu."));
+	ARDOUR_UI::instance()->set_tip (playlist_button, _("Playlist"), _("Click to open the playlist menu."));
+
+	if (is_midi_track()) {
+		ARDOUR_UI::instance()->set_tip (automation_button, _("MIDI Controllers and Automation"), _("Click to open the automation menu."));
+	} else {
+		ARDOUR_UI::instance()->set_tip (automation_button, _("Automation"), _("Click to open the automation menu."));
+	}
 
 	label_view ();
 
@@ -472,6 +479,7 @@ RouteTimeAxisView::build_display_menu ()
 				++overlaid;
 				break;
 			case Stacked:
+			case Expanded:
 				++stacked;
 				break;
 			}

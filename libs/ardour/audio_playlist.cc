@@ -113,6 +113,8 @@ AudioPlaylist::AudioPlaylist (Session& session, const XMLNode& node, bool hidden
 		throw failed_constructor();
 	}
 	in_set_state--;
+
+	relayer ();
 }
 
 AudioPlaylist::AudioPlaylist (Session& session, string name, bool hidden)
@@ -287,10 +289,9 @@ AudioPlaylist::read (Sample *buf, Sample *mixdown_buffer, float *gain_buffer, fr
 
 	framepos_t const end = start + cnt - 1;
 
-	RegionList* rlist = regions_to_read (start, start+cnt);
+	boost::shared_ptr<RegionList> rlist = regions_to_read (start, start+cnt);
 
 	if (rlist->empty()) {
-		delete rlist;
 		return cnt;
 	}
 
@@ -351,7 +352,6 @@ AudioPlaylist::read (Sample *buf, Sample *mixdown_buffer, float *gain_buffer, fr
 		}
 	}
 
-	delete rlist;
 	return ret;
 }
 
@@ -490,7 +490,7 @@ AudioPlaylist::check_dependents (boost::shared_ptr<Region> r, bool norefresh)
 	boost::shared_ptr<AudioRegion> top;
 	boost::shared_ptr<AudioRegion> bottom;
 	boost::shared_ptr<Crossfade>   xfade;
-	RegionList*  touched_regions = 0;
+	boost::shared_ptr<RegionList> touched_regions;
 
 	if (in_set_state || in_partition) {
 		return;
@@ -541,8 +541,7 @@ AudioPlaylist::check_dependents (boost::shared_ptr<Region> r, bool norefresh)
 
 		OverlapType c = top->coverage (bottom->position(), bottom->last_frame());
 
-		delete touched_regions;
-		touched_regions = 0;
+		touched_regions.reset ();
 
 		try {
 			framecnt_t xfade_length;
@@ -655,8 +654,6 @@ AudioPlaylist::check_dependents (boost::shared_ptr<Region> r, bool norefresh)
 		}
 
 	}
-
-	delete touched_regions;
 }
 
 void

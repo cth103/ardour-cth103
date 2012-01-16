@@ -165,6 +165,7 @@ gtk2_ardour_sources = [
         'option_editor.cc',
         'opts.cc',
         'panner2d.cc',
+        'panner_interface.cc',
         'panner_ui.cc',
         'piano_roll_header.cc',
         'playlist_selector.cc',
@@ -476,7 +477,7 @@ def build(bld):
 
     # Set up font sizes
     if bld.is_defined('GTKOSX'): # OS X fonts
-        basefont = "Lucida Grande"
+        basefont = ""
         font_sizes = {
                 'TINY' : '7',
                 'SMALLER' : '9',

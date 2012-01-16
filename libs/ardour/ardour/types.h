@@ -75,6 +75,7 @@ namespace ARDOUR {
 
 	static const framepos_t max_framepos = INT64_MAX;
 	static const framecnt_t max_framecnt = INT64_MAX;
+	static const layer_t    max_layer    = UINT32_MAX;
 
 	// a set of (time) intervals: first of pair is the offset of the start within the region, second is the offset of the end
 	typedef std::list<std::pair<frameoffset_t, frameoffset_t> > AudioIntervalResult;
@@ -353,9 +354,9 @@ namespace ARDOUR {
 	};
 
 	enum MonitorModel {
-		HardwareMonitoring,
-		SoftwareMonitoring,
-		ExternalMonitoring
+		HardwareMonitoring, ///< JACK does monitoring
+		SoftwareMonitoring, ///< Ardour does monitoring
+		ExternalMonitoring  ///< we leave monitoring to the audio hardware
 	};
 
 	enum MonitorChoice {
@@ -369,6 +370,11 @@ namespace ARDOUR {
 		MonitoringSilence = 0x1,
 		MonitoringInput = 0x2,
 		MonitoringDisk = 0x4,
+	};
+
+	enum MeterState {
+		MeteringInput, ///< meter the input IO, regardless of what is going through the route
+		MeteringRoute  ///< meter what is going through the route
 	};
 
 	enum PFLPosition {
@@ -401,12 +407,6 @@ namespace ARDOUR {
 	enum CrossfadeModel {
 		FullCrossfade,
 		ShortCrossfade
-	};
-
-	enum LayerModel {
-		LaterHigher,
-		MoveAddHigher,
-		AddHigher
 	};
 
 	enum ListenPosition {
@@ -602,7 +602,6 @@ std::istream& operator>>(std::istream& o, ARDOUR::PFLPosition& sf);
 std::istream& operator>>(std::istream& o, ARDOUR::AFLPosition& sf);
 std::istream& operator>>(std::istream& o, ARDOUR::RemoteModel& sf);
 std::istream& operator>>(std::istream& o, ARDOUR::ListenPosition& sf);
-std::istream& operator>>(std::istream& o, ARDOUR::LayerModel& sf);
 std::istream& operator>>(std::istream& o, ARDOUR::InsertMergePolicy& sf);
 std::istream& operator>>(std::istream& o, ARDOUR::CrossfadeModel& sf);
 std::istream& operator>>(std::istream& o, ARDOUR::SyncSource& sf);
@@ -623,7 +622,6 @@ std::ostream& operator<<(std::ostream& o, const ARDOUR::PFLPosition& sf);
 std::ostream& operator<<(std::ostream& o, const ARDOUR::AFLPosition& sf);
 std::ostream& operator<<(std::ostream& o, const ARDOUR::RemoteModel& sf);
 std::ostream& operator<<(std::ostream& o, const ARDOUR::ListenPosition& sf);
-std::ostream& operator<<(std::ostream& o, const ARDOUR::LayerModel& sf);
 std::ostream& operator<<(std::ostream& o, const ARDOUR::InsertMergePolicy& sf);
 std::ostream& operator<<(std::ostream& o, const ARDOUR::CrossfadeModel& sf);
 std::ostream& operator<<(std::ostream& o, const ARDOUR::SyncSource& sf);

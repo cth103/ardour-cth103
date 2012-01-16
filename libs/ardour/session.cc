@@ -217,6 +217,9 @@ Session::Session (AudioEngine &eng,
 
 Session::~Session ()
 {
+#ifdef PT_TIMING	
+	ST.dump ("ST.dump");
+#endif	
 	destroy ();
 }
 
@@ -782,18 +785,8 @@ Session::set_track_monitor_input_status (bool yn)
 		boost::shared_ptr<AudioTrack> tr = boost::dynamic_pointer_cast<AudioTrack> (*i);
 		if (tr && tr->record_enabled ()) {
 			//cerr << "switching to input = " << !auto_input << __FILE__ << __LINE__ << endl << endl;
-			tr->monitor_input (yn);
+			tr->request_jack_monitors_input (yn);
 		}
-	}
-}
-
-void
-Session::reset_input_monitor_state ()
-{
-	if (transport_rolling()) {
-		set_track_monitor_input_status (Config->get_monitoring_model() == HardwareMonitoring && !config.get_auto_input());
-	} else {
-		set_track_monitor_input_status (Config->get_monitoring_model() == HardwareMonitoring);
 	}
 }
 

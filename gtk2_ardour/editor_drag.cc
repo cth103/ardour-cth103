@@ -485,7 +485,7 @@ RegionMotionDrag::start_grab (GdkEvent* event, Gdk::Cursor* cursor)
 
 	show_verbose_cursor_time (_last_frame_position);
 
-	pair<TimeAxisView*, int> const tv = _editor->trackview_by_y_position (_drags->current_pointer_y ());
+	pair<TimeAxisView*, double> const tv = _editor->trackview_by_y_position (_drags->current_pointer_y ());
 	_last_pointer_time_axis_view = find_time_axis_view (tv.first);
 	_last_pointer_layer = tv.first->layer_display() == Overlaid ? 0 : tv.second;
 }
@@ -554,7 +554,7 @@ RegionMotionDrag::compute_x_delta (GdkEvent const * event, framepos_t* pending_r
 }
 
 bool
-RegionMotionDrag::y_movement_allowed (int delta_track, layer_t delta_layer) const
+RegionMotionDrag::y_movement_allowed (int delta_track, double delta_layer) const
 {
 	for (list<DraggingView>::const_iterator i = _views.begin(); i != _views.end(); ++i) {
 		int const n = i->time_axis_view + delta_track;
@@ -569,8 +569,12 @@ RegionMotionDrag::y_movement_allowed (int delta_track, layer_t delta_layer) cons
 			return false;
 		}
 
-		int const l = i->layer + delta_layer;
-		if (delta_track == 0 && (l < 0 || l >= int (to->view()->layers()))) {
+		double const l = i->layer + delta_layer;
+
+		/* Note that we allow layer to be up to 0.5 below zero, as this is used by `Expanded'
+		   mode to allow the user to place a region below another on layer 0.
+		*/
+		if (delta_track == 0 && (l < -0.5 || l >= int (to->view()->layers()))) {
 			/* Off the top or bottom layer; note that we only refuse if the track hasn't changed.
 			   If it has, the layers will be munged later anyway, so it's ok.
 			*/
@@ -588,7 +592,11 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 	assert (!_views.empty ());
 
 	/* Find the TimeAxisView that the pointer is now over */
-	pair<TimeAxisView*, int> const tv = _editor->trackview_by_y_position (_drags->current_pointer_y ());
+	pair<TimeAxisView*, double> const tv = _editor->trackview_by_y_position (_drags->current_pointer_y ());
+
+	if (first_move && tv.first->view()->layer_display() == Stacked) {
+		tv.first->view()->set_layer_display (Expanded);
+	}
 
 	/* Bail early if we're not over a track */
 	RouteTimeAxisView* rtv = dynamic_cast<RouteTimeAxisView*> (tv.first);
@@ -601,7 +609,7 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 
 	/* Here's the current pointer position in terms of time axis view and layer */
 	int const current_pointer_time_axis_view = find_time_axis_view (tv.first);
-	layer_t const current_pointer_layer = tv.first->layer_display() == Overlaid ? 0 : tv.second;
+	double const current_pointer_layer = tv.first->layer_display() == Overlaid ? 0 : tv.second;
 
 	/* Work out the change in x */
 	framepos_t pending_region_position;
@@ -609,7 +617,7 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 
 	/* Work out the change in y */
 	int delta_time_axis_view = current_pointer_time_axis_view - _last_pointer_time_axis_view;
-	int delta_layer = current_pointer_layer - _last_pointer_layer;
+	double delta_layer = current_pointer_layer - _last_pointer_layer;
 
 	if (!y_movement_allowed (delta_time_axis_view, delta_layer)) {
 		/* this y movement is not allowed, so do no y movement this time */
@@ -637,21 +645,21 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 		if (first_move) {
 
 			rv->get_time_axis_view().hide_dependent_views (*rv);
-										    
+
+			/* Absolutely no idea why this is necessary, but it is; without
+			   it, the region view disappears after the reparent.
+			*/
+			_editor->update_canvas_now ();
+			
 			/* Reparent to a non scrolling group so that we can keep the
 			   region selection above all time axis views.
 			   Reparenting means that we will have to move the region view
 			   later, as the two parent groups have different coordinates.
 			*/
-			
+
 			rv->get_canvas_group()->reparent (*(_editor->_region_motion_group));
 			
 			rv->fake_set_opaque (true);
-			
-			if (!rv->get_time_axis_view().hidden()) {
-				/* the track that this region view is on is hidden, so hide the region too */
-				rv->get_canvas_group()->hide ();
-			}
 		}
 
 		/* If we have moved tracks, we'll fudge the layer delta so that the
@@ -659,13 +667,23 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 		   confusion when dragging regions from non-zero layers onto different
 		   tracks.
 		*/
-		int this_delta_layer = delta_layer;
+		double this_delta_layer = delta_layer;
 		if (delta_time_axis_view != 0) {
 			this_delta_layer = - i->layer;
 		}
 
 		/* The TimeAxisView that this region is now on */
 		TimeAxisView* tv = _time_axis_views[i->time_axis_view + delta_time_axis_view];
+
+		/* Ensure it is moved from stacked -> expanded if appropriate */
+		if (tv->view()->layer_display() == Stacked) {
+			tv->view()->set_layer_display (Expanded);
+		}
+
+		/* We're only allowed to go -ve in layer on Expanded views */
+		if (tv->view()->layer_display() != Expanded && (i->layer + this_delta_layer) < 0) {
+			this_delta_layer = - i->layer;
+		}
 			
 		/* Set height */
 		rv->set_height (tv->view()->child_height ());
@@ -695,10 +713,17 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 			
 			/* And adjust for the layer that it should be on */
 			StreamView* cv = tv->view ();
-			if (cv->layer_display() == Stacked) {
+			switch (cv->layer_display ()) {
+			case Overlaid:
+				break;
+			case Stacked:
 				y += (cv->layers() - i->layer - 1) * cv->child_height ();
+				break;
+			case Expanded:
+				y += (cv->layers() - i->layer - 0.5) * 2 * cv->child_height ();
+				break;
 			}
-			
+
 			/* Now move the region view */
 			rv->move (x_delta, y - rv->get_canvas_group()->property_y());
 		}
@@ -789,8 +814,24 @@ RegionMoveDrag::motion (GdkEvent* event, bool first_move)
 }
 
 void
-RegionMoveDrag::finished (GdkEvent *, bool movement_occurred)
+RegionMotionDrag::finished (GdkEvent *, bool)
 {
+	for (vector<TimeAxisView*>::iterator i = _time_axis_views.begin(); i != _time_axis_views.end(); ++i) {
+		if (!(*i)->view()) {
+			continue;
+		}
+
+		if ((*i)->view()->layer_display() == Expanded) {
+			(*i)->view()->set_layer_display (Stacked);
+		}
+	}
+}
+
+void
+RegionMoveDrag::finished (GdkEvent* ev, bool movement_occurred)
+{
+	RegionMotionDrag::finished (ev, movement_occurred);
+	
 	if (!movement_occurred) {
 		/* just a click */
 		return;
@@ -924,6 +965,7 @@ RegionMoveDrag::finished_no_copy (
 	RegionSelection new_views;
 	PlaylistSet modified_playlists;
 	PlaylistSet frozen_playlists;
+	set<RouteTimeAxisView*> views_to_update;
 
 	if (_brushing) {
 		/* all changes were made during motion event handlers */
@@ -942,12 +984,14 @@ RegionMoveDrag::finished_no_copy (
 		RegionView* rv = i->view;
 
 		RouteTimeAxisView* const dest_rtv = dynamic_cast<RouteTimeAxisView*> (_time_axis_views[i->time_axis_view]);
-		layer_t const dest_layer = i->layer;
+		double const dest_layer = i->layer;
 
 		if (rv->region()->locked()) {
 			++i;
 			continue;
 		}
+
+		views_to_update.insert (dest_rtv);
 
 		framepos_t where;
 
@@ -1002,9 +1046,8 @@ RegionMoveDrag::finished_no_copy (
 
 			boost::shared_ptr<Playlist> playlist = dest_rtv->playlist();
 
-			if (dest_rtv->view()->layer_display() == Stacked) {
-				rv->region()->set_layer (dest_layer);
-				rv->region()->set_pending_explicit_relayer (true);
+			if (dest_rtv->view()->layer_display() == Stacked || dest_rtv->view()->layer_display() == Expanded) {
+				playlist->set_layer (rv->region(), dest_layer);
 			}
 
 			/* freeze playlist to avoid lots of relayering in the case of a multi-region drag */
@@ -1076,6 +1119,17 @@ RegionMoveDrag::finished_no_copy (
 	add_stateful_diff_commands_for_playlists (modified_playlists);
 
 	_editor->commit_reversible_command ();
+
+	/* We have futzed with the layering of canvas items on our streamviews.
+	   If any region changed layer, this will have resulted in the stream
+	   views being asked to set up their region views, and all will be well.
+	   If not, we might now have badly-ordered region views.  Ask the StreamViews
+	   involved to sort themselves out, just in case.
+	*/
+
+	for (set<RouteTimeAxisView*>::iterator i = views_to_update.begin(); i != views_to_update.end(); ++i) {
+		(*i)->view()->playlist_layered ((*i)->track ());
+	}
 }
 
 /** Remove a region from a playlist, clearing the diff history of the playlist first if necessary.
@@ -1137,9 +1191,8 @@ RegionMoveDrag::insert_region_into_playlist (
 
 	dest_playlist->add_region (region, where);
 
-	if (dest_rtv->view()->layer_display() == Stacked) {
-		region->set_layer (dest_layer);
-		region->set_pending_explicit_relayer (true);
+	if (dest_rtv->view()->layer_display() == Stacked || dest_rtv->view()->layer_display() == Expanded) {
+		dest_playlist->set_layer (region, dest_layer);
 	}
 
 	c.disconnect ();
@@ -1188,6 +1241,12 @@ RegionMoveDrag::aborted (bool movement_occurred)
 void
 RegionMotionDrag::aborted (bool)
 {
+	for (vector<TimeAxisView*>::iterator i = _time_axis_views.begin(); i != _time_axis_views.end(); ++i) {
+		if ((*i)->view()->layer_display() == Expanded) {
+			(*i)->view()->set_layer_display (Stacked);
+		}
+	}
+	
 	for (list<DraggingView>::const_iterator i = _views.begin(); i != _views.end(); ++i) {
 		RegionView* rv = i->view;
 		TimeAxisView* tv = &(rv->get_time_axis_view ());
@@ -1295,7 +1354,7 @@ RegionSpliceDrag::motion (GdkEvent* event, bool)
 {
 	/* Which trackview is this ? */
 
-	pair<TimeAxisView*, int> const tvp = _editor->trackview_by_y_position (_drags->current_pointer_y ());
+	pair<TimeAxisView*, double> const tvp = _editor->trackview_by_y_position (_drags->current_pointer_y ());
 	RouteTimeAxisView* tv = dynamic_cast<RouteTimeAxisView*> (tvp.first);
 
 	/* The region motion is only processed if the pointer is over
@@ -1873,7 +1932,7 @@ MeterMarkerDrag::motion (GdkEvent* event, bool first_move)
 		// not, because we'll remove it from the map).
 		
 		MeterSection section (_marker->meter());
-		
+
 		if (!section.movable()) {
 			return;
 		}
@@ -1894,8 +1953,10 @@ MeterMarkerDrag::motion (GdkEvent* event, bool first_move)
 
 		if (!_copy) {
 			TempoMap& map (_editor->session()->tempo_map());
+			/* get current state */
+			before_state = &map.get_state();
 			/* remove the section while we drag it */
-			map.remove_meter (section);
+			map.remove_meter (section, true);
 		}
 	}
 
@@ -1928,13 +1989,12 @@ MeterMarkerDrag::finished (GdkEvent* event, bool movement_occurred)
 
 	} else {
 		_editor->begin_reversible_command (_("move meter mark"));
-		XMLNode &before = map.get_state();
 
 		/* we removed it before, so add it back now */
 		
 		map.add_meter (_marker->meter(), when);
 		XMLNode &after = map.get_state();
-		_editor->session()->add_command(new MementoCommand<TempoMap>(map, &before, &after));
+		_editor->session()->add_command(new MementoCommand<TempoMap>(map, before_state, &after));
 		_editor->commit_reversible_command ();
 	}
 
@@ -1944,9 +2004,18 @@ MeterMarkerDrag::finished (GdkEvent* event, bool movement_occurred)
 }
 
 void
-MeterMarkerDrag::aborted (bool)
+MeterMarkerDrag::aborted (bool moved)
 {
 	_marker->set_position (_marker->meter().frame ());
+
+	if (moved) {
+		TempoMap& map (_editor->session()->tempo_map());
+		/* we removed it before, so add it back now */
+		map.add_meter (_marker->meter(), _marker->meter().frame());
+		// delete the dummy marker we used for visual representation while moving.
+		// a new visual marker will show up automatically.
+		delete _marker;
+	}
 }
 
 TempoMarkerDrag::TempoMarkerDrag (Editor* e, ArdourCanvas::Item* i, bool c)
@@ -1962,28 +2031,7 @@ TempoMarkerDrag::TempoMarkerDrag (Editor* e, ArdourCanvas::Item* i, bool c)
 void
 TempoMarkerDrag::start_grab (GdkEvent* event, Gdk::Cursor* cursor)
 {
-	if (_copy) {
-
-		// create a dummy marker for visual representation of moving the copy.
-		// The actual copying is not done before we reach the finish callback.
-		char name[64];
-		snprintf (name, sizeof (name), "%.2f", _marker->tempo().beats_per_minute());
-
-		TempoMarker* new_marker = new TempoMarker (
-			*_editor,
-			*_editor->tempo_group,
-			ARDOUR_UI::config()->canvasvar_TempoMarker.get(),
-			name,
-			*new TempoSection (_marker->tempo())
-			);
-
-		_item = &new_marker->the_item ();
-		_marker = new_marker;
-
-	}
-
 	Drag::start_grab (event, cursor);
-
 	show_verbose_cursor_time (adjusted_current_frame (event));
 }
 
@@ -1994,8 +2042,43 @@ TempoMarkerDrag::setup_pointer_frame_offset ()
 }
 
 void
-TempoMarkerDrag::motion (GdkEvent* event, bool)
+TempoMarkerDrag::motion (GdkEvent* event, bool first_move)
 {
+	if (first_move) {
+
+		// create a dummy marker for visual representation of moving the
+		// section, because whether its a copy or not, we're going to 
+		// leave or lose the original marker (leave if its a copy; lose if its
+		// not, because we'll remove it from the map).
+		
+		// create a dummy marker for visual representation of moving the copy.
+		// The actual copying is not done before we reach the finish callback.
+
+		char name[64];
+		snprintf (name, sizeof (name), "%.2f", _marker->tempo().beats_per_minute());
+
+		TempoSection section (_marker->tempo());
+
+		_marker = new TempoMarker (
+			*_editor,
+			*_editor->tempo_group,
+			ARDOUR_UI::config()->canvasvar_TempoMarker.get(),
+			name,
+			*new TempoSection (_marker->tempo())
+			);
+
+		/* use the new marker for the grab */
+		swap_grab (&_marker->the_item(), 0, GDK_CURRENT_TIME);
+
+		if (!_copy) {
+			TempoMap& map (_editor->session()->tempo_map());
+			/* get current state */
+			before_state = &map.get_state();
+			/* remove the section while we drag it */
+			map.remove_tempo (section, true);
+		}
+	}
+
 	framepos_t const pf = adjusted_current_frame (event);
 	_marker->set_position (pf);
 	show_verbose_cursor_time (pf);
@@ -2010,10 +2093,11 @@ TempoMarkerDrag::finished (GdkEvent* event, bool movement_occurred)
 
 	motion (event, false);
 
+	TempoMap& map (_editor->session()->tempo_map());
+	framepos_t beat_time = map.round_to_beat (last_pointer_frame(), 0);
 	Timecode::BBT_Time when;
 
-	TempoMap& map (_editor->session()->tempo_map());
-	map.bbt_time (last_pointer_frame(), when);
+	map.bbt_time (beat_time, when);
 
 	if (_copy == true) {
 		_editor->begin_reversible_command (_("copy tempo mark"));
@@ -2023,23 +2107,32 @@ TempoMarkerDrag::finished (GdkEvent* event, bool movement_occurred)
 		_editor->session()->add_command (new MementoCommand<TempoMap>(map, &before, &after));
 		_editor->commit_reversible_command ();
 
-		// delete the dummy marker we used for visual representation of copying.
-		// a new visual marker will show up automatically.
-		delete _marker;
 	} else {
 		_editor->begin_reversible_command (_("move tempo mark"));
-		XMLNode &before = map.get_state();
-		map.move_tempo (_marker->tempo(), when);
+		/* we removed it before, so add it back now */
+		map.add_tempo (_marker->tempo(), when);
 		XMLNode &after = map.get_state();
-		_editor->session()->add_command (new MementoCommand<TempoMap>(map, &before, &after));
+		_editor->session()->add_command (new MementoCommand<TempoMap>(map, before_state, &after));
 		_editor->commit_reversible_command ();
 	}
+
+	// delete the dummy marker we used for visual representation while moving.
+	// a new visual marker will show up automatically.
+	delete _marker;
 }
 
 void
-TempoMarkerDrag::aborted (bool)
+TempoMarkerDrag::aborted (bool moved)
 {
 	_marker->set_position (_marker->tempo().frame());
+	if (moved) {
+		TempoMap& map (_editor->session()->tempo_map());
+		/* we removed it before, so add it back now */
+		map.add_tempo (_marker->tempo(), _marker->tempo().start());
+		// delete the dummy marker we used for visual representation while moving.
+		// a new visual marker will show up automatically.
+		delete _marker;
+	}
 }
 
 CursorDrag::CursorDrag (Editor* e, ArdourCanvas::Item* i, bool s)
@@ -4356,11 +4449,15 @@ NoteCreateDrag::finished (GdkEvent* event, bool had_movement)
 	framecnt_t length = abs (_note[0] - _note[1]);
 
 	framecnt_t const g = grid_frames (start);
+	double const one_tick = 1 / Timecode::BBT_Time::ticks_per_beat;
+	
 	if (_editor->snap_mode() == SnapNormal && length < g) {
-		length = g;
+		length = g - one_tick;
 	}
 
-	_region_view->create_note_at (start, _drag_rect->property_y1(), _region_view->region_frames_to_region_beats (length), true, false);
+	double const length_beats = max (one_tick, _region_view->region_frames_to_region_beats (length));
+
+	_region_view->create_note_at (start, _drag_rect->property_y1(), length_beats, false);
 }
 
 double

@@ -15,7 +15,7 @@ using namespace Gtk;
 using namespace ARDOUR;
 
 RegionLayeringOrderEditor::RegionLayeringOrderEditor (PublicEditor& pe)
-	: ArdourWindow (pe, _("RegionLayeringOrderEditor"))
+	: ArdourWindow (_("RegionLayeringOrderEditor"))
 	, playlist ()
 	, position ()
 	, in_row_change (false)
@@ -23,7 +23,7 @@ RegionLayeringOrderEditor::RegionLayeringOrderEditor (PublicEditor& pe)
 	, layering_order_columns ()
 	, layering_order_model (Gtk::ListStore::create (layering_order_columns))
 	, layering_order_display ()
-        , clock ("layer dialog", true, "clock", false, false, false)
+        , clock ("layer dialog", true, "", false, false, false)
 	, scroller ()
 	, editor (pe)
 {

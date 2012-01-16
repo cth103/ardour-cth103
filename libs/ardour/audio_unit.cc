@@ -1414,11 +1414,11 @@ AUPlugin::get_beat_and_tempo_callback (Float64* outCurrentBeat,
 
 	Timecode::BBT_Time bbt;
 	TempoMetric metric = tmap.metric_at (_session.transport_frame() + input_offset);
-	tmap.bbt_time_with_metric (_session.transport_frame() + input_offset, bbt, metric);
+	tmap.bbt_time (_session.transport_frame() + input_offset, bbt);
 
 	if (outCurrentBeat) {
 		float beat;
-		beat = metric.meter().beats_per_bar() * bbt.bars;
+		beat = metric.meter().divisions_per_bar() * bbt.bars;
 		beat += bbt.beats;
 		beat += bbt.ticks / Timecode::BBT_Time::ticks_per_beat;
 		*outCurrentBeat = beat;
@@ -1453,7 +1453,7 @@ AUPlugin::get_musical_time_location_callback (UInt32*   outDeltaSampleOffsetToNe
 
 	Timecode::BBT_Time bbt;
 	TempoMetric metric = tmap.metric_at (_session.transport_frame() + input_offset);
-	tmap.bbt_time_with_metric (_session.transport_frame() + input_offset, bbt, metric);
+	tmap.bbt_time (_session.transport_frame() + input_offset, bbt);
 
 	if (outDeltaSampleOffsetToNextBeat) {
 		if (bbt.ticks == 0) {
@@ -1462,12 +1462,12 @@ AUPlugin::get_musical_time_location_callback (UInt32*   outDeltaSampleOffsetToNe
 		} else {
 			*outDeltaSampleOffsetToNextBeat = (UInt32) 
 				floor (((Timecode::BBT_Time::ticks_per_beat - bbt.ticks)/Timecode::BBT_Time::ticks_per_beat) * // fraction of a beat to next beat
-				       metric.tempo().frames_per_beat(_session.frame_rate(), metric.meter())); // frames per beat
+				       metric.tempo().frames_per_beat (_session.frame_rate())); // frames per beat
 		}
 	}
 
 	if (outTimeSig_Numerator) {
-		*outTimeSig_Numerator = (UInt32) lrintf (metric.meter().beats_per_bar());
+		*outTimeSig_Numerator = (UInt32) lrintf (metric.meter().divisions_per_bar());
 	}
 	if (outTimeSig_Denominator) {
 		*outTimeSig_Denominator = (UInt32) lrintf (metric.meter().note_divisor());
@@ -1477,12 +1477,12 @@ AUPlugin::get_musical_time_location_callback (UInt32*   outDeltaSampleOffsetToNe
 
 		/* beat for the start of the bar.
 		   1|1|0 -> 1
-		   2|1|0 -> 1 + beats_per_bar
-		   3|1|0 -> 1 + (2 * beats_per_bar)
+		   2|1|0 -> 1 + divisions_per_bar
+		   3|1|0 -> 1 + (2 * divisions_per_bar)
 		   etc.
 		*/
 
-		*outCurrentMeasureDownBeat = 1 + metric.meter().beats_per_bar() * (bbt.bars - 1);
+		*outCurrentMeasureDownBeat = 1 + metric.meter().divisions_per_bar() * (bbt.bars - 1);
 	}
 
 	return noErr;
@@ -1548,10 +1548,10 @@ AUPlugin::get_transport_state_callback (Boolean*  outIsPlaying,
 
 				if (outCycleStartBeat) {
 					TempoMetric metric = tmap.metric_at (loc->start() + input_offset);
-					_session.tempo_map().bbt_time_with_metric (loc->start(), bbt, metric);
+					_session.tempo_map().bbt_time (loc->start(), bbt);
 
 					float beat;
-					beat = metric.meter().beats_per_bar() * bbt.bars;
+					beat = metric.meter().divisions_per_bar() * bbt.bars;
 					beat += bbt.beats;
 					beat += bbt.ticks / Timecode::BBT_Time::ticks_per_beat;
 
@@ -1560,10 +1560,10 @@ AUPlugin::get_transport_state_callback (Boolean*  outIsPlaying,
 
 				if (outCycleEndBeat) {
 					TempoMetric metric = tmap.metric_at (loc->end() + input_offset);
-					_session.tempo_map().bbt_time_with_metric (loc->end(), bbt, metric);
+					_session.tempo_map().bbt_time (loc->end(), bbt);
 
 					float beat;
-					beat = metric.meter().beats_per_bar() * bbt.bars;
+					beat = metric.meter().divisions_per_bar() * bbt.bars;
 					beat += bbt.beats;
 					beat += bbt.ticks / Timecode::BBT_Time::ticks_per_beat;
 

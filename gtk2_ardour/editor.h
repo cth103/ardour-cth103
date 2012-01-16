@@ -395,7 +395,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void reset_zoom (double);
 	void reposition_and_zoom (framepos_t, double);
 
-	framepos_t get_preferred_edit_position (bool ignore_playhead = false);
+	framepos_t get_preferred_edit_position (bool ignore_playhead = false, bool use_context_click = false);
 
 	bool update_mouse_speed ();
 	bool decelerate_mouse_speed ();
@@ -683,6 +683,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	Gtk::Menu * track_region_edit_playlist_menu;
 	Gtk::Menu * track_edit_playlist_submenu;
 	Gtk::Menu * track_selection_edit_playlist_submenu;
+
+	GdkEvent context_click_event;
 
 	void popup_track_context_menu (int, int, ItemType, bool);
 	Gtk::Menu* build_track_context_menu ();
@@ -1035,7 +1037,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	/* track views */
 	TrackViewList track_views;
-	std::pair<TimeAxisView*, ARDOUR::layer_t> trackview_by_y_position (double);
+	std::pair<TimeAxisView*, double> trackview_by_y_position (double);
 	TimeAxisView* axis_view_from_route (boost::shared_ptr<ARDOUR::Route>) const;
 
 	TrackViewList get_tracks_for_range_action () const;
@@ -1102,9 +1104,18 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void toggle_solo_isolate ();
 	void toggle_mute ();
 	void toggle_region_lock_style ();
+
+	enum LayerOperation {
+		Raise,
+		RaiseToTop,
+		Lower,
+		LowerToBottom
+	};
+
+	void do_layer_operation (LayerOperation);
 	void raise_region ();
 	void raise_region_to_top ();
-	void change_region_layering_order ();
+	void change_region_layering_order (bool from_context_menu);
 	void lower_region ();
 	void lower_region_to_bottom ();
 	void split_regions_at (framepos_t, RegionSelection&);
@@ -1140,7 +1151,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void reset_region_scale_amplitude ();
 	void adjust_region_gain (bool up);
 	void quantize_region ();
-	void insert_patch_change ();
+	void insert_patch_change (bool from_context);
 	void fork_region ();
 
 	void do_insert_time ();
@@ -1166,7 +1177,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void delete_ ();
 	void cut ();
 	void copy ();
-	void paste (float times);
+	void paste (float times, bool from_context_menu = false);
 
 	void place_transient ();
 	void remove_transient (ArdourCanvas::Item* item);
@@ -1445,7 +1456,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	/// true if we scroll the tracks rather than the playhead
 	bool _stationary_playhead;
 
-	ARDOUR::TempoMap::BBTPointList *current_bbt_points;
+	ARDOUR::TempoMap::BBTPointList::const_iterator current_bbt_points_begin;
+	ARDOUR::TempoMap::BBTPointList::const_iterator current_bbt_points_end;
 
 	TempoLines* tempo_lines;
 

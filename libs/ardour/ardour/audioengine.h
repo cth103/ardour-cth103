@@ -129,7 +129,6 @@ public:
 
 	int request_buffer_size (pframes_t);
 
-	framecnt_t set_monitor_check_interval (framecnt_t);
 	framecnt_t processed_frames() const { return _processed_frames; }
 
 	float get_cpu_load() {
@@ -166,7 +165,7 @@ public:
 	int unregister_port (boost::shared_ptr<Port>);
 
 	bool port_is_physical (const std::string&) const;
-	void ensure_monitor_input (const std::string&, bool) const;
+	void request_jack_monitors_input (const std::string&, bool) const;
 
 	void split_cycle (pframes_t offset);
 
@@ -300,7 +299,6 @@ private:
 	static void _session_callback (jack_session_event_t *event, void *arg);
 #endif
 	static int  _graph_order_callback (void *arg);
-	static int  _process_callback (pframes_t nframes, void *arg);
 	static void* _process_thread (void *arg);
 	static int  _sample_rate_callback (pframes_t nframes, void *arg);
 	static int  _bufsize_callback (pframes_t nframes, void *arg);

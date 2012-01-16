@@ -454,9 +454,14 @@ ARDOUR::setup_fpu ()
 
 	MXCSR  = _mm_getcsr();
 
+#ifdef DEBUG_DENORMAL_EXCEPTION
+	/* This will raise a FP exception if a denormal is detected */
+	MXCSR &= ~_MM_MASK_DENORM;
+#endif	
+
 	switch (Config->get_denormal_model()) {
 	case DenormalNone:
-		MXCSR &= ~(_MM_FLUSH_ZERO_ON|0x8000);
+		MXCSR &= ~(_MM_FLUSH_ZERO_ON | 0x40);
 		break;
 
 	case DenormalFTZ:
@@ -468,14 +473,14 @@ ARDOUR::setup_fpu ()
 	case DenormalDAZ:
 		MXCSR &= ~_MM_FLUSH_ZERO_ON;
 		if (fpu.has_denormals_are_zero()) {
-			MXCSR |= 0x8000;
+			MXCSR |= 0x40;
 		}
 		break;
 
 	case DenormalFTZDAZ:
 		if (fpu.has_flush_to_zero()) {
 			if (fpu.has_denormals_are_zero()) {
-				MXCSR |= _MM_FLUSH_ZERO_ON | 0x8000;
+				MXCSR |= _MM_FLUSH_ZERO_ON | 0x40;
 			} else {
 				MXCSR |= _MM_FLUSH_ZERO_ON;
 			}

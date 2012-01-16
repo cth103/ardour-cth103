@@ -554,6 +554,8 @@ Editor::canvas_crossfade_view_event (GdkEvent* event, ArdourCanvas::Item* item, 
 
 	/* XXX really need to check if we are in the name highlight,
 	   and proxy to that when required.
+
+	   XXX or in the trim rectangles
 	*/
 
 	TimeAxisView& tv (xfv->get_time_axis_view());
@@ -566,7 +568,7 @@ Editor::canvas_crossfade_view_event (GdkEvent* event, ArdourCanvas::Item* item, 
 			boost::shared_ptr<AudioPlaylist> pl;
 			if ((pl = boost::dynamic_pointer_cast<AudioPlaylist> (atv->track()->playlist())) != 0) {
 
-				Playlist::RegionList* rl = pl->regions_at (event_frame (event));
+				boost::shared_ptr<Playlist::RegionList> rl = pl->regions_at (event_frame (event));
 				if (!rl->empty()) {
 
 					if (atv->layer_display() == Overlaid) {
@@ -578,8 +580,6 @@ Editor::canvas_crossfade_view_event (GdkEvent* event, ArdourCanvas::Item* item, 
 
 						RegionView* rv = atv->view()->find_view (rl->front());
 
-						delete rl;
-
 						/* proxy */
 						return canvas_region_view_event (event, rv->get_canvas_group(), rv);
 
@@ -587,13 +587,30 @@ Editor::canvas_crossfade_view_event (GdkEvent* event, ArdourCanvas::Item* item, 
 
 						/* we're in stacked mode; proxy to the region view under the mouse */
 
-						/* XXX: FIXME: this is an evil hack; it assumes that any event for which
-						   this proxy is being used has its GdkEvent laid out such that the y
-						   member is in the same place as that for a GdkEventButton */
+						double cx = 0;
+						double cy = 0;
+						switch (event->type) {
+						case GDK_BUTTON_PRESS:
+						case GDK_BUTTON_RELEASE:
+							cx = event->button.x;
+							cy = event->button.y;
+							break;
+						case GDK_MOTION_NOTIFY:
+							cx = event->motion.x;
+							cy = event->motion.y;
+							break;
+						case GDK_ENTER_NOTIFY:
+						case GDK_LEAVE_NOTIFY:
+							cx = event->crossing.x;
+							cy = event->crossing.y;
+							break;
+						default:
+							/* XXX: this may be wrong for some events */
+							cx = event->button.x;
+							cy = event->button.y;
+						}
 
 						/* position of the event within the track */
-						double cx = event->button.x;
-						double cy = event->button.y;
 						atv->view()->canvas_item()->w2i (cx, cy);
 
 						/* hence layer that we're over */
@@ -608,15 +625,12 @@ Editor::canvas_crossfade_view_event (GdkEvent* event, ArdourCanvas::Item* item, 
 
 						if (i != rl->end()) {
 							RegionView* rv = atv->view()->find_view (*i);
-							delete rl;
 
 							/* proxy */
 							return canvas_region_view_event (event, rv->get_canvas_group(), rv);
 						}
 					}
 				}
-
-				delete rl;
 			}
 		}
 	}

@@ -65,6 +65,8 @@ class MidiDiskstream : public Diskstream
 	void get_playback (MidiBuffer& dst, framecnt_t);
 
 	void set_record_enabled (bool yn);
+	
+	void reset_tracker ();
 
 	boost::shared_ptr<MidiPlaylist> midi_playlist () { return boost::dynamic_pointer_cast<MidiPlaylist>(_playlist); }
 
@@ -78,7 +80,7 @@ class MidiDiskstream : public Diskstream
 	XMLNode& get_state(void);
 	int set_state(const XMLNode&, int version);
 
-	void monitor_input (bool);
+	void ensure_jack_monitors_input (bool);
 
 	boost::shared_ptr<SMFSource> write_source ()    { return _write_source; }
 

@@ -30,32 +30,9 @@ struct RegionSortByPosition {
 	}
 };
 
-struct RegionSortByLastLayerOp {
-	bool operator() (boost::shared_ptr<Region> a, boost::shared_ptr<Region> b) {
-		return a->last_layer_op() < b->last_layer_op();
-	}
-};
-
 struct RegionSortByLayer {
 	bool operator() (boost::shared_ptr<Region> a, boost::shared_ptr<Region> b) {
 		return a->layer() < b->layer();
-	}
-};
-
-struct RegionSortByLayerWithPending {
-	bool operator () (boost::shared_ptr<Region> a, boost::shared_ptr<Region> b) {
-
-		double p = a->layer ();
-		if (a->pending_explicit_relayer()) {
-			p += 0.5;
-		}
-
-		double q = b->layer ();
-		if (b->pending_explicit_relayer()) {
-			q += 0.5;
-		}
-
-		return p < q;
 	}
 };
 

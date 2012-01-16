@@ -2134,27 +2134,100 @@ Editor::loop_location (Location& location)
 }
 
 void
+Editor::do_layer_operation (LayerOperation op)
+{
+	if (selection->regions.empty ()) {
+		return;
+	}
+
+	bool const multiple = selection->regions.size() > 1;
+	switch (op) {
+	case Raise:
+		if (multiple) {
+			begin_reversible_command (_("raise regions"));
+		} else {
+			begin_reversible_command (_("raise region"));
+		}
+		break;
+
+	case RaiseToTop:
+		if (multiple) {
+			begin_reversible_command (_("raise regions to top"));
+		} else {
+			begin_reversible_command (_("raise region to top"));
+		}
+		break;
+		
+	case Lower:
+		if (multiple) {
+			begin_reversible_command (_("lower regions"));
+		} else {
+			begin_reversible_command (_("lower region"));
+		}
+		break;
+		
+	case LowerToBottom:
+		if (multiple) {
+			begin_reversible_command (_("lower regions to bottom"));
+		} else {
+			begin_reversible_command (_("lower region"));
+		}
+		break;
+	}
+
+	set<boost::shared_ptr<Playlist> > playlists = selection->regions.playlists ();
+	for (set<boost::shared_ptr<Playlist> >::iterator i = playlists.begin(); i != playlists.end(); ++i) {
+		(*i)->clear_owned_changes ();
+	}
+	
+	for (RegionSelection::iterator i = selection->regions.begin(); i != selection->regions.end(); ++i) {
+		boost::shared_ptr<Region> r = (*i)->region ();
+		switch (op) {
+		case Raise:
+			r->raise ();
+			break;
+		case RaiseToTop:
+			r->raise_to_top ();
+			break;
+		case Lower:
+			r->lower ();
+			break;
+		case LowerToBottom:
+			r->lower_to_bottom ();
+		}
+	}
+
+	for (set<boost::shared_ptr<Playlist> >::iterator i = playlists.begin(); i != playlists.end(); ++i) {
+		vector<Command*> cmds;
+		(*i)->rdiff (cmds);
+		_session->add_commands (cmds);
+	}
+	
+	commit_reversible_command ();
+}
+
+void
 Editor::raise_region ()
 {
-	selection->foreach_region (&Region::raise);
+	do_layer_operation (Raise);
 }
 
 void
 Editor::raise_region_to_top ()
 {
-	selection->foreach_region (&Region::raise_to_top);
+	do_layer_operation (RaiseToTop);
 }
 
 void
 Editor::lower_region ()
 {
-	selection->foreach_region (&Region::lower);
+	do_layer_operation (Lower);
 }
 
 void
 Editor::lower_region_to_bottom ()
 {
-	selection->foreach_region (&Region::lower_to_bottom);
+	do_layer_operation (LowerToBottom);
 }
 
 /** Show the region editor for the selected regions */
@@ -3633,7 +3706,16 @@ Editor::remove_clicked_region ()
 
 	begin_reversible_command (_("remove region"));
 	playlist->clear_changes ();
+	playlist->clear_owned_changes ();
 	playlist->remove_region (clicked_regionview->region());
+
+	/* We might have removed regions, which alters other regions' layering_index,
+	   so we need to do a recursive diff here.
+	*/
+	vector<Command*> cmds;
+	playlist->rdiff (cmds);
+	_session->add_commands (cmds);
+	
 	_session->add_command(new StatefulDiffCommand (playlist));
 	commit_reversible_command ();
 }
@@ -3685,6 +3767,7 @@ Editor::remove_selected_regions ()
 		playlists.push_back (playlist);
 
 		playlist->clear_changes ();
+		playlist->clear_owned_changes ();
 		playlist->freeze ();
 		playlist->remove_region (*rl);
 	}
@@ -3693,6 +3776,14 @@ Editor::remove_selected_regions ()
 
 	for (pl = playlists.begin(); pl != playlists.end(); ++pl) {
 		(*pl)->thaw ();
+
+		/* We might have removed regions, which alters other regions' layering_index,
+		   so we need to do a recursive diff here.
+		*/
+		vector<Command*> cmds;
+		(*pl)->rdiff (cmds);
+		_session->add_commands (cmds);
+		
 		_session->add_command(new StatefulDiffCommand (*pl));
 	}
 
@@ -3739,6 +3830,7 @@ Editor::cut_copy_regions (CutCopyOp op, RegionSelection& rs)
 
 				if (fl == freezelist.end()) {
 					pl->clear_changes();
+					pl->clear_owned_changes ();
 					pl->freeze ();
 					freezelist.insert (pl);
 				}
@@ -3854,6 +3946,14 @@ Editor::cut_copy_regions (CutCopyOp op, RegionSelection& rs)
 
 	for (FreezeList::iterator pl = freezelist.begin(); pl != freezelist.end(); ++pl) {
 		(*pl)->thaw ();
+
+		/* We might have removed regions, which alters other regions' layering_index,
+		   so we need to do a recursive diff here.
+		*/
+		vector<Command*> cmds;
+		(*pl)->rdiff (cmds);
+		_session->add_commands (cmds);
+		
 		_session->add_command (new StatefulDiffCommand (*pl));
 	}
 }
@@ -3884,10 +3984,11 @@ Editor::cut_copy_ranges (CutCopyOp op)
 }
 
 void
-Editor::paste (float times)
+Editor::paste (float times, bool from_context)
 {
         DEBUG_TRACE (DEBUG::CutNPaste, "paste to preferred edit pos\n");
-	paste_internal (get_preferred_edit_position(), times);
+
+	paste_internal (get_preferred_edit_position (false, from_context), times);
 }
 
 void
@@ -4482,14 +4583,15 @@ Editor::quantize_region ()
 }
 
 void
-Editor::insert_patch_change ()
+Editor::insert_patch_change (bool from_context)
 {
 	RegionSelection rs = get_regions_from_selection_and_entered ();
+
 	if (rs.empty ()) {
 		return;
 	}
 
-	framepos_t const p = get_preferred_edit_position (false);
+	const framepos_t p = get_preferred_edit_position (false, from_context);
 
 	Evoral::PatchChange<Evoral::MusicalTime> empty (0, 0, 0, 0);
 	PatchChangeDialog d (0, _session, empty, Gtk::Stock::ADD);
@@ -4540,6 +4642,7 @@ Editor::apply_filter (Filter& filter, string command, ProgressReporter* progress
 			if (arv->audio_region()->apply (filter, progress) == 0) {
 
 				playlist->clear_changes ();
+				playlist->clear_owned_changes ();
 
 				if (filter.results.empty ()) {
 
@@ -4562,6 +4665,13 @@ Editor::apply_filter (Filter& filter, string command, ProgressReporter* progress
 
 				}
 
+				/* We might have removed regions, which alters other regions' layering_index,
+				   so we need to do a recursive diff here.
+				*/
+				vector<Command*> cmds;
+				playlist->rdiff (cmds);
+				_session->add_commands (cmds);
+				
 				_session->add_command(new StatefulDiffCommand (playlist));
 			} else {
 				goto out;
@@ -5641,6 +5751,7 @@ Editor::split_region_at_points (boost::shared_ptr<Region> r, AnalysisFeatureList
 	AnalysisFeatureList::const_iterator x;
 
 	pl->clear_changes ();
+	pl->clear_owned_changes ();
 
 	x = positions.begin();
 
@@ -5727,6 +5838,13 @@ Editor::split_region_at_points (boost::shared_ptr<Region> r, AnalysisFeatureList
 
 	pl->thaw ();
 
+	/* We might have removed regions, which alters other regions' layering_index,
+	   so we need to do a recursive diff here.
+	*/
+	vector<Command*> cmds;
+	pl->rdiff (cmds);
+	_session->add_commands (cmds);
+	
 	_session->add_command (new StatefulDiffCommand (pl));
 
 	if (select_new) {

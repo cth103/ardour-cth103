@@ -57,7 +57,6 @@ StreamView::StreamView (RouteTimeAxisView& tv, ArdourCanvas::Group* background_g
 	, _samples_per_unit (_trackview.editor().get_current_zoom ())
 	, rec_updating(false)
 	, rec_active(false)
-	, region_color(_trackview.color())
 	, stream_base_color(0xFFFFFFFF)
 	, _layers (1)
 	, _layer_display (Overlaid)
@@ -182,7 +181,7 @@ StreamView::add_region_view (boost::weak_ptr<Region> wr)
 
 	add_region_view_internal (r, true);
 
-	if (_layer_display == Stacked) {
+	if (_layer_display == Stacked || _layer_display == Expanded) {
 		update_contents_height ();
 	}
 }
@@ -325,16 +324,14 @@ StreamView::playlist_switched (boost::weak_ptr<Track> wtr)
 	playlist_connections.drop_connections ();
 	undisplay_track ();
 
+	/* draw it */
+
+	redisplay_track ();
+
 	/* update layers count and the y positions and heights of our regions */
 	_layers = tr->playlist()->top_layer() + 1;
 	update_contents_height ();
 	update_coverage_frames ();
-
-	tr->playlist()->set_explicit_relayering (_layer_display == Stacked);
-
-	/* draw it */
-
-	redisplay_track ();
 
 	/* catch changes */
 
@@ -343,6 +340,7 @@ StreamView::playlist_switched (boost::weak_ptr<Track> wtr)
 	tr->playlist()->RegionRemoved.connect (playlist_connections, invalidator (*this), ui_bind (&StreamView::remove_region_view, this, _1), gui_context());
 	tr->playlist()->ContentsChanged.connect (playlist_connections, invalidator (*this), ui_bind (&StreamView::update_coverage_frames, this), gui_context());
 }
+
 
 void
 StreamView::diskstream_changed ()
@@ -569,10 +567,16 @@ StreamView::get_inverted_selectables (Selection& sel, list<Selectable*>& results
 double
 StreamView::child_height () const
 {
-	if (_layer_display == Stacked) {
+	switch (_layer_display) {
+	case Overlaid:
+		return height;
+	case Stacked:
 		return height / _layers;
+	case Expanded:
+		return height / (_layers * 2 + 1);
 	}
-
+	
+	/* NOTREACHED */
 	return height;
 }
 
@@ -589,6 +593,9 @@ StreamView::update_contents_height ()
 		case Stacked:
 			(*i)->set_y (height - ((*i)->region()->layer() + 1) * h);
 			break;
+		case Expanded:
+			(*i)->set_y (height - ((*i)->region()->layer() + 1) * 2 * h);
+			break;
 		}
 
 		(*i)->set_height (h);
@@ -600,6 +607,7 @@ StreamView::update_contents_height ()
 			i->rectangle->property_y2() = height;
 			break;
 		case Stacked:
+		case Expanded:
 			/* In stacked displays, the recregion is always at the top */
 			i->rectangle->property_y1() = 0;
 			i->rectangle->property_y2() = h;
@@ -612,9 +620,13 @@ void
 StreamView::set_layer_display (LayerDisplay d)
 {
 	_layer_display = d;
+
+	if (_layer_display == Overlaid) {
+		layer_regions ();
+	}
+	
 	update_contents_height ();
 	update_coverage_frames ();
-	_trackview.track()->playlist()->set_explicit_relayering (_layer_display == Stacked);
 }
 
 void

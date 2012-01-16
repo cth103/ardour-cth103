@@ -737,16 +737,16 @@ MidiDiskstream::read (framepos_t& start, framecnt_t dur, bool reversed)
 			start = loop_start + ((start - loop_start) % loop_length);
 			//cerr << "to " << start << endl;
 		}
-		//cerr << "start is " << start << "  loopstart: " << loop_start << "  loopend: " << loop_end << endl;
+		// cerr << "start is " << start << "  loopstart: " << loop_start << "  loopend: " << loop_end << endl;
 	}
 
 	while (dur) {
 
 		/* take any loop into account. we can't read past the end of the loop. */
 
-		if (loc && (loop_end - start < dur)) {
+		if (loc && (loop_end - start <= dur)) {
 			this_read = loop_end - start;
-			//cerr << "reloop true: thisread: " << this_read << "  dur: " << dur << endl;
+			// cerr << "reloop true: thisread: " << this_read << "  dur: " << dur << endl;
 			reloop = true;
 		} else {
 			reloop = false;
@@ -944,7 +944,7 @@ MidiDiskstream::transport_stopped_wallclock (struct tm& /*when*/, time_t /*twhen
 	Glib::Mutex::Lock lm (capture_info_lock);
 
 	if (capture_info.empty()) {
-		return;
+		goto no_capture_stuff_to_do;
 	}
 
 	if (abort_capture) {
@@ -1097,12 +1097,12 @@ MidiDiskstream::transport_stopped_wallclock (struct tm& /*when*/, time_t /*twhen
 		delete *ci;
 	}
 
-	if (_playlist) {
-		midi_playlist()->clear_note_trackers ();
-	}
-
 	capture_info.clear ();
 	capture_start_frame = 0;
+
+  no_capture_stuff_to_do:
+
+	reset_tracker ();
 }
 
 void
@@ -1131,6 +1131,10 @@ MidiDiskstream::transport_looped (framepos_t transport_frame)
 		first_recordable_frame = transport_frame; // mild lie
 		last_recordable_frame = max_framepos;
 		was_recording = true;
+	}
+
+	if (!Config->get_seamless_loop()) {
+		reset_tracker ();
 	}
 }
 
@@ -1198,7 +1202,7 @@ MidiDiskstream::engage_record_enable ()
 	boost::shared_ptr<MidiPort> sp = _source_port.lock ();
 	
 	if (sp && Config->get_monitoring_model() == HardwareMonitoring) {
-		sp->request_monitor_input (!(_session.config.get_auto_input() && rolling));
+		sp->request_jack_monitors_input (!(_session.config.get_auto_input() && rolling));
 	}
 
 	RecordEnableChanged (); /* EMIT SIGNAL */
@@ -1371,12 +1375,12 @@ MidiDiskstream::allocate_temporary_buffers ()
 }
 
 void
-MidiDiskstream::monitor_input (bool yn)
+MidiDiskstream::ensure_jack_monitors_input (bool yn)
 {
 	boost::shared_ptr<MidiPort> sp = _source_port.lock ();
 	
 	if (sp) {
-		sp->ensure_monitor_input (yn);
+		sp->ensure_jack_monitors_input (yn);
 	}
 }
 
@@ -1474,4 +1478,16 @@ MidiDiskstream::get_gui_feed_buffer () const
 	Glib::Mutex::Lock lm (_gui_feed_buffer_mutex);
 	b->copy (_gui_feed_buffer);
 	return b;
+}
+
+void
+MidiDiskstream::reset_tracker ()
+{
+	_playback_buf->reset_tracker ();
+
+	boost::shared_ptr<MidiPlaylist> mp (midi_playlist());
+
+	if (mp) {
+		mp->clear_note_trackers ();
+	}
 }

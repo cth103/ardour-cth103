@@ -175,10 +175,11 @@ CONFIG_VARIABLE (bool, sound_midi_notes, "sound-midi-notes", false)
 /* denormal management */
 
 CONFIG_VARIABLE (bool, denormal_protection, "denormal-protection", false)
-CONFIG_VARIABLE (DenormalModel, denormal_model, "denormal-model", DenormalNone)
+CONFIG_VARIABLE (DenormalModel, denormal_model, "denormal-model", DenormalFTZDAZ)
 
 /* visibility of various things */
 
 CONFIG_VARIABLE (bool, show_zoom_tools, "show-zoom-tools", true)
 CONFIG_VARIABLE (bool, widget_prelight, "widget-prelight", true)
 CONFIG_VARIABLE (std::string, mixer_strip_visibility, "mixer-strip-visibility", "PhaseInvert,SoloSafe,SoloIsolated,Group,MeterPoint")
+CONFIG_VARIABLE (bool, allow_non_quarter_pulse, "allow-non-quarter-pulse", false)

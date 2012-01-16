@@ -262,21 +262,6 @@ SessionOptionEditor::SessionOptionEditor (Session* s)
 
         /* Misc */
 
-	add_option (_("Misc"), new OptionEditorHeading (_("Layering (in overlaid mode)")));
-
-	ComboOption<LayerModel>* lm = new ComboOption<LayerModel> (
-		"layer-model",
-		_("Layering model"),
-		sigc::mem_fun (*_session_config, &SessionConfiguration::get_layer_model),
-		sigc::mem_fun (*_session_config, &SessionConfiguration::set_layer_model)
-		);
-
-	lm->add (LaterHigher, _("later is higher"));
-	lm->add (MoveAddHigher, _("most recently moved or added is higher"));
-	lm->add (AddHigher, _("most recently added is higher"));
-
-	add_option (_("Misc"), lm);
-
 	add_option (_("Misc"), new OptionEditorHeading (_("MIDI Options")));
 
         add_option (_("Misc"), new BoolOption (

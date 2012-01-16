@@ -65,6 +65,7 @@ namespace Properties {
 	extern PBD::PropertyDescriptor<float>             stretch;
 	extern PBD::PropertyDescriptor<float>             shift;
 	extern PBD::PropertyDescriptor<PositionLockStyle> position_lock_style;
+	extern PBD::PropertyDescriptor<uint64_t>          layering_index;
 };
 
 class Playlist;
@@ -177,7 +178,6 @@ class Region
 	bool region_list_equivalent (boost::shared_ptr<const Region>) const;
 	bool source_equivalent (boost::shared_ptr<const Region>) const;
 	bool uses_source (boost::shared_ptr<const Source>) const;
-	bool uses_source_path (const std::string&) const;
 
 	std::string source_string () const;
 
@@ -187,7 +187,6 @@ class Region
 	void set_length (framecnt_t);
 	void set_start (framepos_t);
 	void set_position (framepos_t);
-	void set_position_on_top (framepos_t);
 	void special_set_position (framepos_t);
 	virtual void update_after_tempo_map_change ();
 	void nudge_position (frameoffset_t);
@@ -253,13 +252,11 @@ class Region
 
 	virtual boost::shared_ptr<Region> get_parent() const;
 
-	uint64_t last_layer_op() const { return _last_layer_op; }
-	void set_last_layer_op (uint64_t when);
+	uint64_t layering_index () const { return _layering_index; }
+	void set_layering_index (uint64_t when) { _layering_index = when; }
 
 	virtual bool is_dependent() const { return false; }
 	virtual bool depends_on (boost::shared_ptr<Region> /*other*/) const { return false; }
-
-	virtual int exportme (ARDOUR::Session&, ARDOUR::ExportSpecification&) = 0;
 
 	virtual void add_transient (framepos_t) {
 		// no transients, but its OK
@@ -297,14 +294,6 @@ class Region
 
 	void invalidate_transients ();
 
-	void set_pending_explicit_relayer (bool p) {
-		_pending_explicit_relayer = p;
-	}
-
-	bool pending_explicit_relayer () const {
-		return _pending_explicit_relayer;
-	}
-
 	void drop_sources ();
 
   protected:
@@ -330,12 +319,37 @@ class Region
 	}
 
   protected:
+
 	void send_change (const PBD::PropertyChange&);
+	virtual int _set_state (const XMLNode&, int version, PBD::PropertyChange& what_changed, bool send_signal);
+	void post_set (const PBD::PropertyChange&);
+	virtual void set_position_internal (framepos_t pos, bool allow_bbt_recompute);
+	virtual void set_length_internal (framepos_t pos);
+	
+	DataType _type;
+
+	PBD::Property<bool>        _sync_marked;
+	PBD::Property<bool>        _left_of_split;
+	PBD::Property<bool>        _right_of_split;
+	PBD::Property<bool>        _valid_transients;
+	PBD::Property<framepos_t>  _start;
+	PBD::Property<framecnt_t>  _length;
+	PBD::Property<framepos_t>  _position;
+	/** Sync position relative to the start of our file */
+	PBD::Property<framepos_t>  _sync_position;
+	
+	SourceList              _sources;
+	/** Used when timefx are applied, so we can always use the original source */
+	SourceList              _master_sources;
+
+	AnalysisFeatureList     _transients;
+	
+	boost::weak_ptr<ARDOUR::Playlist> _playlist;
+	
+  private:
 	void mid_thaw (const PBD::PropertyChange&);
 
 	void trim_to_internal (framepos_t position, framecnt_t length);
-	virtual void set_position_internal (framepos_t pos, bool allow_bbt_recompute);
-	virtual void set_length_internal (framepos_t pos);
 	void modify_front (framepos_t new_position, bool reset_fade);
 	void modify_end (framepos_t new_position, bool reset_fade);
 
@@ -350,8 +364,6 @@ class Region
 	virtual void recompute_at_start () = 0;
 	virtual void recompute_at_end () = 0;
 
-	DataType _type;
-
 	PBD::Property<bool>        _muted;
 	PBD::Property<bool>        _opaque;
 	PBD::Property<bool>        _locked;
@@ -359,46 +371,23 @@ class Region
 	PBD::Property<bool>        _whole_file;
 	PBD::Property<bool>        _import;
 	PBD::Property<bool>        _external;
-	PBD::Property<bool>        _sync_marked;
-	PBD::Property<bool>        _left_of_split;
-	PBD::Property<bool>        _right_of_split;
 	PBD::Property<bool>        _hidden;
 	PBD::Property<bool>        _position_locked;
-	PBD::Property<bool>        _valid_transients;
-	PBD::Property<framepos_t>  _start;
-	PBD::Property<framecnt_t>  _length;
-	PBD::Property<framepos_t>  _position;
-	/** Sync position relative to the start of our file */
-	PBD::Property<framepos_t>  _sync_position;
-	PBD::Property<layer_t>     _layer;
 	PBD::Property<framepos_t>  _ancestral_start;
 	PBD::Property<framecnt_t>  _ancestral_length;
 	PBD::Property<float>       _stretch;
 	PBD::Property<float>       _shift;
 	PBD::EnumProperty<PositionLockStyle> _position_lock_style;
+	PBD::Property<uint64_t>    _layering_index;
 
 	framecnt_t              _last_length;
 	framepos_t              _last_position;
 	mutable RegionEditState _first_edit;
 	Timecode::BBT_Time      _bbt_time;
-	AnalysisFeatureList     _transients;
-
-	uint64_t                _last_layer_op;  ///< timestamp
-	SourceList              _sources;
-	/** Used when timefx are applied, so we can always use the original source */
-	SourceList              _master_sources;
-
-	/** true if this region has had its layer explicitly set since the playlist last relayered */
-	bool                    _pending_explicit_relayer;
-
-	boost::weak_ptr<ARDOUR::Playlist> _playlist;
-
-	virtual int _set_state (const XMLNode&, int version, PBD::PropertyChange& what_changed, bool send_signal);
+	layer_t                 _layer;
 
 	void register_properties ();
-	void post_set (const PBD::PropertyChange&);
 
-protected:
 	void use_sources (SourceList const &);
 };
 

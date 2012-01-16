@@ -88,7 +88,11 @@ Editor::draw_metric_marks (const Metrics& metrics)
 			metric_marks.push_back (new MeterMarker (*this, *meter_group, ARDOUR_UI::config()->canvasvar_MeterMarker.get(), buf,
 								 *(const_cast<MeterSection*>(ms))));
 		} else if ((ts = dynamic_cast<const TempoSection*>(*i)) != 0) {
-			snprintf (buf, sizeof (buf), "%.2f", ts->beats_per_minute());
+			if (Config->get_allow_non_quarter_pulse()) {
+				snprintf (buf, sizeof (buf), "%.2f/%.0f", ts->beats_per_minute(), ts->note_type());
+			} else {
+				snprintf (buf, sizeof (buf), "%.2f", ts->beats_per_minute());
+			}
 			metric_marks.push_back (new TempoMarker (*this, *tempo_group, ARDOUR_UI::config()->canvasvar_TempoMarker.get(), buf,
 								 *(const_cast<TempoSection*>(ts))));
 		}
@@ -110,7 +114,7 @@ Editor::tempo_map_changed (const PropertyChange& /*ignored*/)
 		tempo_lines->tempo_map_changed();
 	}
 
-	compute_current_bbt_points(leftmost_frame, leftmost_frame + current_page_frames());
+	compute_current_bbt_points (leftmost_frame, leftmost_frame + current_page_frames());
 	_session->tempo_map().apply_with_metrics (*this, &Editor::draw_metric_marks); // redraw metric markers
 	redraw_measures ();
 	update_tempo_based_rulers ();
@@ -144,31 +148,10 @@ Editor::compute_current_bbt_points (framepos_t leftmost, framepos_t rightmost)
 		return;
 	}
 
-	Timecode::BBT_Time previous_beat, next_beat; // the beats previous to the leftmost frame and after the rightmost frame
+	/* prevent negative values of leftmost from creeping into tempomap
+	 */
 
-	_session->bbt_time(leftmost, previous_beat);
-	_session->bbt_time(rightmost, next_beat);
-
-	if (previous_beat.beats > 1) {
-		previous_beat.beats -= 1;
-	} else if (previous_beat.bars > 1) {
-		previous_beat.bars--;
-		previous_beat.beats += 1;
-	}
-	previous_beat.ticks = 0;
-
-	if (_session->tempo_map().meter_at(rightmost).divisions_per_bar () > next_beat.beats + 1) {
-		next_beat.beats += 1;
-	} else {
-		next_beat.bars += 1;
-		next_beat.beats = 1;
-	}
-	next_beat.ticks = 0;
-
-	delete current_bbt_points;
-	current_bbt_points = 0;
-
-	current_bbt_points = _session->tempo_map().get_points (_session->tempo_map().frame_time (previous_beat), _session->tempo_map().frame_time (next_beat) + 1);
+	_session->tempo_map().get_grid (current_bbt_points_begin, current_bbt_points_end, max (leftmost, (framepos_t) 0), rightmost);
 }
 
 void
@@ -188,8 +171,7 @@ Editor::redraw_measures ()
 void
 Editor::draw_measures ()
 {
-	if (_session == 0 || _show_measures == false ||
-	    !current_bbt_points || current_bbt_points->empty()) {
+	if (_session == 0 || _show_measures == false || distance (current_bbt_points_begin, current_bbt_points_end) == 0) {
 		return;
 	}
 
@@ -197,7 +179,7 @@ Editor::draw_measures ()
 		tempo_lines = new TempoLines(*track_canvas, time_line_group, physical_screen_height(get_window()));
 	}
 
-	tempo_lines->draw(*current_bbt_points, frames_per_unit);
+	tempo_lines->draw (current_bbt_points_begin, current_bbt_points_end, frames_per_unit);
 }
 
 void
@@ -326,9 +308,12 @@ Editor::edit_meter_section (MeterSection* section)
 
 	double note_type = meter_dialog.get_note_type ();
 
+	Timecode::BBT_Time when;
+	meter_dialog.get_bbt_time(when);
+
 	begin_reversible_command (_("replace tempo mark"));
         XMLNode &before = _session->tempo_map().get_state();
-	_session->tempo_map().replace_meter (*section, Meter (bpb, note_type));
+	_session->tempo_map().replace_meter (*section, Meter (bpb, note_type), when);
         XMLNode &after = _session->tempo_map().get_state();
 	_session->add_command(new MementoCommand<TempoMap>(_session->tempo_map(), &before, &after));
 	commit_reversible_command ();
@@ -356,14 +341,9 @@ Editor::edit_tempo_section (TempoSection* section)
 	tempo_dialog.get_bbt_time(when);
 	bpm = max (0.01, bpm);
 
-	cerr << "Editing tempo section to be at " << when << endl;
-	_session->tempo_map().dump (cerr);
 	begin_reversible_command (_("replace tempo mark"));
 	XMLNode &before = _session->tempo_map().get_state();
-	_session->tempo_map().replace_tempo (*section, Tempo (bpm,nt));
-	_session->tempo_map().dump (cerr);
-	_session->tempo_map().move_tempo (*section, when);
-	_session->tempo_map().dump (cerr);
+	_session->tempo_map().replace_tempo (*section, Tempo (bpm, nt), when);
 	XMLNode &after = _session->tempo_map().get_state();
 	_session->add_command (new MementoCommand<TempoMap>(_session->tempo_map(), &before, &after));
 	commit_reversible_command ();
@@ -412,7 +392,7 @@ Editor::real_remove_tempo_marker (TempoSection *section)
 {
 	begin_reversible_command (_("remove tempo mark"));
 	XMLNode &before = _session->tempo_map().get_state();
-	_session->tempo_map().remove_tempo (*section);
+	_session->tempo_map().remove_tempo (*section, true);
 	XMLNode &after = _session->tempo_map().get_state();
 	_session->add_command(new MementoCommand<TempoMap>(_session->tempo_map(), &before, &after));
 	commit_reversible_command ();
@@ -446,7 +426,7 @@ Editor::real_remove_meter_marker (MeterSection *section)
 {
 	begin_reversible_command (_("remove tempo mark"));
 	XMLNode &before = _session->tempo_map().get_state();
-	_session->tempo_map().remove_meter (*section);
+	_session->tempo_map().remove_meter (*section, true);
 	XMLNode &after = _session->tempo_map().get_state();
 	_session->add_command(new MementoCommand<TempoMap>(_session->tempo_map(), &before, &after));
 	commit_reversible_command ();

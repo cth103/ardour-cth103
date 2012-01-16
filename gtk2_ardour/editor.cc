@@ -306,7 +306,6 @@ Editor::Editor ()
         pre_press_cursor = 0;
 	_drags = new DragManager (this);
 	current_mixer_strip = 0;
-	current_bbt_points = 0;
 	tempo_lines = 0;
 
 	snap_type_strings =  I18N (_snap_type_strings);
@@ -1822,7 +1821,7 @@ Editor::add_region_context_items (Menu_Helpers::MenuList& edit_items, boost::sha
 
 	edit_items.push_back (*_popup_region_menu_item);
 	if (track->playlist()->count_regions_at (mouse) > 1 && (layering_order_editor == 0 || !layering_order_editor->is_visible ())) {
-		edit_items.push_back (*manage (_region_actions->get_action ("choose-top-region")->create_menu_item ()));
+		edit_items.push_back (*manage (_region_actions->get_action ("choose-top-region-context-menu")->create_menu_item ()));
 	}
 	edit_items.push_back (SeparatorElem());
 }
@@ -1950,7 +1949,7 @@ Editor::add_dstream_context_items (Menu_Helpers::MenuList& edit_items)
 
 	cutnpaste_items.push_back (MenuElem (_("Cut"), sigc::mem_fun(*this, &Editor::cut)));
 	cutnpaste_items.push_back (MenuElem (_("Copy"), sigc::mem_fun(*this, &Editor::copy)));
-	cutnpaste_items.push_back (MenuElem (_("Paste"), sigc::bind (sigc::mem_fun(*this, &Editor::paste), 1.0f)));
+	cutnpaste_items.push_back (MenuElem (_("Paste"), sigc::bind (sigc::mem_fun(*this, &Editor::paste), 1.0f, true)));
 
 	cutnpaste_items.push_back (SeparatorElem());
 
@@ -2021,7 +2020,7 @@ Editor::add_bus_context_items (Menu_Helpers::MenuList& edit_items)
 
 	cutnpaste_items.push_back (MenuElem (_("Cut"), sigc::mem_fun(*this, &Editor::cut)));
 	cutnpaste_items.push_back (MenuElem (_("Copy"), sigc::mem_fun(*this, &Editor::copy)));
-	cutnpaste_items.push_back (MenuElem (_("Paste"), sigc::bind (sigc::mem_fun(*this, &Editor::paste), 1.0f)));
+	cutnpaste_items.push_back (MenuElem (_("Paste"), sigc::bind (sigc::mem_fun(*this, &Editor::paste), 1.0f, true)));
 
 	Menu *nudge_menu = manage (new Menu());
 	MenuList& nudge_items = nudge_menu->items();
@@ -2478,14 +2477,14 @@ Editor::get_state ()
 /** @param y y offset from the top of all trackviews.
  *  @return pair: TimeAxisView that y is over, layer index.
  *  TimeAxisView may be 0.  Layer index is the layer number if the TimeAxisView is valid and is
- *  in stacked region display mode, otherwise 0.
+ *  in stacked or expanded region display mode, otherwise 0.
  */
-std::pair<TimeAxisView *, layer_t>
+std::pair<TimeAxisView *, double>
 Editor::trackview_by_y_position (double y)
 {
 	for (TrackViewList::iterator iter = track_views.begin(); iter != track_views.end(); ++iter) {
 
-		std::pair<TimeAxisView*, int> const r = (*iter)->covers_y_position (y);
+		std::pair<TimeAxisView*, double> const r = (*iter)->covers_y_position (y);
 		if (r.first) {
 			return r;
 		}
@@ -4359,11 +4358,15 @@ Editor::sort_track_selection (TrackViewList& sel)
 }
 
 framepos_t
-Editor::get_preferred_edit_position (bool ignore_playhead)
+Editor::get_preferred_edit_position (bool ignore_playhead, bool from_context_menu)
 {
 	bool ignored;
 	framepos_t where = 0;
 	EditPoint ep = _edit_point;
+
+	if (from_context_menu && (ep == EditAtMouse)) {
+		return  event_frame (&context_click_event, 0, 0);
+	}
 
 	if (entered_marker) {
                 DEBUG_TRACE (DEBUG::CutNPaste, string_compose ("GPEP: use entered marker @ %1\n", entered_marker->position()));
@@ -4491,7 +4494,7 @@ Editor::get_regions_at (RegionSelection& rs, framepos_t where, const TrackViewLi
 
 			if ((tr = rtv->track()) && ((pl = tr->playlist()))) {
 
-				Playlist::RegionList* regions = pl->regions_at (
+				boost::shared_ptr<Playlist::RegionList> regions = pl->regions_at (
 						(framepos_t) floor ( (double) where * tr->speed()));
 
 				for (Playlist::RegionList::iterator i = regions->begin(); i != regions->end(); ++i) {
@@ -4500,8 +4503,6 @@ Editor::get_regions_at (RegionSelection& rs, framepos_t where, const TrackViewLi
 						rs.add (rv);
 					}
 				}
-
-				delete regions;
 			}
 		}
 	}
@@ -4526,7 +4527,7 @@ Editor::get_regions_after (RegionSelection& rs, framepos_t where, const TrackVie
 
 			if ((tr = rtv->track()) && ((pl = tr->playlist()))) {
 
-				Playlist::RegionList* regions = pl->regions_touched (
+				boost::shared_ptr<Playlist::RegionList> regions = pl->regions_touched (
 					(framepos_t) floor ( (double)where * tr->speed()), max_framepos);
 
 				for (Playlist::RegionList::iterator i = regions->begin(); i != regions->end(); ++i) {
@@ -4537,8 +4538,6 @@ Editor::get_regions_after (RegionSelection& rs, framepos_t where, const TrackVie
 						rs.push_back (rv);
 					}
 				}
-
-				delete regions;
 			}
 		}
 	}
@@ -5334,8 +5333,7 @@ Editor::session_going_away ()
 	hide_measures ();
 	clear_marker_display ();
 
-	delete current_bbt_points;
-	current_bbt_points = 0;
+	current_bbt_points_begin = current_bbt_points_end;
 
 	/* get rid of any existing editor mixer strip */
 
@@ -5359,9 +5357,9 @@ Editor::show_editor_list (bool yn)
 }
 
 void
-Editor::change_region_layering_order ()
+Editor::change_region_layering_order (bool from_context_menu)
 {
-	framepos_t const position = get_preferred_edit_position ();
+	const framepos_t position = get_preferred_edit_position (false, from_context_menu);
 
 	if (!clicked_routeview) {
 		if (layering_order_editor) {
@@ -5383,7 +5381,8 @@ Editor::change_region_layering_order ()
 	}
 
 	if (layering_order_editor == 0) {
-		layering_order_editor = new RegionLayeringOrderEditor(*this);
+		layering_order_editor = new RegionLayeringOrderEditor (*this);
+		layering_order_editor->set_position (WIN_POS_MOUSE);
 	}
 
 	layering_order_editor->set_context (clicked_routeview->name(), _session, pl, position);
@@ -5394,7 +5393,7 @@ void
 Editor::update_region_layering_order_editor ()
 {
 	if (layering_order_editor && layering_order_editor->is_visible ()) {
-		change_region_layering_order ();
+		change_region_layering_order (true);
 	}
 }
 

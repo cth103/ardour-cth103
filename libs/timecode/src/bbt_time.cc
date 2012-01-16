@@ -23,6 +23,14 @@
 
 using namespace Timecode;
 
+/* This defines the smallest division of a "beat".
+
+   The number is intended to have as many integer factors as possible so that
+   1/Nth divisions are integer numbers of ticks.
+
+   1920 has many factors, though going up to 3840 gets a couple more.
+*/
+
 const double BBT_Time::ticks_per_beat = 1920.0;
 
 BBT_Time::BBT_Time (double dbeats)
