@@ -935,9 +935,6 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	void unblock_processing() { g_atomic_int_set (&processing_prohibited, 0); }
 	bool processing_blocked() const { return g_atomic_int_get (&processing_prohibited); }
 
-	Glib::Mutex                process_thread_lock;
-	std::list<ProcessThread*>  process_threads;
-
 	/* slave tracking */
 
 	static const int delta_accumulator_size = 25;
@@ -1388,6 +1385,7 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	static const framecnt_t default_click_emphasis_length;
 
 	Click *get_click();
+	framepos_t _clicks_cleared;
 	void   setup_click_sounds (int which);
 	void   setup_click_sounds (Sample**, Sample const *, framecnt_t*, framecnt_t, std::string const &);
 	void   clear_clicks ();

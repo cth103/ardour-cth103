@@ -36,6 +36,10 @@
 
 class XMLNode;
 
+class BBTTest;
+class FrameposPlusBeatsTest;
+class TempoTest;
+
 namespace ARDOUR {
 
 class Meter;
@@ -64,7 +68,7 @@ class Meter {
 	double note_divisor() const { return _note_type; }
 
 	double frames_per_bar (const Tempo&, framecnt_t sr) const;
-	double frames_per_division (const Tempo&, framecnt_t sr) const;
+	double frames_per_grid (const Tempo&, framecnt_t sr) const;
 
   protected:
 	/** The number of divisions in a bar.  This is a floating point value because
@@ -107,10 +111,6 @@ class MetricSection {
 	   XML state information.
 	*/
 	virtual XMLNode& get_state() const = 0;
-
-	int compare (const MetricSection&) const;
-	bool operator== (const MetricSection& other) const;
-	bool operator!= (const MetricSection& other) const;
 
   private:
 	Timecode::BBT_Time _start;
@@ -199,30 +199,65 @@ class TempoMap : public PBD::StatefulDestructible
 	};
 
 	struct BBTPoint {
-		BBTPointType type;
-		framepos_t  frame;
-		const Meter* meter;
-		const Tempo* tempo;
-		uint32_t bar;
-		uint32_t beat;
+            framepos_t  frame;
+            const MeterSection* meter;
+            const TempoSection* tempo;
+            uint32_t bar;
+            uint32_t beat;
+            
+            BBTPoint (const MeterSection& m, const TempoSection& t, framepos_t f,
+                      uint32_t b, uint32_t e)
+                    : frame (f), meter (&m), tempo (&t), bar (b), beat (e) {}
 
-		BBTPoint (const Meter& m, const Tempo& t, framepos_t f,
-				BBTPointType ty, uint32_t b, uint32_t e)
-			: type (ty), frame (f), meter (&m), tempo (&t), bar (b), beat (e) {}
+            Timecode::BBT_Time bbt() const { return Timecode::BBT_Time (bar, beat, 0); }
+            operator Timecode::BBT_Time() const { return bbt(); }
+            operator framepos_t() const { return frame; }
+	    bool is_bar() const { return beat == 1; }
 	};
 
 	typedef std::vector<BBTPoint> BBTPointList;
 
 	template<class T> void apply_with_metrics (T& obj, void (T::*method)(const Metrics&)) {
 		Glib::RWLock::ReaderLock lm (lock);
-		(obj.*method)(*metrics);
+		(obj.*method)(metrics);
 	}
 
-	BBTPointList *get_points (framepos_t start, framepos_t end) const;
+	void get_grid (BBTPointList::const_iterator&, BBTPointList::const_iterator&, 
+		       framepos_t start, framepos_t end);
+	
+	/* TEMPO- AND METER-SENSITIVE FUNCTIONS 
 
-	void      bbt_time (framepos_t when, Timecode::BBT_Time&) const;
-	framecnt_t frame_time (const Timecode::BBT_Time&) const;
-	framecnt_t bbt_duration_at (framepos_t, const Timecode::BBT_Time&, int dir) const;
+	   bbt_time(), bbt_time_rt(), frame_time() and bbt_duration_at()
+	   are all sensitive to tempo and meter, and will give answers
+	   that align with the grid formed by tempo and meter sections.
+	   
+	   They SHOULD NOT be used to determine the position of events 
+	   whose location is canonically defined in beats.
+	*/
+
+	void       bbt_time (framepos_t when, Timecode::BBT_Time&);
+	/* realtime safe variant of ::bbt_time(), will throw 
+	   std::logic_error if the map is not large enough
+	   to provide an answer.
+	*/
+	void       bbt_time_rt (framepos_t when, Timecode::BBT_Time&);
+        framecnt_t frame_time (const Timecode::BBT_Time&);
+	framecnt_t bbt_duration_at (framepos_t, const Timecode::BBT_Time&, int dir);
+
+	/* TEMPO-SENSITIVE FUNCTIONS
+	   
+	   These next 4 functions will all take tempo in account and should be
+	   used to determine position (and in the last case, distance in beats)
+	   when tempo matters but meter does not.
+
+	   They SHOULD be used to determine the position of events 
+	   whose location is canonically defined in beats.
+	*/
+
+	framepos_t framepos_plus_bbt (framepos_t pos, Timecode::BBT_Time b) const;
+	framepos_t framepos_plus_beats (framepos_t, Evoral::MusicalTime) const;
+	framepos_t framepos_minus_beats (framepos_t, Evoral::MusicalTime) const;
+	Evoral::MusicalTime framewalk_to_beats (framepos_t pos, framecnt_t distance) const;
 
 	static const Tempo& default_tempo() { return _default_tempo; }
 	static const Meter& default_meter() { return _default_meter; }
@@ -256,16 +291,7 @@ class TempoMap : public PBD::StatefulDestructible
 
 	TempoMetric metric_at (Timecode::BBT_Time bbt) const;
 	TempoMetric metric_at (framepos_t) const;
-	void bbt_time_with_metric (framepos_t, Timecode::BBT_Time&, const TempoMetric&) const;
 
-	Timecode::BBT_Time bbt_add (const Timecode::BBT_Time&, const Timecode::BBT_Time&, const TempoMetric&) const;
-	Timecode::BBT_Time bbt_add (const Timecode::BBT_Time& a, const Timecode::BBT_Time& b) const;
-	Timecode::BBT_Time bbt_subtract (const Timecode::BBT_Time&, const Timecode::BBT_Time&) const;
-
-	framepos_t framepos_plus_bbt (framepos_t pos, Timecode::BBT_Time b) const;
-	framepos_t framepos_plus_beats (framepos_t, Evoral::MusicalTime) const;
-	framepos_t framepos_minus_beats (framepos_t, Evoral::MusicalTime) const;
-	Evoral::MusicalTime framewalk_to_beats (framepos_t pos, framecnt_t distance) const;
 
 	void change_existing_tempo_at (framepos_t, double bpm, double note_type);
 	void change_initial_tempo (double bpm, double note_type);
@@ -278,35 +304,38 @@ class TempoMap : public PBD::StatefulDestructible
 	framecnt_t frame_rate () const { return _frame_rate; }
 
   private:
+
+	friend class ::BBTTest;
+	friend class ::FrameposPlusBeatsTest;
+	friend class ::TempoTest;
+	
 	static Tempo    _default_tempo;
 	static Meter    _default_meter;
 
-	Metrics*             metrics;
-	framecnt_t           _frame_rate;
-	framepos_t           last_bbt_when;
-	bool                 last_bbt_valid;
-	Timecode::BBT_Time   last_bbt;
+	Metrics              metrics;
+	framecnt_t          _frame_rate;
 	mutable Glib::RWLock lock;
+	BBTPointList        _map;
 
-	void timestamp_metrics (bool reassign_bar_references);
-	void timestamp_metrics_from_audio_time ();
+	void recompute_map (bool reassign_tempo_bbt, framepos_t end = -1);
+	void extend_map (framepos_t end);
+        void require_map_to (framepos_t pos);
+        void require_map_to (const Timecode::BBT_Time&);
+	void _extend_map (TempoSection* tempo, MeterSection* meter, 
+			  Metrics::iterator next_metric,
+			  Timecode::BBT_Time current, framepos_t current_frame, framepos_t end);
 
+	BBTPointList::const_iterator bbt_before_or_at (framepos_t);
+	BBTPointList::const_iterator bbt_before_or_at (const Timecode::BBT_Time&);
+	BBTPointList::const_iterator bbt_after_or_at (framepos_t);
+	
 	framepos_t round_to_type (framepos_t fr, int dir, BBTPointType);
-
-	framepos_t frame_time_unlocked (const Timecode::BBT_Time&) const;
-
-	void bbt_time_unlocked (framepos_t, Timecode::BBT_Time&) const;
-
-	framecnt_t bbt_duration_at_unlocked (const Timecode::BBT_Time& when, const Timecode::BBT_Time& bbt, int dir) const;
-
+        void bbt_time (framepos_t, Timecode::BBT_Time&, const BBTPointList::const_iterator&);
+	framecnt_t bbt_duration_at_unlocked (const Timecode::BBT_Time& when, const Timecode::BBT_Time& bbt, int dir);
+	
 	const MeterSection& first_meter() const;
 	const TempoSection& first_tempo() const;
-
-	framecnt_t count_frames_between (const Timecode::BBT_Time&, const Timecode::BBT_Time&) const;
-	framecnt_t count_frames_with_metrics (const TempoMetric&, const TempoMetric&, const Timecode::BBT_Time&, const Timecode::BBT_Time&) const;
-	framecnt_t count_frames_between_metrics (const Meter& meter, const Tempo& tempo, const Timecode::BBT_Time& start, const Timecode::BBT_Time& end) const;
-
-	int move_metric_section (MetricSection&, const Timecode::BBT_Time& to);
+	
 	void do_insert (MetricSection* section);
 };
 

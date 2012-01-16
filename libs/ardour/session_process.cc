@@ -38,6 +38,8 @@
 #include "ardour/timestamps.h"
 #include "ardour/graph.h"
 #include "ardour/audio_port.h"
+#include "ardour/tempo.h"
+#include "ardour/cycle_timer.h"
 
 #include "midi++/manager.h"
 #include "midi++/mmc.h"
@@ -79,10 +81,14 @@ Session::process (pframes_t nframes)
 	// the ticker is for sending time information like MidiClock
 	framepos_t transport_frames = transport_frame();
 	Timecode::BBT_Time transport_bbt;
-	bbt_time(transport_frames, transport_bbt);
-	Timecode::Time transport_timecode;
-	timecode_time(transport_frames, transport_timecode);
-	tick (transport_frames, transport_bbt, transport_timecode); /* EMIT SIGNAL */
+	try {
+		_tempo_map->bbt_time_rt (transport_frames, transport_bbt);
+		Timecode::Time transport_timecode;
+		timecode_time(transport_frames, transport_timecode);
+		tick (transport_frames, transport_bbt, transport_timecode); /* EMIT SIGNAL */
+	} catch (...) {
+		/* don't bother with a message */
+	}
 
 	SendFeedback (); /* EMIT SIGNAL */
 
@@ -98,6 +104,8 @@ Session::fail_roll (pframes_t nframes)
 int
 Session::no_roll (pframes_t nframes)
 {
+	PT_TIMING_CHECK (4);
+	
 	framepos_t end_frame = _transport_frame + nframes; // FIXME: varispeed + no_roll ??
 	int ret = 0;
 	bool declick = get_transport_declick_required();
@@ -107,10 +115,11 @@ Session::no_roll (pframes_t nframes)
 		_click_io->silence (nframes);
 	}
 
-	if (_process_graph->threads_in_use() > 0) {
+	if (1 || _process_graph->threads_in_use() > 0) {
 		DEBUG_TRACE(DEBUG::ProcessThreads,"calling graph/no-roll\n");
 		_process_graph->routes_no_roll( nframes, _transport_frame, end_frame, non_realtime_work_pending(), declick);
 	} else {
+		PT_TIMING_CHECK (10);
 		for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
 
 			if ((*i)->is_hidden()) {
@@ -125,8 +134,10 @@ Session::no_roll (pframes_t nframes)
 				break;
 			}
 		}
+		PT_TIMING_CHECK (11);
 	}
 
+	PT_TIMING_CHECK (5);
 	return ret;
 }
 
@@ -237,6 +248,8 @@ Session::get_track_statistics ()
 void
 Session::process_with_events (pframes_t nframes)
 {
+	PT_TIMING_CHECK (3);
+	
 	SessionEvent*  ev;
 	pframes_t      this_nframes;
 	framepos_t     end_frame;

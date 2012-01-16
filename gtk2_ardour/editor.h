@@ -1456,7 +1456,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	/// true if we scroll the tracks rather than the playhead
 	bool _stationary_playhead;
 
-	ARDOUR::TempoMap::BBTPointList *current_bbt_points;
+	ARDOUR::TempoMap::BBTPointList::const_iterator current_bbt_points_begin;
+	ARDOUR::TempoMap::BBTPointList::const_iterator current_bbt_points_end;
 
 	Canvas::BBTLines* _bbt_lines;
 

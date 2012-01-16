@@ -43,9 +43,9 @@
 #include "ardour/buffer.h"
 #include "ardour/buffer_set.h"
 #include "ardour/cycle_timer.h"
-#include "ardour/delivery.h"
 #include "ardour/event_type_map.h"
 #include "ardour/internal_return.h"
+#include "ardour/internal_send.h"
 #include "ardour/io.h"
 #include "ardour/meter.h"
 #include "ardour/midi_port.h"
@@ -335,17 +335,6 @@ AudioEngine::_graph_order_callback (void *arg)
 	return 0;
 }
 
-/** Wrapped which is called by JACK as its process callback.  It is just
- * here to get us back into C++ land by calling AudioEngine::process_callback()
- * @param nframes Number of frames passed by JACK.
- * @param arg User argument passed by JACK, which will be the AudioEngine*.
- */
-int
-AudioEngine::_process_callback (pframes_t nframes, void *arg)
-{
-	return static_cast<AudioEngine *> (arg)->process_callback (nframes);
-}
-
 void*
 AudioEngine::_process_thread (void *arg)
 {
@@ -450,16 +439,17 @@ AudioEngine::process_thread ()
         return 0;
 }
 
-/** Method called by JACK (via _process_callback) which says that there
- * is work to be done.
- * @param nframes Number of frames to process.
+/** Method called by our ::process_thread when there is work to be done.
+ *  @param nframes Number of frames to process.
  */
 int
 AudioEngine::process_callback (pframes_t nframes)
 {
 	GET_PRIVATE_JACK_POINTER_RET(_jack,0);
-	// CycleTimer ct ("AudioEngine::process");
 	Glib::Mutex::Lock tm (_process_lock, Glib::TRY_LOCK);
+
+	PT_TIMING_REF;
+	PT_TIMING_CHECK (1);
 
 	/// The number of frames that will have been processed when we've finished
 	pframes_t next_processed_frames;
@@ -489,7 +479,7 @@ AudioEngine::process_callback (pframes_t nframes)
 
 	/* tell all relevant objects that we're starting a new cycle */
 
-	Delivery::CycleStart (nframes);
+	InternalSend::CycleStart (nframes);
 	Port::set_global_port_buffer_offset (0);
         Port::set_cycle_framecnt (nframes);
 
@@ -516,7 +506,6 @@ AudioEngine::process_callback (pframes_t nframes)
 	} else {
 		if (_session) {
 			_session->process (nframes);
-
 		}
 	}
 
@@ -567,6 +556,9 @@ AudioEngine::process_callback (pframes_t nframes)
 	}
 
 	_processed_frames = next_processed_frames;
+
+	PT_TIMING_CHECK (2);
+	
 	return 0;
 }
 

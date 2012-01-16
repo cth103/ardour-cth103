@@ -4526,7 +4526,7 @@ Editor::get_regions_at (RegionSelection& rs, framepos_t where, const TrackViewLi
 
 			if ((tr = rtv->track()) && ((pl = tr->playlist()))) {
 
-				Playlist::RegionList* regions = pl->regions_at (
+				boost::shared_ptr<Playlist::RegionList> regions = pl->regions_at (
 						(framepos_t) floor ( (double) where * tr->speed()));
 
 				for (Playlist::RegionList::iterator i = regions->begin(); i != regions->end(); ++i) {
@@ -4535,8 +4535,6 @@ Editor::get_regions_at (RegionSelection& rs, framepos_t where, const TrackViewLi
 						rs.add (rv);
 					}
 				}
-
-				delete regions;
 			}
 		}
 	}
@@ -4561,7 +4559,7 @@ Editor::get_regions_after (RegionSelection& rs, framepos_t where, const TrackVie
 
 			if ((tr = rtv->track()) && ((pl = tr->playlist()))) {
 
-				Playlist::RegionList* regions = pl->regions_touched (
+				boost::shared_ptr<Playlist::RegionList> regions = pl->regions_touched (
 					(framepos_t) floor ( (double)where * tr->speed()), max_framepos);
 
 				for (Playlist::RegionList::iterator i = regions->begin(); i != regions->end(); ++i) {
@@ -4572,8 +4570,6 @@ Editor::get_regions_after (RegionSelection& rs, framepos_t where, const TrackVie
 						rs.push_back (rv);
 					}
 				}
-
-				delete regions;
 			}
 		}
 	}
@@ -5376,8 +5372,7 @@ Editor::session_going_away ()
 	_bbt_lines->hide ();
 	clear_marker_display ();
 
-	delete current_bbt_points;
-	current_bbt_points = 0;
+	current_bbt_points_begin = current_bbt_points_end;
 
 	/* get rid of any existing editor mixer strip */
 

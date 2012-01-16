@@ -492,7 +492,7 @@ MidiRegionView::button_release (GdkEventButton* ev)
 					/* Shorten the length by 1 tick so that we can add a new note at the next
 					   grid snap without it overlapping this one.
 					*/
-					beats -= 1.0 / Timecode::BBT_Time::ticks_per_bar_division;
+					beats -= 1.0 / Timecode::BBT_Time::ticks_per_beat;
 
 					create_note_at (editor.pixel_to_frame (event_x), event_y, beats, true);
 				}
@@ -511,7 +511,7 @@ MidiRegionView::button_release (GdkEventButton* ev)
 				/* Shorten the length by 1 tick so that we can add a new note at the next
 				   grid snap without it overlapping this one.
 				*/
-				beats -= 1.0 / Timecode::BBT_Time::ticks_per_bar_division;
+				beats -= 1.0 / Timecode::BBT_Time::ticks_per_beat;
 				
 				create_note_at (editor.pixel_to_frame (event_x), event_y, beats, true);
 
@@ -1535,7 +1535,6 @@ void
 MidiRegionView::update_note (Note* ev, bool update_ghost_regions)
 {
 	boost::shared_ptr<NoteType> note = ev->note();
-
 	const framepos_t note_start_frames = source_beats_to_region_frames (note->time());
 
 	/* trim note display to not overlap the end of its region */
@@ -2342,8 +2341,9 @@ MidiRegionView::note_dropped(NoteBase *, frameoffset_t dt, int8_t dnote)
 	start_note_diff_command (_("move notes"));
 
 	for (Selection::iterator i = _selection.begin(); i != _selection.end() ; ++i) {
-
-		Evoral::MusicalTime new_time = absolute_frames_to_source_beats (source_beats_to_absolute_frames ((*i)->note()->time()) + dt);
+		
+		framepos_t new_frames = source_beats_to_absolute_frames ((*i)->note()->time()) + dt;
+		Evoral::MusicalTime new_time = absolute_frames_to_source_beats (new_frames);
 
 		if (new_time < 0) {
 			continue;
@@ -3034,9 +3034,9 @@ MidiRegionView::note_mouse_position (float x_fraction, float /*y_fraction*/, boo
 {
 	Editor* editor = dynamic_cast<Editor*>(&trackview.editor());
 
-	if (x_fraction > 0.0 && x_fraction < 0.25) {
+	if (x_fraction > 0.0 && x_fraction < 0.2) {
 		editor->set_canvas_cursor (editor->cursors()->left_side_trim);
-	} else if (x_fraction >= 0.75 && x_fraction < 1.0) {
+	} else if (x_fraction >= 0.8 && x_fraction < 1.0) {
 		editor->set_canvas_cursor (editor->cursors()->right_side_trim);
 	} else {
 		if (_pre_enter_cursor && can_set_cursor) {

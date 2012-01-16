@@ -1930,7 +1930,7 @@ MeterMarkerDrag::motion (GdkEvent* event, bool first_move)
 		// not, because we'll remove it from the map).
 		
 		MeterSection section (_marker->meter());
-		
+
 		if (!section.movable()) {
 			return;
 		}
@@ -1951,6 +1951,8 @@ MeterMarkerDrag::motion (GdkEvent* event, bool first_move)
 
 		if (!_copy) {
 			TempoMap& map (_editor->session()->tempo_map());
+			/* get current state */
+			before_state = &map.get_state();
 			/* remove the section while we drag it */
 			map.remove_meter (section, true);
 		}
@@ -1985,13 +1987,12 @@ MeterMarkerDrag::finished (GdkEvent* event, bool movement_occurred)
 
 	} else {
 		_editor->begin_reversible_command (_("move meter mark"));
-		XMLNode &before = map.get_state();
 
 		/* we removed it before, so add it back now */
 		
 		map.add_meter (_marker->meter(), when);
 		XMLNode &after = map.get_state();
-		_editor->session()->add_command(new MementoCommand<TempoMap>(map, &before, &after));
+		_editor->session()->add_command(new MementoCommand<TempoMap>(map, before_state, &after));
 		_editor->commit_reversible_command ();
 	}
 
@@ -2069,6 +2070,8 @@ TempoMarkerDrag::motion (GdkEvent* event, bool first_move)
 
 		if (!_copy) {
 			TempoMap& map (_editor->session()->tempo_map());
+			/* get current state */
+			before_state = &map.get_state();
 			/* remove the section while we drag it */
 			map.remove_tempo (section, true);
 		}
@@ -2088,10 +2091,11 @@ TempoMarkerDrag::finished (GdkEvent* event, bool movement_occurred)
 
 	motion (event, false);
 
+	TempoMap& map (_editor->session()->tempo_map());
+	framepos_t beat_time = map.round_to_beat (last_pointer_frame(), 0);
 	Timecode::BBT_Time when;
 
-	TempoMap& map (_editor->session()->tempo_map());
-	map.bbt_time (last_pointer_frame(), when);
+	map.bbt_time (beat_time, when);
 
 	if (_copy == true) {
 		_editor->begin_reversible_command (_("copy tempo mark"));
@@ -2103,11 +2107,10 @@ TempoMarkerDrag::finished (GdkEvent* event, bool movement_occurred)
 
 	} else {
 		_editor->begin_reversible_command (_("move tempo mark"));
-		XMLNode &before = map.get_state();
 		/* we removed it before, so add it back now */
 		map.add_tempo (_marker->tempo(), when);
 		XMLNode &after = map.get_state();
-		_editor->session()->add_command (new MementoCommand<TempoMap>(map, &before, &after));
+		_editor->session()->add_command (new MementoCommand<TempoMap>(map, before_state, &after));
 		_editor->commit_reversible_command ();
 	}
 
@@ -4441,7 +4444,7 @@ NoteCreateDrag::finished (GdkEvent* event, bool had_movement)
 	framecnt_t length = abs (_note[0] - _note[1]);
 
 	framecnt_t const g = grid_frames (start);
-	double const one_tick = 1 / Timecode::BBT_Time::ticks_per_bar_division;
+	double const one_tick = 1 / Timecode::BBT_Time::ticks_per_beat;
 	
 	if (_editor->snap_mode() == SnapNormal && length < g) {
 		length = g - one_tick;

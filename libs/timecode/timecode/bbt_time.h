@@ -27,7 +27,7 @@ namespace Timecode {
 
 /** Bar, Beat, Tick Time (i.e. Tempo-Based Time) */
 struct BBT_Time {
-	static const double ticks_per_bar_division;
+	static const double ticks_per_beat;
 
 	uint32_t bars;
 	uint32_t beats;
@@ -46,9 +46,31 @@ struct BBT_Time {
 			(bars == other.bars && beats < other.beats) ||
 			(bars == other.bars && beats == other.beats && ticks < other.ticks);
 	}
+
+	bool operator<= (const BBT_Time& other) const {
+		return bars < other.bars ||
+			(bars <= other.bars && beats <= other.beats) ||
+			(bars <= other.bars && beats <= other.beats && ticks <= other.ticks);
+	}
+
+	bool operator> (const BBT_Time& other) const {
+		return bars > other.bars ||
+			(bars == other.bars && beats > other.beats) ||
+			(bars == other.bars && beats == other.beats && ticks > other.ticks);
+	}
+
+	bool operator>= (const BBT_Time& other) const {
+		return bars > other.bars ||
+			(bars >= other.bars && beats >= other.beats) ||
+			(bars >= other.bars && beats >= other.beats && ticks >= other.ticks);
+	}
 	
 	bool operator== (const BBT_Time& other) const {
 		return bars == other.bars && beats == other.beats && ticks == other.ticks;
+	}
+
+	bool operator!= (const BBT_Time& other) const {
+		return bars != other.bars || beats != other.beats || ticks != other.ticks;
 	}
 };
 	
