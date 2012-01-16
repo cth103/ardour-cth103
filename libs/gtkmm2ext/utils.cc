@@ -470,7 +470,6 @@ Gtkmm2ext::rounded_rectangle (Cairo::RefPtr<Cairo::Context> context, double x, d
 
 #endif
 
-<<<<<<< HEAD
 Glib::RefPtr<Gdk::Window>
 Gtkmm2ext::window_to_draw_on (Gtk::Widget& w, Gtk::Widget** parent)
 {
@@ -573,10 +572,8 @@ Gtkmm2ext::fit_to_pixels (cairo_t* cr, std::string name, double avail)
 	return std::make_pair (name, width);
 }
 
-=======
 void
 Gtkmm2ext::free_parameter (gpointer data)
 {
 	free (data);
 }
->>>>>>> Hack into tooltip stuff.
