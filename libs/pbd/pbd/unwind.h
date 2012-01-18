@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2000-2010 Paul Davis
+    Copyright (C) 2012 Paul Davis 
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,25 +17,22 @@
 
 */
 
-#include "option_editor.h"
+#ifndef __libpbd_unwinder_h__
+#define __libpbd_unwinder_h__
 
-namespace ARDOUR {
-	class Session;
-	class SessionConfiguration;
+namespace PBD {
+
+template <typename T>
+class Unwinder {
+  public:
+    Unwinder (T& var, T new_val) : _var (var), _old_val (var) { var = new_val; }
+    ~Unwinder () { _var = _old_val; }
+		
+  private:
+    T& _var;
+    T  _old_val;
+};
+
 }
 
-class SessionOptionEditor : public OptionEditor
-{
-public:
-	SessionOptionEditor (ARDOUR::Session* s);
-
-private:
-	void parameter_changed (std::string const &);
-	void populate_sync_options ();
-
-	ARDOUR::SessionConfiguration* _session_config;
-	ComboOption<ARDOUR::SyncSource>* _sync_source;
-
-	bool set_use_monitor_section (bool);
-	bool get_use_monitor_section ();
-};
+#endif /* __libpbd_unwinder_h__ */
