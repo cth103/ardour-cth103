@@ -2801,6 +2801,7 @@ Editor::setup_toolbar ()
 
 	mouse_mode_button_box->pack_start (mouse_timefx_button);
 	mouse_mode_button_box->pack_start (mouse_audition_button);
+	mouse_mode_button_box->pack_start (mouse_draw_button);
 	mouse_mode_button_box->pack_start (internal_edit_button);
 
 	edit_mode_strings.push_back (edit_mode_to_string (Slide));
@@ -2983,6 +2984,8 @@ void
 Editor::setup_tooltips ()
 {
 	ARDOUR_UI::instance()->set_tip (mouse_move_button, _("Select/Move Objects"));
+	ARDOUR_UI::instance()->set_tip (mouse_select_button, _("Select/Move Ranges"));
+	ARDOUR_UI::instance()->set_tip (mouse_draw_button, _("Draw/Edit MIDI Notes"));
 	ARDOUR_UI::instance()->set_tip (mouse_gain_button, _("Draw Region Gain"));
 	ARDOUR_UI::instance()->set_tip (mouse_zoom_button, _("Select Zoom Range"));
 	ARDOUR_UI::instance()->set_tip (mouse_timefx_button, _("Stretch/Shrink Regions and MIDI Notes"));

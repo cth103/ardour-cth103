@@ -204,21 +204,12 @@ Drag::swap_grab (Canvas::Item* new_item, Gdk::Cursor* cursor, uint32_t time)
 {
 	_item->ungrab ();
 	_item = new_item;
-
-	if (cursor == 0) {
-		cursor = _editor->which_grabber_cursor ();
-	}
-
 	_item->grab ();
 }
 
 void
 Drag::start_grab (GdkEvent* event, Gdk::Cursor *cursor)
 {
-	if (cursor == 0) {
-		cursor = _editor->which_grabber_cursor ();
-	}
-
 	// if dragging with button2, the motion is x constrained, with Alt-button2 it is y constrained
 
 	if (Keyboard::is_button2_event (&event->button)) {
@@ -3106,6 +3097,7 @@ FeatureLineDrag::aborted (bool)
 
 RubberbandSelectDrag::RubberbandSelectDrag (Editor* e, Canvas::Item* i)
 	: Drag (e, i)
+	, _vertical_only (false)
 {
 	DEBUG_TRACE (DEBUG::Drags, "New RubberbandSelectDrag\n");
 }
@@ -3156,8 +3148,13 @@ RubberbandSelectDrag::motion (GdkEvent* event, bool)
 		double x1 = _editor->frame_to_pixel (start);
 		double x2 = _editor->frame_to_pixel (end);
 
-		_editor->rubberband_rect->set (Canvas::Rect (x1, y1, x2, y2));
-
+		Canvas::Rect r (x1, y1, x2, y2);
+		if (_vertical_only) {
+			/* fixed 10 pixel width */
+			r.x1 = x0 + 10;
+		}
+		
+		_editor->rubberband_rect->set (r);
 		_editor->rubberband_rect->show();
 		_editor->rubberband_rect->raise_to_top();
 
@@ -4331,7 +4328,35 @@ MidiRubberbandSelectDrag::deselect_things ()
 	/* XXX */
 }
 
-EditorRubberbandSelectDrag::EditorRubberbandSelectDrag (Editor* e, Canvas::Item* i)
+MidiVerticalSelectDrag::MidiVerticalSelectDrag (Editor* e, MidiRegionView* rv)
+	: RubberbandSelectDrag (e, rv->get_canvas_frame ())
+	, _region_view (rv)
+{
+	_vertical_only = true;
+}
+
+void
+MidiVerticalSelectDrag::select_things (int button_state, framepos_t x1, framepos_t x2, double y1, double y2, bool drag_in_progress)
+{
+	double const y = _region_view->midi_view()->y_position ();
+
+	y1 = max (0.0, y1 - y);
+	y2 = max (0.0, y2 - y);
+	
+	_region_view->update_vertical_drag_selection (
+		y1,
+		y2,
+		Keyboard::modifier_state_contains (button_state, Keyboard::TertiaryModifier)
+		);
+}
+
+void
+MidiVerticalSelectDrag::deselect_things ()
+{
+	/* XXX */
+}
+
+EditorRubberbandSelectDrag::EditorRubberbandSelectDrag (Editor* e, ArdourCanvas::Item* i)
 	: RubberbandSelectDrag (e, i)
 {
 

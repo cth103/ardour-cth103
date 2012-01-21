@@ -22,7 +22,8 @@
 #endif
 
 #include <jack/types.h>
-#include <gtkmm2ext/utils.h>
+
+#include "gtkmm2ext/utils.h"
 
 #include "ardour/profile.h"
 #include "ardour/rc_configuration.h"
@@ -859,6 +860,7 @@ Editor::horizontal_position () const
 {
 	return frame_to_unit (leftmost_frame);
 }
+
 void
 Editor::set_canvas_cursor (Gdk::Cursor* cursor, bool save)
 {

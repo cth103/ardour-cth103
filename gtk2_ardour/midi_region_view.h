@@ -227,6 +227,7 @@ public:
 		Pressed,
 		SelectTouchDragging,
 		SelectRectDragging,
+		SelectVerticalDragging,
 		AddDragging
 	};
 
@@ -312,6 +313,7 @@ protected:
 private:
 
 	friend class MidiRubberbandSelectDrag;
+	friend class MidiVerticalSelectDrag;
 
 	/** Emitted when the selection has been cleared in one MidiRegionView */
 	static PBD::Signal1<void, MidiRegionView*> SelectionCleared;
@@ -354,7 +356,8 @@ private:
 
 	void clear_selection_except (NoteBase* ev, bool signal = true);
 	void clear_selection (bool signal = true) { clear_selection_except (0, signal); }
-	void update_drag_selection (double last_x, double x, double last_y, double y, bool);
+	void update_drag_selection (double last_x, double x, double last_y, double y, bool extend);
+	void update_vertical_drag_selection (double last_y, double y, bool extend);
 
 	void add_to_selection (NoteBase*);
 	void remove_from_selection (NoteBase*);
@@ -468,7 +471,8 @@ private:
 	
 	PBD::ScopedConnection _mouse_mode_connection;
 
-	Gdk::Cursor* _pre_enter_cursor;
+	Gdk::Cursor* pre_enter_cursor;
+	Gdk::Cursor* pre_press_cursor;
 };
 
 
