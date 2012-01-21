@@ -3151,7 +3151,7 @@ RubberbandSelectDrag::motion (GdkEvent* event, bool)
 		Canvas::Rect r (x1, y1, x2, y2);
 		if (_vertical_only) {
 			/* fixed 10 pixel width */
-			r.x1 = x0 + 10;
+			r.x1 = r.x0 + 10;
 		}
 		
 		_editor->rubberband_rect->set (r);
@@ -4356,7 +4356,7 @@ MidiVerticalSelectDrag::deselect_things ()
 	/* XXX */
 }
 
-EditorRubberbandSelectDrag::EditorRubberbandSelectDrag (Editor* e, ArdourCanvas::Item* i)
+EditorRubberbandSelectDrag::EditorRubberbandSelectDrag (Editor* e, Canvas::Item* i)
 	: RubberbandSelectDrag (e, i)
 {
 

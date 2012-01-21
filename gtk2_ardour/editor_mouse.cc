@@ -1251,7 +1251,7 @@ Editor::toggle_internal_editing_from_double_click (GdkEvent* event)
 }
 
 bool
-Editor::button_press_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_type)
+Editor::button_press_handler (Canvas::Item* item, GdkEvent* event, ItemType item_type)
 {
 	if (event->type != GDK_BUTTON_PRESS) {
 		return false;
@@ -1259,7 +1259,7 @@ Editor::button_press_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemTyp
 
         pre_press_cursor = current_canvas_cursor;
 
-	_track_canvas->grab_focus();
+	_track_canvas->grab_focus ();
 
 	if (_session && _session->actively_recording()) {
 		return true;

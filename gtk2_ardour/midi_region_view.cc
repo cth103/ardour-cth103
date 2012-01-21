@@ -2283,7 +2283,7 @@ MidiRegionView::update_vertical_drag_selection (double y1, double y2, bool exten
 }
 
 void
-MidiRegionView::remove_from_selection (CanvasNoteEvent* ev)
+MidiRegionView::remove_from_selection (NoteBase* ev)
 {
 	Selection::iterator i = _selection.find (ev);
 
