@@ -64,11 +64,11 @@ static string poor_mans_glob (string path)
 
 ArdourStartup::ArdourStartup ()
 	: _response (RESPONSE_OK)
-	, ic_new_session_button (_("Open a new session"))
+	, ic_new_session_button (_("Create a new session"))
 	, ic_existing_session_button (_("Open an existing session"))
 	, monitor_via_hardware_button (_("Use an external mixer or the hardware mixer of your audio interface.\n\
 Ardour will play NO role in monitoring"))
-	, monitor_via_ardour_button (string_compose (_("Ask %1 to playback material as it is being recorded"), PROGRAM_NAME))
+	, monitor_via_ardour_button (string_compose (_("Ask %1 to play back material as it is being recorded"), PROGRAM_NAME))
 	, new_folder_chooser (FILE_CHOOSER_ACTION_SELECT_FOLDER)
 	, more_new_session_options_button (_("I'd like more options for this session"))
 	, _output_limit_count_adj (1, 0, 100, 1, 10, 0)
@@ -334,7 +334,7 @@ ArdourStartup::setup_new_user_page ()
 	foomatic->set_markup (string_compose (_("\
 <span size=\"larger\">%1 is a digital audio workstation. You can use it to \
 record, edit and mix multi-track audio. You can produce your \
-own CDs, mix video soundtracks, or just experiment with new \
+own CDs, mix video soundtracks, or experiment with new \
 ideas about music and sound. \
 \n\n\
 There are a few things that need to be configured before you start \
@@ -432,7 +432,8 @@ signal as well as record it. This is called \"monitoring\". There are\n\
 different ways to do this depending on the equipment you have and the\n\
 configuration of that equipment. The two most common are presented here.\n\
 Please choose whichever one is right for your setup.\n\n\
-<i>(You can change this preference at any time, via the Preferences dialog)</i>"));
+<i>(You can change this preference at any time, via the Preferences dialog)</i>\n\n\
+<i>If you do not understand what this is about, just accept the default.</i>"));
 	monitor_label.set_alignment (0.0, 0.0);
 
 	vbox->set_spacing (6);
@@ -471,8 +472,7 @@ ArdourStartup::setup_monitor_section_choice_page ()
 
 	no_monitor_section_button.set_label (_("Use a Master bus directly"));
 	l->set_alignment (0.0, 1.0);
-	l->set_markup(_("Connect the Master bus directly to your hardware outputs.\n\
-<i>Preferable for simple use</i>."));
+	l->set_markup(_("Connect the Master bus directly to your hardware outputs. This is preferable for simple usage."));
 
 	vbox = manage (new VBox);
 	vbox->set_spacing (6);
@@ -506,7 +506,8 @@ greater control in monitoring without affecting the mix."));
 	use_monitor_section_button.signal_toggled().connect (sigc::mem_fun (*this, &ArdourStartup::config_changed));
 	no_monitor_section_button.signal_toggled().connect (sigc::mem_fun (*this, &ArdourStartup::config_changed));
 
-	monitor_section_label.set_markup(_("<i><small>(You can change this preference at any time, via the Preferences dialog)</small></i>"));
+	monitor_section_label.set_markup(_("<i>You can change this preference at any time, via the Preferences dialog). You can also add or remove the monitor section to/from any session.</i>\n\n\
+<i>If you do not understand what this is about, just accept the default.</i>"));
 	monitor_section_label.set_alignment (0.0, 0.0);
 
 	hbox->pack_start (*main_vbox, true, true, 8);

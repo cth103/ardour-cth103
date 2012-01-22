@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2000 Paul Davis
+    Copyright (C) 2012 Paul Davis 
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,13 +17,22 @@
 
 */
 
-#include <cstdlib>
-#include <cmath>
+#ifndef __libpbd_unwinder_h__
+#define __libpbd_unwinder_h__
 
-#include "editor.h"
+namespace PBD {
 
-#include "i18n.h"
+template <typename T>
+class Unwinder {
+  public:
+    Unwinder (T& var, T new_val) : _var (var), _old_val (var) { var = new_val; }
+    ~Unwinder () { _var = _old_val; }
+		
+  private:
+    T& _var;
+    T  _old_val;
+};
 
-using namespace ARDOUR;
-using namespace PBD;
-using namespace Gtk;
+}
+
+#endif /* __libpbd_unwinder_h__ */

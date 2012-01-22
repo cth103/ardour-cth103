@@ -180,7 +180,7 @@ Editor::which_grabber_cursor ()
 
 	if (_internal_editing) {
 		switch (mouse_mode) {
-		case MouseRange:
+		case MouseDraw:
 			c = _cursors->midi_pencil;
 			break;
 
@@ -242,7 +242,7 @@ Editor::set_canvas_cursor ()
 	if (_internal_editing) {
 
 		switch (mouse_mode) {
-		case MouseRange:
+		case MouseDraw:
 			current_canvas_cursor = _cursors->midi_pencil;
 			break;
 
@@ -267,6 +267,11 @@ Editor::set_canvas_cursor ()
 
 		case MouseObject:
 			current_canvas_cursor = which_grabber_cursor();
+			break;
+
+		case MouseDraw:
+			/* shouldn't be possible, but just cover it anyway ... */
+			current_canvas_cursor = _cursors->midi_pencil;
 			break;
 
 		case MouseGain:
@@ -340,6 +345,10 @@ Editor::set_mouse_mode (MouseMode m, bool force)
 		act = ActionManager::get_action (X_("MouseMode"), X_("set-mouse-mode-object"));
 		break;
 
+	case MouseDraw:
+		act = ActionManager::get_action (X_("MouseMode"), X_("set-mouse-mode-draw"));
+		break;
+
 	case MouseGain:
 		act = ActionManager::get_action (X_("MouseMode"), X_("set-mouse-mode-gain"));
 		break;
@@ -372,6 +381,62 @@ Editor::set_mouse_mode (MouseMode m, bool force)
 void
 Editor::mouse_mode_toggled (MouseMode m)
 {
+	Glib::RefPtr<Action> act;
+	Glib::RefPtr<ToggleAction> tact;
+
+	switch (m) {
+	case MouseRange:
+		act = ActionManager::get_action (X_("MouseMode"), X_("set-mouse-mode-range"));
+		break;
+
+	case MouseObject:
+		act = ActionManager::get_action (X_("MouseMode"), X_("set-mouse-mode-object"));
+		break;
+
+	case MouseDraw:
+		act = ActionManager::get_action (X_("MouseMode"), X_("set-mouse-mode-draw"));
+		break;
+
+	case MouseGain:
+		act = ActionManager::get_action (X_("MouseMode"), X_("set-mouse-mode-gain"));
+		break;
+
+	case MouseZoom:
+		act = ActionManager::get_action (X_("MouseMode"), X_("set-mouse-mode-zoom"));
+		break;
+
+	case MouseTimeFX:
+		act = ActionManager::get_action (X_("MouseMode"), X_("set-mouse-mode-timefx"));
+		break;
+
+	case MouseAudition:
+		act = ActionManager::get_action (X_("MouseMode"), X_("set-mouse-mode-audition"));
+		break;
+	}
+
+	assert (act);
+
+	tact = Glib::RefPtr<ToggleAction>::cast_dynamic (act);
+	assert (tact);
+
+	if (!tact->get_active()) {
+		/* this was just the notification that the old mode has been
+		 * left. we'll get called again with the new mode active in a
+		 * jiffy.
+		 */
+		return;
+	}
+
+	switch (m) {
+	case MouseDraw:
+		act = ActionManager::get_action (X_("MouseMode"), X_("toggle-internal-edit"));
+		tact = Glib::RefPtr<ToggleAction>::cast_dynamic(act);
+		tact->set_active (true);
+		break;
+	default:
+		break;
+	}
+
 	mouse_mode = m;
 
 	instant_save ();
@@ -421,8 +486,13 @@ Editor::step_mouse_mode (bool next)
 		break;
 
 	case MouseRange:
-		if (next) set_mouse_mode (MouseZoom);
+		if (next) set_mouse_mode (MouseDraw);
 		else set_mouse_mode (MouseObject);
+		break;
+
+	case MouseDraw:
+		if (next) set_mouse_mode (MouseZoom);
+		else set_mouse_mode (MouseRange);
 		break;
 
 	case MouseZoom:
@@ -436,7 +506,7 @@ Editor::step_mouse_mode (bool next)
 			if (Profile->get_sae()) {
 				set_mouse_mode (MouseObject);
 			} else {
-				set_mouse_mode (MouseRange);
+				set_mouse_mode (MouseDraw);
 			}
 		}
 		break;
@@ -486,7 +556,8 @@ Editor::button_selection (ArdourCanvas::Item* /*item*/, GdkEvent* event, ItemTyp
 	     (mouse_mode != MouseAudition || item_type != RegionItem) &&
 	     (mouse_mode != MouseTimeFX || item_type != RegionItem) &&
 	     (mouse_mode != MouseGain) &&
-	     (mouse_mode != MouseRange)) ||
+	     (mouse_mode != MouseRange) &&
+	     (mouse_mode != MouseDraw)) ||
 	    ((event->type != GDK_BUTTON_PRESS && event->type != GDK_BUTTON_RELEASE) || event->button.button > 3) ||
 	    internal_editing()) {
 
@@ -512,7 +583,7 @@ Editor::button_selection (ArdourCanvas::Item* /*item*/, GdkEvent* event, ItemTyp
 	case RegionItem:
 		if (mouse_mode != MouseRange || _join_object_range_state == JOIN_OBJECT_RANGE_OBJECT) {
 			set_selected_regionview_from_click (press, op, true);
-		} else if (event->type == GDK_BUTTON_PRESS) {
+		} else if (press) {
 			selection->clear_tracks ();
 			set_selected_track_as_side_effect (op, true);
 		}
@@ -836,7 +907,10 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 				}
 
 				if (internal_editing ()) {
-					/* no region drags in internal edit mode */
+					if (event->type == GDK_2BUTTON_PRESS && event->button.button == 1) {
+						Glib::RefPtr<Action> act = ActionManager::get_action (X_("MouseMode"), X_("toggle-internal-edit"));
+						act->activate ();
+					}
 					break;
 				}
 
@@ -849,7 +923,7 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 					add_region_drag (item, event, clicked_regionview);
 				}
 
-				if (_join_object_range_state == JOIN_OBJECT_RANGE_OBJECT && !selection->regions.empty()) {
+				if (!internal_editing() && (_join_object_range_state == JOIN_OBJECT_RANGE_OBJECT && !selection->regions.empty())) {
 					_drags->add (new SelectionDrag (this, clicked_axisview->get_selection_rect (clicked_selection)->rect, SelectionDrag::SelectionMove));
 				}
 
@@ -1125,6 +1199,9 @@ Editor::button_press_handler_2 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 
 		break;
 
+	case MouseDraw:
+		return false;
+
 	case MouseRange:
 		/* relax till release */
 		return true;
@@ -1145,6 +1222,22 @@ Editor::button_press_handler_2 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 	}
 
 	return false;
+}
+
+bool
+Editor::toggle_internal_editing_from_double_click (GdkEvent* event)
+{
+	if (_drags->active()) {
+		_drags->end_grab (event);
+	} 
+	Glib::RefPtr<Action> act = ActionManager::get_action (X_("MouseMode"), X_("toggle-internal-edit"));
+	act->activate ();
+
+	/* prevent reversion of edit cursor on button release */
+	
+	pre_press_cursor = 0;
+
+	return true;
 }
 
 bool
@@ -1170,7 +1263,7 @@ Editor::button_press_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemTyp
 	}
 
         pre_press_cursor = current_canvas_cursor;
-
+	
 	track_canvas->grab_focus();
 
 	if (_session && _session->actively_recording()) {
@@ -1566,8 +1659,10 @@ Editor::button_release_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 			}
 			break;
 
+		case MouseDraw:
+			return true;
+			
 		case MouseRange:
-
 			// x_style_paste (where, 1.0);
 			return true;
 			break;
@@ -2564,12 +2659,8 @@ void
 Editor::set_internal_edit (bool yn)
 {
 	_internal_editing = yn;
-
+	
 	if (yn) {
-		mouse_select_button.set_image (::get_icon("midi_tool_pencil"));
-		ARDOUR_UI::instance()->set_tip (mouse_select_button, _("Draw/Edit MIDI Notes"));
-		mouse_mode_toggled (mouse_mode);
-
                 pre_internal_mouse_mode = mouse_mode;
 
                 for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {
@@ -2577,20 +2668,17 @@ Editor::set_internal_edit (bool yn)
                 }
 
 	} else {
-
-		mouse_select_button.set_image (::get_icon("tool_range"));
-		ARDOUR_UI::instance()->set_tip (mouse_select_button, _("Select/Move Ranges"));
-		mouse_mode_toggled (mouse_mode); // sets cursor
-
                 for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {
                         (*i)->leave_internal_edit_mode ();
                 }
 
-                if (mouse_mode == MouseRange && pre_internal_mouse_mode != MouseRange) {
+                if (mouse_mode == MouseDraw && pre_internal_mouse_mode != MouseDraw) {
                         /* we were drawing .. flip back to something sensible */
                         set_mouse_mode (pre_internal_mouse_mode);
                 }
 	}
+	
+	set_canvas_cursor ();
 }
 
 /** Update _join_object_range_state which indicate whether we are over the top or bottom half of a region view,

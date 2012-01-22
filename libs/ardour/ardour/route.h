@@ -162,6 +162,7 @@ class Route : public SessionObject, public Automatable, public RouteGroupMember,
 
 	void set_listen (bool yn, void* src);
 	bool listening_via_monitor () const;
+	void enable_monitor_send ();
 
 	void set_phase_invert (uint32_t, bool yn);
 	void set_phase_invert (boost::dynamic_bitset<>);
@@ -242,7 +243,7 @@ class Route : public SessionObject, public Automatable, public RouteGroupMember,
 	int add_processor_by_index (boost::shared_ptr<Processor>, int, ProcessorStreams* err = 0, bool activation_allowed = true);
 	int add_processor (boost::shared_ptr<Processor>, ProcessorList::iterator iter, ProcessorStreams* err = 0, bool activation_allowed = true);
 	int add_processors (const ProcessorList&, boost::shared_ptr<Processor> before, ProcessorStreams* err = 0);
-	int remove_processor (boost::shared_ptr<Processor>, ProcessorStreams* err = 0);
+	int remove_processor (boost::shared_ptr<Processor>, ProcessorStreams* err = 0, bool need_process_lock = true);
 	int remove_processors (const ProcessorList&, ProcessorStreams* err = 0);
 	int reorder_processors (const ProcessorList& new_order, ProcessorStreams* err = 0);
 	void disable_processors (Placement);
@@ -303,9 +304,8 @@ class Route : public SessionObject, public Automatable, public RouteGroupMember,
 
 	PBD::Signal1<void,void*> SelectedChanged;
 
-	int listen_via_monitor ();
-	int listen_via (boost::shared_ptr<Route>, Placement p);
-	void drop_listen (boost::shared_ptr<Route>);
+	int add_aux_send (boost::shared_ptr<Route>, Placement p);
+	void remove_aux_or_listen (boost::shared_ptr<Route>);
 
 	/**
 	 * return true if this route feeds the first argument via at least one
@@ -396,6 +396,15 @@ class Route : public SessionObject, public Automatable, public RouteGroupMember,
 
 	void automation_snapshot (framepos_t now, bool force=false);
 	void protect_automation ();
+
+	enum { 
+		/* These numbers are taken from MIDI Machine Control,
+		   which can only control up to 317 tracks without
+		   doing sysex segmentation.
+		*/
+		MasterBusRemoteControlID = 318,
+		MonitorBusRemoteControlID = 319,
+	};
 
 	void set_remote_control_id (uint32_t id, bool notify_class_listeners = true);
 	uint32_t remote_control_id () const;

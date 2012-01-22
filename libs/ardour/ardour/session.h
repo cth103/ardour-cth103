@@ -51,6 +51,7 @@
 
 #include "ardour/ardour.h"
 #include "ardour/chan_count.h"
+#include "ardour/delivery.h"
 #include "ardour/rc_configuration.h"
 #include "ardour/session_configuration.h"
 #include "ardour/session_event.h"
@@ -628,7 +629,10 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	PBD::Signal0<void> SoloChanged;
 	PBD::Signal0<void> IsolatedChanged;
 
-	/* control/master out */
+	/* monitor/master out */
+
+	void add_monitor_section ();
+	void remove_monitor_section ();
 
 	boost::shared_ptr<Route> monitor_out() const { return _monitor_out; }
 	boost::shared_ptr<Route> master_out() const { return _master_out; }
@@ -647,12 +651,15 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	}
 
 	uint32_t next_send_id();
+	uint32_t next_aux_send_id();
 	uint32_t next_return_id();
 	uint32_t next_insert_id();
 	void mark_send_id (uint32_t);
+	void mark_aux_send_id (uint32_t);
 	void mark_return_id (uint32_t);
 	void mark_insert_id (uint32_t);
 	void unmark_send_id (uint32_t);
+	void unmark_aux_send_id (uint32_t);
 	void unmark_return_id (uint32_t);
 	void unmark_insert_id (uint32_t);
 
@@ -1310,6 +1317,7 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	/* INSERT AND SEND MANAGEMENT */
 
 	boost::dynamic_bitset<uint32_t> send_bitset;
+	boost::dynamic_bitset<uint32_t> aux_send_bitset;
 	boost::dynamic_bitset<uint32_t> return_bitset;
 	boost::dynamic_bitset<uint32_t> insert_bitset;
 
@@ -1405,6 +1413,8 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 
 	boost::shared_ptr<Route> _master_out;
 	boost::shared_ptr<Route> _monitor_out;
+
+	void auto_connect_master_bus ();
 
 	/* Windows VST support */
 
@@ -1505,6 +1515,9 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	    and solo/mute computations.
 	*/
 	GraphEdges _current_route_graph;
+
+	uint32_t next_control_id () const;
+	bool ignore_route_processor_changes;
 };
 
 } // namespace ARDOUR

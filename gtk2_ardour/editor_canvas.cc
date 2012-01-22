@@ -24,7 +24,8 @@
 #include <libgnomecanvasmm/init.h>
 #include <libgnomecanvasmm/pixbuf.h>
 #include <jack/types.h>
-#include <gtkmm2ext/utils.h>
+
+#include "gtkmm2ext/utils.h"
 
 #include "ardour/profile.h"
 #include "ardour/rc_configuration.h"
@@ -916,6 +917,7 @@ Editor::horizontal_position () const
 {
 	return frame_to_unit (leftmost_frame);
 }
+
 void
 Editor::set_canvas_cursor (Gdk::Cursor* cursor, bool save)
 {
@@ -923,7 +925,9 @@ Editor::set_canvas_cursor (Gdk::Cursor* cursor, bool save)
 		current_canvas_cursor = cursor;
 	}
 
-	if (is_drawable()) {
+	Glib::RefPtr<Gdk::Window> win = track_canvas->get_window();
+
+	if (win) {
 	        track_canvas->get_window()->set_cursor (*cursor);
 	}
 }

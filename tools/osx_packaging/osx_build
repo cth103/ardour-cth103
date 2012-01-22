@@ -297,8 +297,8 @@ cp $BUILD_ROOT/libs/panners/*/lib*.dylib $Panners
 	echo ExportFormat: $f; cp "$f" ../tools/osx_packaging/$ExportFormats ; 
 done)
 (cd $BUILD_ROOT/templates && \
-    for f in *.template ; do 
-	echo Template: $f ; cp "$f" ../../tools/osx_packaging/$Templates ; 
+    for f in * ; do 
+	echo Template: $f ; cp -r "$f" ../../tools/osx_packaging/$Templates ; 
 done)
 
 # MIDI maps
@@ -365,6 +365,9 @@ cp $BUILD_ROOT/gtk2_ardour/ardour3_ui_dark.rc $Resources
 
 cp -r ../../gtk2_ardour/icons $Resources
 cp -r ../../gtk2_ardour/pixmaps $Resources
+
+# splash screen stuff
+cp -R ../../gtk2_ardour/splash.png $Shared
 
 # go through and recursively remove any .svn dirs in the bundle
 for svndir in `find $APPDIR -name .svn -type dir`; do
