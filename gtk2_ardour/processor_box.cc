@@ -92,12 +92,13 @@ RefPtr<Action> ProcessorBox::paste_action;
 RefPtr<Action> ProcessorBox::cut_action;
 RefPtr<Action> ProcessorBox::rename_action;
 RefPtr<Action> ProcessorBox::edit_action;
-RefPtr<Action> ProcessorBox::controls_action;
+RefPtr<Action> ProcessorBox::edit_generic_action;
 Glib::RefPtr<Gdk::Pixbuf> ProcessorEntry::_slider_pixbuf;
 
-ProcessorEntry::ProcessorEntry (boost::shared_ptr<Processor> p, Width w)
+ProcessorEntry::ProcessorEntry (ProcessorBox* parent, boost::shared_ptr<Processor> p, Width w)
 	: _button (ArdourButton::led_default_elements)
 	, _position (PreFader)
+	, _parent (parent)
 	, _processor (p)
 	, _width (w)
 	, _visual_state (Gtk::STATE_NORMAL)
@@ -125,20 +126,19 @@ ProcessorEntry::ProcessorEntry (boost::shared_ptr<Processor> p, Width w)
 
 		set<Evoral::Parameter> p = _processor->what_can_be_automated ();
 		for (set<Evoral::Parameter>::iterator i = p.begin(); i != p.end(); ++i) {
-			if (boost::dynamic_pointer_cast<Amp> (_processor)) {
-				/* Don't give Fader processors separate controls here */
-				continue;
-			}
-
-			string d = _processor->describe_parameter (*i);
-			if (boost::dynamic_pointer_cast<Send> (_processor)) {
-				/* Little hack; don't label send level faders */
-				d = "";
-			}
-
-			Control* c = new Control (_slider_pixbuf, _processor->automation_control (*i), d);
+			
+			Control* c = new Control (_slider_pixbuf, _processor->automation_control (*i), _processor->describe_parameter (*i));
 			_controls.push_back (c);
-			_vbox.pack_start (c->box);
+
+			if (boost::dynamic_pointer_cast<Amp> (_processor) == 0) {
+				/* Add non-Amp controls to the processor box */
+				_vbox.pack_start (c->box);
+			}
+
+			if (boost::dynamic_pointer_cast<Send> (_processor)) {
+				/* Don't label send faders */
+				c->hide_label ();
+			}
 		}
 
 		setup_tooltip ();
@@ -325,16 +325,20 @@ void
 ProcessorEntry::show_all_controls ()
 {
 	for (list<Control*>::iterator i = _controls.begin(); i != _controls.end(); ++i) {
-		(*i)->show ();
+		(*i)->set_visible (true);
 	}
+
+	_parent->update_gui_object_state (this);
 }
 
 void
 ProcessorEntry::hide_all_controls ()
 {
 	for (list<Control*>::iterator i = _controls.begin(); i != _controls.end(); ++i) {
-		(*i)->hide ();
+		(*i)->set_visible (false);
 	}
+
+	_parent->update_gui_object_state (this);
 }
 
 void
@@ -367,35 +371,85 @@ ProcessorEntry::hide_things ()
 	}
 }
 
-ProcessorEntry::Control::Control (Glib::RefPtr<Gdk::Pixbuf> s, boost::shared_ptr<AutomationControl> c, string const & l)
+
+Menu *
+ProcessorEntry::build_controls_menu ()
+{
+	using namespace Menu_Helpers;
+	Menu* menu = manage (new Menu);
+	MenuList& items = menu->items ();
+
+	items.push_back (
+		MenuElem (_("Show All Controls"), sigc::mem_fun (*this, &ProcessorEntry::show_all_controls))
+		);
+		
+	items.push_back (
+		MenuElem (_("Hide All Controls"), sigc::mem_fun (*this, &ProcessorEntry::hide_all_controls))
+		);
+
+	if (!_controls.empty ()) {
+		items.push_back (SeparatorElem ());
+	}
+	
+	for (list<Control*>::iterator i = _controls.begin(); i != _controls.end(); ++i) {
+		items.push_back (CheckMenuElem ((*i)->name ()));
+		CheckMenuItem* c = dynamic_cast<CheckMenuItem*> (&items.back ());
+		c->set_active ((*i)->visible ());
+		c->signal_toggled().connect (sigc::bind (sigc::mem_fun (*this, &ProcessorEntry::toggle_control_visibility), *i));
+	}
+
+	return menu;
+}
+
+void
+ProcessorEntry::toggle_control_visibility (Control* c)
+{
+	c->set_visible (!c->visible ());
+	_parent->update_gui_object_state (this);
+}
+
+ProcessorEntry::Control::Control (Glib::RefPtr<Gdk::Pixbuf> s, boost::shared_ptr<AutomationControl> c, string const & n)
 	: _control (c)
 	, _adjustment (gain_to_slider_position_with_max (1.0, Config->get_max_gain()), 0, 1, 0.01, 0.1)
 	, _slider (s, &_adjustment, 0, false)
-	, _ignore_slider_adjustment (false)
+	, _button (ArdourButton::Element (ArdourButton::Text | ArdourButton::Indicator))
+	, _ignore_ui_adjustment (false)
 	, _visible (false)
+	, _name (n)
 {
 	_slider.set_controllable (c);
 
-	if (!l.empty ()) {
+	if (c->toggled()) {
+		_button.set_text (_name);
+		_button.set_led_left (true);
+		_button.set_name ("processor control button");
+		box.pack_start (_button);
+		_button.show ();
+
+		_button.signal_clicked.connect (sigc::mem_fun (*this, &Control::button_clicked));
+		_button.signal_led_clicked.connect (sigc::mem_fun (*this, &Control::button_clicked));
+		c->Changed.connect (_connection, MISSING_INVALIDATOR, boost::bind (&Control::control_changed, this), gui_context ());
+
+	} else {
+		
 		box.pack_start (_label);
 		_label.show ();
-		_label.set_text (l);
+		_label.set_text (_name);
+		box.pack_start (_slider);
+		_slider.show ();
+
+		double const lo = c->internal_to_interface (c->lower ());
+		double const up = c->internal_to_interface (c->upper ());
+		
+		_adjustment.set_lower (lo);
+		_adjustment.set_upper (up);
+		_adjustment.set_step_increment ((up - lo) / 100);
+		_adjustment.set_page_increment ((up - lo) / 10);
+		_slider.set_default_value (c->internal_to_interface (c->normal ()));
+		
+		_adjustment.signal_value_changed().connect (sigc::mem_fun (*this, &Control::slider_adjusted));
+		c->Changed.connect (_connection, MISSING_INVALIDATOR, boost::bind (&Control::control_changed, this), gui_context ());
 	}
-
-	_slider.show ();
-	box.pack_start (_slider);
-
-	double const lo = c->internal_to_interface (c->lower ());
-	double const up = c->internal_to_interface (c->upper ());
-
-	_adjustment.set_lower (lo);
-	_adjustment.set_upper (up);
-	_adjustment.set_step_increment ((up - lo) / 100);
-	_adjustment.set_page_increment ((up - lo) / 10);
-	_slider.set_default_value (c->internal_to_interface (c->normal ()));
-
-	_adjustment.signal_value_changed().connect (sigc::mem_fun (*this, &Control::slider_adjusted));
-	c->Changed.connect (_connection, MISSING_INVALIDATOR, boost::bind (&Control::control_changed, this), gui_context ());
 
 	control_changed ();
 }
@@ -409,7 +463,7 @@ ProcessorEntry::Control::set_pixel_width (int p)
 void
 ProcessorEntry::Control::slider_adjusted ()
 {
-	if (_ignore_slider_adjustment) {
+	if (_ignore_ui_adjustment) {
 		return;
 	}
 	
@@ -423,6 +477,21 @@ ProcessorEntry::Control::slider_adjusted ()
 }
 
 void
+ProcessorEntry::Control::button_clicked ()
+{
+	boost::shared_ptr<AutomationControl> c = _control.lock ();
+
+	if (!c) {
+		return;
+	}
+
+	bool const n = _button.active_state() == Gtkmm2ext::Active ? false : true;
+	
+	c->set_value (n ? 1 : 0);
+	_button.set_active_state (n ? Gtkmm2ext::Active : Gtkmm2ext::ActiveState (0));
+}
+
+void
 ProcessorEntry::Control::control_changed ()
 {
 	boost::shared_ptr<AutomationControl> c = _control.lock ();
@@ -430,18 +499,25 @@ ProcessorEntry::Control::control_changed ()
 		return;
 	}
 
-	_ignore_slider_adjustment = true;
+	_ignore_ui_adjustment = true;
 
-	_adjustment.set_value (c->internal_to_interface (c->get_value ()));
+	if (c->toggled ()) {
 
-	stringstream s;
-	s.precision (1);
-	s.setf (ios::fixed, ios::floatfield);
-	s << c->internal_to_user (c->get_value ());
+		_button.set_active_state (c->get_value() > 0.5 ? Gtkmm2ext::Active : Gtkmm2ext::ActiveState (0));
+		
+	} else {
+
+		_adjustment.set_value (c->internal_to_interface (c->get_value ()));
+		
+		stringstream s;
+		s.precision (1);
+		s.setf (ios::fixed, ios::floatfield);
+		s << c->internal_to_user (c->get_value ());
+		
+		_slider.set_tooltip_text (s.str ());
+	}
 	
-	_slider.set_tooltip_text (s.str ());
-	
-	_ignore_slider_adjustment = false;
+	_ignore_ui_adjustment = false;
 }
 
 void
@@ -459,28 +535,22 @@ ProcessorEntry::Control::set_state (XMLNode const * node)
 	XMLNode* n = GUIObjectState::get_node (node, state_id ());
 	if (n) {
 		XMLProperty* p = n->property (X_("visible"));
-		if (p && string_is_affirmative (p->value ())) {
-			show ();
-		} else {
-			hide ();
-		}
+		set_visible (p && string_is_affirmative (p->value ()));
 	} else {
-		hide ();
+		set_visible (false);
 	}
 }
 
 void
-ProcessorEntry::Control::show ()
+ProcessorEntry::Control::set_visible (bool v)
 {
-	box.show ();
-	_visible = true;
-}
-
-void
-ProcessorEntry::Control::hide ()
-{
-	box.hide ();
-	_visible = false;
+	if (v) {
+		box.show ();
+	} else {
+		box.hide ();
+	}
+	
+	_visible = v;
 }
 
 /** Called when the Editor might have re-shown things that
@@ -494,6 +564,12 @@ ProcessorEntry::Control::hide_things ()
 	}
 }
 
+void
+ProcessorEntry::Control::hide_label ()
+{
+	_label.hide ();
+}
+
 string
 ProcessorEntry::Control::state_id () const
 {
@@ -503,13 +579,13 @@ ProcessorEntry::Control::state_id () const
 	return string_compose (X_("control %1"), c->id().to_s ());
 }
 
-BlankProcessorEntry::BlankProcessorEntry (Width w)
-	: ProcessorEntry (boost::shared_ptr<Processor>(), w)
+BlankProcessorEntry::BlankProcessorEntry (ProcessorBox* b, Width w)
+	: ProcessorEntry (b, boost::shared_ptr<Processor>(), w)
 {
 }
 
-PluginInsertProcessorEntry::PluginInsertProcessorEntry (boost::shared_ptr<ARDOUR::PluginInsert> p, Width w)
-	: ProcessorEntry (p, w)
+PluginInsertProcessorEntry::PluginInsertProcessorEntry (ProcessorBox* b, boost::shared_ptr<ARDOUR::PluginInsert> p, Width w)
+	: ProcessorEntry (b, p, w)
 	, _plugin_insert (p)
 {
 	p->SplittingChanged.connect (
@@ -693,6 +769,21 @@ ProcessorBox::object_drop(DnDVBox<ProcessorEntry>* source, ProcessorEntry* posit
 	boost::shared_ptr<Processor> p;
 	if (position) {
 		p = position->processor ();
+		if (!p) {
+			/* dropped on the blank entry (which will be before the
+			   fader), so use the first non-blank child as our
+			   `dropped on' processor */
+			list<ProcessorEntry*> c = processor_display.children ();
+			list<ProcessorEntry*>::iterator i = c.begin ();
+			while (dynamic_cast<BlankProcessorEntry*> (*i)) {
+				assert (i != c.end ());
+				++i;
+			}
+
+			assert (i != c.end ());
+			p = (*i)->processor ();
+			assert (p);
+		}
 	}
 
 	list<ProcessorEntry*> children = source->selection ();
@@ -800,9 +891,9 @@ ProcessorBox::show_processor_menu (int arg)
 		}
 	}
 
-	boost::shared_ptr<Processor> single_selection;
+	ProcessorEntry* single_selection = 0;
 	if (processor_display.selection().size() == 1) {
-		single_selection = processor_display.selection().front()->processor ();
+		single_selection = processor_display.selection().front();
 	}
 
 	/* And the controls submenu */
@@ -811,7 +902,7 @@ ProcessorBox::show_processor_menu (int arg)
 
 	if (controls_menu_item) {
 		if (single_selection) {
-			Menu* m = build_controls_menu (single_selection);
+			Menu* m = single_selection->build_controls_menu ();
 			if (m && !m->items().empty()) {
 				controls_menu_item->set_submenu (*m);
 				controls_menu_item->set_sensitive (true);
@@ -833,11 +924,14 @@ ProcessorBox::show_processor_menu (int arg)
 
 	boost::shared_ptr<PluginInsert> pi;
 	if (single_selection) {
-		pi = boost::dynamic_pointer_cast<PluginInsert> (single_selection);
+		pi = boost::dynamic_pointer_cast<PluginInsert> (single_selection->processor ());
 	}
 
+	/* allow editing with an Ardour-generated UI for plugin inserts with editors */
+	edit_generic_action->set_sensitive (pi && pi->plugin()->has_editor ());
+
 	/* disallow rename for multiple selections, for plugin inserts and for the fader */
-	rename_action->set_sensitive (single_selection && !pi && !boost::dynamic_pointer_cast<Amp> (single_selection));
+	rename_action->set_sensitive (single_selection && !pi && !boost::dynamic_pointer_cast<Amp> (single_selection->processor ()));
 
 	processor_menu->popup (1, arg);
 
@@ -848,10 +942,8 @@ ProcessorBox::show_processor_menu (int arg)
 	processor_display.get_pointer (x, y);
 	_placement = processor_display.add_placeholder (y);
 
-	if (_visible_prefader_processors == 0) {
-		if (_placement == 1) {
-			_placement = 0;
-		}
+	if (_visible_prefader_processors == 0 && _placement > 0) {
+		--_placement;
 	}
 }
 
@@ -946,7 +1038,11 @@ ProcessorBox::processor_button_press_event (GdkEventButton *ev, ProcessorEntry* 
 
 		if (_session->engine().connected()) {
 			/* XXX giving an error message here is hard, because we may be in the midst of a button press */
-			toggle_edit_processor (processor);
+			if (Config->get_use_plugin_own_gui ()) {
+				toggle_edit_processor (processor);
+			} else {
+				toggle_edit_generic_processor (processor);
+			}
 		}
 		ret = true;
 
@@ -1214,10 +1310,7 @@ ProcessorBox::choose_aux (boost::weak_ptr<Route> wr)
 		return;
 	}
 
-	boost::shared_ptr<RouteList> rlist (new RouteList);
-	rlist->push_back (_route);
-
-	_session->add_internal_sends (target, PreFader, rlist);
+	_session->add_internal_send (target, _placement, _route);
 }
 
 void
@@ -1250,7 +1343,7 @@ ProcessorBox::redisplay_processors ()
 					       &_visible_prefader_processors, &fader_seen));
 
 	if (_visible_prefader_processors == 0) { // fader only
-		BlankProcessorEntry* bpe = new BlankProcessorEntry (_width);
+		BlankProcessorEntry* bpe = new BlankProcessorEntry (this, _width);
 		bpe->set_pixel_width (get_allocation().get_width());
 		processor_display.add_child (bpe);
 	}
@@ -1371,9 +1464,9 @@ ProcessorBox::add_processor_to_display (boost::weak_ptr<Processor> p)
 	boost::shared_ptr<PluginInsert> plugin_insert = boost::dynamic_pointer_cast<PluginInsert> (processor);
 	ProcessorEntry* e = 0;
 	if (plugin_insert) {
-		e = new PluginInsertProcessorEntry (plugin_insert, _width);
+		e = new PluginInsertProcessorEntry (this, plugin_insert, _width);
 	} else {
-		e = new ProcessorEntry (processor, _width);
+		e = new ProcessorEntry (this, processor, _width);
 	}
 
 	e->set_pixel_width (get_allocation().get_width());
@@ -2050,6 +2143,29 @@ ProcessorBox::toggle_edit_processor (boost::shared_ptr<Processor> processor)
 	}
 }
 
+/** Toggle a generic (Ardour-generated) plugin UI */
+void
+ProcessorBox::toggle_edit_generic_processor (boost::shared_ptr<Processor> processor)
+{
+	boost::shared_ptr<PluginInsert> plugin_insert
+		= boost::dynamic_pointer_cast<PluginInsert>(processor);
+	if (!plugin_insert) {
+		return;
+	}
+
+	Container*      toplevel  = get_toplevel();
+	Window*         win       = dynamic_cast<Gtk::Window*>(toplevel);
+	PluginUIWindow* plugin_ui = new PluginUIWindow(win, plugin_insert, true, false);
+	plugin_ui->set_title(generate_processor_title (plugin_insert));
+
+	if (plugin_ui->is_visible()) {
+		plugin_ui->hide();
+	} else {
+		plugin_ui->show_all();
+		plugin_ui->present();
+	}
+}
+
 void
 ProcessorBox::register_actions ()
 {
@@ -2113,7 +2229,21 @@ ProcessorBox::register_actions ()
 		popup_act_grp, X_("edit"), _("Edit..."),
 		sigc::ptr_fun (ProcessorBox::rb_edit));
 
+	edit_generic_action = ActionManager::register_action (
+		popup_act_grp, X_("edit-generic"), _("Edit with basic controls..."),
+		sigc::ptr_fun (ProcessorBox::rb_edit_generic));
+
 	ActionManager::add_action_group (popup_act_grp);
+}
+
+void
+ProcessorBox::rb_edit_generic ()
+{
+	if (_current_processor_box == 0) {
+		return;
+	}
+
+	_current_processor_box->for_selected_processors (&ProcessorBox::toggle_edit_generic_processor);
 }
 
 void
@@ -2441,51 +2571,6 @@ void
 ProcessorBox::processor_menu_unmapped ()
 {
 	processor_display.remove_placeholder ();
-}
-
-Menu *
-ProcessorBox::build_controls_menu (boost::shared_ptr<Processor> p)
-{
-	using namespace Menu_Helpers;
-	Menu* menu = manage (new Menu);
-	MenuList& items = menu->items ();
-
-	items.push_back (
-		MenuElem (_("Show All Controls"), sigc::bind (sigc::mem_fun (*this, &ProcessorBox::show_or_hide_all_controls), boost::weak_ptr<Processor> (p), true)
-			));
-	
-	items.push_back (
-		MenuElem (_("Hide All Controls"), sigc::bind (sigc::mem_fun (*this, &ProcessorBox::show_or_hide_all_controls), boost::weak_ptr<Processor> (p), false)
-			));
-
-	return menu;
-}
-
-void
-ProcessorBox::show_or_hide_all_controls (boost::weak_ptr<Processor> w, bool show)
-{
-	boost::shared_ptr<Processor> p (w.lock ());
-	if (!p) {
-		return;
-	}
-
-	list<ProcessorEntry*> processors = processor_display.children ();
-	list<ProcessorEntry*>::iterator i = processors.begin();
-	while (i != processors.end () && (*i)->processor() != p) {
-		++i;
-	}
-
-	if (i == processors.end ()) {
-		return;
-	}
-
-	if (show) {
-		(*i)->show_all_controls ();
-	} else {
-		(*i)->hide_all_controls ();
-	}
-
-	update_gui_object_state (*i);
 }
 
 XMLNode *

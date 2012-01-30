@@ -43,6 +43,7 @@
 #include "pbd/enumwriter.h"
 #include "pbd/memento_command.h"
 #include "pbd/unknown_type.h"
+#include "pbd/stacktrace.h"
 
 #include <glibmm/miscutils.h>
 #include <gtkmm/image.h>
@@ -338,6 +339,7 @@ Editor::Editor ()
 
 	current_interthread_info = 0;
 	_show_measures = true;
+	_maximised = false;
 	show_gain_after_trim = false;
 
 	have_pending_keyboard_selection = false;
@@ -565,10 +567,6 @@ Editor::Editor ()
 	_the_notebook.set_tab_pos (Gtk::POS_RIGHT);
 	_the_notebook.show_all ();
 
-	post_maximal_editor_width = 0;
-	post_maximal_horizontal_pane_position = 0;
-	post_maximal_editor_height = 0;
-	post_maximal_vertical_pane_position = 0;
 	_notebook_shrunk = false;
 
 	editor_summary_pane.pack1(edit_packer);
@@ -1828,17 +1826,10 @@ Editor::add_region_context_items (Menu_Helpers::MenuList& edit_items, boost::sha
 		_popup_region_menu_item->set_label (menu_item_name);
 	}
 
-	/* Use the mouse position rather than the edit point to decide whether to show the `choose top region'
-	   dialogue.  If we use the edit point it gets a bit messy because the user still has to click over
-	   *some* region in order to get the region context menu stuff to be displayed at all.
-	*/
-
-	framepos_t mouse;
-	bool ignored;
-	mouse_frame (mouse, ignored);
+	const framepos_t position = get_preferred_edit_position (false, true);
 
 	edit_items.push_back (*_popup_region_menu_item);
-	if (track->playlist()->count_regions_at (mouse) > 1 && (layering_order_editor == 0 || !layering_order_editor->is_visible ())) {
+	if (track->playlist()->count_regions_at (position) > 1 && (layering_order_editor == 0 || !layering_order_editor->is_visible ())) {
 		edit_items.push_back (*manage (_region_actions->get_action ("choose-top-region-context-menu")->create_menu_item ()));
 	}
 	edit_items.push_back (SeparatorElem());
@@ -2271,6 +2262,9 @@ Editor::set_state (const XMLNode& node, int /*version*/)
 	if ((prop = node.property ("left-frame")) != 0) {
 		framepos_t pos;
 		if (sscanf (prop->value().c_str(), "%" PRId64, &pos) == 1) {
+			if (pos < 0) {
+				pos = 0;
+			}
 			reset_x_origin (pos);
 		}
 	}
@@ -2290,7 +2284,7 @@ Editor::set_state (const XMLNode& node, int /*version*/)
 	}
 
 	if ((prop = node.property ("join-object-range"))) {
-		join_object_range_button.set_active (string_is_affirmative (prop->value ()));
+		ActionManager::set_toggle_action ("MouseMode", "set-mouse-mode-object-range", string_is_affirmative (prop->value ()));
 	}
 
 	if ((prop = node.property ("edit-point"))) {
@@ -2392,6 +2386,13 @@ Editor::set_state (const XMLNode& node, int /*version*/)
 		_regions->set_state (**i);
 	}
 
+	if ((prop = node.property ("maximised"))) {
+		bool yn = string_is_affirmative (prop->value());
+		if (yn) {
+			ActionManager::do_action ("Common", "ToggleMaximalEditor");
+		}
+	}
+
 	return 0;
 }
 
@@ -2424,8 +2425,6 @@ Editor::get_state ()
 		snprintf(buf,sizeof(buf), "%d",gtk_paned_get_position (static_cast<Paned*>(&edit_pane)->gobj()));
 		geometry->add_property("edit-horizontal-pane-pos", string(buf));
 		geometry->add_property("notebook-shrunk", _notebook_shrunk ? "1" : "0");
-		snprintf(buf,sizeof(buf), "%d",pre_maximal_horizontal_pane_position);
-		geometry->add_property("pre-maximal-horizontal-pane-position", string(buf));
 		snprintf(buf,sizeof(buf), "%d",gtk_paned_get_position (static_cast<Paned*>(&editor_summary_pane)->gobj()));
 		geometry->add_property("edit-vertical-pane-pos", string(buf));
 
@@ -2453,6 +2452,7 @@ Editor::get_state ()
 	node->add_property ("y-origin", buf);
 
 	node->add_property ("show-measures", _show_measures ? "yes" : "no");
+	node->add_property ("maximised", _maximised ? "yes" : "no");
 	node->add_property ("follow-playhead", _follow_playhead ? "yes" : "no");
 	node->add_property ("stationary-playhead", _stationary_playhead ? "yes" : "no");
 	node->add_property ("xfades-visible", _xfade_visibility ? "yes" : "no");
@@ -3534,10 +3534,6 @@ Editor::pane_allocation_handler (Allocation &alloc, Paned* which)
 			_notebook_shrunk = string_is_affirmative (prop->value ());
 		}
 
-		if (geometry && (prop = geometry->property ("pre-maximal-horizontal-pane-position"))) {
-			pre_maximal_horizontal_pane_position = atoi (prop->value ());
-		}
-
 		if (!geometry || (prop = geometry->property ("edit-horizontal-pane-pos")) == 0) {
 			/* initial allocation is 90% to canvas, 10% to notebook */
 			pos = (int) floor (alloc.get_width() * 0.90f);
@@ -3548,9 +3544,6 @@ Editor::pane_allocation_handler (Allocation &alloc, Paned* which)
 
 		if (GTK_WIDGET(edit_pane.gobj())->allocation.width > pos) {
 			edit_pane.set_position (pos);
-			if (pre_maximal_horizontal_pane_position == 0) {
-				pre_maximal_horizontal_pane_position = pos;
-			}
 		}
 
 		done = (Pane) (done | Horizontal);
@@ -3566,12 +3559,12 @@ Editor::pane_allocation_handler (Allocation &alloc, Paned* which)
 			pos = (int) floor (alloc.get_height() * 0.90f);
 			snprintf (buf, sizeof(buf), "%d", pos);
 		} else {
+
 			pos = atoi (prop->value());
 		}
 
 		if (GTK_WIDGET(editor_summary_pane.gobj())->allocation.height > pos) {
 			editor_summary_pane.set_position (pos);
-			pre_maximal_vertical_pane_position = pos;
 		}
 
 		done = (Pane) (done | Vertical);
@@ -3923,98 +3916,40 @@ Editor::session_state_saved (string)
 void
 Editor::maximise_editing_space ()
 {
-	/* these calls will leave each tearoff visible *if* it is torn off
-	 */
-
-	_mouse_mode_tearoff->set_visible (false);
-	_tools_tearoff->set_visible (false);
-	_zoom_tearoff->set_visible (false);
-
-	pre_maximal_horizontal_pane_position = edit_pane.get_position ();
-	pre_maximal_vertical_pane_position = editor_summary_pane.get_position ();
-	pre_maximal_editor_width = this->get_width ();
-	pre_maximal_editor_height = this->get_height ();
-
-	if (post_maximal_horizontal_pane_position == 0) {
-		post_maximal_horizontal_pane_position = edit_pane.get_width();
-	}
-
-	if (post_maximal_vertical_pane_position == 0) {
-		post_maximal_vertical_pane_position = editor_summary_pane.get_height();
+	if (_maximised) {
+		return;
 	}
 
 	fullscreen ();
 
-	if (post_maximal_editor_width) {
-		edit_pane.set_position (post_maximal_horizontal_pane_position -
-			abs(post_maximal_editor_width - pre_maximal_editor_width));
-	} else {
-		edit_pane.set_position (post_maximal_horizontal_pane_position);
+	if (!Config->get_keep_tearoffs()) {
+		/* these calls will leave each tearoff visible *if* it is torn off, 
+		   but invisible otherwise.
+		*/
+		_mouse_mode_tearoff->set_visible (false);
+		_tools_tearoff->set_visible (false);
+		_zoom_tearoff->set_visible (false);
 	}
 
-	/* Hack: we must do this in an idle handler for it to work; see comment in
-	   restore_editing_space()
-	*/
-	   
-	Glib::signal_idle().connect (
-		sigc::bind (
-			sigc::mem_fun (*this, &Editor::idle_reset_vertical_pane_position),
-			post_maximal_vertical_pane_position
-			)
-		);
-
-	if (Config->get_keep_tearoffs()) {
-		_mouse_mode_tearoff->set_visible (true);
-		_tools_tearoff->set_visible (true);
-		if (Config->get_show_zoom_tools ()) {
-			_zoom_tearoff->set_visible (true);
-		}
-	}
-
-}
-
-bool
-Editor::idle_reset_vertical_pane_position (int p)
-{
-	editor_summary_pane.set_position (p);
-	return false;
+	_maximised = true;
 }
 
 void
 Editor::restore_editing_space ()
 {
-	// user changed width/height of panes during fullscreen
-
-	if (post_maximal_horizontal_pane_position != edit_pane.get_position()) {
-		post_maximal_horizontal_pane_position = edit_pane.get_position();
-	}
-
-	if (post_maximal_vertical_pane_position != editor_summary_pane.get_position()) {
-		post_maximal_vertical_pane_position = editor_summary_pane.get_position();
+	if (!_maximised) {
+		return;
 	}
 
 	unfullscreen();
 
-	_mouse_mode_tearoff->set_visible (true);
-	_tools_tearoff->set_visible (true);
-	if (Config->get_show_zoom_tools ()) {
+	if (!Config->get_keep_tearoffs()) {
+		_mouse_mode_tearoff->set_visible (true);
+		_tools_tearoff->set_visible (true);
 		_zoom_tearoff->set_visible (true);
 	}
-	post_maximal_editor_width = this->get_width();
-	post_maximal_editor_height = this->get_height();
 
-	edit_pane.set_position (pre_maximal_horizontal_pane_position + abs(this->get_width() - pre_maximal_editor_width));
-
-	/* This is a bit of a hack, but it seems that if you set the vertical pane position
-	   here it gets reset to some wrong value after this method has finished.  Doing
-	   the setup in an idle callback seems to work.
-	*/
-	Glib::signal_idle().connect (
-		sigc::bind (
-			sigc::mem_fun (*this, &Editor::idle_reset_vertical_pane_position),
-			pre_maximal_vertical_pane_position
-			)
-		);
+	_maximised = false;
 }
 
 /**
@@ -4340,6 +4275,7 @@ Editor::idle_visual_changer ()
 		*/
 
 		leftmost_frame = pending_visual_change.time_origin;
+		assert (leftmost_frame >= 0);
 	}
 
 	if (p & VisualChange::ZoomLevel) {
@@ -4528,10 +4464,10 @@ Editor::get_regions_at (RegionSelection& rs, framepos_t where, const TrackViewLi
 
 			if ((tr = rtv->track()) && ((pl = tr->playlist()))) {
 
-				boost::shared_ptr<Playlist::RegionList> regions = pl->regions_at (
+				boost::shared_ptr<RegionList> regions = pl->regions_at (
 						(framepos_t) floor ( (double) where * tr->speed()));
 
-				for (Playlist::RegionList::iterator i = regions->begin(); i != regions->end(); ++i) {
+				for (RegionList::iterator i = regions->begin(); i != regions->end(); ++i) {
 					RegionView* rv = rtv->view()->find_view (*i);
 					if (rv) {
 						rs.add (rv);
@@ -4561,10 +4497,10 @@ Editor::get_regions_after (RegionSelection& rs, framepos_t where, const TrackVie
 
 			if ((tr = rtv->track()) && ((pl = tr->playlist()))) {
 
-				boost::shared_ptr<Playlist::RegionList> regions = pl->regions_touched (
+				boost::shared_ptr<RegionList> regions = pl->regions_touched (
 					(framepos_t) floor ( (double)where * tr->speed()), max_framepos);
 
-				for (Playlist::RegionList::iterator i = regions->begin(); i != regions->end(); ++i) {
+				for (RegionList::iterator i = regions->begin(); i != regions->end(); ++i) {
 
 					RegionView* rv = rtv->view()->find_view (*i);
 
@@ -5426,7 +5362,7 @@ Editor::change_region_layering_order (bool from_context_menu)
 		layering_order_editor->set_position (WIN_POS_MOUSE);
 	}
 
-	layering_order_editor->set_context (clicked_routeview->name(), _session, pl, position);
+	layering_order_editor->set_context (clicked_routeview->name(), _session, clicked_routeview, pl, position);
 	layering_order_editor->maybe_present ();
 }
 
@@ -5489,10 +5425,16 @@ Editor::notebook_tab_clicked (GdkEventButton* ev, Gtk::Widget* page)
 		/* double-click on a notebook tab shrinks or expands the notebook */
 
 		if (_notebook_shrunk) {
-			edit_pane.set_position (pre_maximal_horizontal_pane_position);
+			if (pre_notebook_shrink_pane_width) {
+				edit_pane.set_position (*pre_notebook_shrink_pane_width);
+			}
 			_notebook_shrunk = false;
 		} else {
-			pre_maximal_horizontal_pane_position = edit_pane.get_position ();
+			pre_notebook_shrink_pane_width = edit_pane.get_position();
+
+			/* this expands the LHS of the edit pane to cover the notebook
+			   PAGE but leaves the tabs visible.
+			 */
 			edit_pane.set_position (edit_pane.get_position() + page->get_width());
 			_notebook_shrunk = true;
 		}

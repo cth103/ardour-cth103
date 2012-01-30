@@ -145,6 +145,8 @@ Route::init ()
 	_input->changed.connect_same_thread (*this, boost::bind (&Route::input_change_handler, this, _1, _2));
 	_input->PortCountChanging.connect_same_thread (*this, boost::bind (&Route::input_port_count_changing, this, _1));
 
+	_output->changed.connect_same_thread (*this, boost::bind (&Route::output_change_handler, this, _1, _2));
+
 	/* add amp processor  */
 
 	_amp.reset (new Amp (_session));
@@ -511,18 +513,19 @@ Route::process_output_buffers (BufferSet& bufs,
 
 	for (ProcessorList::iterator i = _processors.begin(); i != _processors.end(); ++i) {
 
-		if (boost::dynamic_pointer_cast<UnknownProcessor> (*i)) {
-			break;
+		if (meter_already_run && boost::dynamic_pointer_cast<PeakMeter> (*i)) {
+			/* don't ::run() the meter, otherwise it will have its previous peak corrupted */
+			continue;
 		}
 
-		if (boost::dynamic_pointer_cast<PeakMeter> (*i) && meter_already_run) {
-			/* don't ::run() the meter, otherwise it will have its previous peak corrupted */
+		if (Config->get_plugins_stop_with_transport() && _session.transport_speed() == 0 && boost::dynamic_pointer_cast<PluginInsert> (*i)) {
+			/* don't run plugins with the transport stopped, if configured this way */
 			continue;
 		}
 		
 #ifndef NDEBUG
 		/* if it has any inputs, make sure they match */
-		if ((*i)->input_streams() != ChanCount::ZERO) {
+		if (boost::dynamic_pointer_cast<UnknownProcessor> (*i) == 0 && (*i)->input_streams() != ChanCount::ZERO) {
 			if (bufs.count() != (*i)->input_streams()) {
 				cerr << _name << " bufs = " << bufs.count()
 				     << " input for " << (*i)->name() << " = " << (*i)->input_streams()
@@ -871,16 +874,17 @@ dump_processors(const string& name, const list<boost::shared_ptr<Processor> >& p
 }
 #endif
 
-int
-Route::add_processor (boost::shared_ptr<Processor> processor, Placement placement, ProcessorStreams* err, bool activation_allowed)
+/** Supposing that we want to insert a Processor at a given Placement, return
+ *  the processor to add the new one before (or 0 to add at the end).
+ */
+boost::shared_ptr<Processor>
+Route::before_processor_for_placement (Placement p)
 {
+	Glib::RWLock::ReaderLock lm (_processor_lock);
+
 	ProcessorList::iterator loc;
-
-	/* XXX this is not thread safe - we don't hold the lock across determining the iter
-	   to add before and actually doing the insertion. dammit.
-	*/
-
-	if (placement == PreFader) {
+	
+	if (p == PreFader) {
 		/* generic pre-fader: insert immediately before the amp */
 		loc = find (_processors.begin(), _processors.end(), _amp);
 	} else {
@@ -888,24 +892,20 @@ Route::add_processor (boost::shared_ptr<Processor> processor, Placement placemen
 		loc = find (_processors.begin(), _processors.end(), _main_outs);
 	}
 
-	return add_processor (processor, loc, err, activation_allowed);
+	return loc != _processors.end() ? *loc : boost::shared_ptr<Processor> ();
 }
 
-
-/** Add a processor to a route such that it ends up with a given index into the visible processors.
- *  @param index Index to add the processor at, or -1 to add at the end of the list.
+/** Supposing that we want to insert a Processor at a given index, return
+ *  the processor to add the new one before (or 0 to add at the end).
  */
-
-int
-Route::add_processor_by_index (boost::shared_ptr<Processor> processor, int index, ProcessorStreams* err, bool activation_allowed)
+boost::shared_ptr<Processor>
+Route::before_processor_for_index (int index)
 {
-	/* XXX this is not thread safe - we don't hold the lock across determining the iter
-	   to add before and actually doing the insertion. dammit.
-	*/
-
 	if (index == -1) {
-		return add_processor (processor, _processors.end(), err, activation_allowed);
+		return boost::shared_ptr<Processor> ();
 	}
+
+	Glib::RWLock::ReaderLock lm (_processor_lock);
 	
 	ProcessorList::iterator i = _processors.begin ();
 	int j = 0;
@@ -916,15 +916,36 @@ Route::add_processor_by_index (boost::shared_ptr<Processor> processor, int index
 		
 		++i;
 	}
-	
-	return add_processor (processor, i, err, activation_allowed);
+
+	return (i != _processors.end() ? *i : boost::shared_ptr<Processor> ());
+}
+
+/** Add a processor either pre- or post-fader
+ *  @return 0 on success, non-0 on failure.
+ */
+int
+Route::add_processor (boost::shared_ptr<Processor> processor, Placement placement, ProcessorStreams* err, bool activation_allowed)
+{
+	return add_processor (processor, before_processor_for_placement (placement), err, activation_allowed);
+}
+
+
+/** Add a processor to a route such that it ends up with a given index into the visible processors.
+ *  @param index Index to add the processor at, or -1 to add at the end of the list.
+ *  @return 0 on success, non-0 on failure.
+ */
+int
+Route::add_processor_by_index (boost::shared_ptr<Processor> processor, int index, ProcessorStreams* err, bool activation_allowed)
+{
+	return add_processor (processor, before_processor_for_index (index), err, activation_allowed);
 }
 
 /** Add a processor to the route.
- *  @param iter an iterator in _processors; the new processor will be inserted immediately before this location.
+ *  @param before An existing processor in the list, or 0; the new processor will be inserted immediately before it (or at the end).
+ *  @return 0 on success, non-0 on failure.
  */
 int
-Route::add_processor (boost::shared_ptr<Processor> processor, ProcessorList::iterator iter, ProcessorStreams* err, bool activation_allowed)
+Route::add_processor (boost::shared_ptr<Processor> processor, boost::shared_ptr<Processor> before, ProcessorStreams* err, bool activation_allowed)
 {
 	assert (processor != _meter);
 	assert (processor != _main_outs);
@@ -943,25 +964,32 @@ Route::add_processor (boost::shared_ptr<Processor> processor, ProcessorList::ite
 		boost::shared_ptr<PluginInsert> pi;
 		boost::shared_ptr<PortInsert> porti;
 
-		ProcessorList::iterator loc = find(_processors.begin(), _processors.end(), processor);
-
 		if (processor == _amp) {
-			// Ensure only one amp is in the list at any time
-			if (loc != _processors.end()) {
-				if (iter == loc) { // Already in place, do nothing
+			/* Ensure that only one amp is in the list at any time */
+			ProcessorList::iterator check = find (_processors.begin(), _processors.end(), processor);
+			if (check != _processors.end()) {
+				if (before == _amp) {
+					/* Already in position; all is well */
 					return 0;
-				} else { // New position given, relocate
-					_processors.erase (loc);
+				} else {
+					_processors.erase (check);
 				}
 			}
+		}
 
-		} else {
-			if (loc != _processors.end()) {
-				cerr << "ERROR: Processor added to route twice!" << endl;
+		assert (find (_processors.begin(), _processors.end(), processor) == _processors.end ());
+
+		ProcessorList::iterator loc;
+		if (before) {
+			/* inserting before a processor; find it */
+			loc = find (_processors.begin(), _processors.end(), before);
+			if (loc == _processors.end ()) {
+				/* Not found */
 				return 1;
 			}
-
-			loc = iter;
+		} else {
+			/* inserting at end */
+			loc = _processors.end ();
 		}
 
 		_processors.insert (loc, processor);
@@ -1873,6 +1901,24 @@ Route::state(bool full_state)
 	}
 
 	for (i = _processors.begin(); i != _processors.end(); ++i) {
+		if (!full_state) {
+			/* template save: do not include internal sends functioning as 
+			   aux sends because the chance of the target ID
+			   in the session where this template is used
+			   is not very likely.
+
+			   similarly, do not save listen sends which connect to
+			   the monitor section, because these will always be
+			   added if necessary.
+			*/
+			boost::shared_ptr<InternalSend> is;
+
+			if ((is = boost::dynamic_pointer_cast<InternalSend> (*i)) != 0) {
+				if (is->role() == Delivery::Aux || is->role() == Delivery::Listen) {
+					continue;
+				}
+			}
+		}
 		node->add_child_nocopy((*i)->state (full_state));
 	}
 
@@ -2598,10 +2644,10 @@ Route::enable_monitor_send ()
 
 /** Add an aux send to a route.
  *  @param route route to send to.
- *  @param placement placement for the send.
+ *  @param before Processor to insert before, or 0 to insert at the end.
  */
 int
-Route::add_aux_send (boost::shared_ptr<Route> route, Placement placement)
+Route::add_aux_send (boost::shared_ptr<Route> route, boost::shared_ptr<Processor> before)
 {
 	assert (route != _session.monitor_out ());
 
@@ -2628,7 +2674,7 @@ Route::add_aux_send (boost::shared_ptr<Route> route, Placement placement)
 			listener.reset (new InternalSend (_session, _pannable, _mute_master, route, Delivery::Aux));
 		}
 
-		add_processor (listener, placement);
+		add_processor (listener, before);
 
 	} catch (failed_constructor& err) {
 		return -1;
@@ -2801,15 +2847,61 @@ Route::nonrealtime_handle_transport_stopped (bool /*abort_ignored*/, bool did_lo
 	_roll_delay = _initial_delay;
 }
 
-/** Called with the process lock held if change contains ConfigurationChanged */
 void
 Route::input_change_handler (IOChange change, void * /*src*/)
 {
+	bool need_to_queue_solo_change = true;
+
 	if ((change.type & IOChange::ConfigurationChanged)) {
+		/* This is called with the process lock held if change 
+		   contains ConfigurationChanged 
+		*/
+		need_to_queue_solo_change = false;
 		configure_processors (0);
 		_phase_invert.resize (_input->n_ports().n_audio ());
 		io_changed (); /* EMIT SIGNAL */
 	}
+
+	if (!_input->connected() && _soloed_by_others_upstream) {
+		if (need_to_queue_solo_change) {
+			_session.cancel_solo_after_disconnect (shared_from_this(), true);
+		} else {
+			cancel_solo_after_disconnect (true);
+		}
+	}
+}
+
+void
+Route::output_change_handler (IOChange change, void * /*src*/)
+{
+	bool need_to_queue_solo_change = true;
+
+	if ((change.type & IOChange::ConfigurationChanged)) {
+		/* This is called with the process lock held if change 
+		   contains ConfigurationChanged 
+		*/
+		need_to_queue_solo_change = false;
+	}
+
+	if (!_output->connected() && _soloed_by_others_downstream) {
+		if (need_to_queue_solo_change) {
+			_session.cancel_solo_after_disconnect (shared_from_this(), false);
+		} else {
+			cancel_solo_after_disconnect (false);
+		}
+	}
+}
+
+void
+Route::cancel_solo_after_disconnect (bool upstream)
+{
+	if (upstream) {
+		_soloed_by_others_upstream = 0;
+	} else {
+		_soloed_by_others_downstream = 0;
+	}
+	set_mute_master_solo ();
+	solo_changed (false, this);
 }
 
 uint32_t

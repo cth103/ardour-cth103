@@ -439,7 +439,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 		return _drags;
 	}
 
-	void maybe_autoscroll (bool, bool);
+	void maybe_autoscroll (bool, bool, bool, bool);
 
 	Gdk::Cursor* get_canvas_cursor () const { return current_canvas_cursor; }
 	void set_canvas_cursor (Gdk::Cursor*, bool save=false);
@@ -526,14 +526,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void update_join_object_range_location (double, double);
 
-	int  post_maximal_editor_width;
-	int  post_maximal_editor_height;
-	int  post_maximal_horizontal_pane_position;
-	int  post_maximal_vertical_pane_position;
-	int  pre_maximal_horizontal_pane_position;
-	int  pre_maximal_vertical_pane_position;
-	int  pre_maximal_editor_width;
-	int  pre_maximal_editor_height;
+	boost::optional<int>  pre_notebook_shrink_pane_width;
+
 	void pane_allocation_handler (Gtk::Allocation&, Gtk::Paned*);
 
 	Gtk::Notebook _the_notebook;
@@ -543,8 +537,6 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	Gtk::HPaned   edit_pane;
 	Gtk::VPaned   editor_summary_pane;
-
-	bool idle_reset_vertical_pane_position (int);
 
 	Gtk::EventBox meter_base;
 	Gtk::HBox     meter_box;
@@ -1456,6 +1448,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	bool _follow_playhead;
 	/// true if we scroll the tracks rather than the playhead
 	bool _stationary_playhead;
+	/// true if we are in fullscreen mode
+	bool _maximised;
 
 	ARDOUR::TempoMap::BBTPointList::const_iterator current_bbt_points_begin;
 	ARDOUR::TempoMap::BBTPointList::const_iterator current_bbt_points_end;
@@ -1842,7 +1836,6 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	int time_stretch (RegionSelection&, float fraction);
 	int pitch_shift (RegionSelection&, float cents);
 	void pitch_shift_region ();
-	int time_fx (RegionSelection&, float val, bool pitching);
 
 	void transpose_region ();
 
@@ -2088,6 +2081,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void follow_mixer_selection ();
 	bool _following_mixer_selection;
+
+	int time_fx (ARDOUR::RegionList&, float val, bool pitching);
 
 	friend class Drag;
 	friend class RegionDrag;

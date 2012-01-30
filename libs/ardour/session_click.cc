@@ -20,6 +20,7 @@
 #include <list>
 #include <cerrno>
 
+#include "ardour/amp.h"
 #include "ardour/ardour.h"
 #include "ardour/audio_buffer.h"
 #include "ardour/buffer_set.h"
@@ -36,7 +37,7 @@ using namespace std;
 using namespace ARDOUR;
 using namespace PBD;
 
-Pool Click::pool ("click", sizeof (Click), 128);
+Pool Click::pool ("click", sizeof (Click), 1024);
 
 void
 Session::click (framepos_t start, framecnt_t nframes)
@@ -82,14 +83,12 @@ Session::click (framepos_t start, framecnt_t nframes)
 		case 1:
 			if (click_emphasis_data) {
 				clicks.push_back (new Click ((*i).frame, click_emphasis_length, click_emphasis_data));
-				cerr << "click emph @ " << (*i).frame << endl;
 			}
 			break;
 
 		default:
 			if (click_emphasis_data == 0 || (click_emphasis_data && (*i).beat != 1)) {
 				clicks.push_back (new Click ((*i).frame, click_length, click_data));
-				cerr << "click norm @ " << (*i).frame << endl;
 			}
 			break;
 		}
@@ -120,9 +119,9 @@ Session::click (framepos_t start, framecnt_t nframes)
 		}
 
 		copy = min (clk->duration - clk->offset, nframes - internal_offset);
-
+		
 		memcpy (buf + internal_offset, &clk->data[clk->offset], copy * sizeof (Sample));
-
+		
 		clk->offset += copy;
 
 		if (clk->offset >= clk->duration) {
@@ -133,6 +132,7 @@ Session::click (framepos_t start, framecnt_t nframes)
 		}
 	}
 
+	_click_gain->run (bufs, 0, 0, nframes, false);
 	_click_io->copy_to_outputs (bufs, DataType::AUDIO, nframes, 0);
 }
 

@@ -94,7 +94,7 @@ class ExportDialog : public ArdourDialog {
 	void close_dialog ();
 
 	void sync_with_manager ();
-	void update_warnings ();
+	void update_warnings_and_example_filename ();
 	void show_conflicting_files ();
 
 	void export_rt ();
@@ -127,9 +127,10 @@ class ExportDialog : public ArdourDialog {
 
 	/* Progress bar */
 
-	Gtk::Label              progress_label;
 	Gtk::ProgressBar        progress_bar;
 	sigc::connection        progress_connection;
+
+	float previous_progress; // Needed for gtk bug workaround
 
 	/* Buttons */
 

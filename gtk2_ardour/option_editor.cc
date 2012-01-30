@@ -40,17 +40,47 @@ void
 OptionEditorComponent::add_widget_to_page (OptionEditorPage* p, Gtk::Widget* w)
 {
 	int const n = p->table.property_n_rows();
-	p->table.resize (n + 1, 3);
+	int m = n + 1;
+	if (!_note.empty ()) {
+		++m;
+	}
+
+	p->table.resize (m, 3);
 	p->table.attach (*w, 1, 3, n, n + 1, FILL | EXPAND);
+
+	maybe_add_note (p, n + 1);
 }
 
 void
 OptionEditorComponent::add_widgets_to_page (OptionEditorPage* p, Gtk::Widget* wa, Gtk::Widget* wb)
 {
 	int const n = p->table.property_n_rows();
-	p->table.resize (n + 1, 3);
+	int m = n + 1;
+	if (!_note.empty ()) {
+		++m;
+	}
+	
+	p->table.resize (m, 3);
 	p->table.attach (*wa, 1, 2, n, n + 1, FILL);
 	p->table.attach (*wb, 2, 3, n, n + 1, FILL | EXPAND);
+	
+	maybe_add_note (p, n + 1);
+}
+
+void
+OptionEditorComponent::maybe_add_note (OptionEditorPage* p, int n)
+{
+	if (!_note.empty ()) {
+		Gtk::Label* l = manage (new Gtk::Label (string_compose (X_("<i>%1</i>"), _note)));
+		l->set_use_markup (true);
+		p->table.attach (*l, 1, 3, n, n + 1, FILL | EXPAND);
+	}
+}
+
+void
+OptionEditorComponent::set_note (string const & n)
+{
+	_note = n;
 }
 
 OptionEditorHeading::OptionEditorHeading (string const & h)
@@ -154,12 +184,15 @@ FaderOption::FaderOption (string const & i, string const & n, sigc::slot<gain_t>
 	_label.set_text (n + ":");
 	_label.set_name (X_("OptionsLabel"));
 
+	_fader_centering_box.pack_start (*_db_slider, true, false);
+
 	_box.set_spacing (4);
-	_box.pack_start (*_db_slider, false, false);
+	_box.set_homogeneous (false);
+	_box.pack_start (_fader_centering_box, false, false);
 	_box.pack_start (_db_display, false, false);
 	_box.show_all ();
 
-	set_size_request_to_display_given_text (_db_display, "-99.0", 12, 12);
+	set_size_request_to_display_given_text (_db_display, "-99.00", 12, 12);
 
 	_db_adjustment.signal_value_changed().connect (sigc::mem_fun (*this, &FaderOption::db_changed));
 }

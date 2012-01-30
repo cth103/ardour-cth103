@@ -540,6 +540,22 @@ Editor::step_mouse_mode (bool next)
 	}
 }
 
+bool
+Editor::toggle_internal_editing_from_double_click (GdkEvent* event)
+{
+	if (_drags->active()) {
+		_drags->end_grab (event);
+	} 
+
+	ActionManager::do_action ("MouseMode", "toggle-internal-edit");
+
+	/* prevent reversion of edit cursor on button release */
+	
+	pre_press_cursor = 0;
+
+	return true;
+}
+
 void
 Editor::button_selection (Canvas::Item* /*item*/, GdkEvent* event, ItemType item_type)
 {
@@ -1233,23 +1249,7 @@ Editor::button_press_handler_2 (Canvas::Item* item, GdkEvent* event, ItemType it
 
 	return false;
 }
-
-bool
-Editor::toggle_internal_editing_from_double_click (GdkEvent* event)
-{
-	if (_drags->active()) {
-		_drags->end_grab (event);
-	} 
-	Glib::RefPtr<Action> act = ActionManager::get_action (X_("MouseMode"), X_("toggle-internal-edit"));
-	act->activate ();
-
-	/* prevent reversion of edit cursor on button release */
-	
-	pre_press_cursor = 0;
-
-	return true;
-}
-
+   
 bool
 Editor::button_press_handler (Canvas::Item* item, GdkEvent* event, ItemType item_type)
 {
@@ -1263,6 +1263,49 @@ Editor::button_press_handler (Canvas::Item* item, GdkEvent* event, ItemType item
 
 	if (_session && _session->actively_recording()) {
 		return true;
+	}
+
+
+
+	if (internal_editing()) {
+		bool leave_internal_edit_mode = false;
+
+		switch (item_type) {
+		case NoteItem:
+			break;
+
+		case RegionItem:
+			if (!dynamic_cast<MidiRegionView*> (clicked_regionview)) {
+				leave_internal_edit_mode = true;
+			}
+			break;
+
+		case PlayheadCursorItem:
+		case MarkerItem:
+		case TempoMarkerItem:
+		case MeterMarkerItem:
+		case MarkerBarItem:
+		case TempoBarItem:
+		case MeterBarItem:
+		case RangeMarkerBarItem:
+		case CdMarkerBarItem:
+		case TransportMarkerBarItem:
+			/* button press on these events never does anything to
+			   change the editing mode.
+			*/
+			break;
+			
+		case StreamItem:
+			leave_internal_edit_mode = true;
+			break;
+
+		default:
+			break;
+		}
+		
+		if (leave_internal_edit_mode) {
+			ActionManager::do_action ("MouseMode", "toggle-internal-edit");
+		}
 	}
 
 	button_selection (item, event, item_type);

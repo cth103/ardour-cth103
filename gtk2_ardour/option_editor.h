@@ -71,6 +71,13 @@ public:
 
 	void add_widget_to_page (OptionEditorPage*, Gtk::Widget*);
 	void add_widgets_to_page (OptionEditorPage*, Gtk::Widget*, Gtk::Widget*);
+
+	void set_note (std::string const &);
+
+private:
+	void maybe_add_note (OptionEditorPage *, int);
+	
+	std::string _note;
 };
 
 /** A component which provides a subheading within the dialog */
@@ -358,6 +365,7 @@ private:
 	Gtk::Entry _db_display;
 	Gtk::Label _label;
 	Gtk::HBox _box;
+	Gtk::VBox _fader_centering_box;
 	sigc::slot<ARDOUR::gain_t> _get;
 	sigc::slot<bool, ARDOUR::gain_t> _set;
 };

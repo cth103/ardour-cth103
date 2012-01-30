@@ -1227,7 +1227,6 @@ Editor::toggle_internal_editing ()
 	}
 }
 
-
 void
 Editor::register_region_actions ()
 {

@@ -1582,6 +1582,10 @@ Editor::temporal_zoom_by_frame (framepos_t start, framepos_t end, const string &
 		new_leftmost = 0;
 	}
 
+	if (new_leftmost < 0) {
+		new_leftmost = 0;
+	}
+
 	reposition_and_zoom (new_leftmost, new_fpu);
 }
 

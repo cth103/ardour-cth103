@@ -80,7 +80,7 @@ public:
 		b = manage (new Button (_("Browse...")));
 		b->signal_clicked().connect (sigc::mem_fun (*this, &ClickOptions::click_emphasis_browse_clicked));
 		t->attach (*b, 2, 3, 1, 2, FILL);
-
+		
 		_box->pack_start (*t, false, false);
 
 		_click_path_entry.signal_activate().connect (sigc::mem_fun (*this, &ClickOptions::click_changed));	
@@ -877,6 +877,8 @@ RCOptionEditor::RCOptionEditor ()
                         procs->add (i, string_compose (_("%1 processors"), i));
                 }
 
+		procs->set_note (_("This setting will only take effect when Ardour is restarted."));
+
                 add_option (_("Misc"), procs);
         }
 
@@ -920,6 +922,14 @@ RCOptionEditor::RCOptionEditor ()
 	add_option (_("Misc"), new OptionEditorHeading (_("Click")));
 
 	add_option (_("Misc"), new ClickOptions (_rc_config, this));
+
+	add_option (_("Misc"),
+	     new FaderOption (
+		     "click-gain",
+		     _("Click Gain Level"),
+		     sigc::mem_fun (*_rc_config, &RCConfiguration::get_click_gain),
+		     sigc::mem_fun (*_rc_config, &RCConfiguration::set_click_gain)
+		     ));
 
 	/* TRANSPORT */
 
@@ -1521,7 +1531,7 @@ RCOptionEditor::RCOptionEditor ()
 
 	add_option (S_("Visual|Interface"),
 	     new BoolOption (
-		     "widget_prelight",
+		     "widget-prelight",
 		     _("Graphically indicate mouse pointer hovering over various widgets"),
 		     sigc::mem_fun (*_rc_config, &RCConfiguration::get_widget_prelight),
 		     sigc::mem_fun (*_rc_config, &RCConfiguration::set_widget_prelight)
@@ -1531,6 +1541,13 @@ RCOptionEditor::RCOptionEditor ()
 	/* font scaling does nothing with GDK/Quartz */
 	add_option (S_("Visual|Interface"), new FontScalingOptions (_rc_config));
 #endif
+	add_option (S_("Visual|Interface"),
+		    new BoolOption (
+			    "use-own-plugin-gui",
+			    _("Use plugins' own interface instead of Ardour's basic one"),
+			    sigc::mem_fun (*_rc_config, &RCConfiguration::get_use_plugin_own_gui),
+			    sigc::mem_fun (*_rc_config, &RCConfiguration::set_use_plugin_own_gui)
+			    ));
 
 	/* The names of these controls must be the same as those given in MixerStrip
 	   for the actual widgets being controlled.

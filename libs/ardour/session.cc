@@ -153,7 +153,6 @@ Session::Session (AudioEngine &eng,
 	, _post_transport_work (0)
 	, _send_timecode_update (false)
 	, _all_route_group (new RouteGroup (*this, "all"))
-	, _process_graph (new Graph (*this))
 	, routes (new RouteList)
 	, _total_free_4k_blocks (0)
 	, _bundles (new BundleList)
@@ -168,6 +167,13 @@ Session::Session (AudioEngine &eng,
 	, _suspend_timecode_transmission (0)
 {
 	_locations = new Locations (*this);
+
+	if (how_many_dsp_threads () > 1) {
+		/* For now, only create the graph if we are using >1 DSP threads, as
+		   it is a bit slower than the old code with 1 thread.
+		*/
+		_process_graph.reset (new Graph (*this));
+	}
 
 	playlists.reset (new SessionPlaylists);
 
@@ -371,19 +377,27 @@ Session::when_engine_running ()
 		XMLNode* child = 0;
 
 		_click_io.reset (new ClickIO (*this, "click"));
+		_click_gain.reset (new Amp (*this));
+		_click_gain->activate ();
 
 		if (state_tree && (child = find_named_node (*state_tree->root(), "Click")) != 0) {
 
 			/* existing state for Click */
-			int c;
+			int c = 0;
 
 			if (Stateful::loading_state_version < 3000) {
 				c = _click_io->set_state_2X (*child->children().front(), Stateful::loading_state_version, false);
 			} else {
-				c = _click_io->set_state (*child->children().front(), Stateful::loading_state_version);
+				const XMLNodeList& children (child->children());
+				XMLNodeList::const_iterator i = children.begin();
+				if ((c = _click_io->set_state (**i, Stateful::loading_state_version)) == 0) {
+					++i;
+					if (i != children.end()) {
+						c = _click_gain->set_state (**i, Stateful::loading_state_version);
+					}
+				}
 			}
-
-
+			
 			if (c == 0) {
 				_clicking = Config->get_clicking ();
 
@@ -1384,8 +1398,6 @@ Session::resort_routes ()
 		/* writer goes out of scope and forces update */
 	}
 
-	//_process_graph->dump(1);
-
 #ifndef NDEBUG
 	boost::shared_ptr<RouteList> rl = routes.reader ();
 	for (RouteList::iterator i = rl->begin(); i != rl->end(); ++i) {
@@ -1460,7 +1472,10 @@ Session::resort_routes_using (boost::shared_ptr<RouteList> r)
 		   Note: the process graph rechain does not require a
 		   topologically-sorted list, but hey ho.
 		*/
-		_process_graph->rechain (sorted_routes, edges);
+		if (_process_graph) {
+			_process_graph->rechain (sorted_routes, edges);
+		}
+		
 		_current_route_graph = edges;
 
 		/* Complete the building of the routes' lists of what directly
@@ -1996,6 +2011,8 @@ Session::new_route_from_template (uint32_t how_many, const std::string& template
 
 	XMLNode* node = tree.root();
 
+	IO::disable_connecting ();
+
 	control_id = next_control_id ();
 
 	while (how_many) {
@@ -2073,6 +2090,7 @@ Session::new_route_from_template (uint32_t how_many, const std::string& template
   out:
 	if (!ret.empty()) {
 		add_routes (ret, true, true);
+		IO::enable_connecting ();
 	}
 
 	return ret;
@@ -2229,23 +2247,29 @@ Session::globally_add_internal_sends (boost::shared_ptr<Route> dest, Placement p
 void
 Session::add_internal_sends (boost::shared_ptr<Route> dest, Placement p, boost::shared_ptr<RouteList> senders)
 {
-	if (dest->is_monitor() || dest->is_master()) {
+	for (RouteList::iterator i = senders->begin(); i != senders->end(); ++i) {
+		add_internal_send (dest, (*i)->before_processor_for_placement (p), *i);
+	}
+}
+
+void
+Session::add_internal_send (boost::shared_ptr<Route> dest, int index, boost::shared_ptr<Route> sender)
+{
+	add_internal_send (dest, sender->before_processor_for_index (index), sender);
+}
+
+void
+Session::add_internal_send (boost::shared_ptr<Route> dest, boost::shared_ptr<Processor> before, boost::shared_ptr<Route> sender)
+{
+	if (sender->is_monitor() || sender->is_master() || sender == dest || dest->is_monitor() || dest->is_master()) {
 		return;
 	}
 
 	if (!dest->internal_return()) {
-		dest->add_internal_return();
+		dest->add_internal_return ();
 	}
 
-	
-	for (RouteList::iterator i = senders->begin(); i != senders->end(); ++i) {
-		
-		if ((*i)->is_monitor() || (*i)->is_master() || (*i) == dest) {
-			continue;
-		}
-		
-		(*i)->add_aux_send (dest, p);
-	}
+	sender->add_aux_send (dest, before);
 
 	graph_reordered ();
 }
@@ -2315,7 +2339,9 @@ Session::remove_route (boost::shared_ptr<Route> route)
 	 */
 
 	resort_routes ();
-	_process_graph->clear_other_chain ();
+	if (_process_graph) {
+		_process_graph->clear_other_chain ();
+	}
 
 	/* get rid of it from the dead wood collection in the route list manager */
 

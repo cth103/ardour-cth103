@@ -52,14 +52,20 @@ struct ExportStatus {
 
 	/* Progress info */
 
-	volatile float          progress;
 	volatile bool           normalizing;
 
 	volatile uint32_t       total_timespans;
 	volatile uint32_t       timespan;
+	std::string             timespan_name;
 
 	volatile framecnt_t     total_frames;
 	volatile framecnt_t     processed_frames;
+
+	volatile framecnt_t     total_frames_current_timespan;
+	volatile framecnt_t     processed_frames_current_timespan;
+
+	volatile uint32_t       total_normalize_cycles;
+	volatile uint32_t       current_normalize_cycle;
 
   private:
 	volatile bool          _aborted;

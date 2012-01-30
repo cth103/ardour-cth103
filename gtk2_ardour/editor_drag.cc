@@ -320,7 +320,9 @@ Drag::motion_handler (GdkEvent* event, bool from_autoscroll)
 
 		if (event->motion.state & Gdk::BUTTON1_MASK || event->motion.state & Gdk::BUTTON2_MASK) {
 			if (!from_autoscroll) {
-				_editor->maybe_autoscroll (true, allow_vertical_autoscroll ());
+				bool const moving_left = _drags->current_pointer_x() < _last_pointer_x;
+				bool const moving_up = _drags->current_pointer_y() < _last_pointer_y;
+				_editor->maybe_autoscroll (true, allow_vertical_autoscroll (), moving_left, moving_up);
 			}
 
 			motion (event, _move_threshold_passed != old_move_threshold_passed);
@@ -385,6 +387,22 @@ Drag::show_verbose_cursor_text (string const & text)
 		);
 }
 
+boost::shared_ptr<Region>
+Drag::add_midi_region (MidiTimeAxisView* view)
+{
+	if (_editor->session()) {
+		const TempoMap& map (_editor->session()->tempo_map());
+		framecnt_t pos = grab_frame();
+		const Meter& m = map.meter_at (pos);
+		/* not that the frame rate used here can be affected by pull up/down which
+		   might be wrong.
+		*/
+		framecnt_t len = m.frames_per_bar (map.tempo_at (pos), _editor->session()->frame_rate());
+		return view->add_region (grab_frame(), len, true);
+	}
+
+	return boost::shared_ptr<Region>();
+}
 
 struct EditorOrderTimeAxisViewSorter {
     bool operator() (TimeAxisView* a, TimeAxisView* b) {
@@ -1426,7 +1444,7 @@ void
 RegionCreateDrag::motion (GdkEvent* event, bool first_move)
 {
 	if (first_move) {
-		add_region();
+		_region = add_midi_region (_view);
 		_view->playlist()->freeze ();
 	} else {
 		if (_region) {
@@ -1452,28 +1470,13 @@ void
 RegionCreateDrag::finished (GdkEvent*, bool movement_occurred)
 {
 	if (!movement_occurred) {
-		add_region ();
+		add_midi_region (_view);
 	} else {
 		_view->playlist()->thaw ();
 	}
 
 	if (_region) {
 		_editor->commit_reversible_command ();
-	}
-}
-
-void
-RegionCreateDrag::add_region ()
-{
-	if (_editor->session()) {
-		const TempoMap& map (_editor->session()->tempo_map());
-		framecnt_t pos = grab_frame();
-		const Meter& m = map.meter_at (pos);
-		/* not that the frame rate used here can be affected by pull up/down which
-		   might be wrong.
-		*/
-		framecnt_t len = m.frames_per_bar (map.tempo_at (pos), _editor->session()->frame_rate());
-		_region = _view->add_region (grab_frame(), len, false);
 	}
 }
 
@@ -3202,7 +3205,23 @@ RubberbandSelectDrag::finished (GdkEvent* event, bool movement_occurred)
 
 	} else {
 
-		deselect_things ();
+		/* just a click */
+
+		bool do_deselect = true;
+		MidiTimeAxisView* mtv;
+
+		if ((mtv = dynamic_cast<MidiTimeAxisView*>(_editor->clicked_axisview)) != 0) {
+			/* MIDI track */
+			if (_editor->selection->empty()) {
+				/* nothing selected */
+				add_midi_region (mtv);
+				do_deselect = false;
+			}
+		} 
+
+		if (do_deselect) {
+			deselect_things ();
+		}
 
 	}
 
@@ -3268,13 +3287,16 @@ TimeFXDrag::finished (GdkEvent* /*event*/, bool movement_occurred)
 	}
 #endif
 
-	// XXX how do timeFX on multiple regions ?
+	if (!_editor->get_selection().regions.empty()) {
+		/* primary will already be included in the selection, and edit
+		   group shared editing will propagate selection across
+		   equivalent regions, so just use the current region
+		   selection.
+		*/
 
-	RegionSelection rs;
-	rs.add (_primary);
-
-	if (_editor->time_stretch (rs, percentage) == -1) {
-		error << _("An error occurred while executing time stretch operation") << endmsg;
+		if (_editor->time_stretch (_editor->get_selection().regions, percentage) == -1) {
+			error << _("An error occurred while executing time stretch operation") << endmsg;
+		}
 	}
 }
 

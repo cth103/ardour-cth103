@@ -571,7 +571,7 @@ Editor::canvas_crossfade_view_event (GdkEvent* event, Canvas::Item* item, Crossf
 			boost::shared_ptr<AudioPlaylist> pl;
 			if ((pl = boost::dynamic_pointer_cast<AudioPlaylist> (atv->track()->playlist())) != 0) {
 
-				boost::shared_ptr<Playlist::RegionList> rl = pl->regions_at (event_frame (event));
+				boost::shared_ptr<RegionList> rl = pl->regions_at (event_frame (event));
 				if (!rl->empty()) {
 
 					if (atv->layer_display() == Overlaid) {
@@ -621,7 +621,7 @@ Editor::canvas_crossfade_view_event (GdkEvent* event, Canvas::Item* item, Crossf
 						layer_t const l = pl->top_layer () + 1 - (cy / c);
 
 						/* hence region */
-						Playlist::RegionList::iterator i = rl->begin();
+						RegionList::iterator i = rl->begin();
 						while (i != rl->end() && (*i)->layer() != l) {
 							++i;
 						}

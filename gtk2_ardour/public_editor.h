@@ -379,7 +379,7 @@ class PublicEditor : public Gtk::Window, public PBD::StatefulDestructible {
 	virtual Gtkmm2ext::TearOff* tools_tearoff () const = 0;
 
 	virtual DragManager* drags () const = 0;
-	virtual void maybe_autoscroll (bool, bool) = 0;
+	virtual void maybe_autoscroll (bool, bool, bool, bool) = 0;
 	virtual void stop_canvas_autoscroll () = 0;
 
 	virtual MouseCursors const * cursors () const = 0;
@@ -393,6 +393,8 @@ class PublicEditor : public Gtk::Window, public PBD::StatefulDestructible {
 	virtual Marker* find_marker_from_location_id (PBD::ID const &, bool) const = 0;
 
 	virtual void snap_to_with_modifier (framepos_t &, GdkEvent const *, int32_t direction = 0, bool for_mark = false) = 0;
+
+	virtual void get_regions_at (RegionSelection &, framepos_t where, TrackViewList const &) const = 0;
 
 	/// Singleton instance, set up by Editor::Editor()
 
