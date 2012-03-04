@@ -54,6 +54,7 @@ gtk2_ardour_sources = [
         'automation_time_axis.cc',
         'axis_view.cc',
         'bundle_manager.cc',
+        'button_joiner.cc',
         'clock_group.cc',
         'configinfo.cc',
         'control_point.cc',
@@ -330,23 +331,52 @@ def build_color_scheme(path, prefix):
     return color_scheme
 
 def build(bld):
-    # GTK front-end; if we're using VST we build this as a shared library,
-    # otherwise it's a normal executabale
-    if bld.is_defined('WINDOWS_VST_SUPPORT'):
-        obj = bld(features = 'cxx c cxxshlib')
-    else:
-        obj = bld(features = 'cxx c cxxprogram')
 
-    obj.includes     = ['.']
-    obj.source       = gtk2_ardour_sources
-    obj.name         = 'gtk2_ardour'
-    obj.linkflags    = []
     if bld.is_defined('WINDOWS_VST_SUPPORT'):
-        obj.target = 'gtk2_ardour'
-        obj.includes += ['../libs/fst']
+        # If we require VST support we build a stub main() and the FST library
+        # here using winegcc, and link it to the GTK front-end library
+        obj = bld(features = 'cxx c cxxprogram wine')
+        obj.source = '''
+                ../libs/fst/fst.c
+                ../libs/fst/fstinfofile.c
+                ../libs/fst/vsti.c
+                ../libs/fst/vstwin.c
+                ../vst/winmain.c
+        '''
+        obj.uselib = 'ALSA'
+        obj.use          = [ 'libpbd',
+                             'libmidipp',
+                             'libtaglib',
+                             'libardour',
+                             'libardour_cp',
+                             'libgtk2_ardour',
+                             'libgtkmm2ext',
+                             'libtaglib' ]
+        obj.target = 'ardour-3.0-vst.exe.so'
+        obj.includes  = [ '../libs/fst', '.' ]
+        obj.linkflags = ['-mwindows', '-Wl,--export-dynamic', '-lpthread']
+        obj.defines = ['_POSIX_SOURCE', 'USE_WS_PREFIX']
+        obj.install_path = os.path.join(bld.env['LIBDIR'], 'ardour3')
+        # end of the wine executable
+
+        # now the shared library containing the GTK GUI for ardour
+        obj = bld (features = 'cxx c cxxshlib')
+        obj.source    = gtk2_ardour_sources
+        obj.includes  = [ '../libs/fst', '.' ]
+        obj.name      = 'libgtk2_ardour'
+        obj.target    = 'gtk2_ardour'
     else:
+        # just the normal executable version of the GTK GUI
+        obj = bld(features = 'cxx c cxxprogram')
+        obj.source    = gtk2_ardour_sources
         obj.target = 'ardour-3.0'
+        obj.includes = ['.']
+
+    # continue with setup of obj, which could be a shared library
+    # or an executable.
+
     obj.install_path = os.path.join(bld.env['LIBDIR'], 'ardour3')
+
     obj.uselib       = 'UUID FLAC GLIBMM GTHREAD GTK OGG ALSA CURL DL'
     obj.uselib       += ' GTKMM '
     obj.uselib       += ' AUDIOUNITS OSX GTKOSX '
@@ -403,26 +433,6 @@ def build(bld):
     if bld.is_defined('AUDIOUNIT_SUPPORT'):
         obj.source += [ 'au_pluginui.mm' ]
 
-    if bld.is_defined('WINDOWS_VST_SUPPORT'):
-        # If we require VST support we build a stub main() and the FST library
-        # here using winegcc, and link it to the GTK front-end library
-        obj = bld(features = 'cxx c cxxprogram wine')
-        obj.source = '''
-                ../libs/fst/fst.c
-                ../libs/fst/fstinfofile.c
-                ../libs/fst/vsti.c
-                ../libs/fst/vstwin.c
-                ../vst/winmain.c
-        '''
-        obj.includes = '../libs/fst'
-        obj.target = 'ardour-3.0-vst'
-        obj.linkflags = ['-mwindows', '-Wl,--export-dynamic', '-lpthread']
-        obj.defines = ['_POSIX_SOURCE', 'USE_WS_PREFIX']
-        obj.uselib = 'ALSA'
-        obj.use = ['libpbd','libmidipp','libtaglib','libardour',
-                            'libardour_cp','libgtkmm2ext','libtaglib',
-                            'gtk2_ardour']
-
     # Wrappers
 
     wrapper_subst_dict = {
@@ -451,6 +461,15 @@ def build(bld):
     obj.dict         = wrapper_subst_dict
     obj.install_path = bld.env['BINDIR']
     set_subst_dict(obj, wrapper_subst_dict)
+
+    if bld.is_defined('WINDOWS_VST_SUPPORT'):
+        obj              = bld(features = 'subst')
+        obj.source       = '../vst/ardourvst.in'
+        obj.target       = 'ardourvst3'
+        obj.chmod        = Utils.O755
+        obj.dict         = wrapper_subst_dict
+        obj.install_path = bld.env['BINDIR']
+        set_subst_dict(obj, wrapper_subst_dict)
 
     # Font configuration
 

@@ -84,6 +84,7 @@ AudioEngine::AudioEngine (string client_name, string session_uuid)
 	_frame_rate = 0;
 	_buffer_size = 0;
 	_freewheeling = false;
+	_pre_freewheel_mmc_enabled = false;
         _main_thread = 0;
 	port_remove_in_progress = false;
 
@@ -316,13 +317,13 @@ AudioEngine::_xrun_callback (void *arg)
 void
 AudioEngine::_session_callback (jack_session_event_t *event, void *arg)
 {
-	printf( "helo.... " );
 	AudioEngine* ae = static_cast<AudioEngine*> (arg);
 	if (ae->connected()) {
 		ae->JackSessionEvent ( event ); /* EMIT SIGNAL */
 	}
 }
 #endif
+
 int
 AudioEngine::_graph_order_callback (void *arg)
 {
@@ -344,7 +345,20 @@ AudioEngine::_process_thread (void *arg)
 void
 AudioEngine::_freewheel_callback (int onoff, void *arg)
 {
-	static_cast<AudioEngine*>(arg)->_freewheeling = onoff;
+	static_cast<AudioEngine*>(arg)->freewheel_callback (onoff);
+}
+
+void
+AudioEngine::freewheel_callback (int onoff)
+{
+	_freewheeling = onoff;
+
+	if (onoff) {
+		_pre_freewheel_mmc_enabled = MIDI::Manager::instance()->mmc()->send_enabled ();
+		MIDI::Manager::instance()->mmc()->enable_send (false);
+	} else {
+		MIDI::Manager::instance()->mmc()->enable_send (_pre_freewheel_mmc_enabled);
+	}
 }
 
 void
@@ -762,7 +776,7 @@ AudioEngine::port_registration_failure (const std::string& portname)
 	if (p) {
 		reason = string_compose (_("a port with the name \"%1\" already exists: check for duplicated track/bus names"), portname);
 	} else {
-		reason = string_compose (_("No more JACK ports are available. You will need to stop %1 and restart JACK with ports if you need this many tracks."), PROGRAM_NAME);
+		reason = string_compose (_("No more JACK ports are available. You will need to stop %1 and restart JACK with more ports if you need this many tracks."), PROGRAM_NAME);
 	}
 
 	throw PortRegistrationFailure (string_compose (_("AudioEngine: cannot register port \"%1\": %2"), portname, reason).c_str());

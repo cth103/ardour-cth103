@@ -5,6 +5,7 @@
 /***********************************************************/
 
 #include <iostream>
+#include <cassert>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -19,6 +20,8 @@
 
 #include <glib.h>
 #include <glib/gstdio.h>
+
+#include "pbd/error.h"
 
 #include "ardour/linux_vst_support.h"
 
@@ -46,7 +49,6 @@ static VSTInfo *
 load_vstfx_info_file (FILE* fp)
 {
 	VSTInfo *info;
-	int i;
 	
 	if ((info = (VSTInfo*) malloc (sizeof (VSTInfo))) == 0) {
 		return 0;
@@ -67,7 +69,7 @@ load_vstfx_info_file (FILE* fp)
 		goto error;
 	}
 
-	for (i=0; i<info->numParams; i++) {
+	for (int i = 0; i < info->numParams; ++i) {
 		if((info->ParamNames[i] = read_string(fp)) == 0) goto error;
 	}
 
@@ -75,7 +77,7 @@ load_vstfx_info_file (FILE* fp)
 		goto error;
 	}
 	
-	for (i=0; i < info->numParams; i++) {
+	for (int i = 0; i < info->numParams; ++i) {
 		if((info->ParamLabels[i] = read_string(fp)) == 0) goto error;
 	}
 	
@@ -89,8 +91,6 @@ load_vstfx_info_file (FILE* fp)
 static int
 save_vstfx_info_file (VSTInfo *info, FILE* fp)
 {
-    int i;
-
     if (info == 0) {
 	    vstfx_error("** ERROR ** VSTFXinfofile : info ptr is 0\n");
 	    return -1;
@@ -112,11 +112,11 @@ save_vstfx_info_file (VSTInfo *info, FILE* fp)
     fprintf( fp, "%d\n", info->hasEditor );
     fprintf( fp, "%d\n", info->canProcessReplacing );
 
-    for (i=0; i < info->numParams; i++) {
+    for (int i = 0; i < info->numParams; i++) {
 		fprintf(fp, "%s\n", info->ParamNames[i]);
     }
 	
-    for (i=0; i < info->numParams; i++) {
+    for (int i = 0; i < info->numParams; i++) {
 		fprintf(fp, "%s\n", info->ParamLabels[i]);
     }
 	
@@ -277,22 +277,17 @@ int vstfx_can_midi (VSTState* vstfx)
 static VSTInfo *
 vstfx_info_from_plugin (VSTState* vstfx)
 {
+	assert (vstfx);
+	
 	VSTInfo* info = (VSTInfo*) malloc (sizeof (VSTInfo));
 	
 	AEffect *plugin;
-	int i;
 	
 	/*We need to init the creator because some plugins
 	  fail to implement getVendorString, and so won't stuff the
 	  string with any name*/
 	
 	char creator[65] = "Unknown\0";
-	
-	if(!vstfx)
-	{
-		vstfx_error( "** ERROR ** VSTFXinfofile : vstfx ptr is 0\n" );
-		return 0;
-	}
 	
 	if(!info)
 		return 0;
@@ -327,7 +322,7 @@ vstfx_info_from_plugin (VSTState* vstfx)
 	info->ParamNames = (char **) malloc(sizeof(char*)*info->numParams);
 	info->ParamLabels = (char **) malloc(sizeof(char*)*info->numParams);
 
-	for(i=0; i < info->numParams; i++) {
+	for (int i = 0; i < info->numParams; ++i) {
 		char name[64];
 		char label[64];
 		
@@ -374,15 +369,18 @@ vstfx_get_info (char* dllpath)
 		VSTInfo *info;
 		info = load_vstfx_info_file (infofile);
 		fclose (infofile);
+		PBD::warning << "Cannot get LinuxVST information form " << dllpath << ": info file load failed." << endmsg;
 		return info;
 	} 
 	
-	if(!(h = vstfx_load(dllpath)))
+	if(!(h = vstfx_load(dllpath))) {
+		PBD::warning << "Cannot get LinuxVST information from " << dllpath << ": load failed." << endmsg;
 		return 0;
+	}
 	
 	if(!(vstfx = vstfx_instantiate(h, simple_master_callback, 0))) {
 	    	vstfx_unload(h);
-	    	vstfx_error( "** ERROR ** VSTFXinfofile : Instantiate failed\n" );
+		PBD::warning << "Cannot get LinuxVST information from " << dllpath << ": instantiation failed." << endmsg;
 	    	return 0;
 	}
 	
@@ -391,7 +389,7 @@ vstfx_get_info (char* dllpath)
 	if(!infofile) {
 		vstfx_close(vstfx);
 		vstfx_unload(h);
-		vstfx_error("cannot create new FST info file for plugin");
+		PBD::warning << "Cannot get LinuxVST information from " << dllpath << ": cannot create new FST info file." << endmsg;
 		return 0;
 	}
 	

@@ -492,7 +492,7 @@ Editor::maybe_autoscroll (bool allow_horiz, bool allow_vert, bool moving_left, b
 
 	autoscroll_y = 0;
 	autoscroll_x = 0;
-	if (ty < canvas_timebars_vsize && moving_up && allow_vert) {
+	if (ty < 0 && moving_up && allow_vert) {
 		autoscroll_y = -1;
 		startit = true;
 	} else if (ty > _visible_canvas_height && !moving_up && allow_vert) {

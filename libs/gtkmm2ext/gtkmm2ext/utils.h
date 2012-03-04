@@ -95,7 +95,19 @@ namespace Gtkmm2ext {
         void rounded_rectangle (Cairo::RefPtr<Cairo::Context> context, double x, double y, double w, double h, double r=10);
 	
 	void convert_bgra_to_rgba (guint8 const *, guint8 * dst, int, int);
+        void rounded_top_rectangle (Cairo::RefPtr<Cairo::Context> context, double x, double y, double w, double h, double r=10);
+        void rounded_top_left_rectangle (Cairo::RefPtr<Cairo::Context> context, double x, double y, double w, double h, double r=10);
+        void rounded_top_right_rectangle (Cairo::RefPtr<Cairo::Context> context, double x, double y, double w, double h, double r=10);
+	void rounded_top_half_rectangle (Cairo::RefPtr<Cairo::Context>, double x, double y, double w, double h, double r=10);
+	void rounded_bottom_half_rectangle (Cairo::RefPtr<Cairo::Context>, double x, double y, double w, double h, double r=10);
+
         void rounded_rectangle (cairo_t*, double x, double y, double w, double h, double r=10);
+        void rounded_top_rectangle (cairo_t*, double x, double y, double w, double h, double r=10);
+        void rounded_top_left_rectangle (cairo_t*, double x, double y, double w, double h, double r=10);
+        void rounded_top_right_rectangle (cairo_t*, double x, double y, double w, double h, double r=10);
+
+	void rounded_top_half_rectangle (cairo_t*, double x, double y, double w, double h, double r=10);
+	void rounded_bottom_half_rectangle (cairo_t*, double x, double y, double w, double h, double r=10);
 };
 
 #endif /*  __gtkmm2ext_utils_h__ */

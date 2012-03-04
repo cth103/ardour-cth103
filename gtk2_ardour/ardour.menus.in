@@ -263,7 +263,6 @@
         <menuitem action='boost-region-gain'/>
         <menuitem action='cut-region-gain'/>      		   
         <menuitem action='reset-region-gain-envelopes'/>
-        <menuitem action='toggle-region-gain-envelope-visible'/>
         <menuitem action='toggle-region-gain-envelope-active'/>
       </menu>
       <menu action='RegionMenuPosition'>
@@ -373,7 +372,10 @@
         <menuitem action='snap-magnetic'/>
         <separator/>
         <menuitem action='cycle-snap-mode'/>
-        <menuitem action='cycle-snap-choice'/>
+        <menuitem action='next-snap-choice'/>
+        <menuitem action='prev-snap-choice'/>
+        <menuitem action='next-snap-choice-music-only'/>
+        <menuitem action='prev-snap-choice-music-only'/>
       </menu>
       <menu name='SnapTo' action='SnapTo'>
         <menuitem action='snap-to-cd-frame'/>
@@ -382,6 +384,8 @@
         <menuitem action='snap-to-timecode-minutes'/>
         <menuitem action='snap-to-seconds'/>
         <menuitem action='snap-to-minutes'/>
+        <menuitem action='snap-to-onetwentyeighths'/>
+        <menuitem action='snap-to-sixtyfourths'/>
         <menuitem action='snap-to-thirtyseconds'/>
         <menuitem action='snap-to-twentyeighths'/>
         <menuitem action='snap-to-twentyfourths'/>
@@ -648,7 +652,6 @@
       <menuitem action='boost-region-gain'/>
       <menuitem action='cut-region-gain'/>      		   
       <menuitem action='reset-region-gain-envelopes'/>
-      <menuitem action='toggle-region-gain-envelope-visible'/>
       <menuitem action='toggle-region-gain-envelope-active'/>
     </menu>
     <menu action='RegionMenuFades'>

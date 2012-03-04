@@ -57,9 +57,11 @@
 #include <gtkmm2ext/click_box.h>
 #include <gtkmm2ext/stateful_button.h>
 #include <gtkmm2ext/bindable_button.h>
+
 #include "ardour/ardour.h"
 #include "ardour/types.h"
 #include "ardour/utils.h"
+#include "ardour/plugin.h"
 #include "ardour/session_handle.h"
 
 #include "ardour_dialog.h"
@@ -76,6 +78,7 @@ class ArdourStartup;
 class ArdourKeyboard;
 class AudioClock;
 class BundleManager;
+class ButtonJoiner;
 class ConnectionEditor;
 class KeyEditor;
 class LocationUIWindow;
@@ -225,24 +228,14 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 		session_add_audio_route (true, input_channels, output_channels, mode, route_group, how_many, name_template);
 	}
 
-	void session_add_audio_bus (
-		int input_channels,
-		int32_t output_channels,
-		ARDOUR::RouteGroup* route_group,
-		uint32_t how_many,
-		std::string const & name_template
-		) {
-
+	void session_add_audio_bus (int input_channels, int32_t output_channels, ARDOUR::RouteGroup* route_group,
+				    uint32_t how_many, std::string const & name_template) {
 		session_add_audio_route (false, input_channels, output_channels, ARDOUR::Normal, route_group, how_many, name_template);
 	}
 
-	void session_add_midi_track (
-		ARDOUR::RouteGroup* route_group,
-		uint32_t how_many,
-		std::string const & name_template
-		) {
-
-		session_add_midi_route (true, route_group, how_many, name_template);
+	void session_add_midi_track (ARDOUR::RouteGroup* route_group, uint32_t how_many, std::string const & name_template,
+				     ARDOUR::PluginInfoPtr instrument) {
+		session_add_midi_route (true, route_group, how_many, name_template, instrument);
 	}
 
 	/*void session_add_midi_bus () {
@@ -417,7 +410,7 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	boost::shared_ptr<TransportControllable> play_selection_controllable;
 	boost::shared_ptr<TransportControllable> rec_controllable;
 
-	void join_play_range_clicked ();
+	void toggle_always_play_range ();
 
 	void set_transport_controllable_state (const XMLNode&);
 	XMLNode& get_transport_controllable_state ();
@@ -429,7 +422,8 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	ArdourButton auto_loop_button;
 	ArdourButton play_selection_button;
 	ArdourButton rec_button;
-	ArdourButton join_play_range_button;
+
+	ButtonJoiner* transport_joiner;
 
 	void toggle_external_sync ();
 	void toggle_time_master ();
@@ -546,7 +540,7 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	void import_metadata ();
 
 	void session_add_audio_route (bool, int32_t, int32_t, ARDOUR::TrackMode, ARDOUR::RouteGroup *, uint32_t, std::string const &);
-	void session_add_midi_route (bool, ARDOUR::RouteGroup *, uint32_t, std::string const &);
+	void session_add_midi_route (bool, ARDOUR::RouteGroup *, uint32_t, std::string const &, ARDOUR::PluginInfoPtr);
 
 	void set_transport_sensitivity (bool);
 

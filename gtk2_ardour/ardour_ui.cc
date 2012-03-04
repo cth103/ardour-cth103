@@ -221,6 +221,9 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 	original_big_clock_height = -1;
 	original_big_clock_font_size = 0;
 
+	roll_button.set_elements (ArdourButton::Element (ArdourButton::Body|ArdourButton::Text));
+	play_selection_button.set_elements (ArdourButton::Element (ArdourButton::Body|ArdourButton::Text));
+	
 	roll_button.set_controllable (roll_controllable);
 	stop_button.set_controllable (stop_controllable);
 	goto_start_button.set_controllable (goto_start_controllable);
@@ -236,7 +239,6 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 	auto_loop_button.set_name ("transport button");
 	play_selection_button.set_name ("transport button");
 	rec_button.set_name ("transport recenable button");
-	join_play_range_button.set_name ("transport button");
 	midi_panic_button.set_name ("transport button");
 
 	goto_start_button.set_tweaks (ArdourButton::ShowClick);
@@ -1441,7 +1443,7 @@ ARDOUR_UI::open_session ()
 
 
 void
-ARDOUR_UI::session_add_midi_route (bool disk, RouteGroup* route_group, uint32_t how_many, string const & name_template)
+ARDOUR_UI::session_add_midi_route (bool disk, RouteGroup* route_group, uint32_t how_many, const string& name_template, PluginInfoPtr instrument)
 {
 	list<boost::shared_ptr<MidiTrack> > tracks;
 
@@ -1453,7 +1455,7 @@ ARDOUR_UI::session_add_midi_route (bool disk, RouteGroup* route_group, uint32_t 
 	try {
 		if (disk) {
 
-			tracks = _session->new_midi_track (ARDOUR::Normal, route_group, how_many, name_template);
+			tracks = _session->new_midi_track (instrument, ARDOUR::Normal, route_group, how_many, name_template);
 
 			if (tracks.size() != how_many) {
 				if (how_many == 1) {
@@ -1462,6 +1464,7 @@ ARDOUR_UI::session_add_midi_route (bool disk, RouteGroup* route_group, uint32_t 
 					error << string_compose (_("could not create %1 new midi tracks"), how_many) << endmsg;
 				}
 			}
+			
 		} /*else {
 			if ((route = _session->new_midi_route ()) == 0) {
 				error << _("could not create new midi bus") << endmsg;
@@ -1728,12 +1731,12 @@ ARDOUR_UI::transport_roll ()
 		if (!Config->get_seamless_loop()) {
 			_session->request_play_loop (false, true);
 		}
-	} else if (_session->get_play_range () && !join_play_range_button.active_state()) {
+	} else if (_session->get_play_range () && !Config->get_always_play_range()) {
 		/* stop playing a range if we currently are */
 		_session->request_play_range (0, true);
 	}
 
-	if (join_play_range_button.active_state()) {
+	if (Config->get_always_play_range()) {
 		_session->request_play_range (&editor->get_selection().time, true);
 	}
 
@@ -1792,7 +1795,7 @@ ARDOUR_UI::toggle_roll (bool with_abort, bool roll_out_of_bounded_mode)
 		if (rolling) {
 			_session->request_stop (with_abort, true);
 		} else {
-			if (join_play_range_button.active_state()) {
+			if (Config->get_always_play_range ()) {
 				_session->request_play_range (&editor->get_selection().time, true);
 			}
 
@@ -1926,7 +1929,7 @@ ARDOUR_UI::map_transport_state ()
 		auto_loop_button.unset_active_state ();
 		play_selection_button.unset_active_state ();
 		roll_button.unset_active_state ();
-		stop_button.set_active_state (Gtkmm2ext::Active);
+		stop_button.set_active_state (Gtkmm2ext::ExplicitActive);
 		return;
 	}
 
@@ -1940,37 +1943,37 @@ ARDOUR_UI::map_transport_state ()
 
 		if (_session->get_play_range()) {
 
-			play_selection_button.set_active_state (Gtkmm2ext::Active);
+			play_selection_button.set_active_state (Gtkmm2ext::ExplicitActive);
 			roll_button.unset_active_state ();
 			auto_loop_button.unset_active_state ();
 
 		} else if (_session->get_play_loop ()) {
 
-			auto_loop_button.set_active_state (Gtkmm2ext::Active);
-			play_selection_button.unset_active_state ();
-			roll_button.unset_active_state ();
+			auto_loop_button.set_active (true);
+			play_selection_button.set_active (false);
+			roll_button.set_active (false);
 
 		} else {
 
-			roll_button.set_active_state (Gtkmm2ext::Active);
-			play_selection_button.unset_active_state ();
-			auto_loop_button.unset_active_state ();
+			roll_button.set_active (true);
+			play_selection_button.set_active (false);
+			auto_loop_button.set_active (false);
 		}
 
-		if (join_play_range_button.active_state()) {
+		if (Config->get_always_play_range()) {
 			/* light up both roll and play-selection if they are joined */
-			roll_button.set_active_state (Gtkmm2ext::Active);
-			play_selection_button.set_active_state (Gtkmm2ext::Active);
+			roll_button.set_active (true);
+			play_selection_button.set_active (true);
 		}
 
-		stop_button.unset_active_state ();
+		stop_button.set_active (false);
 
 	} else {
 
-		stop_button.set_active_state (Gtkmm2ext::Active);
-		roll_button.unset_active_state ();
-		play_selection_button.unset_active_state ();
-		auto_loop_button.unset_active_state ();
+		stop_button.set_active (true);
+		roll_button.set_active (false);
+		play_selection_button.set_active (false);
+		auto_loop_button.set_active (false);
 		update_disk_space ();
 	}
 }
@@ -2386,12 +2389,12 @@ ARDOUR_UI::transport_rec_enable_blink (bool onoff)
 
 	if (r == Session::Enabled || (r == Session::Recording && !h)) {
 		if (onoff) {
-			rec_button.set_active_state (Active);
+			rec_button.set_active_state (Gtkmm2ext::ExplicitActive);
 		} else {
-			rec_button.set_active_state (Mid);
+			rec_button.set_active_state (Gtkmm2ext::ImplicitActive);
 		}
 	} else if (r == Session::Recording && h) {
-		rec_button.set_active_state (Mid);
+		rec_button.set_active_state (Gtkmm2ext::ExplicitActive);
 	} else {
 		rec_button.unset_active_state ();
 	}
@@ -3112,9 +3115,9 @@ require some unused files to continue to exist."));
 	}
 
 	if (removed > 1) {
-		txt.set_text (string_compose (plural_msg, removed, dead_directory, space_adjusted, bprefix));
+		txt.set_text (string_compose (plural_msg, removed, dead_directory, space_adjusted, bprefix, PROGRAM_NAME));
 	} else {
-		txt.set_text (string_compose (singular_msg, removed, dead_directory, space_adjusted, bprefix));
+		txt.set_text (string_compose (singular_msg, removed, dead_directory, space_adjusted, bprefix, PROGRAM_NAME));
 	}
 
 	dhbox.pack_start (*dimage, true, false, 5);
@@ -3214,7 +3217,7 @@ Clean-up will move all unused files to a \"dead\" location."));
 The following %1 files were not in use and \n\
 have been moved to:\n\n\
 %2\n\n\
-After a restart of Ardour,\n\n\
+After a restart of %5,\n\n\
 Session -> Clean-up -> Flush Wastebasket\n\n\
 will release an additional\n\
 %3 %4bytes of disk space.\n"),
@@ -3222,7 +3225,7 @@ will release an additional\n\
 The following file was not in use and \n\
 has been moved to:\n				\
 %2\n\n\
-After a restart of Ardour,\n\n\
+After a restart of %5,\n\n\
 Session -> Clean-up -> Flush Wastebasket\n\n\
 will release an additional\n\
 %3 %4bytes of disk space.\n"
@@ -3302,6 +3305,7 @@ ARDOUR_UI::add_route (Gtk::Window* float_window)
 	uint32_t input_chan = add_route_dialog->channels ();
 	uint32_t output_chan;
 	string name_template = add_route_dialog->name_template ();
+	PluginInfoPtr instrument = add_route_dialog->requested_instrument ();
 	RouteGroup* route_group = add_route_dialog->route_group ();
 
 	AutoConnectOption oac = Config->get_output_auto_connect();
@@ -3315,7 +3319,7 @@ ARDOUR_UI::add_route (Gtk::Window* float_window)
 	/* XXX do something with name template */
 
 	if (add_route_dialog->midi_tracks_wanted()) {
-		session_add_midi_track (route_group, count, name_template);
+		session_add_midi_track (route_group, count, name_template, instrument);
 	} else if (add_route_dialog->audio_tracks_wanted()) {
 		session_add_audio_track (input_chan, output_chan, add_route_dialog->mode(), route_group, count, name_template);
 	} else {
@@ -3601,7 +3605,7 @@ ARDOUR_UI::step_edit_status_change (bool yn)
 	// we make insensitive
 
 	if (yn) {
-		rec_button.set_active_state (Mid);
+		rec_button.set_active_state (Gtkmm2ext::ImplicitActive);
 		rec_button.set_sensitive (false);
 	} else {
 		rec_button.unset_active_state ();;

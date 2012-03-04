@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2008-2011 Paul Davis
+    Copyright (C) 2008-2012 Paul Davis
     Author: David Robillard
 
     This program is free software; you can redistribute it and/or modify
@@ -15,7 +15,6 @@
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
 */
 
 #include "ardour/lv2_plugin.h"
@@ -31,8 +30,8 @@
 #include <lilv/lilv.h>
 #include <suil/suil.h>
 
-using namespace Gtk;
 using namespace ARDOUR;
+using namespace Gtk;
 using namespace PBD;
 
 #define NS_UI "http://lv2plug.in/ns/extensions/ui#"
@@ -40,18 +39,43 @@ using namespace PBD;
 static SuilHost* ui_host = NULL;
 
 void
-LV2PluginUI::lv2_ui_write(void*       controller,
-                          uint32_t    port_index,
-                          uint32_t    /*buffer_size*/,
-                          uint32_t    /*format*/,
-                          const void* buffer)
+LV2PluginUI::write_from_ui(void*       controller,
+                           uint32_t    port_index,
+                           uint32_t    buffer_size,
+                           uint32_t    format,
+                           const void* buffer)
 {
 	LV2PluginUI* me = (LV2PluginUI*)controller;
-	boost::shared_ptr<AutomationControl> ac = me->_controllables[port_index];
+	if (format == 0) {
+		if (port_index >= me->_controllables.size()) {
+			return;
+		}
 
-	if (ac) {
-		ac->set_value(*(float*)buffer);
+		boost::shared_ptr<AutomationControl> ac = me->_controllables[port_index];
+		if (ac) {
+			ac->set_value(*(float*)buffer);
+		}
+	} else if (format == me->_lv2->atom_eventTransfer()) {
+		me->_lv2->write_from_ui(port_index, format, buffer_size, (uint8_t*)buffer);
 	}
+}
+
+void
+LV2PluginUI::write_to_ui(void*       controller,
+                         uint32_t    port_index,
+                         uint32_t    buffer_size,
+                         uint32_t    format,
+                         const void* buffer)
+{
+	LV2PluginUI* me = (LV2PluginUI*)controller;
+	suil_instance_port_event((SuilInstance*)me->_inst,
+	                         port_index, buffer_size, format, buffer);
+}
+
+void
+LV2PluginUI::update_timeout()
+{
+	_lv2->emit_to_ui(this, &LV2PluginUI::write_to_ui);
 }
 
 void
@@ -168,7 +192,7 @@ LV2PluginUI::lv2ui_instantiate(const std::string& title)
 	}
 
 	if (!ui_host) {
-		ui_host = suil_host_new(LV2PluginUI::lv2_ui_write, NULL, NULL, NULL);
+		ui_host = suil_host_new(LV2PluginUI::write_from_ui, NULL, NULL, NULL);
 	}
 	const char* container_type = (is_external_ui)
 		? NS_UI "external"
@@ -239,6 +263,12 @@ LV2PluginUI::lv2ui_instantiate(const std::string& title)
 				parameter_update(port, _values[port]);
 			}
 		}
+	}
+
+	if (_lv2->has_message_output()) {
+		_lv2->enable_ui_emmission();
+		ARDOUR_UI::instance()->RapidScreenUpdate.connect(
+			sigc::mem_fun(*this, &LV2PluginUI::update_timeout));
 	}
 }
 

@@ -129,6 +129,7 @@ CONFIG_VARIABLE (bool, secondary_clock_delta_edit_cursor, "secondary-clock-delta
 CONFIG_VARIABLE (bool, show_track_meters, "show-track-meters", true)
 CONFIG_VARIABLE (bool, locate_while_waiting_for_sync, "locate-while-waiting-for-sync", false)
 CONFIG_VARIABLE (bool, disable_disarm_during_roll, "disable-disarm-during-roll", false)
+CONFIG_VARIABLE (bool, always_play_range, "always-play-range", false)
 
 /* metering */
 
@@ -185,3 +186,4 @@ CONFIG_VARIABLE (bool, show_zoom_tools, "show-zoom-tools", true)
 CONFIG_VARIABLE (bool, widget_prelight, "widget-prelight", true)
 CONFIG_VARIABLE (std::string, mixer_strip_visibility, "mixer-strip-visibility", "PhaseInvert,SoloSafe,SoloIsolated,Group,MeterPoint")
 CONFIG_VARIABLE (bool, allow_non_quarter_pulse, "allow-non-quarter-pulse", false)
+CONFIG_VARIABLE (bool, show_region_gain, "show-region-gain", false)

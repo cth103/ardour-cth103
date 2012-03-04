@@ -818,7 +818,7 @@ void
 MidiRegionView::show_list_editor ()
 {
 	if (!_list_editor) {
-		_list_editor = new MidiListEditor (trackview.session(), midi_region());
+		_list_editor = new MidiListEditor (trackview.session(), midi_region(), midi_view()->midi_track());
 	}
 	_list_editor->present ();
 }
@@ -3091,10 +3091,12 @@ void
 MidiRegionView::note_mouse_position (float x_fraction, float /*y_fraction*/, bool can_set_cursor)
 {
 	Editor* editor = dynamic_cast<Editor*>(&trackview.editor());
+	Editing::MouseMode mm = editor->current_mouse_mode();
+	bool trimmable = (mm == MouseObject || mm == MouseTimeFX || mm == MouseDraw);
 
-	if (x_fraction > 0.0 && x_fraction < 0.2) {
+	if (trimmable && x_fraction > 0.0 && x_fraction < 0.2) {
 		editor->set_canvas_cursor (editor->cursors()->left_side_trim);
-	} else if (x_fraction >= 0.8 && x_fraction < 1.0) {
+	} else if (trimmable && x_fraction >= 0.8 && x_fraction < 1.0) {
 		editor->set_canvas_cursor (editor->cursors()->right_side_trim);
 	} else {
 		if (pre_enter_cursor && can_set_cursor) {
@@ -3276,7 +3278,7 @@ MidiRegionView::paste (framepos_t pos, float times, const MidiCutBuffer& mcb)
 		DEBUG_TRACE (DEBUG::CutNPaste, string_compose ("Paste extended region from %1 to %2\n", region_end, end_frame));
 
 		_region->clear_changes ();
-		_region->set_length (end_frame);
+		_region->set_length (end_frame - _region->position());
 		trackview.session()->add_command (new StatefulDiffCommand (_region));
 	}
 

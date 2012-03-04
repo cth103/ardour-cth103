@@ -115,8 +115,7 @@ class ArdourStartup : public Gtk::Assistant {
 
 	void setup_initial_choice_page ();
 	Gtk::VBox ic_vbox;
-	Gtk::RadioButton ic_new_session_button;
-	Gtk::RadioButton ic_existing_session_button;
+	Gtk::CheckButton ic_new_session_button;
 	bool initial_button_press(GdkEventButton *);
 	void initial_button_activated();
 
@@ -136,15 +135,11 @@ class ArdourStartup : public Gtk::Assistant {
 	Gtk::RadioButton no_monitor_section_button;
 	void setup_monitor_section_choice_page ();
 
-	/* session page (could be new or existing) */
+	/* new session page */
 
-	void setup_session_page ();
-	Gtk::VBox session_vbox;
-	Gtk::HBox session_hbox;
-
-	/* recent sessions */
-
-	void setup_existing_session_page ();
+	void setup_new_session_page ();
+	Gtk::VBox new_session_vbox;
+	Gtk::HBox new_session_hbox;
 
 	struct RecentSessionsSorter {
 	    bool operator() (std::pair<std::string,std::string> a, std::pair<std::string,std::string> b) const {
@@ -179,7 +174,6 @@ class ArdourStartup : public Gtk::Assistant {
 
 	/* new sessions */
 
-	void setup_new_session_page ();
 	Gtk::Entry new_name_entry;
 	Gtk::FileChooserButton new_folder_chooser;
 	Gtk::FileChooserButton session_template_chooser;
@@ -284,7 +278,7 @@ class ArdourStartup : public Gtk::Assistant {
 	gint default_folder_page_index;
 	gint monitoring_page_index;
 	gint monitor_section_page_index;
-	gint session_page_index;
+	gint new_session_page_index;
 	gint initial_choice_index;
 	gint final_page_index;
 	gint session_options_page_index;

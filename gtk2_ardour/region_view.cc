@@ -240,6 +240,7 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double /*thr
 	for (AudioIntervalResult::const_iterator i = silences.begin(); i != silences.end(); ++i) {
 
 		Canvas::Rectangle* cr = new Canvas::Rectangle (group);
+		cr->set_ignore_events (true);
 		CANVAS_DEBUG_NAME (cr, "RV silent frame");
 		_silent_frames.push_back (cr);
 
@@ -802,6 +803,7 @@ RegionView::update_coverage_frames (LayerDisplay d)
 		/* start off any new rect, if required */
 		if (cr == 0 || me != new_me) {
 			cr = new Canvas::Rectangle (group);
+			cr->set_ignore_events (true);
 			CANVAS_DEBUG_NAME (cr, "RV coverage frame");
 			_coverage_frames.push_back (cr);
 			cr->set_x0 (trackview.editor().frame_to_pixel (t - position));

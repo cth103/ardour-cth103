@@ -146,9 +146,21 @@ int
 Editor::time_fx (RegionList& regions, float val, bool pitching)
 {
 	delete current_timefx;
-
 	current_timefx = new TimeFXDialog (*this, pitching);
+	current_timefx->regions = regions;
 
+	/* See if we have any audio regions on our list */
+	RegionList::iterator i = regions.begin ();
+	while (i != regions.end() && boost::dynamic_pointer_cast<AudioRegion> (*i) == 0) {
+		++i;
+	}
+
+	if (i == regions.end ()) {
+		/* No audio regions; we can just do the timefx without a dialogue */
+		do_timefx ();
+		return 0;
+	}
+	
 	switch (current_timefx->run ()) {
 	case RESPONSE_ACCEPT:
 		break;
@@ -158,7 +170,6 @@ Editor::time_fx (RegionList& regions, float val, bool pitching)
 	}
 
 	current_timefx->status = 0;
-	current_timefx->regions = regions;
 
 	if (pitching) {
 
@@ -304,15 +315,15 @@ Editor::time_fx (RegionList& regions, float val, bool pitching)
 }
 
 void
-Editor::do_timefx (TimeFXDialog& dialog)
+Editor::do_timefx ()
 {
 	boost::shared_ptr<Playlist> playlist;
 	boost::shared_ptr<Region>   new_region;
 	set<boost::shared_ptr<Playlist> > playlists_affected;
 
-	uint32_t const N = dialog.regions.size ();
+	uint32_t const N = current_timefx->regions.size ();
 
-	for (RegionList::iterator i = dialog.regions.begin(); i != dialog.regions.end(); ++i) {
+	for (RegionList::iterator i = current_timefx->regions.begin(); i != current_timefx->regions.end(); ++i) {
 		boost::shared_ptr<Playlist> playlist = (*i)->playlist();
 
 		if (playlist) {
@@ -320,7 +331,7 @@ Editor::do_timefx (TimeFXDialog& dialog)
 		}
 	}
 
-	for (RegionList::iterator i = dialog.regions.begin(); i != dialog.regions.end(); ++i) {
+	for (RegionList::iterator i = current_timefx->regions.begin(); i != current_timefx->regions.end(); ++i) {
 
 		boost::shared_ptr<AudioRegion> region = boost::dynamic_pointer_cast<AudioRegion> (*i);
 
@@ -328,30 +339,30 @@ Editor::do_timefx (TimeFXDialog& dialog)
 			continue;
 		}
 
-		if (dialog.request.cancel) {
+		if (current_timefx->request.cancel) {
 			/* we were cancelled */
 			/* XXX what to do about playlists already affected ? */
-			dialog.status = 1;
+			current_timefx->status = 1;
 			return;
 		}
 
 		Filter* fx;
 
-		if (dialog.pitching) {
-			fx = new Pitch (*_session, dialog.request);
+		if (current_timefx->pitching) {
+			fx = new Pitch (*_session, current_timefx->request);
 		} else {
 #ifdef USE_RUBBERBAND
-			fx = new RBStretch (*_session, dialog.request);
+			fx = new RBStretch (*_session, current_timefx->request);
 #else
-			fx = new STStretch (*_session, dialog.request);
+			fx = new STStretch (*_session, current_timefx->request);
 #endif
 		}
 
 		current_timefx->descend (1.0 / N);
 
 		if (fx->run (region, current_timefx)) {
-			dialog.status = -1;
-			dialog.request.done = true;
+			current_timefx->status = -1;
+			current_timefx->request.done = true;
 			delete fx;
 			return;
 		}
@@ -371,8 +382,8 @@ Editor::do_timefx (TimeFXDialog& dialog)
 		_session->add_command (new StatefulDiffCommand (*p));
 	}
 
-	dialog.status = 0;
-	dialog.request.done = true;
+	current_timefx->status = 0;
+	current_timefx->request.done = true;
 }
 
 void*
@@ -384,7 +395,7 @@ Editor::timefx_thread (void *arg)
 
 	pthread_setcanceltype (PTHREAD_CANCEL_ASYNCHRONOUS, 0);
 
-	tsd->editor.do_timefx (*tsd);
+	tsd->editor.do_timefx ();
 
         /* GACK! HACK! sleep for a bit so that our request buffer for the GUI
            event loop doesn't die before any changes we made are processed

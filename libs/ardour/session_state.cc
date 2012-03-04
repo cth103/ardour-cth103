@@ -226,6 +226,7 @@ Session::first_stage_init (string fullpath, string snapshot_name)
         _speakers.reset (new Speakers);
 	_clicks_cleared = 0;
 	ignore_route_processor_changes = false;
+	_pre_export_mmc_enabled = false;
 
 	AudioDiskstream::allocate_working_buffers();
 
@@ -1429,6 +1430,8 @@ Session::set_state (const XMLNode& node, int version)
 	if ((child = find_named_node (node, "ControlProtocols")) != 0) {
 		ControlProtocolManager::instance().set_protocol_states (*child);
 	}
+
+	update_have_rec_enabled_track ();
 
 	/* here beginneth the second phase ... */
 

@@ -3593,8 +3593,7 @@ Editor::cut_copy (CutCopyOp op)
 
 		/* we only want to cut regions if some are selected */
 
-		switch (current_mouse_mode()) {
-		case MouseObject:
+		if (doing_object_stuff()) {
 			rs = get_regions_from_selection ();
 			if (!rs.empty() || !selection->points.empty()) {
 
@@ -3616,15 +3615,15 @@ Editor::cut_copy (CutCopyOp op)
 					}
 				}
 				commit_reversible_command ();
-				break; // terminate case statement here
+				goto out;
 			}
-			if (!selection->time.empty()) {
+			if (!selection->time.empty() && (_join_object_range_state == JOIN_OBJECT_RANGE_NONE)) {
 				/* don't cause suprises */
-				break;
+				goto out;
 			}
-			// fall thru if there was nothing selected
+		}
 
-		case MouseRange:
+		if (doing_range_stuff()) {
 			if (selection->time.empty()) {
 				framepos_t start, end;
 				if (!get_edit_op_range (start, end)) {
@@ -3640,14 +3639,10 @@ Editor::cut_copy (CutCopyOp op)
 			if (op == Cut || op == Delete) {
 				selection->clear_time ();
 			}
-
-			break;
-
-		default:
-			break;
 		}
 	}
 
+  out:
 	if (op == Delete || op == Cut || op == Clear) {
 		_drags->abort ();
 	}
@@ -4727,30 +4722,27 @@ Editor::reset_region_gain_envelopes ()
 }
 
 void
-Editor::toggle_gain_envelope_visibility ()
+Editor::set_region_gain_visibility (RegionView* rv, bool yn)
 {
-	if (_ignore_region_action) {
+	AudioRegionView* arv = dynamic_cast<AudioRegionView*> (rv);
+	if (arv) {
+		arv->set_envelope_visible (yn);
+	}
+}
+
+void
+Editor::set_gain_envelope_visibility (bool yn)
+{
+	if (!_session) {
 		return;
 	}
 
-	RegionSelection rs = get_regions_from_selection_and_entered ();
-
-	if (!_session || rs.empty()) {
-		return;
-	}
-
-	_session->begin_reversible_command (_("region gain envelope visible"));
-
-	for (RegionSelection::iterator i = rs.begin(); i != rs.end(); ++i) {
-		AudioRegionView* const arv = dynamic_cast<AudioRegionView*>(*i);
-		if (arv) {
-			arv->region()->clear_changes ();
-			arv->set_envelope_visible (!arv->envelope_visible());
-			_session->add_command (new StatefulDiffCommand (arv->region()));
+	for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {
+		AudioTimeAxisView* v = dynamic_cast<AudioTimeAxisView*>(*i);
+		if (v) {
+			v->audio_view()->foreach_regionview (sigc::bind (sigc::mem_fun (this, &Editor::set_region_gain_visibility), yn));
 		}
 	}
-
-	_session->commit_reversible_command ();
 }
 
 void

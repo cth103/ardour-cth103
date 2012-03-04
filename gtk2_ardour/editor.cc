@@ -90,6 +90,9 @@
 #include "audio_time_axis.h"
 #include "automation_time_axis.h"
 #include "utils.h"
+#include "bundle_manager.h"
+#include "button_joiner.h"
+#include "crossfade_edit.h"
 #include "crossfade_view.h"
 #include "editing.h"
 #include "public_editor.h"
@@ -159,6 +162,8 @@ static const gchar *_snap_type_strings[] = {
 	N_("Timecode Minutes"),
 	N_("Seconds"),
 	N_("Minutes"),
+	N_("Beats/128"),
+	N_("Beats/64"),
 	N_("Beats/32"),
 	N_("Beats/28"),
 	N_("Beats/24"),
@@ -657,6 +662,10 @@ Editor::Editor ()
 	set_snap_mode (_snap_mode);
 	set_mouse_mode (MouseObject, true);
         pre_internal_mouse_mode = MouseObject;
+        pre_internal_snap_type = _snap_type;
+        pre_internal_snap_mode = _snap_mode;
+        internal_snap_type = _snap_type;
+        internal_snap_mode = _snap_mode;
 	set_edit_point_preference (EditAtMouse, true);
 
 	_playlist_selector = new PlaylistSelector();
@@ -1739,7 +1748,7 @@ Editor::build_track_selection_context_menu ()
  * @param edit_items List to add the items to.
  */
 void
-Editor::add_crossfade_context_items (AudioStreamView* /*view*/, boost::shared_ptr<Crossfade> xfade, Menu_Helpers::MenuList& edit_items, bool many)
+Editor::add_crossfade_context_items (AudioStreamView* view, boost::shared_ptr<Crossfade> xfade, Menu_Helpers::MenuList& edit_items, bool many)
 {
 	using namespace Menu_Helpers;
 	Menu     *xfade_menu = manage (new Menu);
@@ -1753,8 +1762,13 @@ Editor::add_crossfade_context_items (AudioStreamView* /*view*/, boost::shared_pt
 		str = _("Unmute");
 	}
 
-	items.push_back (MenuElem (str, sigc::bind (sigc::mem_fun(*this, &Editor::toggle_xfade_active), boost::weak_ptr<Crossfade> (xfade))));
-	items.push_back (MenuElem (_("Edit..."), sigc::bind (sigc::mem_fun(*this, &Editor::edit_xfade), boost::weak_ptr<Crossfade> (xfade))));
+	items.push_back (
+		MenuElem (str, sigc::bind (sigc::mem_fun (*this, &Editor::toggle_xfade_active), &view->trackview(), boost::weak_ptr<Crossfade> (xfade)))
+		);
+	
+	items.push_back (
+		MenuElem (_("Edit..."), sigc::bind (sigc::mem_fun (*this, &Editor::edit_xfade), boost::weak_ptr<Crossfade> (xfade)))
+		);
 
 	if (xfade->can_follow_overlap()) {
 
@@ -1764,7 +1778,9 @@ Editor::add_crossfade_context_items (AudioStreamView* /*view*/, boost::shared_pt
 			str = _("Convert to Full");
 		}
 
-		items.push_back (MenuElem (str, sigc::bind (sigc::mem_fun(*this, &Editor::toggle_xfade_length), xfade)));
+		items.push_back (
+			MenuElem (str, sigc::bind (sigc::mem_fun (*this, &Editor::toggle_xfade_length), &view->trackview(), xfade))
+			);
 	}
 
 	if (many) {
@@ -2077,6 +2093,8 @@ Editor::set_snap_to (SnapType st)
 	instant_save ();
 
 	switch (_snap_type) {
+	case SnapToBeatDiv128:
+	case SnapToBeatDiv64:
 	case SnapToBeatDiv32:
 	case SnapToBeatDiv28:
 	case SnapToBeatDiv24:
@@ -2235,7 +2253,7 @@ Editor::set_state (const XMLNode& node, int /*version*/)
 	}
 
 	if ((prop = node.property ("zoom-focus"))) {
-		set_zoom_focus ((ZoomFocus) atoi (prop->value()));
+		set_zoom_focus ((ZoomFocus) string_2_enum (prop->value(), zoom_focus));
 	}
 
 	if ((prop = node.property ("zoom"))) {
@@ -2245,11 +2263,27 @@ Editor::set_state (const XMLNode& node, int /*version*/)
 	}
 
 	if ((prop = node.property ("snap-to"))) {
-		set_snap_to ((SnapType) atoi (prop->value()));
+		set_snap_to ((SnapType) string_2_enum (prop->value(), _snap_type));
 	}
 
 	if ((prop = node.property ("snap-mode"))) {
-		set_snap_mode ((SnapMode) atoi (prop->value()));
+		set_snap_mode ((SnapMode) string_2_enum (prop->value(), _snap_mode));
+	}
+
+	if ((prop = node.property ("internal-snap-to"))) {
+		internal_snap_type = (SnapType) string_2_enum (prop->value(), internal_snap_type);
+	}
+
+	if ((prop = node.property ("internal-snap-mode"))) {
+		internal_snap_mode = (SnapMode) string_2_enum (prop->value(), internal_snap_mode);
+	}
+
+	if ((prop = node.property ("pre-internal-snap-to"))) {
+		pre_internal_snap_type = (SnapType) string_2_enum (prop->value(), pre_internal_snap_type);
+	}
+
+	if ((prop = node.property ("pre-internal-snap-mode"))) {
+		pre_internal_snap_mode = (SnapMode) string_2_enum (prop->value(), pre_internal_snap_mode);
 	}
 
 	if ((prop = node.property ("mouse-mode"))) {
@@ -2434,14 +2468,15 @@ Editor::get_state ()
 	maybe_add_mixer_strip_width (*node);
 
 	snprintf (buf, sizeof(buf), "%d", (int) zoom_focus);
-	node->add_property ("zoom-focus", buf);
+	node->add_property ("zoom-focus", enum_2_string (zoom_focus));
 	snprintf (buf, sizeof(buf), "%f", frames_per_pixel);
 	node->add_property ("zoom", buf);
-	snprintf (buf, sizeof(buf), "%d", (int) _snap_type);
-	node->add_property ("snap-to", buf);
-	snprintf (buf, sizeof(buf), "%d", (int) _snap_mode);
-	node->add_property ("snap-mode", buf);
-
+	node->add_property ("snap-to", enum_2_string (_snap_type));
+	node->add_property ("snap-mode", enum_2_string (_snap_mode));
+	node->add_property ("internal-snap-to", enum_2_string (internal_snap_type));
+	node->add_property ("internal-snap-mode", enum_2_string (internal_snap_mode));
+	node->add_property ("pre-internal-snap-to", enum_2_string (pre_internal_snap_type));
+	node->add_property ("pre-internal-snap-mode", enum_2_string (pre_internal_snap_mode));
 	node->add_property ("edit-point", enum_2_string (_edit_point));
 
 	snprintf (buf, sizeof (buf), "%" PRIi64, playhead_cursor->current_frame ());
@@ -2459,7 +2494,7 @@ Editor::get_state ()
 	node->add_property ("region-list-sort-type", enum_2_string (_regions->sort_type ()));
 	node->add_property ("mouse-mode", enum2str(mouse_mode));
 	node->add_property ("internal-edit", _internal_editing ? "yes" : "no");
-	node->add_property ("join-object-range", join_object_range_button.get_active () ? "yes" : "no");
+	node->add_property ("join-object-range", smart_mode_action->get_active () ? "yes" : "no");
 
 	Glib::RefPtr<Action> act = ActionManager::get_action (X_("Editor"), X_("show-editor-mixer"));
 	if (act) {
@@ -2648,6 +2683,12 @@ Editor::snap_to_internal (framepos_t& start, int32_t direction, bool for_mark)
 		start = _session->tempo_map().round_to_beat (start, direction);
 		break;
 
+	case SnapToBeatDiv128:
+		start = _session->tempo_map().round_to_beat_subdivision (start, 128, direction);
+		break;
+	case SnapToBeatDiv64:
+		start = _session->tempo_map().round_to_beat_subdivision (start, 64, direction);
+		break;
 	case SnapToBeatDiv32:
 		start = _session->tempo_map().round_to_beat_subdivision (start, 32, direction);
 		break;
@@ -2780,29 +2821,57 @@ Editor::setup_toolbar ()
 	mode_box->set_border_width (2);
 	mode_box->set_spacing(4);
 
-	/* table containing mode buttons */
+	HBox* mouse_mode_box = manage (new HBox);
+	HBox* mouse_mode_hbox1 = manage (new HBox);
+	HBox* mouse_mode_hbox2 = manage (new HBox);
+	VBox* mouse_mode_vbox1 = manage (new VBox);
+	VBox* mouse_mode_vbox2 = manage (new VBox);
+	Alignment* mouse_mode_align1 = manage (new Alignment);
+	Alignment* mouse_mode_align2 = manage (new Alignment);
 
-	HBox* mouse_mode_button_box = manage (new HBox ());
-	mouse_mode_button_box->set_spacing (2);
+	Glib::RefPtr<SizeGroup> mouse_mode_size_group = SizeGroup::create (SIZE_GROUP_BOTH);
+	mouse_mode_size_group->add_widget (mouse_move_button);
+	mouse_mode_size_group->add_widget (mouse_select_button);
+	mouse_mode_size_group->add_widget (mouse_zoom_button);
+	mouse_mode_size_group->add_widget (mouse_gain_button);
+	mouse_mode_size_group->add_widget (mouse_timefx_button);
+	mouse_mode_size_group->add_widget (mouse_audition_button);
+	mouse_mode_size_group->add_widget (mouse_draw_button);
+	mouse_mode_size_group->add_widget (internal_edit_button);
 
-	if (Profile->get_sae()) {
-		mouse_mode_button_box->pack_start (mouse_move_button);
-	} else {
-		mouse_mode_button_box->pack_start (mouse_move_button);
-		mouse_mode_button_box->pack_start (join_object_range_button);
-		mouse_mode_button_box->pack_start (mouse_select_button);
-	}
+	/* make them just a bit bigger */
+	mouse_move_button.set_size_request (-1, 25);
 
-	mouse_mode_button_box->pack_start (mouse_zoom_button);
+	smart_mode_joiner = manage (new ButtonJoiner ("mouse mode button", mouse_move_button, mouse_select_button));
+	smart_mode_joiner->set_related_action (smart_mode_action);
 
-	if (!Profile->get_sae()) {
-		mouse_mode_button_box->pack_start (mouse_gain_button);
-	}
+	mouse_move_button.set_elements (ArdourButton::Element (ArdourButton::Body|ArdourButton::Text));
+	mouse_select_button.set_elements (ArdourButton::Element (ArdourButton::Body|ArdourButton::Text));
 
-	mouse_mode_button_box->pack_start (mouse_timefx_button);
-	mouse_mode_button_box->pack_start (mouse_audition_button);
-	mouse_mode_button_box->pack_start (mouse_draw_button);
-	mouse_mode_button_box->pack_start (internal_edit_button);
+	mouse_move_button.set_rounded_corner_mask (0x1); // upper left only 
+	mouse_select_button.set_rounded_corner_mask (0x2); // upper right only 
+
+	mouse_mode_hbox2->set_spacing (2);
+	mouse_mode_box->set_spacing (2);
+
+	mouse_mode_hbox1->pack_start (*smart_mode_joiner, false, false);
+	mouse_mode_hbox2->pack_start (mouse_zoom_button, false, false);
+	mouse_mode_hbox2->pack_start (mouse_gain_button, false, false);
+	mouse_mode_hbox2->pack_start (mouse_timefx_button, false, false);
+	mouse_mode_hbox2->pack_start (mouse_audition_button, false, false);
+	mouse_mode_hbox2->pack_start (mouse_draw_button, false, false);
+	mouse_mode_hbox2->pack_start (internal_edit_button, false, false);
+
+	mouse_mode_vbox1->pack_start (*mouse_mode_hbox1, false, false);
+	mouse_mode_vbox2->pack_start (*mouse_mode_hbox2, false, false);
+
+	mouse_mode_align1->add (*mouse_mode_vbox1);
+	mouse_mode_align1->set (0.5, 1.0, 0.0, 0.0);
+	mouse_mode_align2->add (*mouse_mode_vbox2);
+	mouse_mode_align2->set (0.5, 1.0, 0.0, 0.0);
+
+	mouse_mode_box->pack_start (*mouse_mode_align1, false, false);
+	mouse_mode_box->pack_start (*mouse_mode_align2, false, false);
 
 	edit_mode_strings.push_back (edit_mode_to_string (Slide));
 	if (!Profile->get_sae()) {
@@ -2815,7 +2884,7 @@ Editor::setup_toolbar ()
 	edit_mode_selector.signal_changed().connect (sigc::mem_fun(*this, &Editor::edit_mode_selection_done));
 
 	mode_box->pack_start (edit_mode_selector, false, false);
-	mode_box->pack_start (*mouse_mode_button_box, false, false);
+	mode_box->pack_start (*mouse_mode_box, false, false);
 
 	_mouse_mode_tearoff = manage (new TearOff (*mode_box));
 	_mouse_mode_tearoff->set_name ("MouseModeBase");
@@ -2990,7 +3059,7 @@ Editor::setup_tooltips ()
 	ARDOUR_UI::instance()->set_tip (mouse_zoom_button, _("Select Zoom Range"));
 	ARDOUR_UI::instance()->set_tip (mouse_timefx_button, _("Stretch/Shrink Regions and MIDI Notes"));
 	ARDOUR_UI::instance()->set_tip (mouse_audition_button, _("Listen to Specific Regions"));
-	ARDOUR_UI::instance()->set_tip (join_object_range_button, _("Select/Move Objects or Ranges"));
+	ARDOUR_UI::instance()->set_tip (smart_mode_joiner, _("Smart Mode (Select/Move Objects + Ranges)"));
 	ARDOUR_UI::instance()->set_tip (internal_edit_button, _("Edit Region Contents (e.g. notes)"));
 	ARDOUR_UI::instance()->set_tip (*_group_tabs, _("Groups: click to (de)activate\nContext-click for other operations"));
 	ARDOUR_UI::instance()->set_tip (nudge_forward_button, _("Nudge Region/Selection Forwards"));
@@ -3005,6 +3074,7 @@ Editor::setup_tooltips ()
 	ARDOUR_UI::instance()->set_tip (snap_mode_selector, _("Snap/Grid Mode"));
 	ARDOUR_UI::instance()->set_tip (edit_point_selector, _("Edit point"));
 	ARDOUR_UI::instance()->set_tip (edit_mode_selector, _("Edit Mode"));
+	ARDOUR_UI::instance()->set_tip (nudge_clock, _("Nudge Clock\n(controls distance used to nudge regions and selections)"));
 }
 
 int
@@ -3335,6 +3405,10 @@ Editor::snap_type_selection_done ()
 		snaptype = SnapToBeatDiv28;
 	} else if (choice == _("Beats/32")) {
 		snaptype = SnapToBeatDiv32;
+	} else if (choice == _("Beats/64")) {
+		snaptype = SnapToBeatDiv64;
+	} else if (choice == _("Beats/128")) {
+		snaptype = SnapToBeatDiv128;
 	} else if (choice == _("Beats")) {
 		snaptype = SnapToBeat;
 	} else if (choice == _("Bars")) {
@@ -3654,21 +3728,50 @@ Editor::set_stationary_playhead (bool yn)
 }
 
 void
-Editor::toggle_xfade_active (boost::weak_ptr<Crossfade> wxfade)
+Editor::toggle_xfade_active (RouteTimeAxisView* tv, boost::weak_ptr<Crossfade> wxfade)
 {
 	boost::shared_ptr<Crossfade> xfade (wxfade.lock());
-	if (xfade) {
-		xfade->set_active (!xfade->active());
+	if (!xfade) {
+		return;
 	}
+
+	vector<boost::shared_ptr<Crossfade> > all = get_equivalent_crossfades (*tv, xfade, ARDOUR::Properties::edit.property_id);
+
+	_session->begin_reversible_command (_("Change crossfade active state"));
+	
+	for (vector<boost::shared_ptr<Crossfade> >::iterator i = all.begin(); i != all.end(); ++i) {
+		(*i)->clear_changes ();
+		(*i)->set_active (!(*i)->active());
+		_session->add_command (new StatefulDiffCommand (*i));
+	}
+	
+	_session->commit_reversible_command ();
 }
 
 void
-Editor::toggle_xfade_length (boost::weak_ptr<Crossfade> wxfade)
+Editor::toggle_xfade_length (RouteTimeAxisView* tv, boost::weak_ptr<Crossfade> wxfade)
 {
 	boost::shared_ptr<Crossfade> xfade (wxfade.lock());
-	if (xfade) {
-		xfade->set_follow_overlap (!xfade->following_overlap());
+	if (!xfade) {
+		return;
 	}
+	
+	vector<boost::shared_ptr<Crossfade> > all = get_equivalent_crossfades (*tv, xfade, ARDOUR::Properties::edit.property_id);
+
+	/* This can't be a StatefulDiffCommand as the fade shapes are not
+	   managed by the Stateful properties system.
+	*/
+	_session->begin_reversible_command (_("Change crossfade length"));
+	
+	for (vector<boost::shared_ptr<Crossfade> >::iterator i = all.begin(); i != all.end(); ++i) {
+		XMLNode& before = (*i)->get_state ();
+		(*i)->set_follow_overlap (!(*i)->following_overlap());
+		XMLNode& after = (*i)->get_state ();
+	
+		_session->add_command (new MementoCommand<Crossfade> (*i->get(), &before, &after));
+	}
+	
+	_session->commit_reversible_command ();
 }
 
 void
@@ -3714,6 +3817,12 @@ Editor::get_grid_type_as_beats (bool& success, framepos_t position)
 		return 1.0;
 		break;
 
+	case SnapToBeatDiv128:
+		return 1.0/128.0;
+		break;
+	case SnapToBeatDiv64:
+		return 1.0/64.0;
+		break;
 	case SnapToBeatDiv32:
 		return 1.0/32.0;
 		break;
@@ -5143,32 +5252,33 @@ Editor::reset_x_origin_to_follow_playhead ()
 
 		} else {
 
+			framepos_t l = 0;
+			
 			if (frame < leftmost_frame) {
 				/* moving left */
-				framepos_t l = 0;
 				if (_session->transport_rolling()) {
 					/* rolling; end up with the playhead at the right of the page */
 					l = frame - current_page_frames ();
 				} else {
-					/* not rolling: end up with the playhead 3/4 of the way along the page */
-					l = frame - (3 * current_page_frames() / 4);
+					/* not rolling: end up with the playhead 1/4 of the way along the page */
+					l = frame - current_page_frames() / 4;
 				}
-
-				if (l < 0) {
-					l = 0;
-				}
-
-				center_screen_internal (l + (current_page_frames() / 2), current_page_frames ());
 			} else {
 				/* moving right */
 				if (_session->transport_rolling()) {
 					/* rolling: end up with the playhead on the left of the page */
-					center_screen_internal (frame + (current_page_frames() / 2), current_page_frames ());
+					l = frame;
 				} else {
-					/* not rolling: end up with the playhead 1/4 of the way along the page */
-					center_screen_internal (frame + (current_page_frames() / 4), current_page_frames ());
+					/* not rolling: end up with the playhead 3/4 of the way along the page */
+					l = frame - 3 * current_page_frames() / 4;
 				}
 			}
+
+			if (l < 0) {
+				l = 0;
+			}
+			
+			center_screen_internal (l + (current_page_frames() / 2), current_page_frames ());
 		}
 	}
 }

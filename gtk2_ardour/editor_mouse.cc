@@ -313,7 +313,7 @@ Editor::set_canvas_cursor ()
 	}
 
 	/* up-down cursor as a cue that automation can be dragged up and down when in join object/range mode */
-	if (join_object_range_button.get_active()) {
+	if (smart_mode_action->get_active()) {
 		double x, y;
 		get_pointer_position (x, y);
 		Canvas::Item const * i = _track_canvas->top_item_at (x, y);
@@ -602,14 +602,21 @@ Editor::button_selection (Canvas::Item* /*item*/, GdkEvent* event, ItemType item
 
 	switch (item_type) {
 	case RegionItem:
-		if (mouse_mode != MouseRange || _join_object_range_state == JOIN_OBJECT_RANGE_OBJECT) {
-			set_selected_regionview_from_click (press, op, true);
-		} else if (press) {
-			selection->clear_tracks ();
-			set_selected_track_as_side_effect (op, true);
+		if (!doing_range_stuff()) {
+			set_selected_regionview_from_click (press, op);
 		}
-		if (_join_object_range_state == JOIN_OBJECT_RANGE_OBJECT && !selection->regions.empty()) {
-			clicked_selection = select_range_around_region (selection->regions.front());
+		
+		if (press) {
+			if (doing_range_stuff()) {
+				/* don't change the selection unless the
+				   clicked track is not currently selected. if
+				   so, "collapse" the selection to just this
+				   track
+				*/
+				if (!selection->selected (clicked_axisview)) {
+					set_selected_track_as_side_effect (Selection::Set);
+				}
+			}
 		}
 		break;
 
@@ -617,8 +624,8 @@ Editor::button_selection (Canvas::Item* /*item*/, GdkEvent* event, ItemType item
  	case RegionViewName:
 	case LeftFrameHandle:
 	case RightFrameHandle:
-		if (mouse_mode != MouseRange || _join_object_range_state == JOIN_OBJECT_RANGE_OBJECT) {
-			set_selected_regionview_from_click (press, op, true);
+		if (doing_object_stuff() || (mouse_mode != MouseRange && mouse_mode != MouseObject)) {
+			set_selected_regionview_from_click (press, op);
 		} else if (event->type == GDK_BUTTON_PRESS) {
 			set_selected_track_as_side_effect (op);
 		}
@@ -629,16 +636,16 @@ Editor::button_selection (Canvas::Item* /*item*/, GdkEvent* event, ItemType item
 	case FadeInItem:
 	case FadeOutHandleItem:
 	case FadeOutItem:
-		if (mouse_mode != MouseRange || _join_object_range_state == JOIN_OBJECT_RANGE_OBJECT) {
-			set_selected_regionview_from_click (press, op, true);
+		if (doing_object_stuff() || (mouse_mode != MouseRange && mouse_mode != MouseObject)) {
+			set_selected_regionview_from_click (press, op);
 		} else if (event->type == GDK_BUTTON_PRESS) {
 			set_selected_track_as_side_effect (op);
 		}
 		break;
 
 	case ControlPointItem:
-		set_selected_track_as_side_effect (op, true);
-		if (mouse_mode != MouseRange || _join_object_range_state == JOIN_OBJECT_RANGE_OBJECT) {
+		set_selected_track_as_side_effect (op);
+		if (doing_object_stuff() || (mouse_mode != MouseRange && mouse_mode != MouseObject)) {
 			set_selected_control_point_from_click (op, false);
 		}
 		break;
@@ -647,12 +654,12 @@ Editor::button_selection (Canvas::Item* /*item*/, GdkEvent* event, ItemType item
 		/* for context click, select track */
 		if (event->button.button == 3) {
 			selection->clear_tracks ();
-			set_selected_track_as_side_effect (op, true);
+			set_selected_track_as_side_effect (op);
 		}
 		break;
 
 	case AutomationTrackItem:
-		set_selected_track_as_side_effect (op, true);
+		set_selected_track_as_side_effect (op);
 		break;
 
 	default:
@@ -807,7 +814,7 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 				pair<TimeAxisView*, int> tvp = trackview_by_y_position (y);
 				if (tvp.first) {
 					AutomationTimeAxisView* atv = dynamic_cast<AutomationTimeAxisView*> (tvp.first);
-					if (join_object_range_button.get_active() && atv) {
+					if (smart_mode_action->get_active() && atv) {
 						/* smart "join" mode: drag automation */
 						_drags->set (new AutomationRangeDrag (this, atv->base_item(), selection->time), event, _cursors->up_down);
 					} else {
@@ -818,18 +825,6 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 				}
 			}
 			break;
-
-		case NoteItem:
-			if (internal_editing()) {
-				/* trim notes if we're in internal edit mode and near the ends of the note */
-				NoteBase* cn = reinterpret_cast<NoteBase*> (item->get_data ("notebase"));
-				if (cn && cn->big_enough_to_trim() && cn->mouse_near_ends()) {
-					_drags->set (new NoteResizeDrag (this, item), event, current_canvas_cursor);
-				} else {
-					_drags->set (new NoteDrag (this, item), event);
-				}
-			}
-			return true;
 
 		case StreamItem:
 			if (internal_editing()) {
@@ -853,7 +848,7 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 
 		case LeftFrameHandle:
 		case RightFrameHandle:
-			if (!internal_editing() && !clicked_regionview->region()->locked()) {
+			if (!internal_editing() && doing_object_stuff() && !clicked_regionview->region()->locked()) {
 				RegionSelection s = get_equivalent_regions (selection->regions, Properties::edit.property_id);
 				_drags->set (new TrimDrag (this, item, clicked_regionview, s.by_layer()), event);
 				return true;
@@ -868,6 +863,25 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 			break;
 		}
 		break;
+
+	case MouseDraw:
+		switch (item_type) {
+		case NoteItem:
+			if (internal_editing()) {
+				/* trim notes if we're in internal edit mode and near the ends of the note */
+				NoteBase* cn = reinterpret_cast<NoteBase*> (item->get_data ("notebase"));
+				if (cn && cn->big_enough_to_trim() && cn->mouse_near_ends()) {
+					_drags->set (new NoteResizeDrag (this, item), event, current_canvas_cursor);
+				} else {
+					_drags->set (new NoteDrag (this, item), event);
+				}
+				return true;
+			}
+			break;
+
+		default:
+			break;
+		}
 
 	case MouseObject:
 		switch (item_type) {
@@ -947,7 +961,8 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 					add_region_drag (item, event, clicked_regionview);
 				}
 
-				if (!internal_editing() && (_join_object_range_state == JOIN_OBJECT_RANGE_OBJECT && !selection->regions.empty())) {
+
+				if (!internal_editing() && (_join_object_range_state == JOIN_OBJECT_RANGE_RANGE && !selection->regions.empty())) {
 					_drags->add (new SelectionDrag (this, clicked_axisview->get_selection_rect (clicked_selection)->rect, SelectionDrag::SelectionMove));
 				}
 
@@ -1012,7 +1027,7 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 
 			case SelectionItem:
 			{
-				if (join_object_range_button.get_active()) {
+				if (smart_mode_action->get_active()) {
 					/* we're in "smart" joined mode, and we've clicked on a Selection */
 					double const y = event->button.y + vertical_adjustment.get_value();
 					pair<TimeAxisView*, int> tvp = trackview_by_y_position (y);
@@ -1036,7 +1051,8 @@ Editor::button_press_handler_1 (Canvas::Item* item, GdkEvent* event, ItemType it
 									boost::shared_ptr<Region> r = pl->top_region_at (event_frame (event));
 									if (r) {
 										RegionView* rv = rtv->view()->find_view (r);
-										clicked_selection = select_range_around_region (rv);
+										clicked_selection = select_range (rv->region()->position(), 
+														  rv->region()->last_frame()+1);
 										_drags->add (new SelectionDrag (this, item, SelectionDrag::SelectionMove));
 										list<RegionView*> rvs;
 										rvs.push_back (rv);
@@ -1615,7 +1631,6 @@ Editor::button_release_handler (Canvas::Item* item, GdkEvent* event, ItemType it
 				}
 				return true;
 				break;
-
 			default:
 				break;
 			}
@@ -1777,7 +1792,7 @@ Editor::enter_handler (Canvas::Item* item, GdkEvent* event, ItemType item_type)
 		break;
 
 	case RegionViewNameHighlight:
-		if (is_drawable() && mouse_mode == MouseObject && entered_regionview) {
+		if (is_drawable() && doing_object_stuff() && entered_regionview) {
 			set_canvas_cursor_for_region_view (event->crossing.x, entered_regionview);
 			_over_region_trim_target = true;
 		}
@@ -1785,7 +1800,7 @@ Editor::enter_handler (Canvas::Item* item, GdkEvent* event, ItemType item_type)
 
 	case LeftFrameHandle:
 	case RightFrameHandle:
-		if (is_drawable() && mouse_mode == MouseObject && !internal_editing() && entered_regionview) {
+		if (is_drawable() && doing_object_stuff() && !internal_editing() && entered_regionview) {
 			set_canvas_cursor_for_region_view (event->crossing.x, entered_regionview);
 		}
                 break;
@@ -1912,7 +1927,7 @@ Editor::enter_handler (Canvas::Item* item, GdkEvent* event, ItemType item_type)
 	break;
 	
 	case SelectionItem:
-		if (join_object_range_button.get_active()) {
+		if (smart_mode_action->get_active()) {
 			set_canvas_cursor ();
 		}
 		break;
@@ -2041,7 +2056,7 @@ Editor::leave_handler (Canvas::Item* item, GdkEvent*, ItemType item_type)
 	case TempoMarkerItem:
 
 		if (is_drawable()) {
-			set_canvas_cursor (_cursors->timebar);
+			set_canvas_cursor (current_canvas_cursor);
 		}
 
 		break;
@@ -2685,16 +2700,29 @@ Editor::escape ()
 void
 Editor::set_internal_edit (bool yn)
 {
+	if (_internal_editing == yn) {
+		return;
+	}
+
 	_internal_editing = yn;
 	
 	if (yn) {
                 pre_internal_mouse_mode = mouse_mode;
+		pre_internal_snap_type = _snap_type;
+		pre_internal_snap_mode = _snap_mode;
 
                 for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {
                         (*i)->enter_internal_edit_mode ();
                 }
 
+		set_snap_to (internal_snap_type);
+		set_snap_mode (internal_snap_mode);
+
 	} else {
+
+		internal_snap_mode = _snap_mode;
+		internal_snap_type = _snap_type;
+
                 for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {
                         (*i)->leave_internal_edit_mode ();
                 }
@@ -2703,6 +2731,9 @@ Editor::set_internal_edit (bool yn)
                         /* we were drawing .. flip back to something sensible */
                         set_mouse_mode (pre_internal_mouse_mode);
                 }
+
+		set_snap_to (pre_internal_snap_type);
+		set_snap_mode (pre_internal_snap_mode);
 	}
 	
 	set_canvas_cursor ();
@@ -2714,12 +2745,15 @@ Editor::set_internal_edit (bool yn)
 void
 Editor::update_join_object_range_location (double /*x*/, double y)
 {
-	/* XXX: actually, this decides based on whether the mouse is in the top or bottom half of a RouteTimeAxisView;
-	   entered_{track,regionview} is not always setup (e.g. if the mouse is over a TimeSelection), and to get a Region
+	/* XXX: actually, this decides based on whether the mouse is in the top
+	   or bottom half of a the waveform part RouteTimeAxisView;
+
+	   Note that entered_{track,regionview} is not always setup (e.g. if
+	   the mouse is over a TimeSelection), and to get a Region
 	   that we're over requires searching the playlist.
 	*/
 
-	if (join_object_range_button.get_active() == false || (mouse_mode != MouseRange && mouse_mode != MouseObject)) {
+	if (!smart_mode_action->get_active() || (mouse_mode != MouseRange && mouse_mode != MouseObject)) {
 		_join_object_range_state = JOIN_OBJECT_RANGE_NONE;
 		return;
 	}
@@ -2742,7 +2776,7 @@ Editor::update_join_object_range_location (double /*x*/, double y)
 			double cy = y;
 			rtv->canvas_display()->canvas_to_item (cx, cy);
 
-			double const c = cy / rtv->view()->child_height();
+			double const c = cy / (rtv->view()->child_height() - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE);
 			double d;
 			double const f = modf (c, &d);
 
