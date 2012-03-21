@@ -827,13 +827,13 @@ Playlist::flush_notifications (bool from_undo)
 	 if (Config->get_use_overlap_equivalency()) {
 		 for (RegionList::iterator i = regions.begin(); i != regions.end(); ++i) {
 			 if ((*i)->overlap_equivalent (other)) {
-				 results.push_back ((*i));
+				 results.push_back (*i);
 			 }
 		 }
 	 } else {
 		 for (RegionList::iterator i = regions.begin(); i != regions.end(); ++i) {
 			 if ((*i)->equivalent (other)) {
-				 results.push_back ((*i));
+				 results.push_back (*i);
 			 }
 		 }
 	 }
@@ -1634,7 +1634,7 @@ Playlist::flush_notifications (bool from_undo)
   FINDING THINGS
   **********************************************************************/
 
-boost::shared_ptr<Playlist::RegionList>
+boost::shared_ptr<RegionList>
 Playlist::regions_at (framepos_t frame)
 {
 	RegionLock rlock (this);
@@ -1703,7 +1703,7 @@ Playlist::regions_at (framepos_t frame)
 	 return region;
  }
 
-boost::shared_ptr<Playlist::RegionList>
+boost::shared_ptr<RegionList>
 Playlist::regions_to_read (framepos_t start, framepos_t end)
 {
 	 /* Caller must hold lock */
@@ -1838,7 +1838,7 @@ Playlist::regions_to_read (framepos_t start, framepos_t end)
 	 return rlist;
  }
 
-boost::shared_ptr<Playlist::RegionList>
+boost::shared_ptr<RegionList>
 Playlist::find_regions_at (framepos_t frame)
 {
 	/* Caller must hold lock */
@@ -1854,7 +1854,7 @@ Playlist::find_regions_at (framepos_t frame)
 	return rlist;
 }
 
-boost::shared_ptr<Playlist::RegionList>
+boost::shared_ptr<RegionList>
 Playlist::regions_touched (framepos_t start, framepos_t end)
 {
 	RegionLock rlock (this);

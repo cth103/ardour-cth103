@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2000 Paul Davis
+    Copyright (C) 2011 Paul Davis
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -14,48 +14,26 @@
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
 */
 
-#include "ardour/gain.h"
+#ifndef __ardour_midi_patch_search_path_h__
+#define __ardour_midi_patch_search_path_h__
 
-using namespace ARDOUR;
+#include "pbd/search_path.h"
 
-Gain::Gain ()
-	: AutomationList (Evoral::Parameter(GainAutomation))   /* XXX yuck; clamps gain to -inf .. +6db */
-{
-}
+namespace ARDOUR {
 
-Gain::Gain (const Gain& other)
-	: AutomationList (other)
-{
-}
+	/**
+	 * return a SearchPath containing directories in which to look for
+	 * MIDI patch files ("*.midnam") aka MIDNAM files
+	 *
+	 * If ARDOUR_MIDI_PATCH_PATH is defined then the SearchPath returned
+	 * will contain only those directories specified in it, otherwise it will
+	 * contain the user and system directories which may contain control
+	 * surface plugins.
+	 */
+	PBD::SearchPath midi_patch_search_path ();
 
-Gain&
-Gain::operator= (const Gain& other)
-{
-	if (this != &other) {
-		AutomationList::operator= (other);
-	}
-	return *this;
-}
+} // namespace ARDOUR
 
-void
-Gain::fill_linear_volume_fade_in (Gain& /*gain*/, framecnt_t /*frames*/)
-{
-}
-
-void
-Gain::fill_linear_volume_fade_out (Gain& /*gain*/, framecnt_t /*frames*/)
-{
-}
-
-void
-Gain::fill_linear_fade_in (Gain& /*gain*/, framecnt_t /*frames*/)
-{
-}
-
-void
-Gain::fill_linear_fade_out (Gain& /*gain*/, framecnt_t /*frames*/)
-{
-}
+#endif /* __ardour_midi_patch_search_path_h__ */

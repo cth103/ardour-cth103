@@ -212,6 +212,8 @@ protected:
 		return _last_pointer_frame;
 	}
 
+	boost::shared_ptr<ARDOUR::Region> add_midi_region (MidiTimeAxisView*);
+
 	void show_verbose_cursor_time (framepos_t);
 	void show_verbose_cursor_duration (framepos_t, framepos_t, double xoffset = 0);
 	void show_verbose_cursor_text (std::string const &);
@@ -417,7 +419,6 @@ public:
 private:
 	MidiTimeAxisView* _view;
 	boost::shared_ptr<ARDOUR::Region> _region;
-        void add_region ();
 };
 
 /** Drags to resize MIDI notes */
@@ -501,21 +502,6 @@ private:
 	MidiRegionView* _region_view;
 	ArdourCanvas::CanvasPatchChange* _patch_change;
 	double _cumulative_dx;
-};
-
-/** Drag of region gain */
-class RegionGainDrag : public Drag
-{
-public:
-	RegionGainDrag (Editor *, ArdourCanvas::Item *);
-
-	void motion (GdkEvent *, bool);
-	void finished (GdkEvent *, bool);
-	bool active (Editing::MouseMode m) {
-		return (m == Editing::MouseGain);
-	}
-
-	void aborted (bool);
 };
 
 /** Drag to trim region(s) */
@@ -800,6 +786,9 @@ public:
 	virtual void select_things (int button_state, framepos_t x1, framepos_t x2, double y1, double y2, bool drag_in_progress) = 0;
 	
 	virtual void deselect_things () = 0;
+
+  protected:
+	bool _vertical_only;
 };
 
 /** A general editor RubberbandSelectDrag (for regions, automation points etc.) */
@@ -817,6 +806,19 @@ class MidiRubberbandSelectDrag : public RubberbandSelectDrag
 {
 public:
 	MidiRubberbandSelectDrag (Editor *, MidiRegionView *);
+
+	void select_things (int, framepos_t, framepos_t, double, double, bool);
+	void deselect_things ();
+
+private:
+	MidiRegionView* _region_view;
+};
+
+/** A RubberbandSelectDrag for selecting MIDI notes but with no horizonal component */
+class MidiVerticalSelectDrag : public RubberbandSelectDrag
+{
+public:
+	MidiVerticalSelectDrag (Editor *, MidiRegionView *);
 
 	void select_things (int, framepos_t, framepos_t, double, double, bool);
 	void deselect_things ();
@@ -875,6 +877,7 @@ private:
 	int _original_pointer_time_axis;
 	int _last_pointer_time_axis;
 	std::list<TimeAxisView*> _added_time_axes;
+	bool _time_selection_at_start;
 };
 
 /** Range marker drag */

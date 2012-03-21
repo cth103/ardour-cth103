@@ -82,6 +82,8 @@ namespace ARDOUR {
 	// associate a set of intervals with regions (e.g. for silence detection)
 	typedef std::map<boost::shared_ptr<ARDOUR::Region>,AudioIntervalResult> AudioIntervalMap;
 
+	typedef std::list<boost::shared_ptr<Region> > RegionList;
+
 	struct IOChange {
 
 		enum Type {
@@ -420,15 +422,6 @@ namespace ARDOUR {
 		AutoConnectMaster = 0x2
 	};
 
-	struct InterThreadInfo {
-		InterThreadInfo () : done (false), cancel (false), progress (0), thread (0) {}
-
-		volatile bool  done;
-		volatile bool  cancel;
-		volatile float progress;
-		pthread_t      thread;
-	};
-
 	enum SampleFormat {
 		FormatFloat = 0,
 		FormatInt24,
@@ -496,19 +489,6 @@ namespace ARDOUR {
 		SrcQuick,
 		SrcFast,
 		SrcFastest
-	};
-
-	struct TimeFXRequest : public InterThreadInfo {
-		TimeFXRequest()
-			: time_fraction(0), pitch_fraction(0),
-			quick_seek(false), antialias(false),  opts(0) {}
-		float time_fraction;
-		float pitch_fraction;
-		/* SoundTouch */
-		bool  quick_seek;
-		bool  antialias;
-		/* RubberBand */
-		int   opts; // really RubberBandStretcher::Options
 	};
 
 	typedef std::list<framepos_t> AnalysisFeatureList;

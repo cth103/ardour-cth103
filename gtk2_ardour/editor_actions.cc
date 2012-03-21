@@ -82,63 +82,66 @@ Editor::register_actions ()
 	RefPtr<Action> act;
 
 	editor_actions = ActionGroup::create (X_("Editor"));
+	editor_menu_actions = ActionGroup::create (X_("EditorMenu"));
 
 	/* non-operative menu items for menu bar */
 
-	ActionManager::register_action (editor_actions, X_("AlignMenu"), _("Align"));
-	ActionManager::register_action (editor_actions, X_("Autoconnect"), _("Autoconnect"));
-	ActionManager::register_action (editor_actions, X_("Crossfades"), _("Crossfades"));
-	ActionManager::register_action (editor_actions, X_("Edit"), _("Edit"));
-	ActionManager::register_action (editor_actions, X_("EditCursorMovementOptions"), _("Move Selected Marker"));
-	ActionManager::register_action (editor_actions, X_("EditSelectRangeOptions"), _("Select Range Operations"));
-	ActionManager::register_action (editor_actions, X_("EditSelectRegionOptions"), _("Select Regions"));
-	ActionManager::register_action (editor_actions, X_("EditPointMenu"), _("Edit Point"));
-	ActionManager::register_action (editor_actions, X_("FadeMenu"), _("Fade"));
-	ActionManager::register_action (editor_actions, X_("LatchMenu"), _("Latch"));
-	ActionManager::register_action (editor_actions, X_("RegionMenu"), _("Region"));
-	ActionManager::register_action (editor_actions, X_("RegionMenuLayering"), _("Layering"));
-	ActionManager::register_action (editor_actions, X_("RegionMenuNudge"), _("Nudge"));
-	ActionManager::register_action (editor_actions, X_("RegionMenuTrim"), _("Trim"));
-	ActionManager::register_action (editor_actions, X_("RegionMenuGain"), _("Gain"));
-	ActionManager::register_action (editor_actions, X_("RegionMenuRanges"), _("Ranges"));
-	ActionManager::register_action (editor_actions, X_("RegionMenuFades"), _("Fades"));
-	ActionManager::register_action (editor_actions, X_("RegionMenuMIDI"), _("MIDI"));
-	ActionManager::register_action (editor_actions, X_("RegionMenuDuplicate"), _("Duplicate"));
-	ActionManager::register_action (editor_actions, X_("Link"), _("Link"));
-	ActionManager::register_action (editor_actions, X_("ZoomFocusMenu"), _("Zoom Focus"));
-	ActionManager::register_action (editor_actions, X_("LocateToMarker"), _("Locate to Markers"));
-	ActionManager::register_action (editor_actions, X_("MarkerMenu"), _("Markers"));
-	ActionManager::register_action (editor_actions, X_("MeterFalloff"), _("Meter falloff"));
-	ActionManager::register_action (editor_actions, X_("MeterHold"), _("Meter hold"));
-	ActionManager::register_action (editor_actions, X_("MiscOptions"), _("Misc Options"));
-	ActionManager::register_action (editor_actions, X_("Monitoring"), _("Monitoring"));
-	ActionManager::register_action (editor_actions, X_("MoveActiveMarkMenu"), _("Active Mark"));
-	ActionManager::register_action (editor_actions, X_("MovePlayHeadMenu"), _("Playhead"));
-	ActionManager::register_action (editor_actions, X_("PlayMenu"), _("Play"));
-	ActionManager::register_action (editor_actions, X_("PrimaryClockMenu"), _("Primary Clock"));
-	ActionManager::register_action (editor_actions, X_("Pullup"), _("Pullup / Pulldown"));
-	ActionManager::register_action (editor_actions, X_("RegionEditOps"), _("Region operations"));
-	ActionManager::register_action (editor_actions, X_("RegionGainMenu"), _("Gain"));
-	ActionManager::register_action (editor_actions, X_("RulerMenu"), _("Rulers"));
-	ActionManager::register_action (editor_actions, X_("SavedViewMenu"), _("Views"));
-	ActionManager::register_action (editor_actions, X_("ScrollMenu"), _("Scroll"));
-	ActionManager::register_action (editor_actions, X_("SecondaryClockMenu"), _("Secondary Clock"));
-	ActionManager::register_action (editor_actions, X_("Select"), _("Select"));
-	ActionManager::register_action (editor_actions, X_("SelectMenu"), _("Select"));
-	ActionManager::register_action (editor_actions, X_("SeparateMenu"), _("Separate"));
-	ActionManager::register_action (editor_actions, X_("SetLoopMenu"), _("Loop"));
-	ActionManager::register_action (editor_actions, X_("SetPunchMenu"), _("Punch"));
-	ActionManager::register_action (editor_actions, X_("Solo"), _("Solo"));
-	ActionManager::register_action (editor_actions, X_("Subframes"), _("Subframes"));
-	ActionManager::register_action (editor_actions, X_("SyncMenu"), _("Sync"));
-	ActionManager::register_action (editor_actions, X_("TempoMenu"), _("Tempo"));
-	ActionManager::register_action (editor_actions, X_("Timecode"), _("Timecode fps"));
-	ActionManager::register_action (editor_actions, X_("TrackHeightMenu"), _("Height"));
-	ActionManager::register_action (editor_actions, X_("TrackMenu"), _("Track"));
-	ActionManager::register_action (editor_actions, X_("Tools"), _("Tools"));
-	ActionManager::register_action (editor_actions, X_("View"), _("View"));
-	ActionManager::register_action (editor_actions, X_("ZoomFocus"), _("Zoom Focus"));
-	ActionManager::register_action (editor_actions, X_("ZoomMenu"), _("Zoom"));
+	ActionManager::register_action (editor_menu_actions, X_("AlignMenu"), _("Align"));
+	ActionManager::register_action (editor_menu_actions, X_("Autoconnect"), _("Autoconnect"));
+	ActionManager::register_action (editor_menu_actions, X_("Crossfades"), _("Crossfades"));
+	ActionManager::register_action (editor_menu_actions, X_("Edit"), _("Edit"));
+	ActionManager::register_action (editor_menu_actions, X_("EditCursorMovementOptions"), _("Move Selected Marker"));
+	ActionManager::register_action (editor_menu_actions, X_("EditSelectRangeOptions"), _("Select Range Operations"));
+	ActionManager::register_action (editor_menu_actions, X_("EditSelectRegionOptions"), _("Select Regions"));
+	ActionManager::register_action (editor_menu_actions, X_("EditPointMenu"), _("Edit Point"));
+	ActionManager::register_action (editor_menu_actions, X_("FadeMenu"), _("Fade"));
+	ActionManager::register_action (editor_menu_actions, X_("LatchMenu"), _("Latch"));
+	ActionManager::register_action (editor_menu_actions, X_("RegionMenu"), _("Region"));
+	ActionManager::register_action (editor_menu_actions, X_("RegionMenuLayering"), _("Layering"));
+	ActionManager::register_action (editor_menu_actions, X_("RegionMenuPosition"), _("Position"));
+	ActionManager::register_action (editor_menu_actions, X_("RegionMenuEdit"), _("Edit"));
+	ActionManager::register_action (editor_menu_actions, X_("RegionMenuTrim"), _("Trim"));
+	ActionManager::register_action (editor_menu_actions, X_("RegionMenuGain"), _("Gain"));
+	ActionManager::register_action (editor_menu_actions, X_("RegionMenuRanges"), _("Ranges"));
+	ActionManager::register_action (editor_menu_actions, X_("RegionMenuFades"), _("Fades"));
+	ActionManager::register_action (editor_menu_actions, X_("RegionMenuMIDI"), _("MIDI"));
+	ActionManager::register_action (editor_menu_actions, X_("RegionMenuDuplicate"), _("Duplicate"));
+	ActionManager::register_action (editor_menu_actions, X_("Link"), _("Link"));
+	ActionManager::register_action (editor_menu_actions, X_("ZoomFocusMenu"), _("Zoom Focus"));
+	ActionManager::register_action (editor_menu_actions, X_("LocateToMarker"), _("Locate to Markers"));
+	ActionManager::register_action (editor_menu_actions, X_("MarkerMenu"), _("Markers"));
+	ActionManager::register_action (editor_menu_actions, X_("MeterFalloff"), _("Meter falloff"));
+	ActionManager::register_action (editor_menu_actions, X_("MeterHold"), _("Meter hold"));
+	ActionManager::register_action (editor_menu_actions, X_("MIDI"), _("MIDI Options"));
+	ActionManager::register_action (editor_menu_actions, X_("MiscOptions"), _("Misc Options"));
+	ActionManager::register_action (editor_menu_actions, X_("Monitoring"), _("Monitoring"));
+	ActionManager::register_action (editor_menu_actions, X_("MoveActiveMarkMenu"), _("Active Mark"));
+	ActionManager::register_action (editor_menu_actions, X_("MovePlayHeadMenu"), _("Playhead"));
+	ActionManager::register_action (editor_menu_actions, X_("PlayMenu"), _("Play"));
+	ActionManager::register_action (editor_menu_actions, X_("PrimaryClockMenu"), _("Primary Clock"));
+	ActionManager::register_action (editor_menu_actions, X_("Pullup"), _("Pullup / Pulldown"));
+	ActionManager::register_action (editor_menu_actions, X_("RegionEditOps"), _("Region operations"));
+	ActionManager::register_action (editor_menu_actions, X_("RegionGainMenu"), _("Gain"));
+	ActionManager::register_action (editor_menu_actions, X_("RulerMenu"), _("Rulers"));
+	ActionManager::register_action (editor_menu_actions, X_("SavedViewMenu"), _("Views"));
+	ActionManager::register_action (editor_menu_actions, X_("ScrollMenu"), _("Scroll"));
+	ActionManager::register_action (editor_menu_actions, X_("SecondaryClockMenu"), _("Secondary Clock"));
+	ActionManager::register_action (editor_menu_actions, X_("Select"), _("Select"));
+	ActionManager::register_action (editor_menu_actions, X_("SelectMenu"), _("Select"));
+	ActionManager::register_action (editor_menu_actions, X_("SeparateMenu"), _("Separate"));
+	ActionManager::register_action (editor_menu_actions, X_("SetLoopMenu"), _("Loop"));
+	ActionManager::register_action (editor_menu_actions, X_("SetPunchMenu"), _("Punch"));
+	ActionManager::register_action (editor_menu_actions, X_("Solo"), _("Solo"));
+	ActionManager::register_action (editor_menu_actions, X_("Subframes"), _("Subframes"));
+	ActionManager::register_action (editor_menu_actions, X_("SyncMenu"), _("Sync"));
+	ActionManager::register_action (editor_menu_actions, X_("TempoMenu"), _("Tempo"));
+	ActionManager::register_action (editor_menu_actions, X_("Timecode"), _("Timecode fps"));
+	ActionManager::register_action (editor_menu_actions, X_("TrackHeightMenu"), _("Height"));
+	ActionManager::register_action (editor_menu_actions, X_("TrackMenu"), _("Track"));
+	ActionManager::register_action (editor_menu_actions, X_("Tools"), _("Tools"));
+	ActionManager::register_action (editor_menu_actions, X_("View"), _("View"));
+	ActionManager::register_action (editor_menu_actions, X_("ZoomFocus"), _("Zoom Focus"));
+	ActionManager::register_action (editor_menu_actions, X_("ZoomMenu"), _("Zoom"));
 
 	register_region_actions ();
 
@@ -236,7 +239,6 @@ Editor::register_actions ()
 	reg_sens (editor_actions, "nudge-playhead-backward", _("Nudge Playhead Backward"), sigc::bind (sigc::mem_fun(*this, &Editor::nudge_backward), false, true));
 	reg_sens (editor_actions, "playhead-forward-to-grid", _("Forward to Grid"), sigc::mem_fun(*this, &Editor::playhead_forward_to_grid));
 	reg_sens (editor_actions, "playhead-backward-to-grid", _("Backward to Grid"), sigc::mem_fun(*this, &Editor::playhead_backward_to_grid));
-
 
 	reg_sens (editor_actions, "temporal-zoom-out", _("Zoom Out"), sigc::bind (sigc::mem_fun(*this, &Editor::temporal_zoom_step), true));
 	reg_sens (editor_actions, "temporal-zoom-in", _("Zoom In"), sigc::bind (sigc::mem_fun(*this, &Editor::temporal_zoom_step), false));
@@ -389,6 +391,8 @@ Editor::register_actions ()
 				sigc::mem_fun(*this, &Editor::set_track_height), HeightSmall));
 	ActionManager::track_selection_sensitive_actions.push_back (act);
 
+	toggle_reg_sens (editor_actions, "sound-midi-notes", _("Sound Selected MIDI Notes"), sigc::mem_fun (*this, &Editor::toggle_sound_midi_notes));
+
 	Glib::RefPtr<ActionGroup> zoom_actions = ActionGroup::create (X_("Zoom"));
 	RadioAction::Group zoom_group;
 
@@ -412,10 +416,13 @@ Editor::register_actions ()
 	mouse_select_button.set_image (::get_icon("tool_range"));
 	mouse_select_button.set_name ("mouse mode button");
 
+	act = ActionManager::register_radio_action (mouse_mode_actions, mouse_mode_group, "set-mouse-mode-draw", _("Note Drawing Tool"), sigc::bind (sigc::mem_fun(*this, &Editor::mouse_mode_toggled), Editing::MouseDraw));	
+	mouse_draw_button.set_related_action (act);
+	mouse_draw_button.set_image (::get_icon("midi_tool_pencil"));
+	mouse_draw_button.set_name ("mouse mode button");
+
 	act = ActionManager::register_toggle_action (mouse_mode_actions, "set-mouse-mode-object-range", _("Link Object / Range Tools"), sigc::mem_fun (*this, &Editor::mouse_mode_object_range_toggled));	
-	join_object_range_button.set_related_action (act);
-	join_object_range_button.set_image (::get_icon ("tool_object_range"));
-	join_object_range_button.set_name ("mouse mode button");
+	smart_mode_action = Glib::RefPtr<ToggleAction>::cast_static (act);
 
 	act = ActionManager::register_radio_action (mouse_mode_actions, mouse_mode_group, "set-mouse-mode-gain", _("Gain Tool"), sigc::bind (mem_fun(*this, &Editor::mouse_mode_toggled), Editing::MouseGain));	
 	mouse_gain_button.set_related_action (act);
@@ -467,7 +474,10 @@ Editor::register_actions ()
 	ActionManager::register_radio_action (editor_actions, snap_mode_group, X_("snap-magnetic"), _("Magnetic"), (sigc::bind (sigc::mem_fun(*this, &Editor::snap_mode_chosen), Editing::SnapMagnetic)));
 
 	ActionManager::register_action (editor_actions, X_("cycle-snap-mode"), _("Next Snap Mode"), sigc::mem_fun (*this, &Editor::cycle_snap_mode));
-	ActionManager::register_action (editor_actions, X_("cycle-snap-choice"), _("Next Snap Choice"), sigc::mem_fun (*this, &Editor::cycle_snap_choice));
+	ActionManager::register_action (editor_actions, X_("next-snap-choice"), _("Next Snap Choice"), sigc::mem_fun (*this, &Editor::next_snap_choice));
+	ActionManager::register_action (editor_actions, X_("next-snap-choice-music-only"), _("Next Musical Snap Choice"), sigc::mem_fun (*this, &Editor::next_snap_choice_music_only));
+	ActionManager::register_action (editor_actions, X_("prev-snap-choice"), _("Previous Snap Choice"), sigc::mem_fun (*this, &Editor::prev_snap_choice));
+	ActionManager::register_action (editor_actions, X_("prev-snap-choice-music-only"), _("Previous Musical Snap Choice"), sigc::mem_fun (*this, &Editor::prev_snap_choice_music_only));
 
 	Glib::RefPtr<ActionGroup> snap_actions = ActionGroup::create (X_("Snap"));
 	RadioAction::Group snap_choice_group;
@@ -479,6 +489,8 @@ Editor::register_actions ()
 	ActionManager::register_radio_action (snap_actions, snap_choice_group, X_("snap-to-seconds"), _("Snap to Seconds"), (sigc::bind (sigc::mem_fun(*this, &Editor::snap_type_chosen), Editing::SnapToSeconds)));
 	ActionManager::register_radio_action (snap_actions, snap_choice_group, X_("snap-to-minutes"), _("Snap to Minutes"), (sigc::bind (sigc::mem_fun(*this, &Editor::snap_type_chosen), Editing::SnapToMinutes)));
 
+	ActionManager::register_radio_action (snap_actions, snap_choice_group, X_("snap-to-onetwentyeighths"), _("Snap to One Twenty Eighths"), (sigc::bind (sigc::mem_fun(*this, &Editor::snap_type_chosen), Editing::SnapToBeatDiv128)));
+	ActionManager::register_radio_action (snap_actions, snap_choice_group, X_("snap-to-sixtyfourths"), _("Snap to Sixty Fourths"), (sigc::bind (sigc::mem_fun(*this, &Editor::snap_type_chosen), Editing::SnapToBeatDiv64)));
 	ActionManager::register_radio_action (snap_actions, snap_choice_group, X_("snap-to-thirtyseconds"), _("Snap to Thirty Seconds"), (sigc::bind (sigc::mem_fun(*this, &Editor::snap_type_chosen), Editing::SnapToBeatDiv32)));
 	ActionManager::register_radio_action (snap_actions, snap_choice_group, X_("snap-to-twentyeighths"), _("Snap to Twenty Eighths"), (sigc::bind (sigc::mem_fun(*this, &Editor::snap_type_chosen), Editing::SnapToBeatDiv28)));
 	ActionManager::register_radio_action (snap_actions, snap_choice_group, X_("snap-to-twentyfourths"), _("Snap to Twenty Fourths"), (sigc::bind (sigc::mem_fun(*this, &Editor::snap_type_chosen), Editing::SnapToBeatDiv24)));
@@ -620,6 +632,7 @@ Editor::register_actions ()
 	ActionManager::add_action_group (mouse_mode_actions);
 	ActionManager::add_action_group (snap_actions);
 	ActionManager::add_action_group (editor_actions);
+	ActionManager::add_action_group (editor_menu_actions);
 }
 
 void
@@ -763,6 +776,12 @@ Editor::snap_type_action (SnapType type)
 	case Editing::SnapToMinutes:
 		action = "snap-to-minutes";
 		break;
+	case Editing::SnapToBeatDiv128:
+		action = "snap-to-onetwentyeighths";
+		break;
+	case Editing::SnapToBeatDiv64:
+		action = "snap-to-sixtyfourths";
+		break;
 	case Editing::SnapToBeatDiv32:
 		action = "snap-to-thirtyseconds";
 		break;
@@ -847,7 +866,7 @@ Editor::snap_type_action (SnapType type)
 }
 
 void
-Editor::cycle_snap_choice()
+Editor::next_snap_choice ()
 {
 	switch (_snap_type) {
 	case Editing::SnapToCDFrame:
@@ -866,6 +885,12 @@ Editor::cycle_snap_choice()
 		set_snap_to (Editing::SnapToMinutes);
 		break;
 	case Editing::SnapToMinutes:
+		set_snap_to (Editing::SnapToBeatDiv128);
+		break;
+	case Editing::SnapToBeatDiv128:
+		set_snap_to (Editing::SnapToBeatDiv64);
+		break;
+	case Editing::SnapToBeatDiv64:
 		set_snap_to (Editing::SnapToBeatDiv32);
 		break;
 	case Editing::SnapToBeatDiv32:
@@ -933,6 +958,257 @@ Editor::cycle_snap_choice()
 		break;
 	case Editing::SnapToRegionBoundary:
 		set_snap_to (Editing::SnapToCDFrame);
+		break;
+	}
+}
+
+void
+Editor::prev_snap_choice ()
+{
+	switch (_snap_type) {
+	case Editing::SnapToCDFrame:
+		set_snap_to (Editing::SnapToTimecodeFrame);
+		break;
+	case Editing::SnapToTimecodeFrame:
+		set_snap_to (Editing::SnapToTimecodeSeconds);
+		break;
+	case Editing::SnapToTimecodeSeconds:
+		set_snap_to (Editing::SnapToTimecodeMinutes);
+		break;
+	case Editing::SnapToTimecodeMinutes:
+		set_snap_to (Editing::SnapToSeconds);
+		break;
+	case Editing::SnapToSeconds:
+		set_snap_to (Editing::SnapToMinutes);
+		break;
+	case Editing::SnapToMinutes:
+		set_snap_to (Editing::SnapToBeatDiv128);
+		break;
+	case Editing::SnapToBeatDiv128:
+		set_snap_to (Editing::SnapToBeatDiv64);
+		break;
+	case Editing::SnapToBeatDiv64:
+		set_snap_to (Editing::SnapToBeatDiv32);
+		break;
+	case Editing::SnapToBeatDiv32:
+		set_snap_to (Editing::SnapToBeatDiv28);
+		break;
+	case Editing::SnapToBeatDiv28:
+		set_snap_to (Editing::SnapToBeatDiv24);
+		break;
+	case Editing::SnapToBeatDiv24:
+		set_snap_to (Editing::SnapToBeatDiv20);
+		break;
+	case Editing::SnapToBeatDiv20:
+		set_snap_to (Editing::SnapToBeatDiv16);
+		break;
+	case Editing::SnapToBeatDiv16:
+		set_snap_to (Editing::SnapToBeatDiv14);
+		break;
+	case Editing::SnapToBeatDiv14:
+		set_snap_to (Editing::SnapToBeatDiv12);
+		break;
+	case Editing::SnapToBeatDiv12:
+		set_snap_to (Editing::SnapToBeatDiv10);
+		break;
+	case Editing::SnapToBeatDiv10:
+		set_snap_to (Editing::SnapToBeatDiv8);
+		break;
+	case Editing::SnapToBeatDiv8:
+		set_snap_to (Editing::SnapToBeatDiv7);
+		break;
+	case Editing::SnapToBeatDiv7:
+		set_snap_to (Editing::SnapToBeatDiv6);
+		break;
+	case Editing::SnapToBeatDiv6:
+		set_snap_to (Editing::SnapToBeatDiv5);
+		break;
+	case Editing::SnapToBeatDiv5:
+		set_snap_to (Editing::SnapToBeatDiv4);
+		break;
+	case Editing::SnapToBeatDiv4:
+		set_snap_to (Editing::SnapToBeatDiv3);
+		break;
+	case Editing::SnapToBeatDiv3:
+		set_snap_to (Editing::SnapToBeatDiv2);
+		break;
+	case Editing::SnapToBeatDiv2:
+		set_snap_to (Editing::SnapToBeat);
+		break;
+	case Editing::SnapToBeat:
+		set_snap_to (Editing::SnapToBar);
+		break;
+	case Editing::SnapToBar:
+		set_snap_to (Editing::SnapToMark);
+		break;
+	case Editing::SnapToMark:
+		set_snap_to (Editing::SnapToRegionStart);
+		break;
+	case Editing::SnapToRegionStart:
+		set_snap_to (Editing::SnapToRegionEnd);
+		break;
+	case Editing::SnapToRegionEnd:
+		set_snap_to (Editing::SnapToRegionSync);
+		break;
+	case Editing::SnapToRegionSync:
+		set_snap_to (Editing::SnapToRegionBoundary);
+		break;
+	case Editing::SnapToRegionBoundary:
+		set_snap_to (Editing::SnapToCDFrame);
+		break;
+	}
+}
+
+void
+Editor::next_snap_choice_music_only ()
+{
+	switch (_snap_type) {
+	case Editing::SnapToMark:
+	case Editing::SnapToRegionStart:
+	case Editing::SnapToRegionEnd:
+	case Editing::SnapToRegionSync:
+	case Editing::SnapToRegionBoundary:
+	case Editing::SnapToCDFrame:
+	case Editing::SnapToTimecodeFrame:
+	case Editing::SnapToTimecodeSeconds:
+	case Editing::SnapToTimecodeMinutes:
+	case Editing::SnapToSeconds:
+	case Editing::SnapToMinutes:
+		set_snap_to (Editing::SnapToBeatDiv128);
+		break;
+	case Editing::SnapToBeatDiv128:
+		set_snap_to (Editing::SnapToBeatDiv64);
+		break;
+	case Editing::SnapToBeatDiv64:
+		set_snap_to (Editing::SnapToBeatDiv32);
+		break;
+	case Editing::SnapToBeatDiv32:
+		set_snap_to (Editing::SnapToBeatDiv28);
+		break;
+	case Editing::SnapToBeatDiv28:
+		set_snap_to (Editing::SnapToBeatDiv24);
+		break;
+	case Editing::SnapToBeatDiv24:
+		set_snap_to (Editing::SnapToBeatDiv20);
+		break;
+	case Editing::SnapToBeatDiv20:
+		set_snap_to (Editing::SnapToBeatDiv16);
+		break;
+	case Editing::SnapToBeatDiv16:
+		set_snap_to (Editing::SnapToBeatDiv14);
+		break;
+	case Editing::SnapToBeatDiv14:
+		set_snap_to (Editing::SnapToBeatDiv12);
+		break;
+	case Editing::SnapToBeatDiv12:
+		set_snap_to (Editing::SnapToBeatDiv10);
+		break;
+	case Editing::SnapToBeatDiv10:
+		set_snap_to (Editing::SnapToBeatDiv8);
+		break;
+	case Editing::SnapToBeatDiv8:
+		set_snap_to (Editing::SnapToBeatDiv7);
+		break;
+	case Editing::SnapToBeatDiv7:
+		set_snap_to (Editing::SnapToBeatDiv6);
+		break;
+	case Editing::SnapToBeatDiv6:
+		set_snap_to (Editing::SnapToBeatDiv5);
+		break;
+	case Editing::SnapToBeatDiv5:
+		set_snap_to (Editing::SnapToBeatDiv4);
+		break;
+	case Editing::SnapToBeatDiv4:
+		set_snap_to (Editing::SnapToBeatDiv3);
+		break;
+	case Editing::SnapToBeatDiv3:
+		set_snap_to (Editing::SnapToBeatDiv2);
+		break;
+	case Editing::SnapToBeatDiv2:
+		set_snap_to (Editing::SnapToBeat);
+		break;
+	case Editing::SnapToBeat:
+		set_snap_to (Editing::SnapToBar);
+		break;
+	case Editing::SnapToBar:
+		set_snap_to (Editing::SnapToBeatDiv128);
+		break;
+	}
+}
+
+void
+Editor::prev_snap_choice_music_only ()
+{
+	switch (_snap_type) {
+	case Editing::SnapToMark:
+	case Editing::SnapToRegionStart:
+	case Editing::SnapToRegionEnd:
+	case Editing::SnapToRegionSync:
+	case Editing::SnapToRegionBoundary:
+	case Editing::SnapToCDFrame:
+	case Editing::SnapToTimecodeFrame:
+	case Editing::SnapToTimecodeSeconds:
+	case Editing::SnapToTimecodeMinutes:
+	case Editing::SnapToSeconds:
+	case Editing::SnapToMinutes:
+		set_snap_to (Editing::SnapToBar);
+		break;
+	case Editing::SnapToBeatDiv128:
+		set_snap_to (Editing::SnapToBeat);
+		break;
+	case Editing::SnapToBeatDiv64:
+		set_snap_to (Editing::SnapToBeatDiv128);
+		break;
+	case Editing::SnapToBeatDiv32:
+		set_snap_to (Editing::SnapToBeatDiv64);
+		break;
+	case Editing::SnapToBeatDiv28:
+		set_snap_to (Editing::SnapToBeatDiv32);
+		break;
+	case Editing::SnapToBeatDiv24:
+		set_snap_to (Editing::SnapToBeatDiv28);
+		break;
+	case Editing::SnapToBeatDiv20:
+		set_snap_to (Editing::SnapToBeatDiv24);
+		break;
+	case Editing::SnapToBeatDiv16:
+		set_snap_to (Editing::SnapToBeatDiv20);
+		break;
+	case Editing::SnapToBeatDiv14:
+		set_snap_to (Editing::SnapToBeatDiv16);
+		break;
+	case Editing::SnapToBeatDiv12:
+		set_snap_to (Editing::SnapToBeatDiv14);
+		break;
+	case Editing::SnapToBeatDiv10:
+		set_snap_to (Editing::SnapToBeatDiv12);
+		break;
+	case Editing::SnapToBeatDiv8:
+		set_snap_to (Editing::SnapToBeatDiv10);
+		break;
+	case Editing::SnapToBeatDiv7:
+		set_snap_to (Editing::SnapToBeatDiv8);
+		break;
+	case Editing::SnapToBeatDiv6:
+		set_snap_to (Editing::SnapToBeatDiv7);
+		break;
+	case Editing::SnapToBeatDiv5:
+		set_snap_to (Editing::SnapToBeatDiv6);
+		break;
+	case Editing::SnapToBeatDiv4:
+		set_snap_to (Editing::SnapToBeatDiv5);
+		break;
+	case Editing::SnapToBeatDiv3:
+		set_snap_to (Editing::SnapToBeatDiv4);
+		break;
+	case Editing::SnapToBeatDiv2:
+		set_snap_to (Editing::SnapToBeatDiv3);
+		break;
+	case Editing::SnapToBeat:
+		set_snap_to (Editing::SnapToBeatDiv2);
+		break;
+	case Editing::SnapToBar:
+		set_snap_to (Editing::SnapToBeat);
 		break;
 	}
 }
@@ -1108,6 +1384,20 @@ Editor::zoom_focus_action (ZoomFocus focus)
 }
 
 void
+Editor::toggle_sound_midi_notes ()
+{
+	Glib::RefPtr<Action> act = ActionManager::get_action (X_("Editor"), X_("sound-midi-notes"));
+	
+	if (act) {
+		bool s = Config->get_sound_midi_notes();
+		Glib::RefPtr<ToggleAction> tact = Glib::RefPtr<ToggleAction>::cast_dynamic (act);
+		if (tact->get_active () != s) {
+			Config->set_sound_midi_notes (tact->get_active());
+		}
+	}
+}
+
+void
 Editor::zoom_focus_chosen (ZoomFocus focus)
 {
 	/* this is driven by a toggle on a radio group, and so is invoked twice,
@@ -1186,6 +1476,18 @@ Editor::parameter_changed (std::string p)
 		update_just_timecode ();
 	} else if (p == "show-zoom-tools") {
 		_zoom_tearoff->set_visible (Config->get_show_zoom_tools(), true);
+	} else if (p == "sound-midi-notes") {
+		Glib::RefPtr<Action> act = ActionManager::get_action (X_("Editor"), X_("sound-midi-notes"));
+
+		if (act) {
+			bool s = Config->get_sound_midi_notes();
+			Glib::RefPtr<ToggleAction> tact = Glib::RefPtr<ToggleAction>::cast_dynamic (act);
+			if (tact->get_active () != s) {
+				tact->set_active (s);
+			}
+		}
+	} else if (p == "show-region-gain") {
+		set_gain_envelope_visibility (Config->get_show_region_gain ());
 	}
 }
 
@@ -1217,7 +1519,6 @@ Editor::toggle_internal_editing ()
 		set_internal_edit (tact->get_active());
 	}
 }
-
 
 void
 Editor::register_region_actions ()
@@ -1329,16 +1630,16 @@ Editor::register_region_actions ()
 
 	/* Add a single range marker around all selected regions */
 	reg_sens (
-		_region_actions, "add-range-marker-from-region", _("Add 1 Range Marker"), sigc::mem_fun (*this, &Editor::add_location_from_region)
+		_region_actions, "add-range-marker-from-region", _("Add Single Range Marker"), sigc::mem_fun (*this, &Editor::add_location_from_region)
 		);
 
 	/* Add a range marker around each selected region */
 	reg_sens (
-		_region_actions, "add-range-markers-from-region", _("Add Range Marker(s)"), sigc::mem_fun (*this, &Editor::add_locations_from_region)
+		_region_actions, "add-range-markers-from-region", _("Add Range Marker Per Region"), sigc::mem_fun (*this, &Editor::add_locations_from_region)
 		);
 
 	/* Snap selected regions to the grid */
-	reg_sens (_region_actions, "snap-regions-to-grid", _("Snap to Grid"), sigc::mem_fun (*this, &Editor::snap_regions_to_grid));
+	reg_sens (_region_actions, "snap-regions-to-grid", _("Snap Position To Grid"), sigc::mem_fun (*this, &Editor::snap_regions_to_grid));
 
 	/* Close gaps in selected regions */
 	reg_sens (_region_actions, "close-region-gaps", _("Close Gaps"), sigc::mem_fun (*this, &Editor::close_region_gaps));
@@ -1386,13 +1687,6 @@ Editor::register_region_actions ()
 	reg_sens (_region_actions, "reset-region-gain-envelopes", _("Reset Envelope"), sigc::mem_fun (*this, &Editor::reset_region_gain_envelopes));
 
 	reg_sens (_region_actions, "reset-region-scale-amplitude", _("Reset Gain"), sigc::mem_fun (*this, &Editor::reset_region_scale_amplitude));
-
-	toggle_reg_sens (
-		_region_actions,
-		"toggle-region-gain-envelope-visible",
-		_("Envelope Visible"),
-		sigc::mem_fun (*this, &Editor::toggle_gain_envelope_visibility)
-		);
 
 	toggle_reg_sens (
 		_region_actions,

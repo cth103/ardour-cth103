@@ -157,12 +157,10 @@ MixerStrip::init ()
 	ARDOUR_UI::instance()->set_tip (&hide_button, _("Hide this mixer strip"));
 
 	input_button.set_text (_("Input"));
-	ARDOUR_UI::instance()->set_tip (&input_button, _("Button 1 to choose inputs from a port matrix, button 3 to select inputs from a menu"), "");
 	input_button.set_name ("mixer strip button");
 	input_button_box.pack_start (input_button, true, true);
 
 	output_button.set_text (_("Output"));
-	ARDOUR_UI::instance()->set_tip (&output_button, _("Button 1 to choose outputs from a port matrix, button 3 to select inputs from a menu"), "");
 	output_button.set_name ("mixer strip button");
 	Gtkmm2ext::set_size_request_to_display_given_text (output_button, longest_label.c_str(), 4, 4);
 
@@ -382,9 +380,12 @@ MixerStrip::set_route (boost::shared_ptr<Route> rt)
 		rec_solo_table.remove (*show_sends_button);
 	}
 
-	processor_box.set_route (rt);
-
 	RouteUI::set_route (rt);
+
+	/* ProcessorBox needs access to _route so that it can read
+	   GUI object state.
+	*/
+	processor_box.set_route (rt);
 
 	/* map the current state */
 
@@ -1204,7 +1205,7 @@ MixerStrip::update_io_button (boost::shared_ptr<ARDOUR::Route> route, Width widt
 
 	switch (width) {
 	case Wide:
-		label_string = label.str().substr(0, 6);
+		label_string = label.str().substr(0, 7);
 		break;
 	case Narrow:
 		label_string = label.str().substr(0, 3);
@@ -1439,7 +1440,9 @@ MixerStrip::build_route_ops_menu ()
 	MenuList& items = route_ops_menu->items();
 
 	items.push_back (MenuElem (_("Comments..."), sigc::mem_fun (*this, &MixerStrip::open_comment_editor)));
-	items.push_back (MenuElem (_("Save As Template..."), sigc::mem_fun(*this, &RouteUI::save_as_template)));
+	if (!_route->is_master()) {
+		items.push_back (MenuElem (_("Save As Template..."), sigc::mem_fun(*this, &RouteUI::save_as_template)));
+	}
 	items.push_back (MenuElem (_("Rename..."), sigc::mem_fun(*this, &RouteUI::route_rename)));
 	rename_menu_item = &items.back();
 

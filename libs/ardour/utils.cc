@@ -344,8 +344,7 @@ path_expand (string path)
 	if (realpath (path.c_str(), buf)) {
 		return buf;
 	} else {
-		error << string_compose (_("programming error: realpath(%1) failed, errcode %2"), path, errno) << endmsg;
-		return path;
+		return string();
 	}
 }
 
@@ -362,7 +361,10 @@ search_path_expand (string path)
 	split (path, s, ':');
 
 	for (vector<string>::iterator i = s.begin(); i != s.end(); ++i) {
-		n.push_back (path_expand (*i));
+		string exp = path_expand (*i);
+		if (!exp.empty()) {
+			n.push_back (exp);
+		}
 	}
 
 	string r;
@@ -641,7 +643,8 @@ string_is_affirmative (const std::string& str)
 	 * in the way we desire when doing it in C.
 	 */
 
-	return str == "1" || str == "y" || str == "Y" || (!g_strncasecmp(str.c_str(), "yes", str.length()));
+	return str == "1" || str == "y" || str == "Y" || (!g_strncasecmp(str.c_str(), "yes", str.length())) ||
+		(!g_strncasecmp(str.c_str(), "true", str.length()));
 }
 
 const char*
@@ -760,6 +763,18 @@ double gain_to_slider_position_with_max (double g, double max_gain)
 double slider_position_to_gain_with_max (double g, double max_gain)
 {
 	return slider_position_to_gain (g * max_gain/2.0);
+}
+
+/** @return true if files a and b have the same inode */
+bool
+inodes_same (const string& a, const string& b)
+{
+	struct stat bA;
+	int const rA = stat (a.c_str(), &bA);
+	struct stat bB;
+	int const rB = stat (b.c_str(), &bB);
+
+	return (rA == 0 && rB == 0 && bA.st_ino == bB.st_ino);
 }
 
 extern "C" {

@@ -27,6 +27,7 @@
 #include "ardour/route_group.h"
 #include "ardour/profile.h"
 #include "ardour/midi_region.h"
+#include "ardour/audioplaylist.h"
 
 #include "editor.h"
 #include "actions.h"
@@ -35,6 +36,7 @@
 #include "audio_streamview.h"
 #include "automation_line.h"
 #include "control_point.h"
+#include "crossfade_view.h"
 #include "editor_regions.h"
 #include "editor_cursors.h"
 #include "midi_region_view.h"
@@ -177,13 +179,12 @@ Editor::select_all_tracks ()
  *  tracks, in which case nothing will happen unless `force' is true.
  */
 void
-Editor::set_selected_track_as_side_effect (Selection::Operation op, bool /*force*/)
+Editor::set_selected_track_as_side_effect (Selection::Operation op)
 {
 	if (!clicked_axisview) {
 		return;
 	}
 
-#if 1
 	if (!clicked_routeview) {
 		return;
 	}
@@ -265,18 +266,6 @@ Editor::set_selected_track_as_side_effect (Selection::Operation op, bool /*force
 		cerr << ("Editor::set_selected_track_as_side_effect  case  Selection::Add  not yet implemented\n");
 		break;
 	}
-
-#else // the older version
-
-	if (!selection->tracks.empty()) {
-		if (!selection->selected (clicked_axisview)) {
-			selection->add (clicked_axisview);
-		}
-
-	} else if (force) {
-		selection->set (clicked_axisview);
-	}
-#endif
 }
 
 void
@@ -488,6 +477,32 @@ Editor::mapped_get_equivalent_regions (RouteTimeAxisView& tv, uint32_t, RegionVi
 }
 
 void
+Editor::mapped_get_equivalent_crossfades (
+	RouteTimeAxisView& tv, uint32_t, boost::shared_ptr<Crossfade> basis, vector<boost::shared_ptr<Crossfade> >* equivs
+	) const
+{
+	boost::shared_ptr<Playlist> pl;
+	vector<boost::shared_ptr<Crossfade> > results;
+	boost::shared_ptr<Track> tr;
+
+	if ((tr = tv.track()) == 0) {
+		/* bus */
+		return;
+	}
+
+	if ((pl = tr->playlist()) != 0) {
+		boost::shared_ptr<AudioPlaylist> apl = boost::dynamic_pointer_cast<AudioPlaylist> (pl);
+		if (apl) {
+			apl->get_equivalent_crossfades (basis, *equivs);
+		}
+	}
+
+	/* We might have just checked basis for equivalency with itself, so we need to remove dupes */
+	sort (equivs->begin (), equivs->end ());
+	unique (equivs->begin (), equivs->end ());
+}
+
+void
 Editor::get_equivalent_regions (RegionView* basis, vector<RegionView*>& equivalent_regions, PBD::PropertyID property) const
 {
 	mapover_tracks_with_unique_playlists (sigc::bind (sigc::mem_fun (*this, &Editor::mapped_get_equivalent_regions), basis, &equivalent_regions), &basis->get_time_axis_view(), property);
@@ -520,6 +535,18 @@ Editor::get_equivalent_regions (RegionSelection & basis, PBD::PropertyID prop) c
 	return equivalent;
 }
 
+vector<boost::shared_ptr<Crossfade> >
+Editor::get_equivalent_crossfades (RouteTimeAxisView& v, boost::shared_ptr<Crossfade> c, PBD::PropertyID prop) const
+{
+	vector<boost::shared_ptr<Crossfade> > e;
+	mapover_tracks_with_unique_playlists (
+		sigc::bind (sigc::mem_fun (*this, &Editor::mapped_get_equivalent_crossfades), c, &e),
+		&v,
+		prop
+		);
+
+	return e;
+}
 
 int
 Editor::get_regionview_count_from_region_list (boost::shared_ptr<Region> region)
@@ -560,7 +587,7 @@ Editor::get_regionview_count_from_region_list (boost::shared_ptr<Region> region)
 
 
 bool
-Editor::set_selected_regionview_from_click (bool press, Selection::Operation op, bool /*no_track_remove*/)
+Editor::set_selected_regionview_from_click (bool press, Selection::Operation op)
 {
 	vector<RegionView*> all_equivalent_regions;
 	bool commit = false;
@@ -574,7 +601,6 @@ Editor::set_selected_regionview_from_click (bool press, Selection::Operation op,
 	}
 
 	if (op == Selection::Toggle || op == Selection::Set) {
-
 
 		switch (op) {
 		case Selection::Toggle:
@@ -982,6 +1008,10 @@ Editor::time_selection_changed ()
 	} else {
 		ActionManager::set_sensitive (ActionManager::time_selection_sensitive_actions, true);
 	}
+
+	if (_session && Config->get_always_play_range() && !_session->transport_rolling() && !selection->time.empty()) {
+		_session->request_locate (selection->time.start());
+	}
 }
 
 /** Set all region actions to have a given sensitivity */
@@ -1041,8 +1071,6 @@ Editor::sensitize_the_right_region_actions ()
 	bool have_opaque = false;
 	bool have_non_opaque = false;
 	bool have_not_at_natural_position = false;
-	bool have_envelope_visible = false;
-	bool have_envelope_invisible = false;
 	bool have_envelope_active = false;
 	bool have_envelope_inactive = false;
 	bool have_non_unity_scale_amplitude = false;
@@ -1097,24 +1125,6 @@ Editor::sensitize_the_right_region_actions ()
 		}
 
 		if (ar) {
-			/* its a bit unfortunate that "envelope visible" is a view-only
-			   property. we have to find the regionview to able to check
-			   its current setting.
-			*/
-
-			have_envelope_invisible = false;
-
-			if (*i) {
-				AudioRegionView* arv = dynamic_cast<AudioRegionView*> (*i);
-				if (arv) {
-					if (arv->envelope_visible()) {
-						have_envelope_visible = true;
-					} else {
-						have_envelope_invisible = true;
-					}
-				}
-			}
-
 			if (ar->envelope_active()) {
 				have_envelope_active = true;
 			} else {
@@ -1147,10 +1157,16 @@ Editor::sensitize_the_right_region_actions ()
 	}
 
 	if (!have_midi) {
+		editor_menu_actions->get_action("RegionMenuMIDI")->set_sensitive (false);
 		_region_actions->get_action("show-region-list-editor")->set_sensitive (false);
 		_region_actions->get_action("quantize-region")->set_sensitive (false);
 		_region_actions->get_action("fork-region")->set_sensitive (false);
+		_region_actions->get_action("insert-patch-change-context")->set_sensitive (false);
+		_region_actions->get_action("insert-patch-change")->set_sensitive (false);
 		_region_actions->get_action("transpose-region")->set_sensitive (false);
+	} else {
+		editor_menu_actions->get_action("RegionMenuMIDI")->set_sensitive (true);
+		/* others were already marked sensitive */
 	}
 
 	if (_edit_point == EditAtMouse) {
@@ -1169,12 +1185,6 @@ Editor::sensitize_the_right_region_actions ()
 
 	if (have_audio) {
 
-		if (have_envelope_visible && !have_envelope_invisible) {
-			Glib::RefPtr<ToggleAction>::cast_dynamic (_region_actions->get_action("toggle-region-gain-envelope-visible"))->set_active ();
-		} else if (have_envelope_visible && have_envelope_invisible) {
-			// _region_actions->get_action("toggle-region-gain-envelope-visible")->set_inconsistent ();
-		}
-
 		if (have_envelope_active && !have_envelope_inactive) {
 			Glib::RefPtr<ToggleAction>::cast_dynamic (_region_actions->get_action("toggle-region-gain-envelope-active"))->set_active ();
 		} else if (have_envelope_active && have_envelope_inactive) {
@@ -1185,7 +1195,6 @@ Editor::sensitize_the_right_region_actions ()
 
 		_region_actions->get_action("analyze-region")->set_sensitive (false);
 		_region_actions->get_action("reset-region-gain-envelopes")->set_sensitive (false);
-		_region_actions->get_action("toggle-region-gain-envelope-visible")->set_sensitive (false);
 		_region_actions->get_action("toggle-region-gain-envelope-active")->set_sensitive (false);
 		_region_actions->get_action("pitch-shift-region")->set_sensitive (false);
 
@@ -1259,6 +1268,10 @@ Editor::region_selection_changed ()
 		   are allowed, so sensitize them all in case a key is pressed.
 		*/
 		sensitize_all_region_actions (true);
+	}
+
+	if (_session && Config->get_always_play_range() && !_session->transport_rolling() && !selection->regions.empty()) {
+		_session->request_locate (selection->regions.start());
 	}
 }
 
@@ -1845,13 +1858,9 @@ Editor::deselect_all ()
 }
 
 long
-Editor::select_range_around_region (RegionView* rv)
+Editor::select_range (framepos_t s, framepos_t e)
 {
-	assert (rv);
-
-	selection->set (&rv->get_time_axis_view());
-
+	selection->add (clicked_axisview);
 	selection->time.clear ();
-	boost::shared_ptr<Region> r = rv->region ();
-	return selection->set (r->position(), r->position() + r->length());
+	return selection->set (s, e);
 }

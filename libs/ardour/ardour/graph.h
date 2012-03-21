@@ -28,7 +28,7 @@
 
 #include <boost/shared_ptr.hpp>
 
-#include <glib/gatomic.h>
+#include <glib.h>
 #include <cassert>
 
 #include <pthread.h>
@@ -94,9 +94,7 @@ protected:
 private:
 	std::list<pthread_t> _thread_list;
 	volatile bool        _quit_threads;
-	PBD::ScopedConnection processor_usage_connection;
 
-	void parameter_changed (std::string);
 	void reset_thread_list ();
 	void drop_threads ();
 

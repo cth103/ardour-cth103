@@ -69,7 +69,6 @@ namespace ARDOUR {
 	class PluginInsert;
 	class PortInsert;
 	class Route;
-	class Send;
 	class Session;
 }
 
@@ -102,7 +101,8 @@ private:
 class ProcessorEntry : public Gtkmm2ext::DnDVBoxChild, public sigc::trackable
 {
 public:
-	ProcessorEntry (boost::shared_ptr<ARDOUR::Processor>, Width);
+	ProcessorEntry (ProcessorBox *, boost::shared_ptr<ARDOUR::Processor>, Width);
+	~ProcessorEntry ();
 
 	Gtk::EventBox& action_widget ();
 	Gtk::Widget& widget ();
@@ -118,10 +118,19 @@ public:
 	void set_position (Position);
 	boost::shared_ptr<ARDOUR::Processor> processor () const;
 	void set_enum_width (Width);
-	virtual void set_pixel_width (int) {}
+	virtual void set_pixel_width (int);
 
 	/** Hide any widgets that should be hidden */
-	virtual void hide_things () {}
+	virtual void hide_things ();
+
+	void show_all_controls ();
+	void hide_all_controls ();
+	void add_control_state (XMLNode *) const;
+	void set_control_state (XMLNode const *);
+	std::string state_id () const;
+	Gtk::Menu* build_controls_menu ();
+
+	static void setup_slider_pix ();
 
 protected:
 	ArdourButton _button;
@@ -130,6 +139,8 @@ protected:
 
 	virtual void setup_visuals ();
 
+	static Glib::RefPtr<Gdk::Pixbuf> _slider_pixbuf;
+
 private:
 	void led_clicked();
 	void processor_active_changed ();
@@ -137,48 +148,68 @@ private:
 	std::string name (Width) const;
 	void setup_tooltip ();
 
+	ProcessorBox* _parent;
 	boost::shared_ptr<ARDOUR::Processor> _processor;
 	Width _width;
 	Gtk::StateType _visual_state;
 	PBD::ScopedConnection active_connection;
 	PBD::ScopedConnection name_connection;
+
+	class Control {
+	public:
+		Control (Glib::RefPtr<Gdk::Pixbuf>, boost::shared_ptr<ARDOUR::AutomationControl>, std::string const &);
+
+		void set_pixel_width (int);
+		void set_visible (bool);
+		void add_state (XMLNode *) const;
+		void set_state (XMLNode const *);
+		void hide_things ();
+		void hide_label ();
+
+		bool visible () const {
+			return _visible;
+		}
+
+		std::string name () const {
+			return _name;
+		}
+		
+		Gtk::VBox box;
+
+	private:
+		void slider_adjusted ();
+		void button_clicked ();
+		void control_changed ();
+		std::string state_id () const;
+
+		boost::weak_ptr<ARDOUR::AutomationControl> _control;
+		/* things for a slider */
+		Gtk::Adjustment _adjustment;
+		Gtkmm2ext::HSliderController _slider;
+		Gtk::Label _label;
+		/* things for a button */
+		ArdourButton _button;
+		bool _ignore_ui_adjustment;
+		PBD::ScopedConnection _connection;
+		bool _visible;
+		std::string _name;
+	};
+
+	std::list<Control*> _controls;
+
+	void toggle_control_visibility (Control *);
 };
 
 class BlankProcessorEntry : public ProcessorEntry
 {
   public:
-	BlankProcessorEntry (Width w);
-};
-
-class SendProcessorEntry : public ProcessorEntry
-{
-public:
-	SendProcessorEntry (boost::shared_ptr<ARDOUR::Send>, Width);
-
-	static void setup_slider_pix ();
-
-	void set_enum_width (Width, int);
-	void set_pixel_width (int);
-
-private:
-	void show_gain ();
-	void gain_adjusted ();
-	void setup_gain_adjustment ();
-
-	boost::shared_ptr<ARDOUR::Send> _send;
-	Gtk::Adjustment _adjustment;
-	Gtkmm2ext::HSliderController _fader;
-	bool _ignore_gain_change;
-	PBD::ScopedConnectionList _send_connections;
-	ARDOUR::DataType _data_type;
-
-	static Glib::RefPtr<Gdk::Pixbuf> _slider;
+	BlankProcessorEntry (ProcessorBox *, Width w);
 };
 
 class PluginInsertProcessorEntry : public ProcessorEntry
 {
 public:
-	PluginInsertProcessorEntry (boost::shared_ptr<ARDOUR::PluginInsert>, Width);
+	PluginInsertProcessorEntry (ProcessorBox *, boost::shared_ptr<ARDOUR::PluginInsert>, Width);
 
 	void hide_things ();
 
@@ -217,8 +248,6 @@ class ProcessorBox : public Gtk::HBox, public PluginInterestedObject, public ARD
 	void set_route (boost::shared_ptr<ARDOUR::Route>);
 	void set_width (Width);
 
-	void update();
-
 	void processor_operation (ProcessorOperation);
 
 	void select_all_processors ();
@@ -231,8 +260,10 @@ class ProcessorBox : public Gtk::HBox, public PluginInterestedObject, public ARD
 
 	Gtk::Window* get_processor_ui (boost::shared_ptr<ARDOUR::Processor>) const;
 	void toggle_edit_processor (boost::shared_ptr<ARDOUR::Processor>);
-	void toggle_processor_controls (boost::shared_ptr<ARDOUR::Processor>);
+	void toggle_edit_generic_processor (boost::shared_ptr<ARDOUR::Processor>);
 
+	void update_gui_object_state (ProcessorEntry *);
+	
 	sigc::signal<void,boost::shared_ptr<ARDOUR::Processor> > ProcessorSelected;
 	sigc::signal<void,boost::shared_ptr<ARDOUR::Processor> > ProcessorUnselected;
 
@@ -270,9 +301,6 @@ class ProcessorBox : public Gtk::HBox, public PluginInterestedObject, public ARD
 	void object_drop (Gtkmm2ext::DnDVBox<ProcessorEntry> *, ProcessorEntry *, Glib::RefPtr<Gdk::DragContext> const &);
 
 	Width _width;
-
-	void new_send ();
-	void show_send_controls ();
 
 	Gtk::Menu *processor_menu;
 	gint processor_menu_map_handler (GdkEventAny *ev);
@@ -315,8 +343,6 @@ class ProcessorBox : public Gtk::HBox, public PluginInterestedObject, public ARD
 	void delete_processors (const ProcSelection&);
 	void paste_processors ();
 	void paste_processors (boost::shared_ptr<ARDOUR::Processor> before);
-	void processors_up ();
-	void processors_down ();
 
 	void delete_dragged_processors (const std::list<boost::shared_ptr<ARDOUR::Processor> >&);
 	void clear_processors ();
@@ -332,11 +358,9 @@ class ProcessorBox : public Gtk::HBox, public PluginInterestedObject, public ARD
 	static Glib::RefPtr<Gtk::Action> paste_action;
 	static Glib::RefPtr<Gtk::Action> rename_action;
 	static Glib::RefPtr<Gtk::Action> edit_action;
-	static Glib::RefPtr<Gtk::Action> controls_action;
+	static Glib::RefPtr<Gtk::Action> edit_generic_action;
 	void paste_processor_state (const XMLNodeList&, boost::shared_ptr<ARDOUR::Processor>);
 
-	void activate_processor (boost::shared_ptr<ARDOUR::Processor>);
-	void deactivate_processor (boost::shared_ptr<ARDOUR::Processor>);
 	void hide_processor_editor (boost::shared_ptr<ARDOUR::Processor>);
 	void rename_processor (boost::shared_ptr<ARDOUR::Processor>);
 
@@ -367,7 +391,7 @@ class ProcessorBox : public Gtk::HBox, public PluginInterestedObject, public ARD
 	static void rb_deactivate_all ();
 	static void rb_ab_plugins ();
 	static void rb_edit ();
-	static void rb_controls ();
+	static void rb_edit_generic ();
 
 	void route_property_changed (const PBD::PropertyChange&);
 	std::string generate_processor_title (boost::shared_ptr<ARDOUR::PluginInsert> pi);
@@ -380,6 +404,8 @@ class ProcessorBox : public Gtk::HBox, public PluginInterestedObject, public ARD
 	bool processor_can_be_edited (boost::shared_ptr<ARDOUR::Processor>);
 
 	void mixer_strip_delivery_changed (boost::weak_ptr<ARDOUR::Delivery>);
+
+	XMLNode* entry_gui_object_state (ProcessorEntry *);
 };
 
 #endif /* __ardour_gtk_processor_box__ */

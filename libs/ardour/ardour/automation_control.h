@@ -77,20 +77,24 @@ public:
 	void set_value (double);
 	double get_value () const;
 
+	virtual double internal_to_interface (double v) const {
+		return v;
+	}
+	
+	virtual double interface_to_internal (double v) const {
+		return v;
+	}
+
+	virtual double internal_to_user (double v) const {
+		return v;
+	}
+
 	double lower() const { return parameter().min(); }
 	double upper() const { return parameter().max(); }
+	double normal() const { return parameter().normal(); }
+	bool toggled() const { return parameter().toggled(); }
 
 	const ARDOUR::Session& session() const { return _session; }
-
-	/** Convert user values to UI values.  See pbd/controllable.h */
-	virtual double user_to_ui (double val) const {
-		return val;
-	}
-
-	/** Convert UI values to user values.  See pbd/controllable.h */
-	virtual double ui_to_user (double val) const {
-		return val;
-	}
 
 protected:
 

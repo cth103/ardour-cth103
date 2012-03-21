@@ -28,7 +28,8 @@
 
 #include "ardour/ardour.h"
 #include "ardour/automatable.h"
-#include "ardour/gain.h"
+#include "ardour/automation_list.h"
+#include "ardour/interthread_info.h"
 #include "ardour/logcurve.h"
 #include "ardour/region.h"
 
@@ -56,7 +57,6 @@ namespace Properties {
 	extern PBD::PropertyDescriptor<bool> fade_out;
 }
 
-class Route;
 class Playlist;
 class Session;
 class Filter;

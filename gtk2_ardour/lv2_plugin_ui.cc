@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2008-2011 Paul Davis
+    Copyright (C) 2008-2012 Paul Davis
     Author: David Robillard
 
     This program is free software; you can redistribute it and/or modify
@@ -15,7 +15,6 @@
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
 */
 
 #include "ardour/lv2_plugin.h"
@@ -31,8 +30,8 @@
 #include <lilv/lilv.h>
 #include <suil/suil.h>
 
-using namespace Gtk;
 using namespace ARDOUR;
+using namespace Gtk;
 using namespace PBD;
 
 #define NS_UI "http://lv2plug.in/ns/extensions/ui#"
@@ -40,18 +39,43 @@ using namespace PBD;
 static SuilHost* ui_host = NULL;
 
 void
-LV2PluginUI::lv2_ui_write(void*       controller,
-                          uint32_t    port_index,
-                          uint32_t    /*buffer_size*/,
-                          uint32_t    /*format*/,
-                          const void* buffer)
+LV2PluginUI::write_from_ui(void*       controller,
+                           uint32_t    port_index,
+                           uint32_t    buffer_size,
+                           uint32_t    format,
+                           const void* buffer)
 {
 	LV2PluginUI* me = (LV2PluginUI*)controller;
-	boost::shared_ptr<AutomationControl> ac = me->_controllables[port_index];
+	if (format == 0) {
+		if (port_index >= me->_controllables.size()) {
+			return;
+		}
 
-	if (ac) {
-		ac->set_value(*(float*)buffer);
+		boost::shared_ptr<AutomationControl> ac = me->_controllables[port_index];
+		if (ac) {
+			ac->set_value(*(float*)buffer);
+		}
+	} else if (format == me->_lv2->atom_eventTransfer()) {
+		me->_lv2->write_from_ui(port_index, format, buffer_size, (uint8_t*)buffer);
 	}
+}
+
+void
+LV2PluginUI::write_to_ui(void*       controller,
+                         uint32_t    port_index,
+                         uint32_t    buffer_size,
+                         uint32_t    format,
+                         const void* buffer)
+{
+	LV2PluginUI* me = (LV2PluginUI*)controller;
+	suil_instance_port_event((SuilInstance*)me->_inst,
+	                         port_index, buffer_size, format, buffer);
+}
+
+void
+LV2PluginUI::update_timeout()
+{
+	_lv2->emit_to_ui(this, &LV2PluginUI::write_to_ui);
 }
 
 void
@@ -127,6 +151,7 @@ LV2PluginUI::LV2PluginUI(boost::shared_ptr<PluginInsert> pi,
 	: PlugUIBase(pi)
 	, _lv2(lv2p)
 	, _gui_widget(NULL)
+	, _ardour_buttons_box(NULL)
 	, _values(NULL)
 	, _external_ui_ptr(NULL)
 	, _inst(NULL)
@@ -168,7 +193,7 @@ LV2PluginUI::lv2ui_instantiate(const std::string& title)
 	}
 
 	if (!ui_host) {
-		ui_host = suil_host_new(LV2PluginUI::lv2_ui_write, NULL, NULL, NULL);
+		ui_host = suil_host_new(LV2PluginUI::write_from_ui, NULL, NULL, NULL);
 	}
 	const char* container_type = (is_external_ui)
 		? NS_UI "external"
@@ -204,17 +229,17 @@ LV2PluginUI::lv2ui_instantiate(const std::string& title)
 	_external_ui_ptr = NULL;
 	if (_inst) {
 		if (!is_external_ui) {
-			Gtk::HBox* box = manage (new Gtk::HBox);
-			box->set_spacing (6);
-			box->set_border_width (6);
-			box->pack_end (focus_button, false, false);
-			box->pack_end (bypass_button, false, false, 10);
-			box->pack_end (delete_button, false, false);
-			box->pack_end (save_button, false, false);
-			box->pack_end (add_button, false, false);
-			box->pack_end (_preset_combo, false, false);
-			box->show_all();
-			pack_start(*box, false, false);
+			_ardour_buttons_box = manage (new Gtk::HBox);
+			_ardour_buttons_box->set_spacing (6);
+			_ardour_buttons_box->set_border_width (6);
+			_ardour_buttons_box->pack_end (focus_button, false, false);
+			_ardour_buttons_box->pack_end (bypass_button, false, false, 10);
+			_ardour_buttons_box->pack_end (delete_button, false, false);
+			_ardour_buttons_box->pack_end (save_button, false, false);
+			_ardour_buttons_box->pack_end (add_button, false, false);
+			_ardour_buttons_box->pack_end (_preset_combo, false, false);
+			_ardour_buttons_box->show_all();
+			pack_start(*_ardour_buttons_box, false, false);
 
 			GtkWidget* c_widget = (GtkWidget*)GET_WIDGET(_inst);
 			_gui_widget = Glib::wrap(c_widget);
@@ -240,6 +265,12 @@ LV2PluginUI::lv2ui_instantiate(const std::string& title)
 			}
 		}
 	}
+
+	if (_lv2->has_message_output()) {
+		_lv2->enable_ui_emmission();
+		ARDOUR_UI::instance()->RapidScreenUpdate.connect(
+			sigc::mem_fun(*this, &LV2PluginUI::update_timeout));
+	}
 }
 
 void
@@ -249,6 +280,12 @@ LV2PluginUI::lv2ui_free()
 
 	if (_gui_widget) {
 		remove (*_gui_widget);
+	}
+
+	if (_ardour_buttons_box) {
+		remove (*_ardour_buttons_box);
+		delete _ardour_buttons_box;
+		_ardour_buttons_box = 0;
 	}
 
 	suil_instance_free((SuilInstance*)_inst);

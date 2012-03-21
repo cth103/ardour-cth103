@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2000 Paul Davis
+    Copyright (C) 2012 Paul Davis 
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,26 +17,22 @@
 
 */
 
-#ifndef __ardour_gain_h__
-#define __ardour_gain_h__
+#ifndef __libpbd_unwinder_h__
+#define __libpbd_unwinder_h__
 
-#include "ardour.h"
-#include "automation_list.h"
+namespace PBD {
 
-namespace ARDOUR {
-
-struct Gain : public AutomationList
-{
-	Gain ();
-	Gain (const Gain&);
-	Gain& operator= (const Gain&);
-
-	static void fill_linear_fade_in (Gain& curve, framecnt_t frames);
-	static void fill_linear_volume_fade_in (Gain& curve, framecnt_t frames);
-	static void fill_linear_fade_out (Gain& curve, framecnt_t frames);
-	static void fill_linear_volume_fade_out (Gain& curve, framecnt_t frames);
+template <typename T>
+class Unwinder {
+  public:
+    Unwinder (T& var, T new_val) : _var (var), _old_val (var) { var = new_val; }
+    ~Unwinder () { _var = _old_val; }
+		
+  private:
+    T& _var;
+    T  _old_val;
 };
 
-} /* namespace ARDOUR */
+}
 
-#endif /* __ardour_gain_h__ */
+#endif /* __libpbd_unwinder_h__ */

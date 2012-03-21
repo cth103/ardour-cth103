@@ -77,20 +77,10 @@ Graph::Graph (Session & session)
 
         reset_thread_list ();
 
-        Config->ParameterChanged.connect_same_thread (processor_usage_connection, boost::bind (&Graph::parameter_changed, this, _1));
-
 #ifdef DEBUG_RT_ALLOC
 	graph = this;
 	pbd_alloc_allowed = &::alloc_allowed;
 #endif
-}
-
-void
-Graph::parameter_changed (std::string param)
-{
-        if (param == X_("processor-usage")) {
-                reset_thread_list ();
-        }
 }
 
 /** Set up threads for running the graph */
@@ -98,6 +88,9 @@ void
 Graph::reset_thread_list ()
 {
         uint32_t num_threads = how_many_dsp_threads ();
+
+	/* For now, we shouldn't be using the graph code if we only have 1 DSP thread */
+	assert (num_threads > 1);
 
         /* don't bother doing anything here if we already have the right
            number of threads.
@@ -114,16 +107,6 @@ Graph::reset_thread_list ()
                 drop_threads ();
         }
 
-#if 0
-        /* XXX this only makes sense when we can use just the AudioEngine thread
-           and still keep the graph current with the route list
-        */
-        if (num_threads <= 1) {
-                /* no point creating 1 thread - the AudioEngine already gives us one
-                 */
-                return;
-        }
-#endif
 	if (AudioEngine::instance()->create_process_thread (boost::bind (&Graph::main_thread, this), &a_thread, 100000) == 0) {
 		_thread_list.push_back (a_thread);
 	}
@@ -233,7 +216,9 @@ Graph::prep()
 void
 Graph::trigger (GraphNode* n)
 {
+	pthread_mutex_lock (&_trigger_mutex);
         _trigger_queue.push_back (n);
+	pthread_mutex_unlock (&_trigger_mutex);
 }
 
 /** Called when a node at the `output' end of the chain (ie one that has no-one to feed)
@@ -595,10 +580,10 @@ Graph::process_one_route (Route* route)
 bool
 Graph::in_process_thread () const
 {
-	list<pthread_t>::const_iterator i = _thread_list.begin ();
-	while (i != _thread_list.end() && *i != pthread_self ()) {
-		++i;
+	for (list<pthread_t>::const_iterator i = _thread_list.begin (); i != _thread_list.end(); ++i) {
+		if (*i == pthread_self()) {
+			return true;
+		}
 	}
-
-	return i != _thread_list.end ();
+	return false;
 }

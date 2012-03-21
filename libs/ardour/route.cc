@@ -108,6 +108,13 @@ Route::Route (Session& sess, string name, Flag flg, DataType default_type)
 {
 	processor_max_streams.reset();
 	order_keys[N_("signal")] = order_key_cnt++;
+
+	if (is_master()) {
+		set_remote_control_id (MasterBusRemoteControlID);
+	} else if (is_monitor()) {
+		set_remote_control_id (MonitorBusRemoteControlID);
+	}
+		
 }
 
 int
@@ -137,6 +144,8 @@ Route::init ()
 
 	_input->changed.connect_same_thread (*this, boost::bind (&Route::input_change_handler, this, _1, _2));
 	_input->PortCountChanging.connect_same_thread (*this, boost::bind (&Route::input_port_count_changing, this, _1));
+
+	_output->changed.connect_same_thread (*this, boost::bind (&Route::output_change_handler, this, _1, _2));
 
 	/* add amp processor  */
 
@@ -207,6 +216,26 @@ Route::~Route ()
 void
 Route::set_remote_control_id (uint32_t id, bool notify_class_listeners)
 {
+	/* force IDs for master/monitor busses and prevent 
+	   any other route from accidentally getting these IDs
+	   (i.e. legacy sessions)
+	*/
+
+	if (is_master() && id != MasterBusRemoteControlID) {
+		id = MasterBusRemoteControlID;
+	}
+
+	if (is_monitor() && id != MonitorBusRemoteControlID) {
+		id = MonitorBusRemoteControlID;
+	}
+
+	/* don't allow it to collide */
+
+	if (!is_master () && !is_monitor() && 
+	    (id == MasterBusRemoteControlID || id == MonitorBusRemoteControlID)) {
+		id += MonitorBusRemoteControlID;
+	}
+
 	if (id != _remote_control_id) {
 		_remote_control_id = id;
 		RemoteControlIDChanged ();
@@ -484,18 +513,14 @@ Route::process_output_buffers (BufferSet& bufs,
 
 	for (ProcessorList::iterator i = _processors.begin(); i != _processors.end(); ++i) {
 
-		if (boost::dynamic_pointer_cast<UnknownProcessor> (*i)) {
-			break;
-		}
-
-		if (boost::dynamic_pointer_cast<PeakMeter> (*i) && meter_already_run) {
+		if (meter_already_run && boost::dynamic_pointer_cast<PeakMeter> (*i)) {
 			/* don't ::run() the meter, otherwise it will have its previous peak corrupted */
 			continue;
 		}
-		
+
 #ifndef NDEBUG
 		/* if it has any inputs, make sure they match */
-		if ((*i)->input_streams() != ChanCount::ZERO) {
+		if (boost::dynamic_pointer_cast<UnknownProcessor> (*i) == 0 && (*i)->input_streams() != ChanCount::ZERO) {
 			if (bufs.count() != (*i)->input_streams()) {
 				cerr << _name << " bufs = " << bufs.count()
 				     << " input for " << (*i)->name() << " = " << (*i)->input_streams()
@@ -844,16 +869,17 @@ dump_processors(const string& name, const list<boost::shared_ptr<Processor> >& p
 }
 #endif
 
-int
-Route::add_processor (boost::shared_ptr<Processor> processor, Placement placement, ProcessorStreams* err, bool activation_allowed)
+/** Supposing that we want to insert a Processor at a given Placement, return
+ *  the processor to add the new one before (or 0 to add at the end).
+ */
+boost::shared_ptr<Processor>
+Route::before_processor_for_placement (Placement p)
 {
+	Glib::RWLock::ReaderLock lm (_processor_lock);
+
 	ProcessorList::iterator loc;
-
-	/* XXX this is not thread safe - we don't hold the lock across determining the iter
-	   to add before and actually doing the insertion. dammit.
-	*/
-
-	if (placement == PreFader) {
+	
+	if (p == PreFader) {
 		/* generic pre-fader: insert immediately before the amp */
 		loc = find (_processors.begin(), _processors.end(), _amp);
 	} else {
@@ -861,24 +887,20 @@ Route::add_processor (boost::shared_ptr<Processor> processor, Placement placemen
 		loc = find (_processors.begin(), _processors.end(), _main_outs);
 	}
 
-	return add_processor (processor, loc, err, activation_allowed);
+	return loc != _processors.end() ? *loc : boost::shared_ptr<Processor> ();
 }
 
-
-/** Add a processor to a route such that it ends up with a given index into the visible processors.
- *  @param index Index to add the processor at, or -1 to add at the end of the list.
+/** Supposing that we want to insert a Processor at a given index, return
+ *  the processor to add the new one before (or 0 to add at the end).
  */
-
-int
-Route::add_processor_by_index (boost::shared_ptr<Processor> processor, int index, ProcessorStreams* err, bool activation_allowed)
+boost::shared_ptr<Processor>
+Route::before_processor_for_index (int index)
 {
-	/* XXX this is not thread safe - we don't hold the lock across determining the iter
-	   to add before and actually doing the insertion. dammit.
-	*/
-
 	if (index == -1) {
-		return add_processor (processor, _processors.end(), err, activation_allowed);
+		return boost::shared_ptr<Processor> ();
 	}
+
+	Glib::RWLock::ReaderLock lm (_processor_lock);
 	
 	ProcessorList::iterator i = _processors.begin ();
 	int j = 0;
@@ -889,15 +911,36 @@ Route::add_processor_by_index (boost::shared_ptr<Processor> processor, int index
 		
 		++i;
 	}
-	
-	return add_processor (processor, i, err, activation_allowed);
+
+	return (i != _processors.end() ? *i : boost::shared_ptr<Processor> ());
+}
+
+/** Add a processor either pre- or post-fader
+ *  @return 0 on success, non-0 on failure.
+ */
+int
+Route::add_processor (boost::shared_ptr<Processor> processor, Placement placement, ProcessorStreams* err, bool activation_allowed)
+{
+	return add_processor (processor, before_processor_for_placement (placement), err, activation_allowed);
+}
+
+
+/** Add a processor to a route such that it ends up with a given index into the visible processors.
+ *  @param index Index to add the processor at, or -1 to add at the end of the list.
+ *  @return 0 on success, non-0 on failure.
+ */
+int
+Route::add_processor_by_index (boost::shared_ptr<Processor> processor, int index, ProcessorStreams* err, bool activation_allowed)
+{
+	return add_processor (processor, before_processor_for_index (index), err, activation_allowed);
 }
 
 /** Add a processor to the route.
- *  @param iter an iterator in _processors; the new processor will be inserted immediately before this location.
+ *  @param before An existing processor in the list, or 0; the new processor will be inserted immediately before it (or at the end).
+ *  @return 0 on success, non-0 on failure.
  */
 int
-Route::add_processor (boost::shared_ptr<Processor> processor, ProcessorList::iterator iter, ProcessorStreams* err, bool activation_allowed)
+Route::add_processor (boost::shared_ptr<Processor> processor, boost::shared_ptr<Processor> before, ProcessorStreams* err, bool activation_allowed)
 {
 	assert (processor != _meter);
 	assert (processor != _main_outs);
@@ -916,25 +959,32 @@ Route::add_processor (boost::shared_ptr<Processor> processor, ProcessorList::ite
 		boost::shared_ptr<PluginInsert> pi;
 		boost::shared_ptr<PortInsert> porti;
 
-		ProcessorList::iterator loc = find(_processors.begin(), _processors.end(), processor);
-
 		if (processor == _amp) {
-			// Ensure only one amp is in the list at any time
-			if (loc != _processors.end()) {
-				if (iter == loc) { // Already in place, do nothing
+			/* Ensure that only one amp is in the list at any time */
+			ProcessorList::iterator check = find (_processors.begin(), _processors.end(), processor);
+			if (check != _processors.end()) {
+				if (before == _amp) {
+					/* Already in position; all is well */
 					return 0;
-				} else { // New position given, relocate
-					_processors.erase (loc);
+				} else {
+					_processors.erase (check);
 				}
 			}
+		}
 
-		} else {
-			if (loc != _processors.end()) {
-				cerr << "ERROR: Processor added to route twice!" << endl;
+		assert (find (_processors.begin(), _processors.end(), processor) == _processors.end ());
+
+		ProcessorList::iterator loc;
+		if (before) {
+			/* inserting before a processor; find it */
+			loc = find (_processors.begin(), _processors.end(), before);
+			if (loc == _processors.end ()) {
+				/* Not found */
 				return 1;
 			}
-
-			loc = iter;
+		} else {
+			/* inserting at end */
+			loc = _processors.end ();
 		}
 
 		_processors.insert (loc, processor);
@@ -1330,7 +1380,7 @@ Route::clear_processors (Placement p)
 }
 
 int
-Route::remove_processor (boost::shared_ptr<Processor> processor, ProcessorStreams* err)
+Route::remove_processor (boost::shared_ptr<Processor> processor, ProcessorStreams* err, bool need_process_lock)
 {
 	/* these can never be removed */
 
@@ -1388,11 +1438,18 @@ Route::remove_processor (boost::shared_ptr<Processor> processor, ProcessorStream
 		if (!removed) {
 			/* what? */
 			return 1;
-		}
+		} 
 
-		{
+		if (need_process_lock) {
 			Glib::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
 
+			if (configure_processors_unlocked (err)) {
+				pstate.restore ();
+				/* we know this will work, because it worked before :) */
+				configure_processors_unlocked (0);
+				return -1;
+			}
+		} else {
 			if (configure_processors_unlocked (err)) {
 				pstate.restore ();
 				/* we know this will work, because it worked before :) */
@@ -1839,6 +1896,24 @@ Route::state(bool full_state)
 	}
 
 	for (i = _processors.begin(); i != _processors.end(); ++i) {
+		if (!full_state) {
+			/* template save: do not include internal sends functioning as 
+			   aux sends because the chance of the target ID
+			   in the session where this template is used
+			   is not very likely.
+
+			   similarly, do not save listen sends which connect to
+			   the monitor section, because these will always be
+			   added if necessary.
+			*/
+			boost::shared_ptr<InternalSend> is;
+
+			if ((is = boost::dynamic_pointer_cast<InternalSend> (*i)) != 0) {
+				if (is->role() == Delivery::Aux || is->role() == Delivery::Listen) {
+					continue;
+				}
+			}
+		}
 		node->add_child_nocopy((*i)->state (full_state));
 	}
 
@@ -2531,6 +2606,7 @@ Route::add_send_to_internal_return (InternalSend* send)
 void
 Route::remove_send_from_internal_return (InternalSend* send)
 {
+	Glib::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
 	Glib::RWLock::ReaderLock rm (_processor_lock);
 
 	for (ProcessorList::const_iterator x = _processors.begin(); x != _processors.end(); ++x) {
@@ -2542,11 +2618,13 @@ Route::remove_send_from_internal_return (InternalSend* send)
 	}
 }
 
-/** Add a monitor send (if we don't already have one) but don't activate it */
-int
-Route::listen_via_monitor ()
+void
+Route::enable_monitor_send ()
 {
-	/* master never sends to control outs */
+	/* Caller must hold process lock */
+	assert (!AudioEngine::instance()->process_lock().trylock());
+
+	/* master never sends to monitor section via the normal mechanism */
 	assert (!is_master ());
 
 	/* make sure we have one */
@@ -2556,18 +2634,15 @@ Route::listen_via_monitor ()
 	}
 
 	/* set it up */
-	Glib::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
 	configure_processors (0);
-
-	return 0;
 }
 
-/** Add an internal send to a route.
+/** Add an aux send to a route.
  *  @param route route to send to.
- *  @param placement placement for the send.
+ *  @param before Processor to insert before, or 0 to insert at the end.
  */
 int
-Route::listen_via (boost::shared_ptr<Route> route, Placement placement)
+Route::add_aux_send (boost::shared_ptr<Route> route, boost::shared_ptr<Processor> before)
 {
 	assert (route != _session.monitor_out ());
 
@@ -2586,8 +2661,15 @@ Route::listen_via (boost::shared_ptr<Route> route, Placement placement)
 	}
 
 	try {
-		boost::shared_ptr<InternalSend> listener (new InternalSend (_session, _pannable, _mute_master, route, Delivery::Aux));
-		add_processor (listener, placement);
+
+		boost::shared_ptr<InternalSend> listener;
+
+		{
+			Glib::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
+			listener.reset (new InternalSend (_session, _pannable, _mute_master, route, Delivery::Aux));
+		}
+
+		add_processor (listener, before);
 
 	} catch (failed_constructor& err) {
 		return -1;
@@ -2597,36 +2679,39 @@ Route::listen_via (boost::shared_ptr<Route> route, Placement placement)
 }
 
 void
-Route::drop_listen (boost::shared_ptr<Route> route)
+Route::remove_aux_or_listen (boost::shared_ptr<Route> route)
 {
 	ProcessorStreams err;
 	ProcessorList::iterator tmp;
 
-	Glib::RWLock::ReaderLock rl(_processor_lock);
-	rl.acquire ();
+	{
+		Glib::RWLock::ReaderLock rl(_processor_lock);
 
-  again:
-	for (ProcessorList::iterator x = _processors.begin(); x != _processors.end(); ) {
+		/* have to do this early because otherwise processor reconfig
+		 * will put _monitor_send back in the list
+		 */
 
-		boost::shared_ptr<InternalSend> d = boost::dynamic_pointer_cast<InternalSend>(*x);
-
-		if (d && d->target_route() == route) {
-			rl.release ();
-			remove_processor (*x, &err);
-			rl.acquire ();
-
-			/* list could have been demolished while we dropped the lock
-			   so start over.
-			*/
-
-			goto again;
+		if (route == _session.monitor_out()) {
+			_monitor_send.reset ();
 		}
-	}
 
-	rl.release ();
+	  again:
+		for (ProcessorList::iterator x = _processors.begin(); x != _processors.end(); ++x) {
+			
+			boost::shared_ptr<InternalSend> d = boost::dynamic_pointer_cast<InternalSend>(*x);
+			
+			if (d && d->target_route() == route) {
+				rl.release ();
+				remove_processor (*x, &err, false);
+				rl.acquire ();
 
-	if (route == _session.monitor_out()) {
-		_monitor_send.reset ();
+				/* list could have been demolished while we dropped the lock
+				   so start over.
+				*/
+				
+				goto again;
+			}
+		}
 	}
 }
 
@@ -2757,15 +2842,61 @@ Route::nonrealtime_handle_transport_stopped (bool /*abort_ignored*/, bool did_lo
 	_roll_delay = _initial_delay;
 }
 
-/** Called with the process lock held if change contains ConfigurationChanged */
 void
 Route::input_change_handler (IOChange change, void * /*src*/)
 {
+	bool need_to_queue_solo_change = true;
+
 	if ((change.type & IOChange::ConfigurationChanged)) {
+		/* This is called with the process lock held if change 
+		   contains ConfigurationChanged 
+		*/
+		need_to_queue_solo_change = false;
 		configure_processors (0);
 		_phase_invert.resize (_input->n_ports().n_audio ());
 		io_changed (); /* EMIT SIGNAL */
 	}
+
+	if (!_input->connected() && _soloed_by_others_upstream) {
+		if (need_to_queue_solo_change) {
+			_session.cancel_solo_after_disconnect (shared_from_this(), true);
+		} else {
+			cancel_solo_after_disconnect (true);
+		}
+	}
+}
+
+void
+Route::output_change_handler (IOChange change, void * /*src*/)
+{
+	bool need_to_queue_solo_change = true;
+
+	if ((change.type & IOChange::ConfigurationChanged)) {
+		/* This is called with the process lock held if change 
+		   contains ConfigurationChanged 
+		*/
+		need_to_queue_solo_change = false;
+	}
+
+	if (!_output->connected() && _soloed_by_others_downstream) {
+		if (need_to_queue_solo_change) {
+			_session.cancel_solo_after_disconnect (shared_from_this(), false);
+		} else {
+			cancel_solo_after_disconnect (false);
+		}
+	}
+}
+
+void
+Route::cancel_solo_after_disconnect (bool upstream)
+{
+	if (upstream) {
+		_soloed_by_others_upstream = 0;
+	} else {
+		_soloed_by_others_downstream = 0;
+	}
+	set_mute_master_solo ();
+	solo_changed (false, this);
 }
 
 uint32_t
@@ -2852,34 +2983,6 @@ Route::silent_roll (pframes_t nframes, framepos_t /*start_frame*/, framepos_t /*
 {
 	silence (nframes);
 	return 0;
-}
-
-bool
-Route::has_external_redirects () const
-{
-	// FIXME: what about sends? - they don't return a signal back to ardour?
-
-	boost::shared_ptr<const PortInsert> pi;
-
-	for (ProcessorList::const_iterator i = _processors.begin(); i != _processors.end(); ++i) {
-
-		if ((pi = boost::dynamic_pointer_cast<const PortInsert>(*i)) != 0) {
-
-			for (PortSet::const_iterator port = pi->output()->ports().begin(); port != pi->output()->ports().end(); ++port) {
-
-				string port_name = port->name();
-				string client_name = port_name.substr (0, port_name.find(':'));
-
-				/* only say "yes" if the redirect is actually in use */
-
-				if (client_name != "ardour" && pi->active()) {
-					return true;
-				}
-			}
-		}
-	}
-
-	return false;
 }
 
 void
@@ -3931,3 +4034,21 @@ Route::metering_state () const
 {
 	return MeteringRoute;
 }
+
+bool
+Route::has_external_redirects () const
+{
+	for (ProcessorList::const_iterator i = _processors.begin(); i != _processors.end(); ++i) {
+
+		/* ignore inactive processors and obviously ignore the main
+		 * outs since everything has them and we don't care.
+		 */
+		 
+		if ((*i)->active() && (*i) != _main_outs && (*i)->does_routing()) {
+			return true;;
+		}
+	}
+
+	return false;
+}
+

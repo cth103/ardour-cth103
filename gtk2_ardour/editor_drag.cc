@@ -205,19 +205,15 @@ Drag::swap_grab (ArdourCanvas::Item* new_item, Gdk::Cursor* cursor, uint32_t tim
 	_item = new_item;
 
 	if (cursor == 0) {
-		cursor = _editor->which_grabber_cursor ();
+		_item->grab (Gdk::POINTER_MOTION_MASK | Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK, time);
+	} else {
+		_item->grab (Gdk::POINTER_MOTION_MASK | Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK, *cursor, time);
 	}
-
-	_item->grab (Gdk::POINTER_MOTION_MASK | Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK, *cursor, time);
 }
 
 void
 Drag::start_grab (GdkEvent* event, Gdk::Cursor *cursor)
 {
-	if (cursor == 0) {
-		cursor = _editor->which_grabber_cursor ();
-	}
-
 	// if dragging with button2, the motion is x constrained, with Alt-button2 it is y constrained
 
 	if (Keyboard::is_button2_event (&event->button)) {
@@ -240,9 +236,14 @@ Drag::start_grab (GdkEvent* event, Gdk::Cursor *cursor)
 	_last_pointer_x = _grab_x;
 	_last_pointer_y = _grab_y;
 
-	_item->grab (Gdk::POINTER_MOTION_MASK|Gdk::BUTTON_PRESS_MASK|Gdk::BUTTON_RELEASE_MASK,
-	             *cursor,
-	             event->button.time);
+	if (cursor == 0) {
+		_item->grab (Gdk::POINTER_MOTION_MASK|Gdk::BUTTON_PRESS_MASK|Gdk::BUTTON_RELEASE_MASK,
+			     event->button.time);
+	} else {
+		_item->grab (Gdk::POINTER_MOTION_MASK|Gdk::BUTTON_PRESS_MASK|Gdk::BUTTON_RELEASE_MASK,
+			     *cursor,
+			     event->button.time);
+	}
 
 	if (_editor->session() && _editor->session()->transport_rolling()) {
 		_was_rolling = true;
@@ -330,7 +331,9 @@ Drag::motion_handler (GdkEvent* event, bool from_autoscroll)
 
 		if (event->motion.state & Gdk::BUTTON1_MASK || event->motion.state & Gdk::BUTTON2_MASK) {
 			if (!from_autoscroll) {
-				_editor->maybe_autoscroll (true, allow_vertical_autoscroll ());
+				bool const moving_left = _drags->current_pointer_x() < _last_pointer_x;
+				bool const moving_up = _drags->current_pointer_y() < _last_pointer_y;
+				_editor->maybe_autoscroll (true, allow_vertical_autoscroll (), moving_left, moving_up);
 			}
 
 			motion (event, _move_threshold_passed != old_move_threshold_passed);
@@ -395,6 +398,22 @@ Drag::show_verbose_cursor_text (string const & text)
 		);
 }
 
+boost::shared_ptr<Region>
+Drag::add_midi_region (MidiTimeAxisView* view)
+{
+	if (_editor->session()) {
+		const TempoMap& map (_editor->session()->tempo_map());
+		framecnt_t pos = grab_frame();
+		const Meter& m = map.meter_at (pos);
+		/* not that the frame rate used here can be affected by pull up/down which
+		   might be wrong.
+		*/
+		framecnt_t len = m.frames_per_bar (map.tempo_at (pos), _editor->session()->frame_rate());
+		return view->add_region (grab_frame(), len, true);
+	}
+
+	return boost::shared_ptr<Region>();
+}
 
 struct EditorOrderTimeAxisViewSorter {
     bool operator() (TimeAxisView* a, TimeAxisView* b) {
@@ -877,6 +896,10 @@ RegionMoveDrag::finished (GdkEvent* ev, bool movement_occurred)
 			drag_delta
 			);
 
+	}
+
+	if (_editor->session() && Config->get_always_play_range()) {
+		_editor->session()->request_locate (_editor->get_selection().regions.start());
 	}
 }
 
@@ -1442,7 +1465,7 @@ void
 RegionCreateDrag::motion (GdkEvent* event, bool first_move)
 {
 	if (first_move) {
-		add_region();
+		_region = add_midi_region (_view);
 		_view->playlist()->freeze ();
 	} else {
 		if (_region) {
@@ -1468,28 +1491,13 @@ void
 RegionCreateDrag::finished (GdkEvent*, bool movement_occurred)
 {
 	if (!movement_occurred) {
-		add_region ();
+		add_midi_region (_view);
 	} else {
 		_view->playlist()->thaw ();
 	}
 
 	if (_region) {
 		_editor->commit_reversible_command ();
-	}
-}
-
-void
-RegionCreateDrag::add_region ()
-{
-	if (_editor->session()) {
-		const TempoMap& map (_editor->session()->tempo_map());
-		framecnt_t pos = grab_frame();
-		const Meter& m = map.meter_at (pos);
-		/* not that the frame rate used here can be affected by pull up/down which
-		   might be wrong.
-		*/
-		framecnt_t len = m.frames_per_bar (map.tempo_at (pos), _editor->session()->frame_rate());
-		_region = _view->add_region (grab_frame(), len, false);
 	}
 }
 
@@ -1592,30 +1600,6 @@ NoteResizeDrag::aborted (bool)
 	for (MidiRegionSelection::iterator r = ms.begin(); r != ms.end(); ++r) {
 		(*r)->abort_resizing ();
 	}
-}
-
-RegionGainDrag::RegionGainDrag (Editor* e, ArdourCanvas::Item* i)
-	: Drag (e, i)
-{
-	DEBUG_TRACE (DEBUG::Drags, "New RegionGainDrag\n");
-}
-
-void
-RegionGainDrag::motion (GdkEvent* /*event*/, bool)
-{
-
-}
-
-void
-RegionGainDrag::finished (GdkEvent *, bool)
-{
-
-}
-
-void
-RegionGainDrag::aborted (bool)
-{
-	/* XXX: TODO */
 }
 
 TrimDrag::TrimDrag (Editor* e, ArdourCanvas::Item* i, RegionView* p, list<RegionView*> const & v)
@@ -3111,6 +3095,7 @@ FeatureLineDrag::aborted (bool)
 
 RubberbandSelectDrag::RubberbandSelectDrag (Editor* e, ArdourCanvas::Item* i)
 	: Drag (e, i)
+	, _vertical_only (false)
 {
 	DEBUG_TRACE (DEBUG::Drags, "New RubberbandSelectDrag\n");
 }
@@ -3162,8 +3147,14 @@ RubberbandSelectDrag::motion (GdkEvent* event, bool)
 		double x2 = _editor->frame_to_pixel (end);
 
 		_editor->rubberband_rect->property_x1() = x1;
+		if (_vertical_only) {
+			/* fixed 10 pixel width */
+			_editor->rubberband_rect->property_x2() = x1 + 10;
+		} else {
+			_editor->rubberband_rect->property_x2() = x2;
+		} 
+
 		_editor->rubberband_rect->property_y1() = y1;
-		_editor->rubberband_rect->property_x2() = x2;
 		_editor->rubberband_rect->property_y2() = y2;
 
 		_editor->rubberband_rect->show();
@@ -3213,7 +3204,23 @@ RubberbandSelectDrag::finished (GdkEvent* event, bool movement_occurred)
 
 	} else {
 
-		deselect_things ();
+		/* just a click */
+
+		bool do_deselect = true;
+		MidiTimeAxisView* mtv;
+
+		if ((mtv = dynamic_cast<MidiTimeAxisView*>(_editor->clicked_axisview)) != 0) {
+			/* MIDI track */
+			if (_editor->selection->empty()) {
+				/* nothing selected */
+				add_midi_region (mtv);
+				do_deselect = false;
+			}
+		} 
+
+		if (do_deselect) {
+			deselect_things ();
+		}
 
 	}
 
@@ -3279,13 +3286,16 @@ TimeFXDrag::finished (GdkEvent* /*event*/, bool movement_occurred)
 	}
 #endif
 
-	// XXX how do timeFX on multiple regions ?
+	if (!_editor->get_selection().regions.empty()) {
+		/* primary will already be included in the selection, and edit
+		   group shared editing will propagate selection across
+		   equivalent regions, so just use the current region
+		   selection.
+		*/
 
-	RegionSelection rs;
-	rs.add (_primary);
-
-	if (_editor->time_stretch (rs, percentage) == -1) {
-		error << _("An error occurred while executing time stretch operation") << endmsg;
+		if (_editor->time_stretch (_editor->get_selection().regions, percentage) == -1) {
+			error << _("An error occurred while executing time stretch operation") << endmsg;
+		}
 	}
 }
 
@@ -3334,6 +3344,7 @@ SelectionDrag::SelectionDrag (Editor* e, ArdourCanvas::Item* i, Operation o)
 	, _copy (false)
 	, _original_pointer_time_axis (-1)
 	, _last_pointer_time_axis (-1)
+	, _time_selection_at_start (!_editor->get_selection().time.empty())
 {
 	DEBUG_TRACE (DEBUG::Drags, "New SelectionDrag\n");
 }
@@ -3565,16 +3576,42 @@ SelectionDrag::finished (GdkEvent* event, bool movement_occurred)
 		}
 
 		/* XXX what if its a music time selection? */
-		if (s && (s->config.get_auto_play() || (s->get_play_range() && s->transport_rolling()))) {
-			s->request_play_range (&_editor->selection->time, true);
+		if (s) {
+			if ((s->config.get_auto_play() || (s->get_play_range() && s->transport_rolling()))) {
+				s->request_play_range (&_editor->selection->time, true);
+			} else {
+				if (Config->get_always_play_range()) {
+					if (_editor->doing_range_stuff()) {
+						s->request_locate (_editor->get_selection().time.start());
+					} 
+				}
+			}
 		}
 
-
 	} else {
-		/* just a click, no pointer movement.*/
+		/* just a click, no pointer movement.
+		 */
 
 		if (Keyboard::no_modifier_keys_pressed (&event->button)) {
-			_editor->selection->clear_time();
+			if (!_time_selection_at_start) {
+				if (_editor->clicked_regionview) {
+					if (_editor->get_selection().selected (_editor->clicked_regionview)) {
+						/* range select the entire current
+						   region selection
+						*/
+						_editor->select_range (_editor->get_selection().regions.start(), 
+								       _editor->get_selection().regions.end_frame());
+					} else {
+						/* range select this (unselected)
+						 * region
+						 */
+						_editor->select_range (_editor->clicked_regionview->region()->position(), 
+								       _editor->clicked_regionview->region()->last_frame());
+					}
+				}
+			} else {
+				_editor->selection->clear_time();
+			}
 		}
 
 		if (_editor->clicked_axisview && !_editor->selection->selected (_editor->clicked_axisview)) {
@@ -3585,6 +3622,11 @@ SelectionDrag::finished (GdkEvent* event, bool movement_occurred)
 			s->request_stop (false, false);
 		}
 
+		if (Config->get_always_play_range()) {
+			if (_editor->doing_range_stuff()) {
+				s->request_locate (_editor->get_selection().time.start());
+			} 
+		}
 	}
 
 	_editor->stop_canvas_autoscroll ();
@@ -4000,8 +4042,11 @@ void
 NoteDrag::finished (GdkEvent* ev, bool moved)
 {
 	if (!moved) {
-		if (_editor->current_mouse_mode() == Editing::MouseObject) {
-
+		/* no motion - select note */
+		
+		if (_editor->current_mouse_mode() == Editing::MouseObject ||
+		    _editor->current_mouse_mode() == Editing::MouseDraw) {
+			
 			if (_was_selected) {
 				bool add = Keyboard::modifier_state_equals (ev->button.state, Keyboard::PrimaryModifier);
 				if (add) {
@@ -4336,6 +4381,34 @@ MidiRubberbandSelectDrag::deselect_things ()
 	/* XXX */
 }
 
+MidiVerticalSelectDrag::MidiVerticalSelectDrag (Editor* e, MidiRegionView* rv)
+	: RubberbandSelectDrag (e, rv->get_canvas_frame ())
+	, _region_view (rv)
+{
+	_vertical_only = true;
+}
+
+void
+MidiVerticalSelectDrag::select_things (int button_state, framepos_t x1, framepos_t x2, double y1, double y2, bool drag_in_progress)
+{
+	double const y = _region_view->midi_view()->y_position ();
+
+	y1 = max (0.0, y1 - y);
+	y2 = max (0.0, y2 - y);
+	
+	_region_view->update_vertical_drag_selection (
+		y1,
+		y2,
+		Keyboard::modifier_state_contains (button_state, Keyboard::TertiaryModifier)
+		);
+}
+
+void
+MidiVerticalSelectDrag::deselect_things ()
+{
+	/* XXX */
+}
+
 EditorRubberbandSelectDrag::EditorRubberbandSelectDrag (Editor* e, ArdourCanvas::Item* i)
 	: RubberbandSelectDrag (e, i)
 {
@@ -4429,7 +4502,7 @@ NoteCreateDrag::start_grab (GdkEvent* event, Gdk::Cursor* cursor)
 void
 NoteCreateDrag::motion (GdkEvent* event, bool)
 {
-	_note[1] = adjusted_current_frame (event) - _region_view->region()->position ();
+	_note[1] = max ((framepos_t)0, adjusted_current_frame (event) - _region_view->region()->position ());
 	double const x = _editor->frame_to_pixel (_note[1]);
 	if (_note[1] > _note[0]) {
 		_drag_rect->property_x2() = x;

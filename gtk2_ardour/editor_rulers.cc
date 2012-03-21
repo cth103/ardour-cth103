@@ -32,7 +32,8 @@
 #include "ardour/session.h"
 #include "ardour/tempo.h"
 #include "ardour/profile.h"
-#include <gtkmm2ext/gtk_ui.h>
+
+#include "gtkmm2ext/gtk_ui.h"
 
 #include "editor.h"
 #include "editing.h"
@@ -1218,6 +1219,14 @@ Editor::compute_bbt_ruler_scale (framepos_t lower, framepos_t upper)
 		break;
 	case SnapToBeatDiv32:
                 bbt_beat_subdivision = 32;
+		bbt_accent_modulo = 8;
+		break;
+	case SnapToBeatDiv64:
+                bbt_beat_subdivision = 64;
+		bbt_accent_modulo = 8;
+		break;
+	case SnapToBeatDiv128:
+                bbt_beat_subdivision = 128;
 		bbt_accent_modulo = 8;
 		break;
 	default:

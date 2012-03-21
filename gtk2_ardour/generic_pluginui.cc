@@ -113,7 +113,7 @@ GenericPluginUI::GenericPluginUI (boost::shared_ptr<PluginInsert> pi, bool scrol
 	main_contents.pack_start (*constraint_hbox, false, false);
 
 	if (is_scrollable ) {
-		scroller.set_policy (Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
+		scroller.set_policy (Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
 		scroller.set_name ("PluginEditor");
 		scroller_view.set_name("PluginEditor");
 		scroller_view.add (hpacker);
@@ -127,11 +127,7 @@ GenericPluginUI::GenericPluginUI (boost::shared_ptr<PluginInsert> pi, bool scrol
 
 	pi->ActiveChanged.connect (active_connection, invalidator (*this), boost::bind (&GenericPluginUI::processor_active_changed, this, boost::weak_ptr<Processor>(pi)), gui_context());
 
-	if (!pi->active()) {
-		bypass_button.set_active_state (Gtkmm2ext::Active);
-	} else {
-		bypass_button.unset_active_state ();
-	}
+	bypass_button.set_active (!pi->active());
 
 	prefheight = 0;
 	build ();
@@ -443,9 +439,8 @@ GenericPluginUI::automation_state_changed (ControlUI* cui)
 
 	// don't lock to avoid deadlock because we're triggered by
 	// AutomationControl::Changed() while the automation lock is taken
-	switch (insert->get_parameter_automation_state (cui->parameter())
-			& (Off|Play|Touch|Write)) {
-	case Off:
+	switch (insert->get_parameter_automation_state (cui->parameter()) & (ARDOUR::Off|Play|Touch|Write)) {
+	case ARDOUR::Off:
 		cui->automate_button.set_label (S_("Automation|Manual"));
 		break;
 	case Play:
@@ -570,8 +565,8 @@ GenericPluginUI::build_control_ui (guint32 port_index, boost::shared_ptr<Automat
 		Adjustment* adj = control_ui->controller->adjustment();
 		boost::shared_ptr<PluginInsert::PluginControl> pc = boost::dynamic_pointer_cast<PluginInsert::PluginControl> (control_ui->control);
 
-		adj->set_lower (pc->user_to_ui (desc.lower));
-		adj->set_upper (pc->user_to_ui (desc.upper));
+		adj->set_lower (pc->internal_to_interface (desc.lower));
+		adj->set_upper (pc->internal_to_interface (desc.upper));
 
 		adj->set_step_increment (desc.step);
 		adj->set_page_increment (desc.largestep);
@@ -594,7 +589,7 @@ GenericPluginUI::build_control_ui (guint32 port_index, boost::shared_ptr<Automat
 
 		}
 
-		adj->set_value (pc->plugin_to_ui (plugin->get_parameter (port_index)));
+		adj->set_value (pc->internal_to_interface (plugin->get_parameter (port_index)));
 
 		/* XXX memory leak: SliderController not destroyed by ControlUI
 		   destructor, and manage() reports object hierarchy
@@ -698,7 +693,7 @@ GenericPluginUI::astate_clicked (ControlUI* cui, uint32_t /*port*/)
 
 	items.clear ();
 	items.push_back (MenuElem (S_("Automation|Manual"),
-				   sigc::bind (sigc::mem_fun(*this, &GenericPluginUI::set_automation_state), (AutoState) Off, cui)));
+				   sigc::bind (sigc::mem_fun(*this, &GenericPluginUI::set_automation_state), (AutoState) ARDOUR::Off, cui)));
 	items.push_back (MenuElem (_("Play"),
 				   sigc::bind (sigc::mem_fun(*this, &GenericPluginUI::set_automation_state), (AutoState) Play, cui)));
 	items.push_back (MenuElem (_("Write"),

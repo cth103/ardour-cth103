@@ -45,6 +45,8 @@
 #include "pbd/file_utils.h"
 #include "pbd/convert.h"
 #include "pbd/strsplit.h"
+#include "pbd/strsplit.h"
+#include "pbd/unwind.h"
 
 #include "ardour/amp.h"
 #include "ardour/analyser.h"
@@ -79,6 +81,7 @@
 #include "ardour/named_selection.h"
 #include "ardour/process_thread.h"
 #include "ardour/playlist.h"
+#include "ardour/plugin.h"
 #include "ardour/plugin_insert.h"
 #include "ardour/port_insert.h"
 #include "ardour/processor.h"
@@ -151,7 +154,6 @@ Session::Session (AudioEngine &eng,
 	, _post_transport_work (0)
 	, _send_timecode_update (false)
 	, _all_route_group (new RouteGroup (*this, "all"))
-	, _process_graph (new Graph (*this))
 	, routes (new RouteList)
 	, _total_free_4k_blocks (0)
 	, _bundles (new BundleList)
@@ -166,6 +168,13 @@ Session::Session (AudioEngine &eng,
 	, _suspend_timecode_transmission (0)
 {
 	_locations = new Locations (*this);
+
+	if (how_many_dsp_threads () > 1) {
+		/* For now, only create the graph if we are using >1 DSP threads, as
+		   it is a bit slower than the old code with 1 thread.
+		*/
+		_process_graph.reset (new Graph (*this));
+	}
 
 	playlists.reset (new SessionPlaylists);
 
@@ -369,19 +378,27 @@ Session::when_engine_running ()
 		XMLNode* child = 0;
 
 		_click_io.reset (new ClickIO (*this, "click"));
+		_click_gain.reset (new Amp (*this));
+		_click_gain->activate ();
 
 		if (state_tree && (child = find_named_node (*state_tree->root(), "Click")) != 0) {
 
 			/* existing state for Click */
-			int c;
+			int c = 0;
 
 			if (Stateful::loading_state_version < 3000) {
 				c = _click_io->set_state_2X (*child->children().front(), Stateful::loading_state_version, false);
 			} else {
-				c = _click_io->set_state (*child->children().front(), Stateful::loading_state_version);
+				const XMLNodeList& children (child->children());
+				XMLNodeList::const_iterator i = children.begin();
+				if ((c = _click_io->set_state (**i, Stateful::loading_state_version)) == 0) {
+					++i;
+					if (i != children.end()) {
+						c = _click_gain->set_state (**i, Stateful::loading_state_version);
+					}
+				}
 			}
-
-
+			
 			if (c == 0) {
 				_clicking = Config->get_clicking ();
 
@@ -539,110 +556,8 @@ Session::when_engine_running ()
 	hookup_io ();
 
 	if (_is_new && !no_auto_connect()) {
-
 		Glib::Mutex::Lock lm (AudioEngine::instance()->process_lock());
-
-		/* don't connect the master bus outputs if there is a monitor bus */
-
-		if (_master_out && Config->get_auto_connect_standard_busses() && !_monitor_out) {
-
-			/* if requested auto-connect the outputs to the first N physical ports.
-			 */
-
-			uint32_t limit = _master_out->n_outputs().n_total();
-
-			for (uint32_t n = 0; n < limit; ++n) {
-				boost::shared_ptr<Port> p = _master_out->output()->nth (n);
-				string connect_to;
-				if (outputs[p->type()].size() > n) {
-					connect_to = outputs[p->type()][n];
-				}
-
-				if (!connect_to.empty() && p->connected_to (connect_to) == false) {
-					if (_master_out->output()->connect (p, connect_to, this)) {
-						error << string_compose (_("cannot connect master output %1 to %2"), n, connect_to)
-						      << endmsg;
-						break;
-					}
-				}
-			}
-		}
-
-		if (_monitor_out) {
-
-			/* AUDIO ONLY as of june 29th 2009, because listen semantics for anything else
-			   are undefined, at best.
-			 */
-
-			/* control out listens to master bus (but ignores it
-			   under some conditions)
-			*/
-
-			uint32_t limit = _monitor_out->n_inputs().n_audio();
-
-			if (_master_out) {
-				for (uint32_t n = 0; n < limit; ++n) {
-					boost::shared_ptr<AudioPort> p = _monitor_out->input()->ports().nth_audio_port (n);
-					boost::shared_ptr<AudioPort> o = _master_out->output()->ports().nth_audio_port (n);
-
-					if (o) {
-						string connect_to = o->name();
-						if (_monitor_out->input()->connect (p, connect_to, this)) {
-							error << string_compose (_("cannot connect control input %1 to %2"), n, connect_to)
-							      << endmsg;
-							break;
-						}
-					}
-				}
-			}
-
-			/* if control out is not connected, connect control out to physical outs
-			*/
-
-			if (!_monitor_out->output()->connected ()) {
-
-				if (!Config->get_monitor_bus_preferred_bundle().empty()) {
-
-					boost::shared_ptr<Bundle> b = bundle_by_name (Config->get_monitor_bus_preferred_bundle());
-
-					if (b) {
-						_monitor_out->output()->connect_ports_to_bundle (b, this);
-					} else {
-						warning << string_compose (_("The preferred I/O for the monitor bus (%1) cannot be found"),
-									   Config->get_monitor_bus_preferred_bundle())
-							<< endmsg;
-					}
-
-				} else {
-
-					/* Monitor bus is audio only */
-					uint32_t mod = n_physical_outputs.get (DataType::AUDIO);
-					uint32_t limit = _monitor_out->n_outputs().get (DataType::AUDIO);
-
-					if (mod != 0) {
-
-						for (uint32_t n = 0; n < limit; ++n) {
-
-							boost::shared_ptr<Port> p = _monitor_out->output()->ports().port(DataType::AUDIO, n);
-							string connect_to;
-							if (outputs[DataType::AUDIO].size() > (n % mod)) {
-								connect_to = outputs[DataType::AUDIO][n % mod];
-							}
-
-							if (!connect_to.empty()) {
-								if (_monitor_out->output()->connect (p, connect_to, this)) {
-									error << string_compose (
-											_("cannot connect control output %1 to %2"),
-											n, connect_to)
-										<< endmsg;
-									break;
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+		auto_connect_master_bus ();
 	}
 
 	_state_of_the_state = StateOfTheState (_state_of_the_state & ~(CannotSave|Dirty));
@@ -655,6 +570,226 @@ Session::when_engine_running ()
 
 	BootMessage (_("Connect to engine"));
 	_engine.set_session (this);
+}
+
+void
+Session::auto_connect_master_bus ()
+{
+	if (!_master_out || !Config->get_auto_connect_standard_busses() || _monitor_out) {
+		return;
+	}
+		
+	/* if requested auto-connect the outputs to the first N physical ports.
+	 */
+	
+	uint32_t limit = _master_out->n_outputs().n_total();
+	vector<string> outputs[DataType::num_types];
+	
+	for (uint32_t i = 0; i < DataType::num_types; ++i) {
+		_engine.get_physical_outputs (DataType (DataType::Symbol (i)), outputs[i]);
+	}
+	
+	for (uint32_t n = 0; n < limit; ++n) {
+		boost::shared_ptr<Port> p = _master_out->output()->nth (n);
+		string connect_to;
+		if (outputs[p->type()].size() > n) {
+			connect_to = outputs[p->type()][n];
+		}
+		
+		if (!connect_to.empty() && p->connected_to (connect_to) == false) {
+			if (_master_out->output()->connect (p, connect_to, this)) {
+				error << string_compose (_("cannot connect master output %1 to %2"), n, connect_to)
+				      << endmsg;
+				break;
+			}
+		}
+	}
+}
+
+void
+Session::remove_monitor_section ()
+{
+	if (!_monitor_out) {
+		return;
+	}
+
+	/* force reversion to Solo-In-Pace */
+	Config->set_solo_control_is_listen_control (false);
+
+	{
+		/* Hold process lock while doing this so that we don't hear bits and
+		 * pieces of audio as we work on each route.
+		 */
+		
+		Glib::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
+		
+		/* Connect tracks to monitor section. Note that in an
+		   existing session, the internal sends will already exist, but we want the
+		   routes to notice that they connect to the control out specifically.
+		*/
+		
+		
+		boost::shared_ptr<RouteList> r = routes.reader ();
+		PBD::Unwinder<bool> uw (ignore_route_processor_changes, true);
+		
+		for (RouteList::iterator x = r->begin(); x != r->end(); ++x) {
+			
+			if ((*x)->is_monitor()) {
+				/* relax */
+			} else if ((*x)->is_master()) {
+				/* relax */
+			} else {
+				(*x)->remove_aux_or_listen (_monitor_out);
+			}
+		}
+	}
+
+	remove_route (_monitor_out);
+	auto_connect_master_bus ();
+}
+
+void
+Session::add_monitor_section ()
+{
+	RouteList rl;
+
+	if (_monitor_out || !_master_out) {
+		return;
+	}
+
+	boost::shared_ptr<Route> r (new Route (*this, _("monitor"), Route::MonitorOut, DataType::AUDIO));
+
+	if (r->init ()) {
+		return;
+	}
+
+#ifdef BOOST_SP_ENABLE_DEBUG_HOOKS
+	// boost_debug_shared_ptr_mark_interesting (r.get(), "Route");
+#endif
+	{
+		Glib::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
+		r->input()->ensure_io (_master_out->output()->n_ports(), false, this);
+		r->output()->ensure_io (_master_out->output()->n_ports(), false, this);
+	}
+
+	rl.push_back (r);
+	add_routes (rl, false, false, false);
+	
+	assert (_monitor_out);
+
+	/* AUDIO ONLY as of june 29th 2009, because listen semantics for anything else
+	   are undefined, at best.
+	*/
+	
+	uint32_t limit = _monitor_out->n_inputs().n_audio();
+	
+	if (_master_out) {
+		
+		/* connect the inputs to the master bus outputs. this
+		 * represents a separate data feed from the internal sends from
+		 * each route. as of jan 2011, it allows the monitor section to
+		 * conditionally ignore either the internal sends or the normal
+		 * input feed, but we should really find a better way to do
+		 * this, i think.
+		 */
+
+		_master_out->output()->disconnect (this);
+
+		for (uint32_t n = 0; n < limit; ++n) {
+			boost::shared_ptr<AudioPort> p = _monitor_out->input()->ports().nth_audio_port (n);
+			boost::shared_ptr<AudioPort> o = _master_out->output()->ports().nth_audio_port (n);
+			
+			if (o) {
+				string connect_to = o->name();
+				if (_monitor_out->input()->connect (p, connect_to, this)) {
+					error << string_compose (_("cannot connect control input %1 to %2"), n, connect_to)
+					      << endmsg;
+					break;
+				}
+			}
+		}
+	}
+	
+	/* if monitor section is not connected, connect it to physical outs
+	 */
+	
+	if (Config->get_auto_connect_standard_busses() && !_monitor_out->output()->connected ()) {
+		
+		if (!Config->get_monitor_bus_preferred_bundle().empty()) {
+			
+			boost::shared_ptr<Bundle> b = bundle_by_name (Config->get_monitor_bus_preferred_bundle());
+			
+			if (b) {
+				_monitor_out->output()->connect_ports_to_bundle (b, this);
+			} else {
+				warning << string_compose (_("The preferred I/O for the monitor bus (%1) cannot be found"),
+							   Config->get_monitor_bus_preferred_bundle())
+					<< endmsg;
+			}
+			
+		} else {
+			
+			/* Monitor bus is audio only */
+
+			uint32_t mod = n_physical_outputs.get (DataType::AUDIO);
+			uint32_t limit = _monitor_out->n_outputs().get (DataType::AUDIO);
+			vector<string> outputs[DataType::num_types];
+
+			for (uint32_t i = 0; i < DataType::num_types; ++i) {
+				_engine.get_physical_outputs (DataType (DataType::Symbol (i)), outputs[i]);
+			}
+			
+			
+			if (mod != 0) {
+				
+				for (uint32_t n = 0; n < limit; ++n) {
+					
+					boost::shared_ptr<Port> p = _monitor_out->output()->ports().port(DataType::AUDIO, n);
+					string connect_to;
+					if (outputs[DataType::AUDIO].size() > (n % mod)) {
+						connect_to = outputs[DataType::AUDIO][n % mod];
+					}
+					
+					if (!connect_to.empty()) {
+						if (_monitor_out->output()->connect (p, connect_to, this)) {
+							error << string_compose (
+								_("cannot connect control output %1 to %2"),
+								n, connect_to)
+							      << endmsg;
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/* Hold process lock while doing this so that we don't hear bits and
+	 * pieces of audio as we work on each route.
+	 */
+	 
+	Glib::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
+
+	/* Connect tracks to monitor section. Note that in an
+	   existing session, the internal sends will already exist, but we want the
+	   routes to notice that they connect to the control out specifically.
+	*/
+
+
+	boost::shared_ptr<RouteList> rls = routes.reader ();
+
+	PBD::Unwinder<bool> uw (ignore_route_processor_changes, true);
+
+	for (RouteList::iterator x = rls->begin(); x != rls->end(); ++x) {
+		
+		if ((*x)->is_monitor()) {
+			/* relax */
+		} else if ((*x)->is_master()) {
+			/* relax */
+		} else {
+			(*x)->enable_monitor_send ();
+		}
+	}
 }
 
 void
@@ -700,30 +835,6 @@ Session::hookup_io ()
 	/* Now reset all panners */
 
 	Delivery::reset_panners ();
-
-	/* Connect tracks to monitor/listen bus if there is one.  Note that in an
-	   existing session, the internal sends will already exist, but we want the
-	   routes to notice that they connect to the control out specifically.
-	*/
-
-	if (_monitor_out) {
-		boost::shared_ptr<RouteList> r = routes.reader ();
-		for (RouteList::iterator x = r->begin(); x != r->end(); ++x) {
-
-			if ((*x)->is_monitor()) {
-
-				/* relax */
-
-			} else if ((*x)->is_master()) {
-
-				/* relax */
-
-			} else {
-
-				(*x)->listen_via_monitor ();
-			}
-		}
-	}
 
 	/* Anyone who cares about input state, wake up and do something */
 
@@ -1288,8 +1399,6 @@ Session::resort_routes ()
 		/* writer goes out of scope and forces update */
 	}
 
-	//_process_graph->dump(1);
-
 #ifndef NDEBUG
 	boost::shared_ptr<RouteList> rl = routes.reader ();
 	for (RouteList::iterator i = rl->begin(); i != rl->end(); ++i) {
@@ -1364,7 +1473,10 @@ Session::resort_routes_using (boost::shared_ptr<RouteList> r)
 		   Note: the process graph rechain does not require a
 		   topologically-sorted list, but hey ho.
 		*/
-		_process_graph->rechain (sorted_routes, edges);
+		if (_process_graph) {
+			_process_graph->rechain (sorted_routes, edges);
+		}
+		
 		_current_route_graph = edges;
 
 		/* Complete the building of the routes' lists of what directly
@@ -1456,9 +1568,10 @@ Session::count_existing_track_channels (ChanCount& in, ChanCount& out)
 
 /** Caller must not hold process lock
  *  @param name_template string to use for the start of the name, or "" to use "MIDI".
+ *  @param instrument plugin info for the instrument to insert pre-fader, if any
  */
 list<boost::shared_ptr<MidiTrack> >
-Session::new_midi_track (TrackMode mode, RouteGroup* route_group, uint32_t how_many, string name_template)
+Session::new_midi_track (boost::shared_ptr<PluginInfo> instrument, TrackMode mode, RouteGroup* route_group, uint32_t how_many, string name_template)
 {
 	char track_name[32];
 	uint32_t track_id = 0;
@@ -1467,7 +1580,7 @@ Session::new_midi_track (TrackMode mode, RouteGroup* route_group, uint32_t how_m
 	list<boost::shared_ptr<MidiTrack> > ret;
 	uint32_t control_id;
 
-	control_id = ntracks() + nbusses();
+	control_id = next_control_id ();
 
 	bool const use_number = (how_many != 1) || name_template.empty () || name_template == _("MIDI");
 
@@ -1533,7 +1646,16 @@ Session::new_midi_track (TrackMode mode, RouteGroup* route_group, uint32_t how_m
 
   failed:
 	if (!new_routes.empty()) {
-		add_routes (new_routes, true, true);
+		add_routes (new_routes, true, true, true);
+
+		if (instrument) {
+			for (RouteList::iterator r = new_routes.begin(); r != new_routes.end(); ++r) {
+				PluginPtr plugin = instrument->load (*this);
+				boost::shared_ptr<Processor> p (new PluginInsert (*this, plugin));
+				(*r)->add_processor (p, PreFader);
+				
+			}
+		}
 	}
 
 	return ret;
@@ -1683,9 +1805,8 @@ Session::auto_connect_route (boost::shared_ptr<Route> route, ChanCount& existing
  *  @param name_template string to use for the start of the name, or "" to use "Audio".
  */
 list< boost::shared_ptr<AudioTrack> >
-Session::new_audio_track (
-	int input_channels, int output_channels, TrackMode mode, RouteGroup* route_group, uint32_t how_many, string name_template
-	)
+Session::new_audio_track (int input_channels, int output_channels, TrackMode mode, RouteGroup* route_group, 
+			  uint32_t how_many, string name_template)
 {
 	char track_name[32];
 	uint32_t track_id = 0;
@@ -1694,7 +1815,7 @@ Session::new_audio_track (
 	list<boost::shared_ptr<AudioTrack> > ret;
 	uint32_t control_id;
 
-	control_id = ntracks() + nbusses() + 1;
+	control_id = next_control_id ();
 
 	bool const use_number = (how_many != 1) || name_template.empty () || name_template == _("Audio");
 
@@ -1768,7 +1889,7 @@ Session::new_audio_track (
 
   failed:
 	if (!new_routes.empty()) {
-		add_routes (new_routes, true, true);
+		add_routes (new_routes, true, true, true);
 	}
 
 	return ret;
@@ -1813,7 +1934,7 @@ Session::new_audio_route (int input_channels, int output_channels, RouteGroup* r
 	RouteList ret;
 	uint32_t control_id;
 
-	control_id = ntracks() + nbusses() + 1;
+	control_id = next_control_id ();
 
 	bool const use_number = (how_many != 1) || name_template.empty () || name_template == _("Bus");
 	
@@ -1880,7 +2001,7 @@ Session::new_audio_route (int input_channels, int output_channels, RouteGroup* r
 
   failure:
 	if (!ret.empty()) {
-		add_routes (ret, false, true);
+		add_routes (ret, false, true, true); // autoconnect outputs only
 	}
 
 	return ret;
@@ -1901,7 +2022,9 @@ Session::new_route_from_template (uint32_t how_many, const std::string& template
 
 	XMLNode* node = tree.root();
 
-	control_id = ntracks() + nbusses() + 1;
+	IO::disable_connecting ();
+
+	control_id = next_control_id ();
 
 	while (how_many) {
 
@@ -1977,14 +2100,15 @@ Session::new_route_from_template (uint32_t how_many, const std::string& template
 
   out:
 	if (!ret.empty()) {
-		add_routes (ret, true, true);
+		add_routes (ret, true, true, true);
+		IO::enable_connecting ();
 	}
 
 	return ret;
 }
 
 void
-Session::add_routes (RouteList& new_routes, bool auto_connect, bool save)
+Session::add_routes (RouteList& new_routes, bool input_auto_connect, bool output_auto_connect, bool save)
 {
         ChanCount existing_inputs;
         ChanCount existing_outputs;
@@ -2041,20 +2165,24 @@ Session::add_routes (RouteList& new_routes, bool auto_connect, bool save)
 			}
 		}
 
-		if (auto_connect) {
-			auto_connect_route (r, existing_inputs, existing_outputs, true);
+		if (input_auto_connect || output_auto_connect) {
+			auto_connect_route (r, existing_inputs, existing_outputs, true, input_auto_connect);
 		}
 	}
 
 	if (_monitor_out && IO::connecting_legal) {
 
-		for (RouteList::iterator x = new_routes.begin(); x != new_routes.end(); ++x) {
-			if ((*x)->is_monitor()) {
-				/* relax */
-			} else if ((*x)->is_master()) {
-				/* relax */
-			} else {
-				(*x)->listen_via_monitor ();
+		{
+			Glib::Mutex::Lock lm (_engine.process_lock());		
+			
+			for (RouteList::iterator x = new_routes.begin(); x != new_routes.end(); ++x) {
+				if ((*x)->is_monitor()) {
+					/* relax */
+				} else if ((*x)->is_master()) {
+					/* relax */
+				} else {
+					(*x)->enable_monitor_send ();
+				}
 			}
 		}
 
@@ -2130,22 +2258,29 @@ Session::globally_add_internal_sends (boost::shared_ptr<Route> dest, Placement p
 void
 Session::add_internal_sends (boost::shared_ptr<Route> dest, Placement p, boost::shared_ptr<RouteList> senders)
 {
-	if (dest->is_monitor() || dest->is_master()) {
+	for (RouteList::iterator i = senders->begin(); i != senders->end(); ++i) {
+		add_internal_send (dest, (*i)->before_processor_for_placement (p), *i);
+	}
+}
+
+void
+Session::add_internal_send (boost::shared_ptr<Route> dest, int index, boost::shared_ptr<Route> sender)
+{
+	add_internal_send (dest, sender->before_processor_for_index (index), sender);
+}
+
+void
+Session::add_internal_send (boost::shared_ptr<Route> dest, boost::shared_ptr<Processor> before, boost::shared_ptr<Route> sender)
+{
+	if (sender->is_monitor() || sender->is_master() || sender == dest || dest->is_monitor() || dest->is_master()) {
 		return;
 	}
 
 	if (!dest->internal_return()) {
-		dest->add_internal_return();
+		dest->add_internal_return ();
 	}
 
-	for (RouteList::iterator i = senders->begin(); i != senders->end(); ++i) {
-
-		if ((*i)->is_monitor() || (*i)->is_master() || (*i) == dest) {
-			continue;
-		}
-
-		(*i)->listen_via (dest, p);
-	}
+	sender->add_aux_send (dest, before);
 
 	graph_reordered ();
 }
@@ -2153,7 +2288,7 @@ Session::add_internal_sends (boost::shared_ptr<Route> dest, Placement p, boost::
 void
 Session::remove_route (boost::shared_ptr<Route> route)
 {
-	if (((route == _master_out) || (route == _monitor_out)) && !Config->get_allow_special_bus_removal()) {
+	if (route == _master_out) {
 		return;
 	}
 
@@ -2175,13 +2310,6 @@ Session::remove_route (boost::shared_ptr<Route> route)
 		}
 
 		if (route == _monitor_out) {
-
-			/* cancel control outs for all routes */
-
-			for (RouteList::iterator r = rs->begin(); r != rs->end(); ++r) {
-				(*r)->drop_listen (_monitor_out);
-			}
-
 			_monitor_out.reset ();
 		}
 
@@ -2222,7 +2350,9 @@ Session::remove_route (boost::shared_ptr<Route> route)
 	 */
 
 	resort_routes ();
-	_process_graph->clear_other_chain ();
+	if (_process_graph) {
+		_process_graph->clear_other_chain ();
+	}
 
 	/* get rid of it from the dead wood collection in the route list manager */
 
@@ -3534,6 +3664,26 @@ Session::next_send_id ()
 }
 
 uint32_t
+Session::next_aux_send_id ()
+{
+	/* this doesn't really loop forever. just think about it */
+
+	while (true) {
+		for (boost::dynamic_bitset<uint32_t>::size_type n = 0; n < aux_send_bitset.size(); ++n) {
+			if (!aux_send_bitset[n]) {
+				aux_send_bitset[n] = true;
+				return n;
+
+			}
+		}
+
+		/* none available, so resize and try again */
+
+		aux_send_bitset.resize (aux_send_bitset.size() + 16, false);
+	}
+}
+
+uint32_t
 Session::next_return_id ()
 {
 	/* this doesn't really loop forever. just think about it */
@@ -3566,6 +3716,18 @@ Session::mark_send_id (uint32_t id)
 }
 
 void
+Session::mark_aux_send_id (uint32_t id)
+{
+	if (id >= aux_send_bitset.size()) {
+		aux_send_bitset.resize (id+16, false);
+	}
+	if (aux_send_bitset[id]) {
+		warning << string_compose (_("aux send ID %1 appears to be in use already"), id) << endmsg;
+	}
+	aux_send_bitset[id] = true;
+}
+
+void
 Session::mark_return_id (uint32_t id)
 {
 	if (id >= return_bitset.size()) {
@@ -3594,6 +3756,14 @@ Session::unmark_send_id (uint32_t id)
 {
 	if (id < send_bitset.size()) {
 		send_bitset[id] = false;
+	}
+}
+
+void
+Session::unmark_aux_send_id (uint32_t id)
+{
+	if (id < aux_send_bitset.size()) {
+		aux_send_bitset[id] = false;
 	}
 }
 
@@ -3731,7 +3901,9 @@ Session::freeze_all (InterThreadInfo& itt)
 boost::shared_ptr<Region>
 Session::write_one_track (AudioTrack& track, framepos_t start, framepos_t end,
 			  bool /*overwrite*/, vector<boost::shared_ptr<Source> >& srcs,
-			  InterThreadInfo& itt, bool enable_processing)
+			  InterThreadInfo& itt, 
+			  boost::shared_ptr<Processor> endpoint, bool include_endpoint,
+			  bool for_export)
 {
 	boost::shared_ptr<Region> result;
 	boost::shared_ptr<Playlist> playlist;
@@ -3768,12 +3940,6 @@ Session::write_one_track (AudioTrack& track, framepos_t start, framepos_t end,
 		goto out;
 	}
 
-	/* external redirects will be a problem */
-
-	if (track.has_external_redirects()) {
-		goto out;
-	}
-
 	ext = native_header_format_extension (config.get_native_file_header_format(), DataType::AUDIO);
 
 	for (uint32_t chan_n = 0; chan_n < diskstream_channels.n_audio(); ++chan_n) {
@@ -3803,12 +3969,13 @@ Session::write_one_track (AudioTrack& track, framepos_t start, framepos_t end,
 		srcs.push_back (fsource);
 	}
 
-	/* tell redirects that care that we are about to use a much larger blocksize */
+	/* tell redirects that care that we are about to use a much larger
+	 * blocksize. this will flush all plugins too, so that they are ready
+	 * to be used for this process.
+	 */
 
 	need_block_size_reset = true;
 	track.set_block_size (chunk_size);
-
-	/* XXX need to flush all redirects */
 
 	position = start;
 	to_do = len;
@@ -3827,7 +3994,7 @@ Session::write_one_track (AudioTrack& track, framepos_t start, framepos_t end,
 
 		this_chunk = min (to_do, chunk_size);
 
-		if (track.export_stuff (buffers, start, this_chunk, enable_processing)) {
+		if (track.export_stuff (buffers, start, this_chunk, endpoint, include_endpoint, for_export)) {
 			goto out;
 		}
 
@@ -4312,7 +4479,13 @@ Session::ensure_search_path_includes (const string& path, DataType type)
 	split (search_path, dirs, ':');
 
 	for (vector<string>::iterator i = dirs.begin(); i != dirs.end(); ++i) {
-		if (*i == path) {
+		/* No need to add this new directory if it has the same inode as
+		   an existing one; checking inode rather than name prevents duplicated
+		   directories when we are using symlinks.
+
+		   On Windows, I think we could just do if (*i == path) here.
+		*/
+		if (inodes_same (*i, path)) {
 			return;
 		}
 	}
@@ -4563,4 +4736,10 @@ Session::session_name_is_legal (const string& path)
 	}
 
 	return 0;
+}
+
+uint32_t 
+Session::next_control_id () const
+{
+	return ntracks() + nbusses() + 1;
 }

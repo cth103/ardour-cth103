@@ -44,17 +44,24 @@ class Controllable : public PBD::StatefulDestructible {
 	virtual ~Controllable() { Destroyed (this); }
 
 	/* We express Controllable values in one of three ways:
-	 * 1. `user' --- as presented to the user (e.g. dB, Hz etc.)
-	 * 2. `UI' --- as used in some cases for the internal representation
-	 *    of the UI.  This may be the same as `user', or may be something
-	 *    like the natural log of frequency in order that sliders operate
-	 *    in a logarithmic fashion.
-	 * 3. `plugin' --- as passed to a plugin.
+	 * 1. `user' --- as presented to the user (e.g. dB, Hz, etc.)
+	 * 2. `interface' --- as used in some cases for the UI representation
+	 * (in order to make controls behave logarithmically).
+	 * 3. `internal' --- as passed to a processor, track, plugin, or whatever.
+	 *
+	 * Note that in some cases user and processor may be the same
+	 * (and interface different) e.g. frequency, which is presented
+	 * to the user and passed to the processor in linear terms, but
+	 * which needs log scaling in the interface.
+	 *
+	 * In other cases, user and interface may be the same (and processor different)
+	 * e.g. gain, which is presented to the user in log terms (dB)
+	 * but passed to the processor as a linear quantity.
 	 */
 
-	/** Set `user' value */
+	/** Set `internal' value */
 	virtual void set_value (double) = 0;
-	/** @return `user' value */
+	/** @return `internal' value */
 	virtual double get_value (void) const = 0;
 
 	PBD::Signal0<void> LearningFinished;

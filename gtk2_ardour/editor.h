@@ -104,6 +104,7 @@ class AutomationLine;
 class AutomationSelection;
 class AutomationTimeAxisView;
 class BundleManager;
+class ButtonJoiner;
 class ControlPoint;
 class CrossfadeView;
 class DragManager;
@@ -169,7 +170,12 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	}
 
 	void cycle_snap_mode ();
-	void cycle_snap_choice ();
+	void next_snap_choice ();
+	void next_snap_choice_music_only ();
+	void next_snap_choice_music_and_time ();
+	void prev_snap_choice ();
+	void prev_snap_choice_music_only ();
+	void prev_snap_choice_music_and_time ();
 	void set_snap_to (Editing::SnapType);
 	void set_snap_mode (Editing::SnapMode);
 	void set_snap_threshold (double pixel_distance) {snap_threshold = pixel_distance;}
@@ -191,6 +197,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	bool internal_editing() const { return _internal_editing ; }
 	void set_internal_edit (bool yn);
+	bool toggle_internal_editing_from_double_click (GdkEvent*);
 
 #ifdef WITH_CMT
 	void add_imageframe_time_axis(const std::string & track_name, void*) ;
@@ -281,6 +288,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void invert_selection_in_track ();
 	void invert_selection ();
 	void deselect_all ();
+	long select_range (framepos_t, framepos_t);
 
 	void set_selected_regionview_from_region_list (boost::shared_ptr<ARDOUR::Region> region, Selection::Operation op = Selection::Set);
 
@@ -440,7 +448,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 		return _drags;
 	}
 
-	void maybe_autoscroll (bool, bool);
+	void maybe_autoscroll (bool, bool, bool, bool);
 
 	Gdk::Cursor* get_canvas_cursor () const { return current_canvas_cursor; }
 	void set_canvas_cursor (Gdk::Cursor*, bool save=false);
@@ -481,7 +489,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	typedef std::pair<TimeAxisView*,XMLNode*> TAVState;
 
 	struct VisualState {
-	    VisualState();
+	    VisualState (bool with_tracks);
 	    ~VisualState ();
 	    double              y_position;
 	    double              frames_per_unit;
@@ -500,10 +508,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void swap_visual_state ();
 
 	std::vector<VisualState*> visual_states;
-	sigc::connection visual_state_op_connection;
 	void start_visual_state_op (uint32_t n);
 	void cancel_visual_state_op (uint32_t n);
-	bool end_visual_state_op (uint32_t n);
 
 	framepos_t leftmost_frame;
 	double      frames_per_unit;
@@ -514,6 +520,10 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	Editing::MouseMode mouse_mode;
 	Editing::MouseMode pre_internal_mouse_mode;
+	Editing::SnapType  pre_internal_snap_type;
+	Editing::SnapMode  pre_internal_snap_mode;
+	Editing::SnapType  internal_snap_type;
+	Editing::SnapMode  internal_snap_mode;
 	bool _internal_editing;
 	Editing::MouseMode effective_mouse_mode () const;
 
@@ -529,14 +539,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void update_join_object_range_location (double, double);
 
-	int  post_maximal_editor_width;
-	int  post_maximal_editor_height;
-	int  post_maximal_horizontal_pane_position;
-	int  post_maximal_vertical_pane_position;
-	int  pre_maximal_horizontal_pane_position;
-	int  pre_maximal_vertical_pane_position;
-	int  pre_maximal_editor_width;
-	int  pre_maximal_editor_height;
+	boost::optional<int>  pre_notebook_shrink_pane_width;
+
 	void pane_allocation_handler (Gtk::Allocation&, Gtk::Paned*);
 
 	Gtk::Notebook _the_notebook;
@@ -546,8 +550,6 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	Gtk::HPaned   edit_pane;
 	Gtk::VPaned   editor_summary_pane;
-
-	bool idle_reset_vertical_pane_position (int);
 
 	Gtk::EventBox meter_base;
 	Gtk::HBox     meter_box;
@@ -641,18 +643,21 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void get_equivalent_regions (RegionView* rv, std::vector<RegionView*> &, PBD::PropertyID) const;
 	RegionSelection get_equivalent_regions (RegionSelection &, PBD::PropertyID) const;
+	std::vector<boost::shared_ptr<ARDOUR::Crossfade> > get_equivalent_crossfades (
+		RouteTimeAxisView&, boost::shared_ptr<ARDOUR::Crossfade>, PBD::PropertyID
+		) const;
 	void mapover_tracks (sigc::slot<void,RouteTimeAxisView&,uint32_t> sl, TimeAxisView*, PBD::PropertyID) const;
 	void mapover_tracks_with_unique_playlists (sigc::slot<void,RouteTimeAxisView&,uint32_t> sl, TimeAxisView*, PBD::PropertyID) const;
 
 	/* functions to be passed to mapover_tracks(), possibly with sigc::bind()-supplied arguments */
-
 	void mapped_get_equivalent_regions (RouteTimeAxisView&, uint32_t, RegionView *, std::vector<RegionView*>*) const;
 	void mapped_use_new_playlist (RouteTimeAxisView&, uint32_t, std::vector<boost::shared_ptr<ARDOUR::Playlist> > const &);
 	void mapped_use_copy_playlist (RouteTimeAxisView&, uint32_t, std::vector<boost::shared_ptr<ARDOUR::Playlist> > const &);
 	void mapped_clear_playlist (RouteTimeAxisView&, uint32_t);
-
-	/* end */
-
+	void mapped_get_equivalent_crossfades (
+		RouteTimeAxisView&, uint32_t, boost::shared_ptr<ARDOUR::Crossfade>, std::vector<boost::shared_ptr<ARDOUR::Crossfade> >*
+		) const;
+	
 	void button_selection (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_type);
 	bool button_release_can_deselect;
 
@@ -664,14 +669,12 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	bool set_selected_control_point_from_click (Selection::Operation op = Selection::Set, bool no_remove=false);
 	void set_selected_track_from_click (bool press, Selection::Operation op = Selection::Set, bool no_remove=false);
-	void set_selected_track_as_side_effect (Selection::Operation op, bool force = false);
-	bool set_selected_regionview_from_click (bool press, Selection::Operation op = Selection::Set, bool no_track_remove=false);
+	void set_selected_track_as_side_effect (Selection::Operation op);
+	bool set_selected_regionview_from_click (bool press, Selection::Operation op = Selection::Set);
 
 	bool set_selected_regionview_from_map_event (GdkEventAny*, StreamView*, boost::weak_ptr<ARDOUR::Region>);
 	void collect_new_region_view (RegionView *);
 	void collect_and_select_new_region_view (RegionView *);
-
-	long select_range_around_region (RegionView *);
 
 	Gtk::Menu track_context_menu;
 	Gtk::Menu track_region_context_menu;
@@ -714,6 +717,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void set_canvas_cursor ();
 
 	ArdourCanvas::Canvas* track_canvas;
+	bool within_track_canvas;
 
 	friend class VerboseCursor;
 	VerboseCursor* _verbose_cursor;
@@ -1455,6 +1459,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	bool _follow_playhead;
 	/// true if we scroll the tracks rather than the playhead
 	bool _stationary_playhead;
+	/// true if we are in fullscreen mode
+	bool _maximised;
 
 	ARDOUR::TempoMap::BBTPointList::const_iterator current_bbt_points_begin;
 	ARDOUR::TempoMap::BBTPointList::const_iterator current_bbt_points_end;
@@ -1556,12 +1562,15 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	Gtkmm2ext::TearOff*      _mouse_mode_tearoff;
 	ArdourButton mouse_select_button;
+	ArdourButton mouse_draw_button;
 	ArdourButton mouse_move_button;
 	ArdourButton mouse_gain_button;
 	ArdourButton mouse_zoom_button;
 	ArdourButton mouse_timefx_button;
 	ArdourButton mouse_audition_button;
-	ArdourButton join_object_range_button;
+
+	ButtonJoiner* smart_mode_joiner;
+	Glib::RefPtr<Gtk::ToggleAction> smart_mode_action;
 
 	void                     mouse_mode_toggled (Editing::MouseMode m);
 	void			 mouse_mode_object_range_toggled () {}
@@ -1802,14 +1811,6 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void update_title ();
 	void update_title_s (const std::string & snapshot_name);
 
-	struct State {
-	    Selection* selection;
-	    double frames_per_unit;
-
-	    State (PublicEditor const * e);
-	    ~State ();
-	};
-
 	void instant_save ();
 
 	boost::shared_ptr<ARDOUR::AudioRegion> last_audition_region;
@@ -1833,17 +1834,13 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	 */
 	bool mouse_frame (framepos_t&, bool& in_track_canvas) const;
 
-	/* "whats mine is yours" */
-
 	TimeFXDialog* current_timefx;
-
 	static void* timefx_thread (void *arg);
-	void do_timefx (TimeFXDialog&);
+	void do_timefx ();
 
 	int time_stretch (RegionSelection&, float fraction);
 	int pitch_shift (RegionSelection&, float cents);
 	void pitch_shift_region ();
-	int time_fx (RegionSelection&, float val, bool pitching);
 
 	void transpose_region ();
 
@@ -1909,8 +1906,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	ImageFrameSocketHandler* image_socket_listener ;
 #endif
 
-	void toggle_xfade_active (boost::weak_ptr<ARDOUR::Crossfade>);
-	void toggle_xfade_length (boost::weak_ptr<ARDOUR::Crossfade>);
+	void toggle_xfade_active (RouteTimeAxisView *, boost::weak_ptr<ARDOUR::Crossfade>);
+	void toggle_xfade_length (RouteTimeAxisView *, boost::weak_ptr<ARDOUR::Crossfade>);
 	void edit_xfade (boost::weak_ptr<ARDOUR::Crossfade>);
 	void xfade_edit_left_region ();
 	void xfade_edit_right_region ();
@@ -1966,7 +1963,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	gint left_automation_track ();
 
 	void reset_canvas_action_sensitivity (bool);
-	void toggle_gain_envelope_visibility ();
+	void set_gain_envelope_visibility (bool);
+	void set_region_gain_visibility (RegionView*, bool);
 	void toggle_gain_envelope_active ();
 	void reset_region_gain_envelopes ();
 
@@ -2091,6 +2089,20 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void follow_mixer_selection ();
 	bool _following_mixer_selection;
+
+	int time_fx (ARDOUR::RegionList&, float val, bool pitching);
+
+	bool doing_range_stuff() const {
+		return (mouse_mode == Editing::MouseRange && (_join_object_range_state == JOIN_OBJECT_RANGE_NONE)) ||
+			_join_object_range_state == JOIN_OBJECT_RANGE_RANGE;
+	}
+	
+	bool doing_object_stuff() const {
+		return (mouse_mode == Editing::MouseObject && (_join_object_range_state == JOIN_OBJECT_RANGE_NONE)) ||
+			_join_object_range_state == JOIN_OBJECT_RANGE_OBJECT;
+	}
+
+	void toggle_sound_midi_notes ();
 
 	friend class Drag;
 	friend class RegionDrag;

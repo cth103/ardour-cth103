@@ -1,4 +1,3 @@
-
 /*
     Copyright (C) 2008-2011 Paul Davis
     Author: David Robillard
@@ -16,7 +15,6 @@
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
 */
 
 #ifndef __ardour_lv2_plugin_h__
@@ -26,14 +24,9 @@
 #include <string>
 #include <vector>
 
-#include <dlfcn.h>
-
-#include "pbd/stateful.h"
-
-#include <jack/types.h>
-
 #include "ardour/plugin.h"
 #include "ardour/uri_map.h"
+#include "pbd/ringbuffer.h"
 
 namespace ARDOUR {
 
@@ -98,7 +91,7 @@ class LV2Plugin : public ARDOUR::Plugin
 
 	bool parameter_is_audio (uint32_t) const;
 	bool parameter_is_control (uint32_t) const;
-	bool parameter_is_midi (uint32_t) const;
+	bool parameter_is_event (uint32_t) const;
 	bool parameter_is_input (uint32_t) const;
 	bool parameter_is_output (uint32_t) const;
 	bool parameter_is_toggled (uint32_t) const;
@@ -106,7 +99,10 @@ class LV2Plugin : public ARDOUR::Plugin
 	boost::shared_ptr<Plugin::ScalePoints>
 	get_scale_points(uint32_t port_index) const;
 
-	static uint32_t midi_event_type () { return _midi_event_type; }
+	/// Return the URID of midi:MidiEvent
+	static uint32_t midi_event_type (bool event_api) {
+		return event_api ? _midi_event_type_ev : _midi_event_type;
+	}
 
 	void set_insert_info(const PluginInsert* insert);
 
@@ -117,24 +113,78 @@ class LV2Plugin : public ARDOUR::Plugin
 	std::string current_preset () const;
 
 	bool has_editor () const;
+	bool has_message_output () const;
+
+	uint32_t atom_eventTransfer() const;
+
+	void write_from_ui(uint32_t index, uint32_t protocol, uint32_t size, uint8_t* body);
+
+	typedef void UIMessageSink(void*       controller,
+	                           uint32_t    index,
+	                           uint32_t    size,
+	                           uint32_t    format,
+	                           const void* buffer);
+
+	void enable_ui_emmission();
+	void emit_to_ui(void* controller, UIMessageSink sink);
+
+	static URIMap _uri_map;
+
+	static uint32_t _midi_event_type_ev;
+	static uint32_t _midi_event_type;
+	static uint32_t _chunk_type;
+	static uint32_t _sequence_type;
+	static uint32_t _event_transfer_type;
+	static uint32_t _state_path_type;
 
   private:
 	struct Impl;
-	Impl*             _impl;
-	void*             _module;
-	LV2_Feature**     _features;
-	framecnt_t        _sample_rate;
-	float*            _control_data;
-	float*            _shadow_data;
-	float*            _defaults;
-	float*            _latency_control_port;
-	bool              _was_activated;
-	bool              _has_state_interface;
-	std::vector<bool> _port_is_input;
+	Impl*         _impl;
+	void*         _module;
+	LV2_Feature** _features;
+	framecnt_t    _sample_rate;
+	float*        _control_data;
+	float*        _shadow_data;
+	float*        _defaults;
+	LV2_Evbuf**   _ev_buffers;
+	float*        _latency_control_port;
+	PBD::ID       _insert_id;
 
+	typedef enum {
+		PORT_INPUT   = 1,
+		PORT_OUTPUT  = 1 << 1,
+		PORT_AUDIO   = 1 << 2,
+		PORT_CONTROL = 1 << 3,
+		PORT_EVENT   = 1 << 4,
+		PORT_MESSAGE = 1 << 5
+	} PortFlag;
+
+	typedef unsigned PortFlags;
+
+	std::vector<PortFlags>         _port_flags;
 	std::map<std::string,uint32_t> _port_indices;
 
-	PBD::ID _insert_id;
+	/// Message send to/from UI via ports
+	struct UIMessage {
+		uint32_t index;
+		uint32_t protocol;
+		uint32_t size;
+	};
+
+	void write_to_ui(uint32_t index,
+	                 uint32_t protocol,
+	                 uint32_t size,
+	                 uint8_t* body);
+
+	void write_to(RingBuffer<uint8_t>* dest,
+	              uint32_t             index,
+	              uint32_t             protocol,
+	              uint32_t             size,
+	              uint8_t*             body);
+
+	// Created on demand so the space is only consumed if necessary
+	RingBuffer<uint8_t>* _to_ui;
+	RingBuffer<uint8_t>* _from_ui;
 
 	typedef struct {
 		const void* (*extension_data) (const char* uri);
@@ -143,34 +193,18 @@ class LV2Plugin : public ARDOUR::Plugin
 	LV2_DataAccess _data_access_extension_data;
 	LV2_Feature    _data_access_feature;
 	LV2_Feature    _instance_access_feature;
-	LV2_Feature    _map_path_feature;
 	LV2_Feature    _make_path_feature;
 
-	static URIMap   _uri_map;
-	static uint32_t _midi_event_type;
-	static uint32_t _state_path_type;
+	mutable unsigned _state_version;
 
-	const std::string state_dir () const;
+	bool _was_activated;
+	bool _has_state_interface;
 
-	static int
-	lv2_state_store_callback (void*       handle,
-	                          uint32_t    key,
-	                          const void* value,
-	                          size_t      size,
-	                          uint32_t    type,
-	                          uint32_t    flags);
+	const std::string plugin_dir () const;
+	const std::string scratch_dir () const;
+	const std::string file_dir () const;
+	const std::string state_dir (unsigned num) const;
 
-	static const void*
-	lv2_state_retrieve_callback (void*     handle,
-	                             uint32_t  key,
-	                             size_t*   size,
-	                             uint32_t* type,
-	                             uint32_t* flags);
-
-	static char* lv2_state_abstract_path (void*       host_data,
-	                                      const char* absolute_path);
-	static char* lv2_state_absolute_path (void*       host_data,
-	                                      const char* abstract_path);
 	static char* lv2_state_make_path (void*       host_data,
 	                                  const char* path);
 

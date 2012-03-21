@@ -84,6 +84,7 @@ AudioEngine::AudioEngine (string client_name, string session_uuid)
 	_frame_rate = 0;
 	_buffer_size = 0;
 	_freewheeling = false;
+	_pre_freewheel_mmc_enabled = false;
         _main_thread = 0;
 	port_remove_in_progress = false;
 
@@ -316,13 +317,13 @@ AudioEngine::_xrun_callback (void *arg)
 void
 AudioEngine::_session_callback (jack_session_event_t *event, void *arg)
 {
-	printf( "helo.... " );
 	AudioEngine* ae = static_cast<AudioEngine*> (arg);
 	if (ae->connected()) {
 		ae->JackSessionEvent ( event ); /* EMIT SIGNAL */
 	}
 }
 #endif
+
 int
 AudioEngine::_graph_order_callback (void *arg)
 {
@@ -344,7 +345,20 @@ AudioEngine::_process_thread (void *arg)
 void
 AudioEngine::_freewheel_callback (int onoff, void *arg)
 {
-	static_cast<AudioEngine*>(arg)->_freewheeling = onoff;
+	static_cast<AudioEngine*>(arg)->freewheel_callback (onoff);
+}
+
+void
+AudioEngine::freewheel_callback (int onoff)
+{
+	_freewheeling = onoff;
+
+	if (onoff) {
+		_pre_freewheel_mmc_enabled = MIDI::Manager::instance()->mmc()->send_enabled ();
+		MIDI::Manager::instance()->mmc()->enable_send (false);
+	} else {
+		MIDI::Manager::instance()->mmc()->enable_send (_pre_freewheel_mmc_enabled);
+	}
 }
 
 void
@@ -383,10 +397,10 @@ AudioEngine::_connect_callback (jack_port_id_t id_a, jack_port_id_t id_b, int co
 	boost::shared_ptr<Ports> pr = ae->ports.reader ();
 	Ports::iterator i = pr->begin ();
 	while (i != pr->end() && (port_a == 0 || port_b == 0)) {
-		if (jack_port_a == (*i)->jack_port()) {
-			port_a = *i;
-		} else if (jack_port_b == (*i)->jack_port()) {
-			port_b = *i;
+		if (jack_port_a == i->second->jack_port()) {
+			port_a = i->second;
+		} else if (jack_port_b == i->second->jack_port()) {
+			port_b = i->second;
 		}
 		++i;
 	}
@@ -410,7 +424,7 @@ AudioEngine::split_cycle (pframes_t offset)
 	boost::shared_ptr<Ports> p = ports.reader();
 
 	for (Ports::iterator i = p->begin(); i != p->end(); ++i) {
-		(*i)->cycle_split ();
+		i->second->cycle_split ();
 	}
 }
 
@@ -488,7 +502,7 @@ AudioEngine::process_callback (pframes_t nframes)
 	boost::shared_ptr<Ports> p = ports.reader();
 
 	for (Ports::iterator i = p->begin(); i != p->end(); ++i) {
-		(*i)->cycle_start (nframes);
+		i->second->cycle_start (nframes);
 	}
 
 	/* test if we are freewheeling and there are freewheel signals connected.
@@ -526,12 +540,12 @@ AudioEngine::process_callback (pframes_t nframes)
 
 			bool x;
 
-			if ((*i)->last_monitor() != (x = (*i)->jack_monitoring_input ())) {
-				(*i)->set_last_monitor (x);
+			if (i->second->last_monitor() != (x = i->second->jack_monitoring_input ())) {
+				i->second->set_last_monitor (x);
 				/* XXX I think this is dangerous, due to
 				   a likely mutex in the signal handlers ...
 				*/
-				(*i)->MonitorInputChanged (x); /* EMIT SIGNAL */
+				i->second->MonitorInputChanged (x); /* EMIT SIGNAL */
 			}
 		}
 		last_monitor_check = next_processed_frames;
@@ -543,8 +557,8 @@ AudioEngine::process_callback (pframes_t nframes)
 
 		for (Ports::iterator i = p->begin(); i != p->end(); ++i) {
 
-			if ((*i)->sends_output()) {
-				(*i)->get_buffer(nframes).silence(nframes);
+			if (i->second->sends_output()) {
+				i->second->get_buffer(nframes).silence(nframes);
 			}
 		}
 	}
@@ -552,7 +566,7 @@ AudioEngine::process_callback (pframes_t nframes)
 	// Finalize ports
 
 	for (Ports::iterator i = p->begin(); i != p->end(); ++i) {
-		(*i)->cycle_end (nframes);
+		i->second->cycle_end (nframes);
 	}
 
 	_processed_frames = next_processed_frames;
@@ -643,7 +657,7 @@ AudioEngine::jack_bufsize_callback (pframes_t nframes)
 		boost::shared_ptr<Ports> p = ports.reader();
 
 		for (Ports::iterator i = p->begin(); i != p->end(); ++i) {
-			(*i)->reset();
+			i->second->reset();
 		}
 	}
 
@@ -708,7 +722,7 @@ AudioEngine::set_session (Session *s)
 		boost::shared_ptr<Ports> p = ports.reader();
 
 		for (Ports::iterator i = p->begin(); i != p->end(); ++i) {
-			(*i)->cycle_start (blocksize);
+			i->second->cycle_start (blocksize);
 		}
 
 		_session->process (blocksize);
@@ -721,7 +735,7 @@ AudioEngine::set_session (Session *s)
 		_session->process (blocksize);
 
 		for (Ports::iterator i = p->begin(); i != p->end(); ++i) {
-			(*i)->cycle_end (blocksize);
+			i->second->cycle_end (blocksize);
 		}
 	}
 }
@@ -762,7 +776,7 @@ AudioEngine::port_registration_failure (const std::string& portname)
 	if (p) {
 		reason = string_compose (_("a port with the name \"%1\" already exists: check for duplicated track/bus names"), portname);
 	} else {
-		reason = string_compose (_("No more JACK ports are available. You will need to stop %1 and restart JACK with ports if you need this many tracks."), PROGRAM_NAME);
+		reason = string_compose (_("No more JACK ports are available. You will need to stop %1 and restart JACK with more ports if you need this many tracks."), PROGRAM_NAME);
 	}
 
 	throw PortRegistrationFailure (string_compose (_("AudioEngine: cannot register port \"%1\": %2"), portname, reason).c_str());
@@ -784,7 +798,7 @@ AudioEngine::register_port (DataType dtype, const string& portname, bool input)
 
 		RCUWriter<Ports> writer (ports);
 		boost::shared_ptr<Ports> ps = writer.get_copy ();
-		ps->insert (ps->begin(), newport);
+		ps->insert (make_pair (make_port_name_relative (portname), newport));
 
 		/* writer goes out of scope, forces update */
 
@@ -828,7 +842,11 @@ AudioEngine::unregister_port (boost::shared_ptr<Port> port)
 	{
 		RCUWriter<Ports> writer (ports);
 		boost::shared_ptr<Ports> ps = writer.get_copy ();
-		ps->erase (port);
+		Ports::iterator x = ps->find (make_port_name_relative (port->name()));
+
+		if (x != ps->end()) {
+			ps->erase (x);
+		}
 
 		/* writer goes out of scope, forces update */
 	}
@@ -977,17 +995,38 @@ AudioEngine::get_port_by_name (const string& portname)
                 return boost::shared_ptr<Port> ();
         }
 
-	std::string const rel = make_port_name_relative (portname);
-
 	boost::shared_ptr<Ports> pr = ports.reader();
+	std::string rel = make_port_name_relative (portname);
+	Ports::iterator x = pr->find (rel);
 
-	for (Ports::iterator i = pr->begin(); i != pr->end(); ++i) {
-		if (rel == (*i)->name()) {
-			return *i;
+	if (x != pr->end()) {
+		/* its possible that the port was renamed by some 3rd party and
+		   we don't know about it. check for this (the check is quick
+		   and cheap), and if so, rename the port (which will alter
+		   the port map as a side effect).
+		*/
+		const std::string check = make_port_name_relative (jack_port_name (x->second->jack_port()));
+		if (check != rel) {
+			x->second->set_name (check);
 		}
+		return x->second;
 	}
 
         return boost::shared_ptr<Port> ();
+}
+
+void
+AudioEngine::port_renamed (const std::string& old_relative_name, const std::string& new_relative_name)
+{
+	RCUWriter<Ports> writer (ports);
+	boost::shared_ptr<Ports> p = writer.get_copy();
+	Ports::iterator x = p->find (old_relative_name);
+	
+	if (x != p->end()) {
+		boost::shared_ptr<Port> port = x->second;
+		p->erase (x);
+		p->insert (make_pair (new_relative_name, port));
+	}
 }
 
 const char **
@@ -1329,7 +1368,7 @@ AudioEngine::reconnect_to_jack ()
 	boost::shared_ptr<Ports> p = ports.reader ();
 
 	for (i = p->begin(); i != p->end(); ++i) {
-		if ((*i)->reestablish ()) {
+		if (i->second->reestablish ()) {
 			break;
 		}
 	}
@@ -1364,7 +1403,7 @@ AudioEngine::reconnect_to_jack ()
 	/* re-establish connections */
 
 	for (i = p->begin(); i != p->end(); ++i) {
-		(*i)->reconnect ();
+		i->second->reconnect ();
 	}
 
 	MIDI::Manager::instance()->reconnect ();

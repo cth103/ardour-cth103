@@ -51,6 +51,8 @@
 
 #include "ardour/ardour.h"
 #include "ardour/chan_count.h"
+#include "ardour/delivery.h"
+#include "ardour/interthread_info.h"
 #include "ardour/rc_configuration.h"
 #include "ardour/session_configuration.h"
 #include "ardour/session_event.h"
@@ -84,6 +86,7 @@ namespace Evoral {
 
 namespace ARDOUR {
 
+class Amp;
 class AudioEngine;
 class AudioFileSource;
 class AudioRegion;
@@ -103,6 +106,7 @@ class Graph;
 class IO;
 class IOProcessor;
 class ImportStatus;
+class MidiClockTicker;
 class MidiControlUI;
 class MidiRegion;
 class MidiSource;
@@ -110,6 +114,7 @@ class MidiTrack;
 class NamedSelection;
 class Playlist;
 class PluginInsert;
+class PluginInfo;
 class Port;
 class PortInsert;
 class ProcessThread;
@@ -179,9 +184,10 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 
 	int ensure_subdirs ();
 
-	std::string automation_dir () const;
-	std::string analysis_dir() const;
-	std::string plugins_dir() const;
+	std::string automation_dir () const;  ///< Automation data
+	std::string analysis_dir () const;    ///< Analysis data
+	std::string plugins_dir () const;     ///< Plugin state
+	std::string externals_dir () const;   ///< Links to external files
 
 	std::string peak_path (std::string) const;
 
@@ -451,7 +457,9 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 		);
 
 	std::list<boost::shared_ptr<MidiTrack> > new_midi_track (
-		TrackMode mode = Normal, RouteGroup* route_group = 0, uint32_t how_many = 1, std::string name_template = ""
+		boost::shared_ptr<PluginInfo> instrument = boost::shared_ptr<PluginInfo>(),
+		TrackMode mode = Normal, 
+		RouteGroup* route_group = 0, uint32_t how_many = 1, std::string name_template = ""
 		);
 
 	void   remove_route (boost::shared_ptr<Route>);
@@ -511,9 +519,6 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	bool silent () { return _silent; }
 
 	TempoMap& tempo_map() { return *_tempo_map; }
-
-	/// signals the current transport position in frames, bbt and timecode time (in that order)
-	PBD::Signal3<void, const framepos_t &, const Timecode::BBT_Time&, const Timecode::Time&> tick;
 
 	/* region info  */
 
@@ -603,8 +608,8 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	/* flattening stuff */
 
 	boost::shared_ptr<Region> write_one_track (AudioTrack&, framepos_t start, framepos_t end,
-			bool overwrite, std::vector<boost::shared_ptr<Source> >&, InterThreadInfo& wot,
-			bool enable_processing = true);
+						   bool overwrite, std::vector<boost::shared_ptr<Source> >&, InterThreadInfo& wot,
+						   boost::shared_ptr<Processor> endpoint, bool include_endpoint, bool for_export);
 	int freeze_all (InterThreadInfo&);
 
 	/* session-wide solo/mute/rec-enable */
@@ -617,6 +622,7 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 
 	void set_solo (boost::shared_ptr<RouteList>, bool, SessionEvent::RTeventCallback after = rt_cleanup, bool group_override = false);
 	void set_just_one_solo (boost::shared_ptr<Route>, bool, SessionEvent::RTeventCallback after = rt_cleanup);
+	void cancel_solo_after_disconnect (boost::shared_ptr<Route>, bool upstream, SessionEvent::RTeventCallback after = rt_cleanup);
 	void set_mute (boost::shared_ptr<RouteList>, bool, SessionEvent::RTeventCallback after = rt_cleanup, bool group_override = false);
 	void set_listen (boost::shared_ptr<RouteList>, bool, SessionEvent::RTeventCallback after = rt_cleanup, bool group_override = false);
 	void set_record_enabled (boost::shared_ptr<RouteList>, bool, SessionEvent::RTeventCallback after = rt_cleanup, bool group_override = false);
@@ -628,7 +634,10 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	PBD::Signal0<void> SoloChanged;
 	PBD::Signal0<void> IsolatedChanged;
 
-	/* control/master out */
+	/* monitor/master out */
+
+	void add_monitor_section ();
+	void remove_monitor_section ();
 
 	boost::shared_ptr<Route> monitor_out() const { return _monitor_out; }
 	boost::shared_ptr<Route> master_out() const { return _master_out; }
@@ -638,6 +647,8 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	void globally_set_send_gains_to_zero (boost::shared_ptr<Route> dest);
 	void globally_set_send_gains_to_unity (boost::shared_ptr<Route> dest);
 	void add_internal_sends (boost::shared_ptr<Route> dest, Placement p, boost::shared_ptr<RouteList> senders);
+	void add_internal_send (boost::shared_ptr<Route>, int, boost::shared_ptr<Route>);
+	void add_internal_send (boost::shared_ptr<Route>, boost::shared_ptr<Processor>, boost::shared_ptr<Route>);
 
 	static void set_disable_all_loaded_plugins (bool yn) {
 		_disable_all_loaded_plugins = yn;
@@ -647,12 +658,15 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	}
 
 	uint32_t next_send_id();
+	uint32_t next_aux_send_id();
 	uint32_t next_return_id();
 	uint32_t next_insert_id();
 	void mark_send_id (uint32_t);
+	void mark_aux_send_id (uint32_t);
 	void mark_return_id (uint32_t);
 	void mark_insert_id (uint32_t);
 	void unmark_send_id (uint32_t);
+	void unmark_aux_send_id (uint32_t);
 	void unmark_return_id (uint32_t);
 	void unmark_insert_id (uint32_t);
 
@@ -717,6 +731,7 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	/* clicking */
 
 	boost::shared_ptr<IO> click_io() { return _click_io; }
+	boost::shared_ptr<Amp> click_gain() { return _click_gain; }
 
 	/* disk, buffer loads */
 
@@ -969,6 +984,7 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	int  pre_export ();
 	int  stop_audio_export ();
 	void finalize_audio_export ();
+	bool _pre_export_mmc_enabled;
 
 	PBD::ScopedConnection export_freewheel_connection;
 
@@ -1209,7 +1225,7 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 
 	SerializedRCUManager<RouteList>  routes;
 
-	void add_routes (RouteList&, bool auto_connect, bool save);
+	void add_routes (RouteList&, bool input_auto_connect, bool output_auto_connect, bool save);
 	uint32_t destructive_index;
 
 	boost::shared_ptr<Route> XMLRouteFactory (const XMLNode&, int);
@@ -1310,6 +1326,7 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	/* INSERT AND SEND MANAGEMENT */
 
 	boost::dynamic_bitset<uint32_t> send_bitset;
+	boost::dynamic_bitset<uint32_t> aux_send_bitset;
 	boost::dynamic_bitset<uint32_t> return_bitset;
 	boost::dynamic_bitset<uint32_t> insert_bitset;
 
@@ -1370,14 +1387,15 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 
 	/* click track */
 	typedef std::list<Click*> Clicks;
-	Clicks                 clicks;
-	bool                  _clicking;
-	boost::shared_ptr<IO> _click_io;
-	Sample*                click_data;
-	Sample*                click_emphasis_data;
-	framecnt_t             click_length;
-	framecnt_t             click_emphasis_length;
-	mutable Glib::RWLock   click_lock;
+	Clicks                  clicks;
+	bool                   _clicking;
+	boost::shared_ptr<IO>  _click_io;
+	boost::shared_ptr<Amp> _click_gain;
+	Sample*                 click_data;
+	Sample*                 click_emphasis_data;
+	framecnt_t              click_length;
+	framecnt_t              click_emphasis_length;
+	mutable Glib::RWLock    click_lock;
 
 	static const Sample     default_click[];
 	static const framecnt_t default_click_length;
@@ -1405,6 +1423,8 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 
 	boost::shared_ptr<Route> _master_out;
 	boost::shared_ptr<Route> _monitor_out;
+
+	void auto_connect_master_bus ();
 
 	/* Windows VST support */
 
@@ -1467,6 +1487,7 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 		return ev;
 	}
 
+	void rt_cancel_solo_after_disconnect (boost::shared_ptr<RouteList>, bool upstream, bool /* ignored*/ );
 	void rt_set_solo (boost::shared_ptr<RouteList>, bool yn, bool group_override);
 	void rt_set_just_one_solo (boost::shared_ptr<RouteList>, bool yn, bool /* ignored*/ );
 	void rt_set_mute (boost::shared_ptr<RouteList>, bool yn, bool group_override);
@@ -1505,6 +1526,11 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	    and solo/mute computations.
 	*/
 	GraphEdges _current_route_graph;
+
+	uint32_t next_control_id () const;
+	bool ignore_route_processor_changes;
+
+	MidiClockTicker* midi_clock;
 };
 
 } // namespace ARDOUR

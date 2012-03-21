@@ -129,14 +129,14 @@ RouteUI::init ()
 	show_sends_button->set_name ("send alert button");
 	UI::instance()->set_tip (show_sends_button, _("make mixer strips show sends to this bus"), _("Left-click to make mixer strips show sends to this bus"));
 
-	monitor_input_button = manage (new ArdourButton (ArdourButton::led_default_elements));
-	monitor_input_button->set_name ("monitor");
+	monitor_input_button = manage (new ArdourButton (ArdourButton::default_elements));
+	monitor_input_button->set_name ("monitor button");
 	monitor_input_button->set_text (_("In"));
 	UI::instance()->set_tip (monitor_input_button, _("Monitor input"), "");
 	monitor_input_button->set_no_show_all (true);
-
-	monitor_disk_button = manage (new ArdourButton (ArdourButton::led_default_elements));
-	monitor_disk_button->set_name ("monitor");
+	
+	monitor_disk_button = manage (new ArdourButton (ArdourButton::default_elements));
+	monitor_disk_button->set_name ("monitor button");
 	monitor_disk_button->set_text (_("Disk"));
 	UI::instance()->set_tip (monitor_disk_button, _("Monitor playback"), "");
 	monitor_disk_button->set_no_show_all (true);
@@ -543,10 +543,11 @@ RouteUI::rec_enable_press(GdkEventButton* ev)
 
         if (is_midi_track()) {
 
-                /* cannot rec-enable while step-editing */
+                /* rec-enable button exits from step editing */
 
                 if (midi_track()->step_editing()) {
-                        return true;
+			midi_track()->set_step_editing (false);
+			return true;
                 }
         }
 
@@ -607,20 +608,20 @@ RouteUI::update_monitoring_display ()
 	MonitorState ms = t->monitoring_state();
 
 	if (t->monitoring_choice() & MonitorInput) {
-		monitor_input_button->set_active_state (Gtkmm2ext::Active);
+		monitor_input_button->set_active_state (Gtkmm2ext::ExplicitActive);
 	} else {
 		if (ms & MonitoringInput) {
-			monitor_input_button->set_active_state (Gtkmm2ext::Mid);
+			monitor_input_button->set_active_state (Gtkmm2ext::ImplicitActive);
 		} else {
 			monitor_input_button->unset_active_state ();
 		}
 	}
 
 	if (t->monitoring_choice() & MonitorDisk) {
-		monitor_disk_button->set_active_state (Gtkmm2ext::Active);
+		monitor_disk_button->set_active_state (Gtkmm2ext::ExplicitActive);
 	} else {
 		if (ms & MonitoringDisk) {
-			monitor_disk_button->set_active_state (Gtkmm2ext::Mid);
+			monitor_disk_button->set_active_state (Gtkmm2ext::ImplicitActive);
 		} else {
 			monitor_disk_button->unset_active_state ();
 		}
@@ -743,7 +744,7 @@ RouteUI::step_edit_changed (bool yn)
 {
         if (yn) {
                 if (rec_enable_button) {
-                        rec_enable_button->set_active_state (Active);
+                        rec_enable_button->set_active_state (Gtkmm2ext::ExplicitActive);
                 }
 
                 start_step_editing ();
@@ -922,7 +923,7 @@ RouteUI::send_blink (bool onoff)
 	}
 
 	if (onoff) {
-		show_sends_button->set_active_state (Gtkmm2ext::Active);
+		show_sends_button->set_active_state (Gtkmm2ext::ExplicitActive);
 	} else {
 		show_sends_button->unset_active_state ();
 	}
@@ -932,27 +933,27 @@ Gtkmm2ext::ActiveState
 RouteUI::solo_active_state (boost::shared_ptr<Route> r)
 {
 	if (r->is_master() || r->is_monitor()) {
-		return ActiveState (0);
+		return Gtkmm2ext::Off;
 	}
 
 	if (Config->get_solo_control_is_listen_control()) {
 
 		if (r->listening_via_monitor()) {
-			return Active;
+			return Gtkmm2ext::ExplicitActive;
 		} else {
-			return ActiveState (0);
+			return Gtkmm2ext::Off;
 		}
 
 	}
 
 	if (r->soloed()) {
                 if (!r->self_soloed()) {
-                        return Mid;
+                        return Gtkmm2ext::ImplicitActive;
                 } else {
-                        return Active;
+                        return Gtkmm2ext::ExplicitActive;
                 }
 	} else {
-		return ActiveState(0);
+		return Gtkmm2ext::Off;
 	}
 }
 
@@ -960,13 +961,13 @@ Gtkmm2ext::ActiveState
 RouteUI::solo_isolate_active_state (boost::shared_ptr<Route> r)
 {
 	if (r->is_master() || r->is_monitor()) {
-		return ActiveState (0);
+		return Gtkmm2ext::Off;
 	}
 
 	if (r->solo_isolated()) {
-		return Active;
+		return Gtkmm2ext::ExplicitActive;
 	} else {
-		return ActiveState(0);
+		return Gtkmm2ext::Off;
 	}
 }
 
@@ -974,43 +975,19 @@ Gtkmm2ext::ActiveState
 RouteUI::solo_safe_active_state (boost::shared_ptr<Route> r)
 {
 	if (r->is_master() || r->is_monitor()) {
-		return ActiveState (0);
+		return Gtkmm2ext::Off;
 	}
 
 	if (r->solo_safe()) {
-		return Active;
+		return Gtkmm2ext::ExplicitActive;
 	} else {
-		return ActiveState (0);
+		return Gtkmm2ext::Off;
 	}
 }
 
 void
 RouteUI::update_solo_display ()
 {
-	bool x;
-
-	if (Config->get_solo_control_is_listen_control()) {
-
-		if ((bool) solo_button->active_state() != (x = _route->listening_via_monitor())) {
-			++_i_am_the_modifier;
-			solo_button->set_active_state (Active);
-			--_i_am_the_modifier;
-		}
-
-	} else {
-
-		if ((bool) solo_button->active_state() != (x = _route->soloed())) {
-			++_i_am_the_modifier;
-			if (x) {
-				solo_button->set_active_state (Active);
-			} else {
-				solo_button->unset_active_state();
-			}
-			--_i_am_the_modifier;
-		}
-
-	}
-
 	bool yn = _route->solo_safe ();
 
 	if (solo_safe_check && solo_safe_check->get_active() != yn) {
@@ -1027,7 +1004,7 @@ RouteUI::update_solo_display ()
 
         if (solo_isolated_led) {
 		if (_route->solo_isolated()) {
-			solo_isolated_led->set_active_state (Gtkmm2ext::Active);
+			solo_isolated_led->set_active_state (Gtkmm2ext::ExplicitActive);
 		} else {
 			solo_isolated_led->unset_active_state ();
 		}
@@ -1035,7 +1012,7 @@ RouteUI::update_solo_display ()
 
         if (solo_safe_led) {
 		if (_route->solo_safe()) {
-			solo_safe_led->set_active_state (Gtkmm2ext::Active);
+			solo_safe_led->set_active_state (Gtkmm2ext::ExplicitActive);
 		} else {
 			solo_safe_led->unset_active_state ();
 		}
@@ -1073,23 +1050,23 @@ RouteUI::mute_active_state (Session* s, boost::shared_ptr<Route> r)
 
 		if (r->muted ()) {
 			/* full mute */
-			return Active;
+			return Gtkmm2ext::ExplicitActive;
 		} else if (!r->is_master() && s->soloing() && !r->soloed() && !r->solo_isolated()) {
 			/* master is NEVER muted by others */
-			return Mid;
+			return Gtkmm2ext::ImplicitActive;
 		} else {
 			/* no mute at all */
-			return ActiveState(0);
+			return Gtkmm2ext::Off;
 		}
 
 	} else {
 
 		if (r->muted()) {
 			/* full mute */
-			return Active;
+			return Gtkmm2ext::ExplicitActive;
 		} else {
 			/* no mute at all */
-			return ActiveState(0);
+			return Gtkmm2ext::Off;
 		}
 	}
 
@@ -1130,12 +1107,12 @@ RouteUI::update_rec_display ()
 	if (_route->record_enabled()) {
                 switch (_session->record_status ()) {
                 case Session::Recording:
-                        rec_enable_button->set_active_state (Active);
+                        rec_enable_button->set_active_state (Gtkmm2ext::ExplicitActive);
                         break;
 
                 case Session::Disabled:
                 case Session::Enabled:
-                        rec_enable_button->set_active_state (Mid);
+                        rec_enable_button->set_active_state (Gtkmm2ext::ImplicitActive);
                         break;
 
                 }
@@ -1789,15 +1766,19 @@ RouteUI::setup_invert_buttons ()
 
 		b->set_name (X_("mixer strip button"));
 		if (to_add == 1) {
-			b->set_text (X_("Ø"));
+			if (N > 1) {
+				b->set_text (string_compose (X_("Ø (%1)"), N));
+			} else {
+				b->set_text (X_("Ø"));
+			}
 		} else {
 			b->set_text (string_compose (X_("Ø%1"), i + 1));
 		}
 
-		if (N <= 4) {
+		if (N <= _max_invert_buttons) {
 			UI::instance()->set_tip (*b, string_compose (_("Left-click to invert (phase reverse) channel %1 of this track.  Right-click to show menu."), i + 1));
 		} else {
-			UI::instance()->set_tip (*b, string_compose (_("Left-click to invert (phase reverse) all channels of this track.  Right-click to show menu."), i + 1));
+			UI::instance()->set_tip (*b, _("Click to show a menu of channels for inversion (phase reverse)"));
 		}
 
 		_invert_buttons.push_back (b);
@@ -1815,14 +1796,30 @@ RouteUI::set_invert_button_state ()
 
 	uint32_t const N = _route->input()->n_ports().n_audio();
 	if (N > _max_invert_buttons) {
-		_invert_buttons.front()->set_active (_route->phase_invert().any());
-		--_i_am_the_modifier;
-		return;
-	}
 
-	int j = 0;
-	for (vector<ArdourButton*>::iterator i = _invert_buttons.begin(); i != _invert_buttons.end(); ++i, ++j) {
-		(*i)->set_active (_route->phase_invert (j));
+		/* One button for many channels; explicit active if all channels are inverted,
+		   implicit active if some are, off if none are.
+		*/
+
+		ArdourButton* b = _invert_buttons.front ();
+		
+		if (_route->phase_invert().count() == _route->phase_invert().size()) {
+			b->set_active_state (Gtkmm2ext::ExplicitActive);
+		} else if (_route->phase_invert().any()) {
+			b->set_active_state (Gtkmm2ext::ImplicitActive);
+		} else {
+			b->set_active_state (Gtkmm2ext::Off);
+		}
+
+	} else {
+
+		/* One button per channel; just set active */
+
+		int j = 0;
+		for (vector<ArdourButton*>::iterator i = _invert_buttons.begin(); i != _invert_buttons.end(); ++i, ++j) {
+			(*i)->set_active (_route->phase_invert (j));
+		}
+		
 	}
 
 	--_i_am_the_modifier;
@@ -1832,8 +1829,12 @@ bool
 RouteUI::invert_release (GdkEventButton* ev, uint32_t i)
 {
 	if (ev->button == 1 && i < _invert_buttons.size()) {
-		_route->set_phase_invert (i, !_invert_buttons[i]->get_active());
-		return true;
+		uint32_t const N = _route->input()->n_ports().n_audio ();
+		if (N <= _max_invert_buttons) {
+			/* left-click inverts phase so long as we have a button per channel */
+			_route->set_phase_invert (i, !_invert_buttons[i]->get_active());
+			return true;
+		}
 	}
 	return false;
 }
@@ -1843,17 +1844,21 @@ bool
 RouteUI::invert_press (GdkEventButton* ev)
 {
 	using namespace Menu_Helpers;
-	
-	if (ev->button != 3) {
+
+	uint32_t const N = _route->input()->n_ports().n_audio();
+	if (N <= _max_invert_buttons && ev->button != 3) {
+		/* If we have an invert button per channel, we only pop
+		   up a menu on right-click; left click is handled
+		   on release.
+		*/
 		return true;
 	}
-
+	
 	delete _invert_menu;
 	_invert_menu = new Menu;
 	_invert_menu->set_name ("ArdourContextMenu");
 	MenuList& items = _invert_menu->items ();
 
-	uint32_t const N = _route->input()->n_ports().n_audio();
 	for (uint32_t i = 0; i < N; ++i) {
 		items.push_back (CheckMenuElem (string_compose (X_("Ø%1"), i + 1), sigc::bind (sigc::mem_fun (*this, &RouteUI::invert_menu_toggled), i)));
 		CheckMenuItem* e = dynamic_cast<CheckMenuItem*> (&items.back ());
@@ -1930,10 +1935,10 @@ void
 RouteUI::bus_send_display_changed (boost::shared_ptr<Route> send_to)
 {
 	if (_route == send_to) {
-		show_sends_button->set_active_state (Gtkmm2ext::Active);
+		show_sends_button->set_active (true);
 		send_blink_connection = ARDOUR_UI::instance()->Blink.connect (sigc::mem_fun (*this, &RouteUI::send_blink));
 	} else {
-		show_sends_button->unset_active_state ();
+		show_sends_button->set_active (false);
 		send_blink_connection.disconnect ();
 	}
 }

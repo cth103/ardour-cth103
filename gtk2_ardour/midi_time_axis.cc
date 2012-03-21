@@ -57,7 +57,6 @@
 
 #include "midi++/names.h"
 
-#include "add_midi_cc_track_dialog.h"
 #include "ardour_ui.h"
 #include "ardour_button.h"
 #include "automation_line.h"
@@ -164,6 +163,7 @@ MidiTimeAxisView::set_route (boost::shared_ptr<Route> rt)
 	_route->processors_changed.connect (*this, invalidator (*this), ui_bind (&MidiTimeAxisView::processors_changed, this, _1), gui_context());
 
 	if (is_track()) {
+		_piano_roll_header->SetNoteSelection.connect (sigc::mem_fun (*this, &MidiTimeAxisView::set_note_selection));
 		_piano_roll_header->AddNoteSelection.connect (sigc::mem_fun (*this, &MidiTimeAxisView::add_note_selection));
 		_piano_roll_header->ExtendNoteSelection.connect (sigc::mem_fun (*this, &MidiTimeAxisView::extend_note_selection));
 		_piano_roll_header->ToggleNoteSelection.connect (sigc::mem_fun (*this, &MidiTimeAxisView::toggle_note_selection));
@@ -247,16 +247,16 @@ MidiTimeAxisView::set_route (boost::shared_ptr<Route> rt)
 	/* Look for any GUI object state nodes that represent automation children that should exist, and create
 	 * the children.
 	 */
-	
-	GUIObjectState& gui_state = gui_object_state ();
-	for (GUIObjectState::StringPropertyMap::const_iterator i = gui_state.begin(); i != gui_state.end(); ++i) {
+
+	list<string> gui_ids = gui_object_state().all_ids ();
+	for (list<string>::const_iterator i = gui_ids.begin(); i != gui_ids.end(); ++i) {
 		PBD::ID route_id;
 		bool has_parameter;
 		Evoral::Parameter parameter (0, 0, 0);
 
-		bool const p = AutomationTimeAxisView::parse_state_id (i->first, route_id, has_parameter, parameter);
+		bool const p = AutomationTimeAxisView::parse_state_id (*i, route_id, has_parameter, parameter);
 		if (p && route_id == _route->id () && has_parameter) {
-			create_automation_child (parameter, string_is_affirmative (gui_object_state().get_string (i->first, X_("visible"))));
+			create_automation_child (parameter, string_is_affirmative (gui_object_state().get_string (*i, X_("visible"))));
 		}
 	}
 }
@@ -964,7 +964,21 @@ MidiTimeAxisView::route_active_changed ()
 	}
 }
 
+void
+MidiTimeAxisView::set_note_selection (uint8_t note)
+{
+	if (!_editor.internal_editing()) {
+		return;
+	}
 
+	uint16_t chn_mask = _channel_selector.get_selected_channels();
+
+	if (_view->num_selected_regionviews() == 0) {
+		_view->foreach_regionview (sigc::bind (sigc::mem_fun (*this, &MidiTimeAxisView::set_note_selection_region_view), note, chn_mask));
+	} else {
+		_view->foreach_selected_regionview (sigc::bind (sigc::mem_fun (*this, &MidiTimeAxisView::set_note_selection_region_view), note, chn_mask));
+	}
+}
 
 void
 MidiTimeAxisView::add_note_selection (uint8_t note)
@@ -1015,9 +1029,15 @@ MidiTimeAxisView::toggle_note_selection (uint8_t note)
 }
 
 void
-MidiTimeAxisView::add_note_selection_region_view (RegionView* rv, uint8_t note, uint16_t chn_mask)
+MidiTimeAxisView::set_note_selection_region_view (RegionView* rv, uint8_t note, uint16_t chn_mask)
 {
 	dynamic_cast<MidiRegionView*>(rv)->select_matching_notes (note, chn_mask, false, false);
+}
+
+void
+MidiTimeAxisView::add_note_selection_region_view (RegionView* rv, uint8_t note, uint16_t chn_mask)
+{
+	dynamic_cast<MidiRegionView*>(rv)->select_matching_notes (note, chn_mask, true, false);
 }
 
 void

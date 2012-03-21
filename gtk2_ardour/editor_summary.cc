@@ -78,8 +78,8 @@ EditorSummary::set_session (Session* s)
 	 */
 
 	if (_session) {
-		_session->StartTimeChanged.connect (_session_connections, invalidator (*this), boost::bind (&EditorSummary::set_dirty, this), gui_context());
-		_session->EndTimeChanged.connect (_session_connections, invalidator (*this), boost::bind (&EditorSummary::set_dirty, this), gui_context());
+		_session->StartTimeChanged.connect (_session_connections, invalidator (*this), boost::bind (&CairoWidget::set_dirty, this), gui_context());
+		_session->EndTimeChanged.connect (_session_connections, invalidator (*this), boost::bind (&CairoWidget::set_dirty, this), gui_context());
 	}
 }
 
@@ -140,7 +140,7 @@ EditorSummary::on_expose_event (GdkEventExpose* event)
 void
 EditorSummary::render (cairo_t* cr)
 {
-	/* background */
+	/* background (really just the dividing lines between tracks */
 
 	cairo_set_source_rgb (cr, 0, 0, 0);
 	cairo_rectangle (cr, 0, 0, get_width(), get_height());
@@ -187,8 +187,10 @@ EditorSummary::render (cairo_t* cr)
 			continue;
 		}
 
+		/* paint a non-bg colored strip to represent the track itself */
+
 		cairo_set_source_rgb (cr, 0.2, 0.2, 0.2);
-		cairo_set_line_width (cr, _track_height - 2);
+		cairo_set_line_width (cr, _track_height - 1);
 		cairo_move_to (cr, 0, y + _track_height / 2);
 		cairo_line_to (cr, get_width(), y + _track_height / 2);
 		cairo_stroke (cr);
@@ -946,9 +948,13 @@ EditorSummary::editor_y_to_summary (double y) const
 void
 EditorSummary::routes_added (list<RouteTimeAxisView*> const & r)
 {
-	/* Connect to gui_changed() on the routes so that we know when their colour has changed */
 	for (list<RouteTimeAxisView*>::const_iterator i = r.begin(); i != r.end(); ++i) {
+		/* Connect to gui_changed() on the route so that we know when their colour has changed */
 		(*i)->route()->gui_changed.connect (*this, invalidator (*this), ui_bind (&EditorSummary::route_gui_changed, this, _1), gui_context ());
+		boost::shared_ptr<Track> tr = boost::dynamic_pointer_cast<Track> ((*i)->route ());
+		if (tr) {
+			tr->PlaylistChanged.connect (*this, invalidator (*this), ui_bind (&CairoWidget::set_dirty, this), gui_context ());
+		}
 	}
 
 	set_dirty ();

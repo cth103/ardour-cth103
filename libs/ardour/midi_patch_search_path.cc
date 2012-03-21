@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2000 Paul Davis
+    Copyright (C) 2007 Tim Mayberry
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,13 +17,36 @@
 
 */
 
-#include <cstdlib>
-#include <cmath>
+#include <glibmm/miscutils.h>
 
-#include "editor.h"
+#include "ardour/midi_patch_search_path.h"
+#include "ardour/directory_names.h"
+#include "ardour/filesystem_paths.h"
 
-#include "i18n.h"
+namespace {
+	const char * const midi_patch_env_variable_name = "ARDOUR_MIDI_PATCH_PATH";
+} // anonymous
 
-using namespace ARDOUR;
 using namespace PBD;
-using namespace Gtk;
+
+namespace ARDOUR {
+
+SearchPath
+midi_patch_search_path ()
+{
+	SearchPath spath (user_config_directory ());
+
+	spath += ardour_module_directory ();
+	spath.add_subdirectory_to_paths(midi_patch_dir_name);
+
+	bool midi_patch_path_defined = false;
+	SearchPath spath_env (Glib::getenv(midi_patch_env_variable_name, midi_patch_path_defined));
+
+	if (midi_patch_path_defined) {
+		spath += spath_env;
+	}
+
+	return spath;
+}
+
+} // namespace ARDOUR

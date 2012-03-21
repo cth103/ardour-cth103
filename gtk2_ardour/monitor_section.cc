@@ -214,7 +214,7 @@ MonitorSection::MonitorSection (Session* s)
         act = ActionManager::get_action (X_("Monitor"), X_("monitor-cut-all"));
         if (act) {
 		cut_all_button.set_related_action (act);
-        }
+	}
 
 	dim_all_button.set_text (_("dim"));
 	dim_all_button.set_name ("monitor section dim");
@@ -549,7 +549,7 @@ MonitorSection::cut_all ()
         if (act) {
 		Glib::RefPtr<ToggleAction> tact = Glib::RefPtr<ToggleAction>::cast_dynamic(act);
                 _monitor->set_cut_all (tact->get_active());
-        }
+	}
 }
 
 void
@@ -959,13 +959,9 @@ MonitorSection::audition_blink (bool onoff)
 	}
 
 	if (_session->is_auditioning()) {
-		if (onoff) {
-			rude_audition_button.set_active_state (Gtkmm2ext::Active);
-		} else {
-			rude_audition_button.unset_active_state ();
-		}
+		rude_audition_button.set_active (onoff);
 	} else {
-		rude_audition_button.unset_active_state ();
+		rude_audition_button.set_active (false);
 	}
 }
 
@@ -977,22 +973,17 @@ MonitorSection::solo_blink (bool onoff)
 	}
 
 	if (_session->soloing() || _session->listening()) {
-		if (onoff) {
-			rude_solo_button.set_active_state (Gtkmm2ext::Active);
-		} else {
-			rude_solo_button.unset_active_state ();
-		}
+		rude_solo_button.set_active (onoff);
 
                 if (_session->soloing()) {
 			if (_session->solo_isolated()) {
-				rude_iso_button.set_active_state (Gtkmm2ext::Active);
+				rude_iso_button.set_active (false);
 			}
-                }
+		}
 
 	} else {
-		// rude_solo_button.set_active (false);
-		rude_solo_button.unset_active_state ();
-                rude_iso_button.unset_active_state ();
+		rude_solo_button.set_active (false);
+                rude_iso_button.set_active (false);
 	}
 }
 

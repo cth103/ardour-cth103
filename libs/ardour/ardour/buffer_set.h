@@ -37,15 +37,16 @@ struct _VstMidiEvent;
 typedef struct _VstMidiEvent VstMidiEvent;
 #endif
 
+#ifdef LV2_SUPPORT
+typedef struct LV2_Evbuf_Impl LV2_Evbuf;
+#endif
+
 namespace ARDOUR {
 
 class Buffer;
 class AudioBuffer;
 class MidiBuffer;
 class PortSet;
-#ifdef LV2_SUPPORT
-class LV2EventBuffer;
-#endif
 
 /** A set of buffers of various types.
  *
@@ -111,10 +112,13 @@ public:
 	}
 
 #ifdef LV2_SUPPORT
-	/** Get a MIDI buffer translated into an LV2 MIDI buffer for use with plugins.
-	 * The index here corresponds directly to MIDI buffer numbers (i.e. the index
-	 * passed to get_midi), translation back and forth will happen as needed */
-	LV2EventBuffer& get_lv2_midi(bool input, size_t i);
+	/** Get a MIDI buffer translated into an LV2 MIDI buffer for use with
+	 * plugins.  The index here corresponds directly to MIDI buffer numbers
+	 * (i.e. the index passed to get_midi), translation back and forth will
+	 * happen as needed.  If old_api is true, the returned buffer will be in
+	 * old event format.  Otherwise it will be in new atom sequence format.
+	 */
+	LV2_Evbuf* get_lv2_midi(bool input, size_t i, bool old_api);
 
 	/** Flush modified LV2 event output buffers back to Ardour buffers */
 	void flush_lv2_midi(bool input, size_t i);
@@ -175,7 +179,7 @@ private:
 
 #ifdef LV2_SUPPORT
 	/// LV2 MIDI buffers (for conversion to/from MIDI buffers)
-	typedef std::vector< std::pair<bool, LV2EventBuffer*> > LV2Buffers;
+	typedef std::vector< std::pair<bool, LV2_Evbuf*> > LV2Buffers;
 	LV2Buffers _lv2_buffers;
 #endif
 

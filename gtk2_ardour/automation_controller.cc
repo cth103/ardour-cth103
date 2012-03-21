@@ -76,9 +76,15 @@ AutomationController::create(
 		const Evoral::Parameter& param,
 		boost::shared_ptr<AutomationControl> ac)
 {
-	Gtk::Adjustment* adjustment = manage (new Gtk::Adjustment (param.normal(), param.min(), param.max(),
-								   (param.max() - param.min())/100.0,
-								   (param.max() - param.min())/10.0));
+	Gtk::Adjustment* adjustment = manage (
+		new Gtk::Adjustment (
+			ac->internal_to_interface (param.normal()),
+			ac->internal_to_interface (param.min()),
+			ac->internal_to_interface (param.max()),
+			(param.max() - param.min()) / 100.0,
+			(param.max() - param.min()) / 10.0
+			)
+		);
 
         assert (ac);
         assert(ac->parameter() == param);
@@ -95,11 +101,11 @@ AutomationController::get_label (double& xpos)
 void
 AutomationController::display_effective_value()
 {
-	double const ui_value = _controllable->user_to_ui (_controllable->get_value());
+	double const interface_value = _controllable->internal_to_interface (_controllable->get_value());
 
-	if (_adjustment->get_value() != ui_value) {
+	if (_adjustment->get_value () != interface_value) {
 		_ignore_change = true;
-		_adjustment->set_value (ui_value);
+		_adjustment->set_value (interface_value);
 		_ignore_change = false;
 	}
 }
@@ -108,7 +114,7 @@ void
 AutomationController::value_adjusted ()
 {
 	if (!_ignore_change) {
-		_controllable->set_value (_controllable->ui_to_user (_adjustment->get_value()));
+		_controllable->set_value (_controllable->interface_to_internal (_adjustment->get_value()));
 	}
 }
 

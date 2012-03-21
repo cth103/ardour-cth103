@@ -43,6 +43,7 @@
 #include "pbd/enumwriter.h"
 #include "pbd/memento_command.h"
 #include "pbd/unknown_type.h"
+#include "pbd/unwind.h"
 
 #include <glibmm/miscutils.h>
 #include <gtkmm/image.h>
@@ -85,6 +86,7 @@
 #include "audio_time_axis.h"
 #include "automation_time_axis.h"
 #include "bundle_manager.h"
+#include "button_joiner.h"
 #include "canvas-noevent-text.h"
 #include "canvas_impl.h"
 #include "crossfade_edit.h"
@@ -150,6 +152,8 @@ static const gchar *_snap_type_strings[] = {
 	N_("Timecode Minutes"),
 	N_("Seconds"),
 	N_("Minutes"),
+	N_("Beats/128"),
+	N_("Beats/64"),
 	N_("Beats/32"),
 	N_("Beats/28"),
 	N_("Beats/24"),
@@ -331,6 +335,7 @@ Editor::Editor ()
 
 	current_interthread_info = 0;
 	_show_measures = true;
+	_maximised = false;
 	show_gain_after_trim = false;
 
 	have_pending_keyboard_selection = false;
@@ -366,6 +371,7 @@ Editor::Editor ()
 	layering_order_editor = 0;
 	no_save_visual = false;
 	resize_idle_id = -1;
+	within_track_canvas = false;
 
 	scrubbing_direction = 0;
 
@@ -556,10 +562,6 @@ Editor::Editor ()
 	_the_notebook.set_tab_pos (Gtk::POS_RIGHT);
 	_the_notebook.show_all ();
 
-	post_maximal_editor_width = 0;
-	post_maximal_horizontal_pane_position = 0;
-	post_maximal_editor_height = 0;
-	post_maximal_vertical_pane_position = 0;
 	_notebook_shrunk = false;
 
 	editor_summary_pane.pack1(edit_packer);
@@ -651,6 +653,10 @@ Editor::Editor ()
 	set_snap_mode (_snap_mode);
 	set_mouse_mode (MouseObject, true);
         pre_internal_mouse_mode = MouseObject;
+        pre_internal_snap_type = _snap_type;
+        pre_internal_snap_mode = _snap_mode;
+        internal_snap_type = _snap_type;
+        internal_snap_mode = _snap_mode;
 	set_edit_point_preference (EditAtMouse, true);
 
 	_playlist_selector = new PlaylistSelector();
@@ -1210,20 +1216,6 @@ Editor::set_session (Session *t)
 	_session->locations()->StateChanged.connect (_session_connections, invalidator (*this), ui_bind (&Editor::refresh_location_display, this), gui_context());
 	_session->history().Changed.connect (_session_connections, invalidator (*this), boost::bind (&Editor::history_changed, this), gui_context());
 
-	if (Profile->get_sae()) {
-		Timecode::BBT_Time bbt;
-		bbt.bars = 0;
-		bbt.beats = 0;
-		bbt.ticks = 120;
-		framepos_t pos = _session->tempo_map().bbt_duration_at (0, bbt, 1);
-		nudge_clock->set_mode(AudioClock::BBT);
-		nudge_clock->set (pos, true);
-
-	} else {
-		nudge_clock->set_mode (AudioClock::Timecode);
-		nudge_clock->set (_session->frame_rate() * 5, true);
-	}
-
 	playhead_cursor->canvas_item.show ();
 
 	boost::function<void (string)> pc (boost::bind (&Editor::parameter_changed, this, _1));
@@ -1723,7 +1715,7 @@ Editor::build_track_selection_context_menu ()
  * @param edit_items List to add the items to.
  */
 void
-Editor::add_crossfade_context_items (AudioStreamView* /*view*/, boost::shared_ptr<Crossfade> xfade, Menu_Helpers::MenuList& edit_items, bool many)
+Editor::add_crossfade_context_items (AudioStreamView* view, boost::shared_ptr<Crossfade> xfade, Menu_Helpers::MenuList& edit_items, bool many)
 {
 	using namespace Menu_Helpers;
 	Menu     *xfade_menu = manage (new Menu);
@@ -1737,8 +1729,13 @@ Editor::add_crossfade_context_items (AudioStreamView* /*view*/, boost::shared_pt
 		str = _("Unmute");
 	}
 
-	items.push_back (MenuElem (str, sigc::bind (sigc::mem_fun(*this, &Editor::toggle_xfade_active), boost::weak_ptr<Crossfade> (xfade))));
-	items.push_back (MenuElem (_("Edit..."), sigc::bind (sigc::mem_fun(*this, &Editor::edit_xfade), boost::weak_ptr<Crossfade> (xfade))));
+	items.push_back (
+		MenuElem (str, sigc::bind (sigc::mem_fun (*this, &Editor::toggle_xfade_active), &view->trackview(), boost::weak_ptr<Crossfade> (xfade)))
+		);
+	
+	items.push_back (
+		MenuElem (_("Edit..."), sigc::bind (sigc::mem_fun (*this, &Editor::edit_xfade), boost::weak_ptr<Crossfade> (xfade)))
+		);
 
 	if (xfade->can_follow_overlap()) {
 
@@ -1748,7 +1745,9 @@ Editor::add_crossfade_context_items (AudioStreamView* /*view*/, boost::shared_pt
 			str = _("Convert to Full");
 		}
 
-		items.push_back (MenuElem (str, sigc::bind (sigc::mem_fun(*this, &Editor::toggle_xfade_length), xfade)));
+		items.push_back (
+			MenuElem (str, sigc::bind (sigc::mem_fun (*this, &Editor::toggle_xfade_length), &view->trackview(), xfade))
+			);
 	}
 
 	if (many) {
@@ -1810,17 +1809,10 @@ Editor::add_region_context_items (Menu_Helpers::MenuList& edit_items, boost::sha
 		_popup_region_menu_item->set_label (menu_item_name);
 	}
 
-	/* Use the mouse position rather than the edit point to decide whether to show the `choose top region'
-	   dialogue.  If we use the edit point it gets a bit messy because the user still has to click over
-	   *some* region in order to get the region context menu stuff to be displayed at all.
-	*/
-
-	framepos_t mouse;
-	bool ignored;
-	mouse_frame (mouse, ignored);
+	const framepos_t position = get_preferred_edit_position (false, true);
 
 	edit_items.push_back (*_popup_region_menu_item);
-	if (track->playlist()->count_regions_at (mouse) > 1 && (layering_order_editor == 0 || !layering_order_editor->is_visible ())) {
+	if (track->playlist()->count_regions_at (position) > 1 && (layering_order_editor == 0 || !layering_order_editor->is_visible ())) {
 		edit_items.push_back (*manage (_region_actions->get_action ("choose-top-region-context-menu")->create_menu_item ()));
 	}
 	edit_items.push_back (SeparatorElem());
@@ -2068,6 +2060,8 @@ Editor::set_snap_to (SnapType st)
 	instant_save ();
 
 	switch (_snap_type) {
+	case SnapToBeatDiv128:
+	case SnapToBeatDiv64:
 	case SnapToBeatDiv32:
 	case SnapToBeatDiv28:
 	case SnapToBeatDiv24:
@@ -2226,7 +2220,7 @@ Editor::set_state (const XMLNode& node, int /*version*/)
 	}
 
 	if ((prop = node.property ("zoom-focus"))) {
-		set_zoom_focus ((ZoomFocus) atoi (prop->value()));
+		set_zoom_focus ((ZoomFocus) string_2_enum (prop->value(), zoom_focus));
 	}
 
 	if ((prop = node.property ("zoom"))) {
@@ -2236,11 +2230,27 @@ Editor::set_state (const XMLNode& node, int /*version*/)
 	}
 
 	if ((prop = node.property ("snap-to"))) {
-		set_snap_to ((SnapType) atoi (prop->value()));
+		set_snap_to ((SnapType) string_2_enum (prop->value(), _snap_type));
 	}
 
 	if ((prop = node.property ("snap-mode"))) {
-		set_snap_mode ((SnapMode) atoi (prop->value()));
+		set_snap_mode ((SnapMode) string_2_enum (prop->value(), _snap_mode));
+	}
+
+	if ((prop = node.property ("internal-snap-to"))) {
+		internal_snap_type = (SnapType) string_2_enum (prop->value(), internal_snap_type);
+	}
+
+	if ((prop = node.property ("internal-snap-mode"))) {
+		internal_snap_mode = (SnapMode) string_2_enum (prop->value(), internal_snap_mode);
+	}
+
+	if ((prop = node.property ("pre-internal-snap-to"))) {
+		pre_internal_snap_type = (SnapType) string_2_enum (prop->value(), pre_internal_snap_type);
+	}
+
+	if ((prop = node.property ("pre-internal-snap-mode"))) {
+		pre_internal_snap_mode = (SnapMode) string_2_enum (prop->value(), pre_internal_snap_mode);
 	}
 
 	if ((prop = node.property ("mouse-mode"))) {
@@ -2253,6 +2263,9 @@ Editor::set_state (const XMLNode& node, int /*version*/)
 	if ((prop = node.property ("left-frame")) != 0) {
 		framepos_t pos;
 		if (sscanf (prop->value().c_str(), "%" PRId64, &pos) == 1) {
+			if (pos < 0) {
+				pos = 0;
+			}
 			reset_x_origin (pos);
 		}
 	}
@@ -2272,7 +2285,7 @@ Editor::set_state (const XMLNode& node, int /*version*/)
 	}
 
 	if ((prop = node.property ("join-object-range"))) {
-		join_object_range_button.set_active (string_is_affirmative (prop->value ()));
+		ActionManager::set_toggle_action ("MouseMode", "set-mouse-mode-object-range", string_is_affirmative (prop->value ()));
 	}
 
 	if ((prop = node.property ("edit-point"))) {
@@ -2374,6 +2387,22 @@ Editor::set_state (const XMLNode& node, int /*version*/)
 		_regions->set_state (**i);
 	}
 
+	if ((prop = node.property ("maximised"))) {
+		bool yn = string_is_affirmative (prop->value());
+		if (yn) {
+			ActionManager::do_action ("Common", "ToggleMaximalEditor");
+		}
+	}
+
+	if ((prop = node.property ("nudge-clock-value"))) {
+		framepos_t f;
+		sscanf (prop->value().c_str(), "%" PRId64, &f);
+		nudge_clock->set (f);
+	} else {
+		nudge_clock->set_mode (AudioClock::Timecode);
+		nudge_clock->set (_session->frame_rate() * 5, true);
+	}
+
 	return 0;
 }
 
@@ -2406,8 +2435,6 @@ Editor::get_state ()
 		snprintf(buf,sizeof(buf), "%d",gtk_paned_get_position (static_cast<Paned*>(&edit_pane)->gobj()));
 		geometry->add_property("edit-horizontal-pane-pos", string(buf));
 		geometry->add_property("notebook-shrunk", _notebook_shrunk ? "1" : "0");
-		snprintf(buf,sizeof(buf), "%d",pre_maximal_horizontal_pane_position);
-		geometry->add_property("pre-maximal-horizontal-pane-position", string(buf));
 		snprintf(buf,sizeof(buf), "%d",gtk_paned_get_position (static_cast<Paned*>(&editor_summary_pane)->gobj()));
 		geometry->add_property("edit-vertical-pane-pos", string(buf));
 
@@ -2416,15 +2443,15 @@ Editor::get_state ()
 
 	maybe_add_mixer_strip_width (*node);
 
-	snprintf (buf, sizeof(buf), "%d", (int) zoom_focus);
-	node->add_property ("zoom-focus", buf);
+	node->add_property ("zoom-focus", enum_2_string (zoom_focus));
 	snprintf (buf, sizeof(buf), "%f", frames_per_unit);
 	node->add_property ("zoom", buf);
-	snprintf (buf, sizeof(buf), "%d", (int) _snap_type);
-	node->add_property ("snap-to", buf);
-	snprintf (buf, sizeof(buf), "%d", (int) _snap_mode);
-	node->add_property ("snap-mode", buf);
-
+	node->add_property ("snap-to", enum_2_string (_snap_type));
+	node->add_property ("snap-mode", enum_2_string (_snap_mode));
+	node->add_property ("internal-snap-to", enum_2_string (internal_snap_type));
+	node->add_property ("internal-snap-mode", enum_2_string (internal_snap_mode));
+	node->add_property ("pre-internal-snap-to", enum_2_string (pre_internal_snap_type));
+	node->add_property ("pre-internal-snap-mode", enum_2_string (pre_internal_snap_mode));
 	node->add_property ("edit-point", enum_2_string (_edit_point));
 
 	snprintf (buf, sizeof (buf), "%" PRIi64, playhead_cursor->current_frame);
@@ -2435,13 +2462,14 @@ Editor::get_state ()
 	node->add_property ("y-origin", buf);
 
 	node->add_property ("show-measures", _show_measures ? "yes" : "no");
+	node->add_property ("maximised", _maximised ? "yes" : "no");
 	node->add_property ("follow-playhead", _follow_playhead ? "yes" : "no");
 	node->add_property ("stationary-playhead", _stationary_playhead ? "yes" : "no");
 	node->add_property ("xfades-visible", _xfade_visibility ? "yes" : "no");
 	node->add_property ("region-list-sort-type", enum_2_string (_regions->sort_type ()));
 	node->add_property ("mouse-mode", enum2str(mouse_mode));
 	node->add_property ("internal-edit", _internal_editing ? "yes" : "no");
-	node->add_property ("join-object-range", join_object_range_button.get_active () ? "yes" : "no");
+	node->add_property ("join-object-range", smart_mode_action->get_active () ? "yes" : "no");
 
 	Glib::RefPtr<Action> act = ActionManager::get_action (X_("Editor"), X_("show-editor-mixer"));
 	if (act) {
@@ -2468,6 +2496,9 @@ Editor::get_state ()
 
 	node->add_child_nocopy (selection->get_state ());
 	node->add_child_nocopy (_regions->get_state ());
+
+	snprintf (buf, sizeof (buf), "%" PRId64, nudge_clock->current_duration());
+	node->add_property ("nudge-clock-value", buf);
 
 	return *node;
 }
@@ -2630,6 +2661,12 @@ Editor::snap_to_internal (framepos_t& start, int32_t direction, bool for_mark)
 		start = _session->tempo_map().round_to_beat (start, direction);
 		break;
 
+	case SnapToBeatDiv128:
+		start = _session->tempo_map().round_to_beat_subdivision (start, 128, direction);
+		break;
+	case SnapToBeatDiv64:
+		start = _session->tempo_map().round_to_beat_subdivision (start, 64, direction);
+		break;
 	case SnapToBeatDiv32:
 		start = _session->tempo_map().round_to_beat_subdivision (start, 32, direction);
 		break;
@@ -2762,28 +2799,57 @@ Editor::setup_toolbar ()
 	mode_box->set_border_width (2);
 	mode_box->set_spacing(4);
 
-	/* table containing mode buttons */
+	HBox* mouse_mode_box = manage (new HBox);
+	HBox* mouse_mode_hbox1 = manage (new HBox);
+	HBox* mouse_mode_hbox2 = manage (new HBox);
+	VBox* mouse_mode_vbox1 = manage (new VBox);
+	VBox* mouse_mode_vbox2 = manage (new VBox);
+	Alignment* mouse_mode_align1 = manage (new Alignment);
+	Alignment* mouse_mode_align2 = manage (new Alignment);
 
-	HBox* mouse_mode_button_box = manage (new HBox ());
-	mouse_mode_button_box->set_spacing (2);
+	Glib::RefPtr<SizeGroup> mouse_mode_size_group = SizeGroup::create (SIZE_GROUP_BOTH);
+	mouse_mode_size_group->add_widget (mouse_move_button);
+	mouse_mode_size_group->add_widget (mouse_select_button);
+	mouse_mode_size_group->add_widget (mouse_zoom_button);
+	mouse_mode_size_group->add_widget (mouse_gain_button);
+	mouse_mode_size_group->add_widget (mouse_timefx_button);
+	mouse_mode_size_group->add_widget (mouse_audition_button);
+	mouse_mode_size_group->add_widget (mouse_draw_button);
+	mouse_mode_size_group->add_widget (internal_edit_button);
 
-	if (Profile->get_sae()) {
-		mouse_mode_button_box->pack_start (mouse_move_button);
-	} else {
-		mouse_mode_button_box->pack_start (mouse_move_button);
-		mouse_mode_button_box->pack_start (join_object_range_button);
-		mouse_mode_button_box->pack_start (mouse_select_button);
-	}
+	/* make them just a bit bigger */
+	mouse_move_button.set_size_request (-1, 25);
 
-	mouse_mode_button_box->pack_start (mouse_zoom_button);
+	smart_mode_joiner = manage (new ButtonJoiner ("mouse mode button", mouse_move_button, mouse_select_button));
+	smart_mode_joiner->set_related_action (smart_mode_action);
 
-	if (!Profile->get_sae()) {
-		mouse_mode_button_box->pack_start (mouse_gain_button);
-	}
+	mouse_move_button.set_elements (ArdourButton::Element (ArdourButton::Body|ArdourButton::Text));
+	mouse_select_button.set_elements (ArdourButton::Element (ArdourButton::Body|ArdourButton::Text));
 
-	mouse_mode_button_box->pack_start (mouse_timefx_button);
-	mouse_mode_button_box->pack_start (mouse_audition_button);
-	mouse_mode_button_box->pack_start (internal_edit_button);
+	mouse_move_button.set_rounded_corner_mask (0x1); // upper left only 
+	mouse_select_button.set_rounded_corner_mask (0x2); // upper right only 
+
+	mouse_mode_hbox2->set_spacing (2);
+	mouse_mode_box->set_spacing (2);
+
+	mouse_mode_hbox1->pack_start (*smart_mode_joiner, false, false);
+	mouse_mode_hbox2->pack_start (mouse_zoom_button, false, false);
+	mouse_mode_hbox2->pack_start (mouse_gain_button, false, false);
+	mouse_mode_hbox2->pack_start (mouse_timefx_button, false, false);
+	mouse_mode_hbox2->pack_start (mouse_audition_button, false, false);
+	mouse_mode_hbox2->pack_start (mouse_draw_button, false, false);
+	mouse_mode_hbox2->pack_start (internal_edit_button, false, false);
+
+	mouse_mode_vbox1->pack_start (*mouse_mode_hbox1, false, false);
+	mouse_mode_vbox2->pack_start (*mouse_mode_hbox2, false, false);
+
+	mouse_mode_align1->add (*mouse_mode_vbox1);
+	mouse_mode_align1->set (0.5, 1.0, 0.0, 0.0);
+	mouse_mode_align2->add (*mouse_mode_vbox2);
+	mouse_mode_align2->set (0.5, 1.0, 0.0, 0.0);
+
+	mouse_mode_box->pack_start (*mouse_mode_align1, false, false);
+	mouse_mode_box->pack_start (*mouse_mode_align2, false, false);
 
 	edit_mode_strings.push_back (edit_mode_to_string (Slide));
 	if (!Profile->get_sae()) {
@@ -2796,7 +2862,7 @@ Editor::setup_toolbar ()
 	edit_mode_selector.signal_changed().connect (sigc::mem_fun(*this, &Editor::edit_mode_selection_done));
 
 	mode_box->pack_start (edit_mode_selector, false, false);
-	mode_box->pack_start (*mouse_mode_button_box, false, false);
+	mode_box->pack_start (*mouse_mode_box, false, false);
 
 	_mouse_mode_tearoff = manage (new TearOff (*mode_box));
 	_mouse_mode_tearoff->set_name ("MouseModeBase");
@@ -2965,11 +3031,13 @@ void
 Editor::setup_tooltips ()
 {
 	ARDOUR_UI::instance()->set_tip (mouse_move_button, _("Select/Move Objects"));
+	ARDOUR_UI::instance()->set_tip (mouse_select_button, _("Select/Move Ranges"));
+	ARDOUR_UI::instance()->set_tip (mouse_draw_button, _("Draw/Edit MIDI Notes"));
 	ARDOUR_UI::instance()->set_tip (mouse_gain_button, _("Draw Region Gain"));
 	ARDOUR_UI::instance()->set_tip (mouse_zoom_button, _("Select Zoom Range"));
 	ARDOUR_UI::instance()->set_tip (mouse_timefx_button, _("Stretch/Shrink Regions and MIDI Notes"));
 	ARDOUR_UI::instance()->set_tip (mouse_audition_button, _("Listen to Specific Regions"));
-	ARDOUR_UI::instance()->set_tip (join_object_range_button, _("Select/Move Objects or Ranges"));
+	ARDOUR_UI::instance()->set_tip (smart_mode_joiner, _("Smart Mode (Select/Move Objects + Ranges)"));
 	ARDOUR_UI::instance()->set_tip (internal_edit_button, _("Edit Region Contents (e.g. notes)"));
 	ARDOUR_UI::instance()->set_tip (*_group_tabs, _("Groups: click to (de)activate\nContext-click for other operations"));
 	ARDOUR_UI::instance()->set_tip (nudge_forward_button, _("Nudge Region/Selection Forwards"));
@@ -2984,6 +3052,7 @@ Editor::setup_tooltips ()
 	ARDOUR_UI::instance()->set_tip (snap_mode_selector, _("Snap/Grid Mode"));
 	ARDOUR_UI::instance()->set_tip (edit_point_selector, _("Edit point"));
 	ARDOUR_UI::instance()->set_tip (edit_mode_selector, _("Edit Mode"));
+	ARDOUR_UI::instance()->set_tip (nudge_clock, _("Nudge Clock\n(controls distance used to nudge regions and selections)"));
 }
 
 int
@@ -3116,16 +3185,6 @@ Editor::map_transport_state ()
 }
 
 /* UNDO/REDO */
-
-Editor::State::State (PublicEditor const * e)
-{
-	selection = new Selection (e);
-}
-
-Editor::State::~State ()
-{
-	delete selection;
-}
 
 void
 Editor::begin_reversible_command (string name)
@@ -3314,6 +3373,10 @@ Editor::snap_type_selection_done ()
 		snaptype = SnapToBeatDiv28;
 	} else if (choice == _("Beats/32")) {
 		snaptype = SnapToBeatDiv32;
+	} else if (choice == _("Beats/64")) {
+		snaptype = SnapToBeatDiv64;
+	} else if (choice == _("Beats/128")) {
+		snaptype = SnapToBeatDiv128;
 	} else if (choice == _("Beats")) {
 		snaptype = SnapToBeat;
 	} else if (choice == _("Bars")) {
@@ -3513,10 +3576,6 @@ Editor::pane_allocation_handler (Allocation &alloc, Paned* which)
 			_notebook_shrunk = string_is_affirmative (prop->value ());
 		}
 
-		if (geometry && (prop = geometry->property ("pre-maximal-horizontal-pane-position"))) {
-			pre_maximal_horizontal_pane_position = atoi (prop->value ());
-		}
-
 		if (!geometry || (prop = geometry->property ("edit-horizontal-pane-pos")) == 0) {
 			/* initial allocation is 90% to canvas, 10% to notebook */
 			pos = (int) floor (alloc.get_width() * 0.90f);
@@ -3527,9 +3586,6 @@ Editor::pane_allocation_handler (Allocation &alloc, Paned* which)
 
 		if (GTK_WIDGET(edit_pane.gobj())->allocation.width > pos) {
 			edit_pane.set_position (pos);
-			if (pre_maximal_horizontal_pane_position == 0) {
-				pre_maximal_horizontal_pane_position = pos;
-			}
 		}
 
 		done = (Pane) (done | Horizontal);
@@ -3545,12 +3601,12 @@ Editor::pane_allocation_handler (Allocation &alloc, Paned* which)
 			pos = (int) floor (alloc.get_height() * 0.90f);
 			snprintf (buf, sizeof(buf), "%d", pos);
 		} else {
+
 			pos = atoi (prop->value());
 		}
 
 		if (GTK_WIDGET(editor_summary_pane.gobj())->allocation.height > pos) {
 			editor_summary_pane.set_position (pos);
-			pre_maximal_vertical_pane_position = pos;
 		}
 
 		done = (Pane) (done | Vertical);
@@ -3639,21 +3695,50 @@ Editor::set_stationary_playhead (bool yn)
 }
 
 void
-Editor::toggle_xfade_active (boost::weak_ptr<Crossfade> wxfade)
+Editor::toggle_xfade_active (RouteTimeAxisView* tv, boost::weak_ptr<Crossfade> wxfade)
 {
 	boost::shared_ptr<Crossfade> xfade (wxfade.lock());
-	if (xfade) {
-		xfade->set_active (!xfade->active());
+	if (!xfade) {
+		return;
 	}
+
+	vector<boost::shared_ptr<Crossfade> > all = get_equivalent_crossfades (*tv, xfade, ARDOUR::Properties::edit.property_id);
+
+	_session->begin_reversible_command (_("Change crossfade active state"));
+	
+	for (vector<boost::shared_ptr<Crossfade> >::iterator i = all.begin(); i != all.end(); ++i) {
+		(*i)->clear_changes ();
+		(*i)->set_active (!(*i)->active());
+		_session->add_command (new StatefulDiffCommand (*i));
+	}
+	
+	_session->commit_reversible_command ();
 }
 
 void
-Editor::toggle_xfade_length (boost::weak_ptr<Crossfade> wxfade)
+Editor::toggle_xfade_length (RouteTimeAxisView* tv, boost::weak_ptr<Crossfade> wxfade)
 {
 	boost::shared_ptr<Crossfade> xfade (wxfade.lock());
-	if (xfade) {
-		xfade->set_follow_overlap (!xfade->following_overlap());
+	if (!xfade) {
+		return;
 	}
+	
+	vector<boost::shared_ptr<Crossfade> > all = get_equivalent_crossfades (*tv, xfade, ARDOUR::Properties::edit.property_id);
+
+	/* This can't be a StatefulDiffCommand as the fade shapes are not
+	   managed by the Stateful properties system.
+	*/
+	_session->begin_reversible_command (_("Change crossfade length"));
+	
+	for (vector<boost::shared_ptr<Crossfade> >::iterator i = all.begin(); i != all.end(); ++i) {
+		XMLNode& before = (*i)->get_state ();
+		(*i)->set_follow_overlap (!(*i)->following_overlap());
+		XMLNode& after = (*i)->get_state ();
+	
+		_session->add_command (new MementoCommand<Crossfade> (*i->get(), &before, &after));
+	}
+	
+	_session->commit_reversible_command ();
 }
 
 void
@@ -3699,6 +3784,12 @@ Editor::get_grid_type_as_beats (bool& success, framepos_t position)
 		return 1.0;
 		break;
 
+	case SnapToBeatDiv128:
+		return 1.0/128.0;
+		break;
+	case SnapToBeatDiv64:
+		return 1.0/64.0;
+		break;
 	case SnapToBeatDiv32:
 		return 1.0/32.0;
 		break;
@@ -3901,98 +3992,40 @@ Editor::session_state_saved (string)
 void
 Editor::maximise_editing_space ()
 {
-	/* these calls will leave each tearoff visible *if* it is torn off
-	 */
-
-	_mouse_mode_tearoff->set_visible (false);
-	_tools_tearoff->set_visible (false);
-	_zoom_tearoff->set_visible (false);
-
-	pre_maximal_horizontal_pane_position = edit_pane.get_position ();
-	pre_maximal_vertical_pane_position = editor_summary_pane.get_position ();
-	pre_maximal_editor_width = this->get_width ();
-	pre_maximal_editor_height = this->get_height ();
-
-	if (post_maximal_horizontal_pane_position == 0) {
-		post_maximal_horizontal_pane_position = edit_pane.get_width();
-	}
-
-	if (post_maximal_vertical_pane_position == 0) {
-		post_maximal_vertical_pane_position = editor_summary_pane.get_height();
+	if (_maximised) {
+		return;
 	}
 
 	fullscreen ();
 
-	if (post_maximal_editor_width) {
-		edit_pane.set_position (post_maximal_horizontal_pane_position -
-			abs(post_maximal_editor_width - pre_maximal_editor_width));
-	} else {
-		edit_pane.set_position (post_maximal_horizontal_pane_position);
+	if (!Config->get_keep_tearoffs()) {
+		/* these calls will leave each tearoff visible *if* it is torn off, 
+		   but invisible otherwise.
+		*/
+		_mouse_mode_tearoff->set_visible (false);
+		_tools_tearoff->set_visible (false);
+		_zoom_tearoff->set_visible (false);
 	}
 
-	/* Hack: we must do this in an idle handler for it to work; see comment in
-	   restore_editing_space()
-	*/
-	   
-	Glib::signal_idle().connect (
-		sigc::bind (
-			sigc::mem_fun (*this, &Editor::idle_reset_vertical_pane_position),
-			post_maximal_vertical_pane_position
-			)
-		);
-
-	if (Config->get_keep_tearoffs()) {
-		_mouse_mode_tearoff->set_visible (true);
-		_tools_tearoff->set_visible (true);
-		if (Config->get_show_zoom_tools ()) {
-			_zoom_tearoff->set_visible (true);
-		}
-	}
-
-}
-
-bool
-Editor::idle_reset_vertical_pane_position (int p)
-{
-	editor_summary_pane.set_position (p);
-	return false;
+	_maximised = true;
 }
 
 void
 Editor::restore_editing_space ()
 {
-	// user changed width/height of panes during fullscreen
-
-	if (post_maximal_horizontal_pane_position != edit_pane.get_position()) {
-		post_maximal_horizontal_pane_position = edit_pane.get_position();
-	}
-
-	if (post_maximal_vertical_pane_position != editor_summary_pane.get_position()) {
-		post_maximal_vertical_pane_position = editor_summary_pane.get_position();
+	if (!_maximised) {
+		return;
 	}
 
 	unfullscreen();
 
-	_mouse_mode_tearoff->set_visible (true);
-	_tools_tearoff->set_visible (true);
-	if (Config->get_show_zoom_tools ()) {
+	if (!Config->get_keep_tearoffs()) {
+		_mouse_mode_tearoff->set_visible (true);
+		_tools_tearoff->set_visible (true);
 		_zoom_tearoff->set_visible (true);
 	}
-	post_maximal_editor_width = this->get_width();
-	post_maximal_editor_height = this->get_height();
 
-	edit_pane.set_position (pre_maximal_horizontal_pane_position + abs(this->get_width() - pre_maximal_editor_width));
-
-	/* This is a bit of a hack, but it seems that if you set the vertical pane position
-	   here it gets reset to some wrong value after this method has finished.  Doing
-	   the setup in an idle callback seems to work.
-	*/
-	Glib::signal_idle().connect (
-		sigc::bind (
-			sigc::mem_fun (*this, &Editor::idle_reset_vertical_pane_position),
-			pre_maximal_vertical_pane_position
-			)
-		);
+	_maximised = false;
 }
 
 /**
@@ -4105,8 +4138,8 @@ Editor::reposition_and_zoom (framepos_t frame, double fpu)
 	}
 }
 
-Editor::VisualState::VisualState ()
-	: gui_state (new GUIObjectState)
+Editor::VisualState::VisualState (bool with_tracks)
+	: gui_state (with_tracks ? new GUIObjectState : 0)
 {
 }
 
@@ -4118,14 +4151,14 @@ Editor::VisualState::~VisualState ()
 Editor::VisualState*
 Editor::current_visual_state (bool with_tracks)
 {
-	VisualState* vs = new VisualState;
+	VisualState* vs = new VisualState (with_tracks);
 	vs->y_position = vertical_adjustment.get_value();
 	vs->frames_per_unit = frames_per_unit;
 	vs->leftmost_frame = leftmost_frame;
 	vs->zoom_focus = zoom_focus;
 
 	if (with_tracks) {	
-		*(vs->gui_state) = *ARDOUR_UI::instance()->gui_object_state;
+		*vs->gui_state = *ARDOUR_UI::instance()->gui_object_state;
 	}
 
 	return vs;
@@ -4138,10 +4171,12 @@ Editor::undo_visual_state ()
 		return;
 	}
 
-	redo_visual_stack.push_back (current_visual_state());
-
 	VisualState* vs = undo_visual_stack.back();
 	undo_visual_stack.pop_back();
+
+
+	redo_visual_stack.push_back (current_visual_state (vs ? vs->gui_state != 0 : false));
+
 	use_visual_state (*vs);
 }
 
@@ -4152,10 +4187,11 @@ Editor::redo_visual_state ()
 		return;
 	}
 
-	undo_visual_stack.push_back (current_visual_state());
-
 	VisualState* vs = redo_visual_stack.back();
 	redo_visual_stack.pop_back();
+
+	undo_visual_stack.push_back (current_visual_state (vs ? vs->gui_state != 0 : false));
+
 	use_visual_state (*vs);
 }
 
@@ -4172,7 +4208,7 @@ Editor::swap_visual_state ()
 void
 Editor::use_visual_state (VisualState& vs)
 {
-	no_save_visual = true;
+	PBD::Unwinder<bool> nsv (no_save_visual, true);
 
 	_routes->suspend_redisplay ();
 
@@ -4181,16 +4217,16 @@ Editor::use_visual_state (VisualState& vs)
 	set_zoom_focus (vs.zoom_focus);
 	reposition_and_zoom (vs.leftmost_frame, vs.frames_per_unit);
 	
-	*ARDOUR_UI::instance()->gui_object_state = *vs.gui_state;
-
-	for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {	
-		(*i)->reset_visual_state ();
+	if (vs.gui_state) {
+		*ARDOUR_UI::instance()->gui_object_state = *vs.gui_state;
+		
+		for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {	
+			(*i)->reset_visual_state ();
+		}
 	}
 
 	_routes->update_visibility ();
 	_routes->resume_redisplay ();
-
-	no_save_visual = false;
 }
 
 void
@@ -4315,6 +4351,7 @@ Editor::idle_visual_changer ()
 		*/
 
 		leftmost_frame = pending_visual_change.time_origin;
+		assert (leftmost_frame >= 0);
 	}
 
 	if (p & VisualChange::ZoomLevel) {
@@ -4494,10 +4531,10 @@ Editor::get_regions_at (RegionSelection& rs, framepos_t where, const TrackViewLi
 
 			if ((tr = rtv->track()) && ((pl = tr->playlist()))) {
 
-				boost::shared_ptr<Playlist::RegionList> regions = pl->regions_at (
+				boost::shared_ptr<RegionList> regions = pl->regions_at (
 						(framepos_t) floor ( (double) where * tr->speed()));
 
-				for (Playlist::RegionList::iterator i = regions->begin(); i != regions->end(); ++i) {
+				for (RegionList::iterator i = regions->begin(); i != regions->end(); ++i) {
 					RegionView* rv = rtv->view()->find_view (*i);
 					if (rv) {
 						rs.add (rv);
@@ -4527,10 +4564,10 @@ Editor::get_regions_after (RegionSelection& rs, framepos_t where, const TrackVie
 
 			if ((tr = rtv->track()) && ((pl = tr->playlist()))) {
 
-				boost::shared_ptr<Playlist::RegionList> regions = pl->regions_touched (
+				boost::shared_ptr<RegionList> regions = pl->regions_touched (
 					(framepos_t) floor ( (double)where * tr->speed()), max_framepos);
 
-				for (Playlist::RegionList::iterator i = regions->begin(); i != regions->end(); ++i) {
+				for (RegionList::iterator i = regions->begin(); i != regions->end(); ++i) {
 
 					RegionView* rv = rtv->view()->find_view (*i);
 
@@ -5166,32 +5203,33 @@ Editor::reset_x_origin_to_follow_playhead ()
 
 		} else {
 
+			framepos_t l = 0;
+			
 			if (frame < leftmost_frame) {
 				/* moving left */
-				framepos_t l = 0;
 				if (_session->transport_rolling()) {
 					/* rolling; end up with the playhead at the right of the page */
 					l = frame - current_page_frames ();
 				} else {
-					/* not rolling: end up with the playhead 3/4 of the way along the page */
-					l = frame - (3 * current_page_frames() / 4);
+					/* not rolling: end up with the playhead 1/4 of the way along the page */
+					l = frame - current_page_frames() / 4;
 				}
-
-				if (l < 0) {
-					l = 0;
-				}
-
-				center_screen_internal (l + (current_page_frames() / 2), current_page_frames ());
 			} else {
 				/* moving right */
 				if (_session->transport_rolling()) {
 					/* rolling: end up with the playhead on the left of the page */
-					center_screen_internal (frame + (current_page_frames() / 2), current_page_frames ());
+					l = frame;
 				} else {
-					/* not rolling: end up with the playhead 1/4 of the way along the page */
-					center_screen_internal (frame + (current_page_frames() / 4), current_page_frames ());
+					/* not rolling: end up with the playhead 3/4 of the way along the page */
+					l = frame - 3 * current_page_frames() / 4;
 				}
 			}
+
+			if (l < 0) {
+				l = 0;
+			}
+			
+			center_screen_internal (l + (current_page_frames() / 2), current_page_frames ());
 		}
 	}
 }
@@ -5385,7 +5423,7 @@ Editor::change_region_layering_order (bool from_context_menu)
 		layering_order_editor->set_position (WIN_POS_MOUSE);
 	}
 
-	layering_order_editor->set_context (clicked_routeview->name(), _session, pl, position);
+	layering_order_editor->set_context (clicked_routeview->name(), _session, clicked_routeview, pl, position);
 	layering_order_editor->maybe_present ();
 }
 
@@ -5448,10 +5486,16 @@ Editor::notebook_tab_clicked (GdkEventButton* ev, Gtk::Widget* page)
 		/* double-click on a notebook tab shrinks or expands the notebook */
 
 		if (_notebook_shrunk) {
-			edit_pane.set_position (pre_maximal_horizontal_pane_position);
+			if (pre_notebook_shrink_pane_width) {
+				edit_pane.set_position (*pre_notebook_shrink_pane_width);
+			}
 			_notebook_shrunk = false;
 		} else {
-			pre_maximal_horizontal_pane_position = edit_pane.get_position ();
+			pre_notebook_shrink_pane_width = edit_pane.get_position();
+
+			/* this expands the LHS of the edit pane to cover the notebook
+			   PAGE but leaves the tabs visible.
+			 */
 			edit_pane.set_position (edit_pane.get_position() + page->get_width());
 			_notebook_shrunk = true;
 		}

@@ -87,12 +87,11 @@ class AudioRegionView : public RegionView
 	bool waveform_rectified() const { return _flags & WaveformRectified; }
 	bool waveform_logscaled() const { return _flags & WaveformLogScaled; }
 	bool waveform_visible()   const { return _flags & WaveformVisible; }
-	bool envelope_visible()   const { return _flags & EnvelopeVisible; }
 
 	void add_gain_point_event (ArdourCanvas::Item *item, GdkEvent *event);
 	void remove_gain_point_event (ArdourCanvas::Item *item, GdkEvent *event);
 
-	AudioRegionGainLine* get_gain_line() const { return gain_line; }
+	boost::shared_ptr<AudioRegionGainLine> get_gain_line() const { return gain_line; }
 
 	void region_changed (const PBD::PropertyChange&);
 	void envelope_active_changed ();
@@ -126,7 +125,6 @@ class AudioRegionView : public RegionView
 	*/
 
 	enum Flags {
-		EnvelopeVisible = 0x1,
 		WaveformVisible = 0x4,
 		WaveformRectified = 0x8,
 		WaveformLogScaled = 0x10,
@@ -144,7 +142,7 @@ class AudioRegionView : public RegionView
 	ArdourCanvas::SimpleRect*        fade_out_handle; ///< fade out handle, or 0
 	ArdourCanvas::SimpleLine*        fade_position_line;
 
-	AudioRegionGainLine * gain_line;
+	boost::shared_ptr<AudioRegionGainLine> gain_line;
 
 	double _amplitude_above_axis;
 

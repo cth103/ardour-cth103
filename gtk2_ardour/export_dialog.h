@@ -75,6 +75,9 @@ class ExportDialog : public ArdourDialog {
 	// Must initialize all the shared_ptrs below
 	virtual void init_components ();
 
+	// Override if the channel selector should not be grown
+	virtual bool channel_selector_is_expandable() { return true; }
+
 	boost::scoped_ptr<ExportPresetSelector>   preset_selector;
 	boost::scoped_ptr<ExportTimespanSelector> timespan_selector;
 	boost::scoped_ptr<ExportChannelSelector>  channel_selector;
@@ -90,11 +93,13 @@ class ExportDialog : public ArdourDialog {
 
 	void init ();
 
+	void expanded_changed();
+
 	void notify_errors ();
 	void close_dialog ();
 
 	void sync_with_manager ();
-	void update_warnings ();
+	void update_warnings_and_example_filename ();
 	void show_conflicting_files ();
 
 	void export_rt ();
@@ -110,6 +115,9 @@ class ExportDialog : public ArdourDialog {
 	PBD::ScopedConnection abort_connection;
 
 	/*** GUI components ***/
+
+	Glib::RefPtr<Gtk::SizeGroup> advanced_sizegroup;
+	Gtk::Expander * advanced;
 
 	/* Warning area */
 
@@ -127,9 +135,10 @@ class ExportDialog : public ArdourDialog {
 
 	/* Progress bar */
 
-	Gtk::Label              progress_label;
 	Gtk::ProgressBar        progress_bar;
 	sigc::connection        progress_connection;
+
+	float previous_progress; // Needed for gtk bug workaround
 
 	/* Buttons */
 
@@ -147,7 +156,7 @@ class ExportRangeDialog : public ExportDialog
   private:
 	void init_components ();
 
-        std::string range_id;
+	std::string range_id;
 };
 
 class ExportSelectionDialog : public ExportDialog
@@ -163,6 +172,9 @@ class ExportRegionDialog : public ExportDialog
 {
   public:
 	ExportRegionDialog (PublicEditor & editor, ARDOUR::AudioRegion const & region, ARDOUR::AudioTrack & track);
+
+  protected:
+	virtual bool channel_selector_is_expandable() { return false; }
 
   private:
 	void init_gui ();

@@ -230,6 +230,7 @@ public:
 		Pressed,
 		SelectTouchDragging,
 		SelectRectDragging,
+		SelectVerticalDragging,
 		AddDragging
 	};
 
@@ -252,13 +253,13 @@ public:
 	 */
 	framepos_t snap_pixel_to_frame(double x);
 
-	/** Convert a timestamp in beats into frames (both relative to region start) */
+	/** Convert a timestamp in beats into frames (both relative to region position) */
 	framepos_t region_beats_to_region_frames(double beats) const;
 	/** Convert a timestamp in beats into absolute frames */
 	framepos_t region_beats_to_absolute_frames(double beats) const {
 		return _region->position() + region_beats_to_region_frames (beats);
 	}
-	/** Convert a timestamp in frames to beats (both relative to region start) */
+	/** Convert a timestamp in frames to beats (both relative to region position) */
 	double region_frames_to_region_beats(framepos_t) const;
 
 	/** Convert a timestamp in beats measured from source start into absolute frames */
@@ -315,6 +316,7 @@ protected:
 private:
 
 	friend class MidiRubberbandSelectDrag;
+	friend class MidiVerticalSelectDrag;
 
 	/** Emitted when the selection has been cleared in one MidiRegionView */
 	static PBD::Signal1<void, MidiRegionView*> SelectionCleared;
@@ -353,6 +355,7 @@ private:
 	void clear_selection_except (ArdourCanvas::CanvasNoteEvent* ev, bool signal = true);
 	void clear_selection (bool signal = true) { clear_selection_except (0, signal); }
 	void update_drag_selection (double last_x, double x, double last_y, double y, bool extend);
+	void update_vertical_drag_selection (double last_y, double y, bool extend);
 
 	void add_to_selection (ArdourCanvas::CanvasNoteEvent*);
 	void remove_from_selection (ArdourCanvas::CanvasNoteEvent*);
@@ -465,7 +468,8 @@ private:
 	
 	PBD::ScopedConnection _mouse_mode_connection;
 
-	Gdk::Cursor* _pre_enter_cursor;
+	Gdk::Cursor* pre_enter_cursor;
+	Gdk::Cursor* pre_press_cursor;
 };
 
 
