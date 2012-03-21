@@ -297,111 +297,6 @@ rgba_from_style (string style, uint32_t r, uint32_t g, uint32_t b, uint32_t a, s
 	}
 }
 
-
-Gdk::Color
-color_from_style (string widget_style_name, int state, string attr)
-{
-	GtkStyle* style;
-
-	style = gtk_rc_get_style_by_paths (gtk_settings_get_default(),
-					   widget_style_name.c_str(),
-					   0, G_TYPE_NONE);
-
-	if (!style) {
-		error << string_compose (_("no style found for %1, using red"), style) << endmsg;
-		return Gdk::Color ("red");
-	}
-
-	if (attr == "fg") {
-		return Gdk::Color (&style->fg[state]);
-	}
-
-	if (attr == "bg") {
-		return Gdk::Color (&style->bg[state]);
-	}
-
-	if (attr == "light") {
-		return Gdk::Color (&style->light[state]);
-	}
-
-	if (attr == "dark") {
-		return Gdk::Color (&style->dark[state]);
-	}
-
-	if (attr == "mid") {
-		return Gdk::Color (&style->mid[state]);
-	}
-
-	if (attr == "text") {
-		return Gdk::Color (&style->text[state]);
-	}
-
-	if (attr == "base") {
-		return Gdk::Color (&style->base[state]);
-	}
-
-	if (attr == "text_aa") {
-		return Gdk::Color (&style->text_aa[state]);
-	}
-
-	error << string_compose (_("unknown style attribute %1 requested for color; using \"red\""), attr) << endmsg;
-	return Gdk::Color ("red");
-}
-
-Glib::RefPtr<Gdk::GC>
-gc_from_style (string widget_style_name, int state, string attr)
-{
-        GtkStyle* style;
-
-        style = gtk_rc_get_style_by_paths (gtk_settings_get_default(),
-                                           widget_style_name.c_str(),
-                                           0, G_TYPE_NONE);
-
-        if (!style) {
-                error << string_compose (_("no style found for %1, using red"), style) << endmsg;
-		Glib::RefPtr<Gdk::GC> ret = Gdk::GC::create();
-		ret->set_rgb_fg_color(Gdk::Color("red"));
-                return ret;
-        }
-
-        if (attr == "fg") {
-                return Glib::wrap(style->fg_gc[state]);
-        }
-
-        if (attr == "bg") {
-                return Glib::wrap(style->bg_gc[state]);
-        }
-
-        if (attr == "light") {
-                return Glib::wrap(style->light_gc[state]);
-        }
-
-        if (attr == "dark") {
-                return Glib::wrap(style->dark_gc[state]);
-        }
-
-        if (attr == "mid") {
-                return Glib::wrap(style->mid_gc[state]);
-        }
-
-        if (attr == "text") {
-                return Glib::wrap(style->text_gc[state]);
-        }
-
-        if (attr == "base") {
-                return Glib::wrap(style->base_gc[state]);
-        }
-
-        if (attr == "text_aa") {
-                return Glib::wrap(style->text_aa_gc[state]);
-        }
-
-        error << string_compose (_("unknown style attribute %1 requested for color; using \"red\""), attr) << endmsg;
-	Glib::RefPtr<Gdk::GC> ret = Gdk::GC::create();
-	ret->set_rgb_fg_color(Gdk::Color("red"));
-        return ret;
-}
-
 void
 set_color (Gdk::Color& c, int rgb)
 {
@@ -514,7 +409,32 @@ key_press_focus_accelerator_handler (Gtk::Window& window, GdkEventKey* ev)
 		uint32_t fakekey = ev->keyval;
 
 		if (Gtkmm2ext::possibly_translate_keyval_to_make_legal_accelerator (fakekey)) {
-			if (allow_activating && gtk_accel_groups_activate(G_OBJECT(win), fakekey, GdkModifierType(ev->state))) {
+			DEBUG_TRACE (DEBUG::Accelerators, string_compose ("\tactivate (was %1 now %2) without special hanlding of unmodified accels\n",
+									  ev->keyval, fakekey));
+
+			GdkModifierType mod = GdkModifierType (ev->state);
+
+			mod = GdkModifierType (mod & gtk_accelerator_get_default_mod_mask());
+#ifdef GTKOSX
+			/* GTK on OS X is currently (February 2012) setting both
+			   the Meta and Mod2 bits in the event modifier state if 
+			   the Command key is down.
+
+			   gtk_accel_groups_activate() does not invoke any of the logic
+			   that gtk_window_activate_key() will that sorts out that stupid
+			   state of affairs, and as a result it fails to find a match
+			   for the key event and the current set of accelerators.
+
+			   to fix this, if the meta bit is set, remove the mod2 bit
+			   from the modifier. this assumes that our bindings use Primary
+			   which will have set the meta bit in the accelerator entry.
+			*/
+			if (mod & GDK_META_MASK) {
+				mod = GdkModifierType (mod & ~GDK_MOD2_MASK);
+			}
+#endif
+
+			if (allow_activating && gtk_accel_groups_activate(G_OBJECT(win), fakekey, mod)) {
 				DEBUG_TRACE (DEBUG::Accelerators, "\taccel group activated by fakekey\n");
 				return true;
 			}

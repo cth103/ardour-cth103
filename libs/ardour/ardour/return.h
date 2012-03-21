@@ -33,6 +33,7 @@ namespace ARDOUR {
 class Amp;
 class PeakMeter;
 
+
 class Return : public IOProcessor
 {
 public:
@@ -59,7 +60,7 @@ public:
 	bool configure_io (ChanCount in, ChanCount out);
 
 	static uint32_t how_many_returns();
-	static void make_unique (XMLNode &, Session &);
+	static std::string name_and_id_new_return (Session&, uint32_t&);
 
   protected:
 	bool _metering;

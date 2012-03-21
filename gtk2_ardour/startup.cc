@@ -39,6 +39,7 @@
 #include "ardour/session_state_utils.h"
 #include "ardour/template_utils.h"
 
+#include "ardour_ui.h"
 #include "startup.h"
 #include "opts.h"
 #include "engine_dialog.h"
@@ -146,6 +147,8 @@ Ardour will play NO role in monitoring"))
 		if (need_audio_setup) {
 			setup_audio_page ();
 		}
+
+		ic_new_session_button.set_active (true); // always create new session on first run
 
 	} else {
 
@@ -361,6 +364,8 @@ void
 ArdourStartup::default_dir_changed ()
 {
 	Config->set_default_session_parent_dir (default_dir_chooser->get_filename());
+	// make new session folder chooser point to the new default
+	new_folder_chooser.set_current_folder (Config->get_default_session_parent_dir());
 	config_changed ();
 }
 
@@ -584,6 +589,7 @@ ArdourStartup::setup_initial_choice_page ()
 
 		existing_session_chooser.set_title (_("Select session file"));
 		existing_session_chooser.signal_file_set().connect (sigc::mem_fun (*this, &ArdourStartup::existing_session_selected));
+		existing_session_chooser.set_current_folder(poor_mans_glob (Config->get_default_session_parent_dir()));
 			
 #ifdef GTKOSX
 		existing_session_chooser.add_shortcut_folder ("/Volumes");
@@ -593,6 +599,7 @@ ArdourStartup::setup_initial_choice_page ()
 	}
 
 	ic_new_session_button.signal_button_press_event().connect(sigc::mem_fun(*this, &ArdourStartup::initial_button_press), false);
+	ic_new_session_button.signal_clicked().connect(sigc::mem_fun(*this, &ArdourStartup::initial_button_clicked));
 	ic_new_session_button.signal_activate().connect(sigc::mem_fun(*this, &ArdourStartup::initial_button_activated), false);
 
 	centering_hbox->pack_start (*centering_vbox, true, true);
@@ -608,10 +615,20 @@ ArdourStartup::setup_initial_choice_page ()
 	set_page_complete (ic_vbox, true);
 }
 
+void
+ArdourStartup::initial_button_clicked ()
+{
+	if (ic_new_session_button.get_active ()) {
+		recent_session_display.get_selection()->unselect_all ();
+	}
+}
+		
 bool
 ArdourStartup::initial_button_press (GdkEventButton *event)
 {
 	if (event && event->type == GDK_2BUTTON_PRESS && new_session_page_index != -1) {
+		ic_new_session_button.set_active (true);
+		recent_session_display.get_selection()->unselect_all ();
 		set_current_page (new_session_page_index);
 		return true;
 	} else {
@@ -622,6 +639,7 @@ ArdourStartup::initial_button_press (GdkEventButton *event)
 void
 ArdourStartup::initial_button_activated ()
 {
+	recent_session_display.get_selection()->unselect_all ();
 	set_current_page (new_session_page_index);
 }
 
@@ -687,6 +705,12 @@ ArdourStartup::on_prepare (Gtk::Widget* page)
 {
 	if (page == &new_session_vbox) {
 
+		if (recent_session_display.get_selection()->count_selected_rows() > 0) {
+			/* row selected, use it */
+			set_page_type (new_session_vbox, ASSISTANT_PAGE_CONFIRM);
+			on_apply ();
+		}	
+
 		/* HACK HACK HACK ... change the "Apply" button label
 		   to say "Open"
 		*/
@@ -742,6 +766,12 @@ ArdourStartup::setup_new_session_page ()
 	}
 
 	session_new_vbox.set_spacing (18);
+	new_session_hbox.pack_start (session_new_vbox, true, true);
+	new_session_vbox.pack_start (new_session_hbox, true, true);
+	new_session_page_index = append_page (new_session_vbox);
+	/* initial setting */
+	set_page_type (new_session_vbox, ASSISTANT_PAGE_CONFIRM);
+	set_page_title (new_session_vbox, _("New Session"));
 
 	if (session_new_vbox.get_children().empty()) {
 		VBox *vbox1 = manage (new VBox);
@@ -780,6 +810,13 @@ ArdourStartup::setup_new_session_page ()
 
 		if (!ARDOUR_COMMAND_LINE::session_name.empty()) {
 			new_folder_chooser.set_current_folder (poor_mans_glob (Glib::path_get_dirname (ARDOUR_COMMAND_LINE::session_name)));
+		} else if (ARDOUR_UI::instance()->session_loaded) {
+			// point the new session file chooser at the parent directory of the current session
+			string session_parent_dir = Glib::path_get_dirname(ARDOUR_UI::instance()->the_session()->path());
+			string::size_type last_dir_sep = session_parent_dir.rfind(G_DIR_SEPARATOR);
+			session_parent_dir = session_parent_dir.substr(0, last_dir_sep);
+			new_folder_chooser.set_current_folder (session_parent_dir);
+			new_folder_chooser.add_shortcut_folder (poor_mans_glob (Config->get_default_session_parent_dir()));
 		} else {
 			new_folder_chooser.set_current_folder (poor_mans_glob (Config->get_default_session_parent_dir()));
 		}
@@ -883,15 +920,9 @@ ArdourStartup::setup_new_session_page ()
 	}
 
 	session_new_vbox.show_all ();
-	new_session_hbox.pack_start (session_new_vbox, true, true);
 
 	new_session_vbox.set_border_width (24);
-	new_session_vbox.pack_start (new_session_hbox, true, true);
 	new_session_vbox.show_all ();
-	new_session_page_index = append_page (new_session_vbox);
-	/* initial setting */
-	set_page_type (new_session_vbox, ASSISTANT_PAGE_CONFIRM);
-	set_page_title (new_session_vbox, _("New Session"));
 
 	if (more_new_session_options_button.get_active()) {
 		set_page_type (new_session_vbox, ASSISTANT_PAGE_CONTENT);
@@ -996,6 +1027,7 @@ ArdourStartup::redisplay_recent_sessions ()
 		}
 	}
 
+	recent_session_display.set_tooltip_column(1); // recent_session_columns.fullpath
 	recent_session_display.set_model (recent_session_model);
 	return rs.size();
 }
@@ -1004,9 +1036,9 @@ void
 ArdourStartup::recent_session_row_selected ()
 {
 	if (recent_session_display.get_selection()->count_selected_rows() > 0) {
-		set_page_complete (ic_vbox, true);
+		ic_new_session_button.set_active (false);
 	} else {
-		set_page_complete (ic_vbox, false);
+		ic_new_session_button.set_active (true);
 	}
 }
 
@@ -1336,7 +1368,6 @@ ArdourStartup::recent_row_activated (const Gtk::TreePath&, Gtk::TreeViewColumn*)
 {
 	ic_new_session_button.set_active (false);
 	set_page_type (ic_vbox, ASSISTANT_PAGE_CONFIRM);
-	set_page_complete (ic_vbox, true);
 	on_apply ();
 }
 
@@ -1346,7 +1377,6 @@ ArdourStartup::existing_session_selected ()
 	ic_new_session_button.set_active (false);
 	_existing_session_chooser_used = true;
 	set_page_type (ic_vbox, ASSISTANT_PAGE_CONFIRM);
-	set_page_complete (ic_vbox, true);
 	on_apply ();
 }
 

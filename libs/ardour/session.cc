@@ -673,7 +673,7 @@ Session::add_monitor_section ()
 	}
 
 	rl.push_back (r);
-	add_routes (rl, false, false);
+	add_routes (rl, false, false, false);
 	
 	assert (_monitor_out);
 
@@ -1646,7 +1646,7 @@ Session::new_midi_track (boost::shared_ptr<PluginInfo> instrument, TrackMode mod
 
   failed:
 	if (!new_routes.empty()) {
-		add_routes (new_routes, true, true);
+		add_routes (new_routes, true, true, true);
 
 		if (instrument) {
 			for (RouteList::iterator r = new_routes.begin(); r != new_routes.end(); ++r) {
@@ -1889,7 +1889,7 @@ Session::new_audio_track (int input_channels, int output_channels, TrackMode mod
 
   failed:
 	if (!new_routes.empty()) {
-		add_routes (new_routes, true, true);
+		add_routes (new_routes, true, true, true);
 	}
 
 	return ret;
@@ -2001,7 +2001,7 @@ Session::new_audio_route (int input_channels, int output_channels, RouteGroup* r
 
   failure:
 	if (!ret.empty()) {
-		add_routes (ret, false, true);
+		add_routes (ret, false, true, true); // autoconnect outputs only
 	}
 
 	return ret;
@@ -2100,7 +2100,7 @@ Session::new_route_from_template (uint32_t how_many, const std::string& template
 
   out:
 	if (!ret.empty()) {
-		add_routes (ret, true, true);
+		add_routes (ret, true, true, true);
 		IO::enable_connecting ();
 	}
 
@@ -2108,7 +2108,7 @@ Session::new_route_from_template (uint32_t how_many, const std::string& template
 }
 
 void
-Session::add_routes (RouteList& new_routes, bool auto_connect, bool save)
+Session::add_routes (RouteList& new_routes, bool input_auto_connect, bool output_auto_connect, bool save)
 {
         ChanCount existing_inputs;
         ChanCount existing_outputs;
@@ -2165,8 +2165,8 @@ Session::add_routes (RouteList& new_routes, bool auto_connect, bool save)
 			}
 		}
 
-		if (auto_connect) {
-			auto_connect_route (r, existing_inputs, existing_outputs, true);
+		if (input_auto_connect || output_auto_connect) {
+			auto_connect_route (r, existing_inputs, existing_outputs, true, input_auto_connect);
 		}
 	}
 
@@ -3901,7 +3901,9 @@ Session::freeze_all (InterThreadInfo& itt)
 boost::shared_ptr<Region>
 Session::write_one_track (AudioTrack& track, framepos_t start, framepos_t end,
 			  bool /*overwrite*/, vector<boost::shared_ptr<Source> >& srcs,
-			  InterThreadInfo& itt, bool enable_processing)
+			  InterThreadInfo& itt, 
+			  boost::shared_ptr<Processor> endpoint, bool include_endpoint,
+			  bool for_export)
 {
 	boost::shared_ptr<Region> result;
 	boost::shared_ptr<Playlist> playlist;
@@ -3938,12 +3940,6 @@ Session::write_one_track (AudioTrack& track, framepos_t start, framepos_t end,
 		goto out;
 	}
 
-	/* external redirects will be a problem */
-
-	if (track.has_external_redirects()) {
-		goto out;
-	}
-
 	ext = native_header_format_extension (config.get_native_file_header_format(), DataType::AUDIO);
 
 	for (uint32_t chan_n = 0; chan_n < diskstream_channels.n_audio(); ++chan_n) {
@@ -3973,12 +3969,13 @@ Session::write_one_track (AudioTrack& track, framepos_t start, framepos_t end,
 		srcs.push_back (fsource);
 	}
 
-	/* tell redirects that care that we are about to use a much larger blocksize */
+	/* tell redirects that care that we are about to use a much larger
+	 * blocksize. this will flush all plugins too, so that they are ready
+	 * to be used for this process.
+	 */
 
 	need_block_size_reset = true;
 	track.set_block_size (chunk_size);
-
-	/* XXX need to flush all redirects */
 
 	position = start;
 	to_do = len;
@@ -3997,7 +3994,7 @@ Session::write_one_track (AudioTrack& track, framepos_t start, framepos_t end,
 
 		this_chunk = min (to_do, chunk_size);
 
-		if (track.export_stuff (buffers, start, this_chunk, enable_processing)) {
+		if (track.export_stuff (buffers, start, this_chunk, endpoint, include_endpoint, for_export)) {
 			goto out;
 		}
 
@@ -4482,7 +4479,13 @@ Session::ensure_search_path_includes (const string& path, DataType type)
 	split (search_path, dirs, ':');
 
 	for (vector<string>::iterator i = dirs.begin(); i != dirs.end(); ++i) {
-		if (*i == path) {
+		/* No need to add this new directory if it has the same inode as
+		   an existing one; checking inode rather than name prevents duplicated
+		   directories when we are using symlinks.
+
+		   On Windows, I think we could just do if (*i == path) here.
+		*/
+		if (inodes_same (*i, path)) {
 			return;
 		}
 	}

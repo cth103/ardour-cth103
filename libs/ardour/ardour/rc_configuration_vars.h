@@ -111,6 +111,9 @@ CONFIG_VARIABLE (gain_t, click_gain, "click-gain", 1.0)
 
 /* transport control and related */
 
+/** if true, we call Processor::flush() on all processors when the transport is stopped.
+ *  Note that processors are still run when the transport is not moving.
+ */
 CONFIG_VARIABLE (bool, plugins_stop_with_transport, "plugins-stop-with-transport", false)
 CONFIG_VARIABLE (bool, do_not_record_plugins, "do-not-record-plugins", false)
 CONFIG_VARIABLE (bool, stop_recording_on_xrun, "stop-recording-on-xrun", false)
@@ -174,6 +177,7 @@ CONFIG_VARIABLE (bool, update_editor_during_summary_drag, "update-editor-during-
 CONFIG_VARIABLE (bool, never_display_periodic_midi, "never-display-periodic-midi", true)
 CONFIG_VARIABLE (bool, sound_midi_notes, "sound-midi-notes", false)
 CONFIG_VARIABLE (bool, use_plugin_own_gui, "use-plugin-own-gui", true)
+CONFIG_VARIABLE (uint32_t, max_recent_sessions, "max-recent-sessions", 10)
 
 /* denormal management */
 

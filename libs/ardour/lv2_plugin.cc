@@ -634,12 +634,12 @@ LV2Plugin::add_state(XMLNode* root) const
 
 		if (!_impl->state || !lilv_state_equals(state, _impl->state)) {
 			lilv_state_save(_world.world,
+			                _uri_map.urid_map(),
 			                _uri_map.urid_unmap(),
 			                state,
 			                NULL,
 			                new_dir.c_str(),
-			                "state.ttl",
-			                NULL);
+			                "state.ttl");
 
 			lilv_state_free(_impl->state);
 			_impl->state = state;
@@ -723,6 +723,8 @@ LV2Plugin::load_preset(PresetRecord r)
 {
 	Plugin::load_preset(r);
 
+	std::map<std::string,uint32_t>::iterator it;
+
 	LilvNode* lv2_port      = lilv_new_uri(_world.world, LILV_NS_LV2 "port");
 	LilvNode* lv2_symbol    = lilv_new_uri(_world.world, LILV_NS_LV2 "symbol");
 	LilvNode* oldpset_value = lilv_new_uri(_world.world, NS_OLDPSET "value");
@@ -738,8 +740,9 @@ LV2Plugin::load_preset(PresetRecord r)
 			value = get_value(_world.world, port, oldpset_value);
 		}
 		if (value && lilv_node_is_float(value)) {
-			set_parameter(_port_indices[lilv_node_as_string(symbol)],
-			              lilv_node_as_float(value));
+		        it = _port_indices.find(lilv_node_as_string(symbol));
+			if (it != _port_indices.end())
+			        set_parameter(it->second,lilv_node_as_float(value));
 		}
 	}
 	lilv_nodes_free(ports);

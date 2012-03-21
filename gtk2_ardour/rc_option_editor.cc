@@ -757,6 +757,7 @@ private:
 				if (box) {
 					string title = row[_model.name];
 					ArdourWindow* win = new ArdourWindow (_parent, title);
+					win->set_title ("Control Protocol Options");
 					win->add (*box);
 					box->show ();
 					win->present ();
@@ -918,6 +919,15 @@ RCOptionEditor::RCOptionEditor ()
 			    sigc::mem_fun (*_rc_config, &RCConfiguration::get_default_session_parent_dir),
 			    sigc::mem_fun (*_rc_config, &RCConfiguration::set_default_session_parent_dir)
 			    ));
+
+	add_option (_("Misc"),
+	     new SpinOption<uint32_t> (
+		     "max-recent-sessions",
+		     _("Maximum number of recent sessions"),
+		     sigc::mem_fun (*_rc_config, &RCConfiguration::get_max_recent_sessions),
+		     sigc::mem_fun (*_rc_config, &RCConfiguration::set_max_recent_sessions),
+		     0, 1000, 1, 20
+		     ));
 
 	add_option (_("Misc"), new OptionEditorHeading (_("Click")));
 
@@ -1260,7 +1270,7 @@ RCOptionEditor::RCOptionEditor ()
 	add_option (_("Audio"),
 	     new BoolOption (
 		     "plugins-stop-with-transport",
-		     _("Stop plugins when the transport is stopped"),
+		     _("Silence plugins when the transport is stopped"),
 		     sigc::mem_fun (*_rc_config, &RCConfiguration::get_plugins_stop_with_transport),
 		     sigc::mem_fun (*_rc_config, &RCConfiguration::set_plugins_stop_with_transport)
 		     ));

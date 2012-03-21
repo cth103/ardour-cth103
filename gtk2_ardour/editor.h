@@ -485,7 +485,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	typedef std::pair<TimeAxisView*,XMLNode*> TAVState;
 
 	struct VisualState {
-	    VisualState();
+	    VisualState (bool with_tracks);
 	    ~VisualState ();
 	    double              y_position;
 	    double              frames_per_pixel;
@@ -504,10 +504,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void swap_visual_state ();
 
 	std::vector<VisualState*> visual_states;
-	sigc::connection visual_state_op_connection;
 	void start_visual_state_op (uint32_t n);
 	void cancel_visual_state_op (uint32_t n);
-	bool end_visual_state_op (uint32_t n);
 
 	framepos_t leftmost_frame;
 	double      frames_per_pixel;
@@ -721,6 +719,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	Canvas::GtkCanvasViewport* _track_canvas_viewport;
 	Gtk::Adjustment* _track_canvas_hadj;
 	Gtk::Adjustment* _track_canvas_vadj;
+	bool within_track_canvas;
 
 	Canvas::GtkCanvas* _time_bars_canvas;
 	Canvas::GtkCanvasViewport* _time_bars_canvas_viewport;
@@ -1811,14 +1810,6 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void update_title ();
 	void update_title_s (const std::string & snapshot_name);
-
-	struct State {
-	    Selection* selection;
-	    double frames_per_pixel;
-
-	    State (PublicEditor const * e);
-	    ~State ();
-	};
 
 	void instant_save ();
 

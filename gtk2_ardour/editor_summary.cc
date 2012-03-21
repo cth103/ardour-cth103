@@ -141,7 +141,7 @@ EditorSummary::on_expose_event (GdkEventExpose* event)
 void
 EditorSummary::render (cairo_t* cr)
 {
-	/* background */
+	/* background (really just the dividing lines between tracks */
 
 	cairo_set_source_rgb (cr, 0, 0, 0);
 	cairo_rectangle (cr, 0, 0, get_width(), get_height());
@@ -188,8 +188,10 @@ EditorSummary::render (cairo_t* cr)
 			continue;
 		}
 
+		/* paint a non-bg colored strip to represent the track itself */
+
 		cairo_set_source_rgb (cr, 0.2, 0.2, 0.2);
-		cairo_set_line_width (cr, _track_height - 2);
+		cairo_set_line_width (cr, _track_height - 1);
 		cairo_move_to (cr, 0, y + _track_height / 2);
 		cairo_line_to (cr, get_width(), y + _track_height / 2);
 		cairo_stroke (cr);

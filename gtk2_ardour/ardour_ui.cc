@@ -205,7 +205,6 @@ ARDOUR_UI::ARDOUR_UI (int *argcp, char **argvp[])
 	big_clock_resize_in_progress = false;
 	session_selector_window = 0;
 	last_key_press_time = 0;
-	_will_create_new_session_automatically = false;
 	add_route_dialog = 0;
 	route_params = 0;
 	bundle_manager = 0;
@@ -649,59 +648,6 @@ ARDOUR_UI::update_autosave ()
 			_autosave_connection.disconnect();
 		}
 	}
-}
-
-void
-ARDOUR_UI::backend_audio_error (bool we_set_params, Gtk::Window* toplevel)
-{
-	string title;
-	if (we_set_params) {
-		title = string_compose (_("%1 could not start JACK"), PROGRAM_NAME);
-	} else {
-		title = string_compose (_("%1 could not connect to JACK."), PROGRAM_NAME);
-	}
-
-	MessageDialog win (title,
-			   false,
-			   Gtk::MESSAGE_INFO,
-			   Gtk::BUTTONS_NONE);
-
-	if (we_set_params) {
-		win.set_secondary_text(_("There are several possible reasons:\n\
-\n\
-1) You requested audio parameters that are not supported..\n\
-2) JACK is running as another user.\n\
-\n\
-Please consider the possibilities, and perhaps try different parameters."));
-	} else {
-		win.set_secondary_text(_("There are several possible reasons:\n\
-\n\
-1) JACK is not running.\n\
-2) JACK is running as another user, perhaps root.\n\
-3) There is already another client called \"ardour\".\n\
-\n\
-Please consider the possibilities, and perhaps (re)start JACK."));
-	}
-
-	if (toplevel) {
-		win.set_transient_for (*toplevel);
-	}
-
-	if (we_set_params) {
-		win.add_button (Stock::OK, RESPONSE_CLOSE);
-	} else {
-		win.add_button (Stock::QUIT, RESPONSE_CLOSE);
-	}
-
-	win.set_default_response (RESPONSE_CLOSE);
-
-	win.show_all ();
-	win.set_position (Gtk::WIN_POS_CENTER);
-	pop_back_splash (win);
-
-	/* we just don't care about the result, but we want to block */
-
-	win.run ();
 }
 
 void
@@ -1193,13 +1139,6 @@ ARDOUR_UI::update_wall_clock ()
 	return TRUE;
 }
 
-gint
-ARDOUR_UI::session_menu (GdkEventButton */*ev*/)
-{
-	session_popup_menu->popup (0, 0);
-	return TRUE;
-}
-
 void
 ARDOUR_UI::redisplay_recent_sessions ()
 {
@@ -1280,6 +1219,7 @@ ARDOUR_UI::redisplay_recent_sessions ()
 		}
 	}
 
+	recent_session_display.set_tooltip_column(1); // recent_session_columns.fullpath
 	recent_session_display.set_model (recent_session_model);
 }
 
@@ -1409,6 +1349,17 @@ ARDOUR_UI::open_session ()
 		open_session_selector->add_button (Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
 		open_session_selector->add_button (Gtk::Stock::OPEN, Gtk::RESPONSE_ACCEPT);
 		open_session_selector->set_default_response(Gtk::RESPONSE_ACCEPT);
+		
+		if (_session) {
+			string session_parent_dir = Glib::path_get_dirname(_session->path());
+			string::size_type last_dir_sep = session_parent_dir.rfind(G_DIR_SEPARATOR);
+			session_parent_dir = session_parent_dir.substr(0, last_dir_sep);
+			open_session_selector->set_current_folder(session_parent_dir);
+		} else {
+			open_session_selector->set_current_folder(Config->get_default_session_parent_dir());
+		}
+
+		open_session_selector->add_shortcut_folder (Config->get_default_session_parent_dir());
 
 		FileFilter session_filter;
 		session_filter.add_pattern ("*.ardour");
@@ -1541,25 +1492,6 @@ restart JACK with more ports."), PROGRAM_NAME));
 }
 
 void
-ARDOUR_UI::do_transport_locate (framepos_t new_position, bool with_roll)
-{
-	framecnt_t _preroll = 0;
-
-	if (_session) {
-		// XXX CONFIG_CHANGE FIX - requires AnyTime handling
-		// _preroll = _session->convert_to_frames_at (new_position, Config->get_preroll());
-
-		if (new_position > _preroll) {
-			new_position -= _preroll;
-		} else {
-			new_position = 0;
-		}
-
-		_session->request_locate (new_position, with_roll);
-	}
-}
-
-void
 ARDOUR_UI::transport_goto_start ()
 {
 	if (_session) {
@@ -1649,22 +1581,6 @@ ARDOUR_UI::transport_stop ()
 	}
 
 	_session->request_stop (false, true);
-}
-
-void
-ARDOUR_UI::transport_stop_and_forget_capture ()
-{
-	if (_session) {
-		_session->request_stop (true, true);
-	}
-}
-
-void
-ARDOUR_UI::remove_last_capture()
-{
-	if (editor) {
-		editor->remove_last_capture();
-	}
 }
 
 void
@@ -1807,7 +1723,9 @@ ARDOUR_UI::toggle_roll (bool with_abort, bool roll_out_of_bounded_mode)
 void
 ARDOUR_UI::toggle_session_auto_loop ()
 {
-	if (!_session) {
+	Location * looploc = _session->locations()->auto_loop_location();
+
+	if (!_session || !looploc) {
 		return;
 	}
 
@@ -1815,24 +1733,18 @@ ARDOUR_UI::toggle_session_auto_loop ()
 
 		if (_session->transport_rolling()) {
 
-			Location * looploc = _session->locations()->auto_loop_location();
-
-			if (looploc) {
-				_session->request_locate (looploc->start(), true);
-				_session->request_play_loop (false);
-			}
+			_session->request_locate (looploc->start(), true);
+			_session->request_play_loop (false);
 
 		} else {
 			_session->request_play_loop (false);
 		}
 	} else {
-
-	  Location * looploc = _session->locations()->auto_loop_location();
-
-		if (looploc) {
-			_session->request_play_loop (true);
-		}
+		_session->request_play_loop (true);
 	}
+	
+	//show the loop markers
+	looploc->set_hidden (false, this);
 }
 
 void
@@ -2099,12 +2011,6 @@ ARDOUR_UI::do_engine_start ()
 }
 
 void
-ARDOUR_UI::setup_theme ()
-{
-	theme_manager->setup_theme();
-}
-
-void
 ARDOUR_UI::update_clocks ()
 {
 	if (!editor || !editor->dragging_playhead()) {
@@ -2122,18 +2028,6 @@ void
 ARDOUR_UI::stop_clocking ()
 {
 	clock_signal_connection.disconnect ();
-}
-
-void
-ARDOUR_UI::toggle_clocking ()
-{
-#if 0
-	if (clock_button.get_active()) {
-		start_clocking ();
-	} else {
-		stop_clocking ();
-	}
-#endif
 }
 
 gint
@@ -2560,12 +2454,6 @@ ARDOUR_UI::idle_load (const std::string& path)
 }
 
 void
-ARDOUR_UI::end_loading_messages ()
-{
-	// hide_splash ();
-}
-
-void
 ARDOUR_UI::loading_message (const std::string& msg)
 {
 	if (ARDOUR_COMMAND_LINE::no_splash) {
@@ -2699,25 +2587,23 @@ ARDOUR_UI::get_session_parameters (bool quit_on_cancel, bool should_be_new, stri
 		} else {
 
 			if (!likely_new) {
+				if (_startup) {
+					pop_back_splash (*_startup);
+				} else {
+					hide_splash ();
+				}
+
 				MessageDialog msg (string_compose (_("There is no existing session at \"%1\""), session_path));
 				msg.run ();
 				ARDOUR_COMMAND_LINE::session_name = ""; // cancel that
 				continue;
 			}
 
-			if (session_name.find ('/') != std::string::npos) {
-				MessageDialog msg (*_startup,
-				                   _("To ensure compatibility with various systems\n"
-				                     "session names may not contain a '/' character"));
-				msg.run ();
-				ARDOUR_COMMAND_LINE::session_name = ""; // cancel that
-				continue;
-			}
-
-			if (session_name.find ('\\') != std::string::npos) {
-				MessageDialog msg (*_startup,
-				                   _("To ensure compatibility with various systems\n"
-				                     "session names may not contain a '\\' character"));
+			char illegal = Session::session_name_is_legal(session_name);
+			if (illegal) {
+				pop_back_splash (*_startup);
+				MessageDialog msg (*_startup, string_compose(_("To ensure compatibility with various systems\n"
+				                     "session names may not contain a '%1' character"), illegal));
 				msg.run ();
 				ARDOUR_COMMAND_LINE::session_name = ""; // cancel that
 				continue;

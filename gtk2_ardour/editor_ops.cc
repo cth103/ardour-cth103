@@ -31,6 +31,7 @@
 #include "pbd/basename.h"
 #include "pbd/pthread_utils.h"
 #include "pbd/memento_command.h"
+#include "pbd/unwind.h"
 #include "pbd/whitespace.h"
 #include "pbd/stateful_diff_command.h"
 
@@ -490,7 +491,7 @@ Editor::nudge_backward_capture_offset ()
 		return;
 	}
 
-	begin_reversible_command (_("nudge forward"));
+	begin_reversible_command (_("nudge backward"));
 
 	framepos_t const distance = _session->worst_output_latency();
 
@@ -1494,8 +1495,15 @@ Editor::temporal_zoom_region (bool both_axes)
 		no_save_visual = true;
 	}
 
-	temporal_zoom_by_frame (start, end, "zoom to region");
+	/* if we're zooming on both axes we need to save track heights etc.
+	 */
 
+	undo_visual_stack.push_back (current_visual_state (both_axes));
+
+	PBD::Unwinder<bool> nsv (no_save_visual, true);
+
+	temporal_zoom_by_frame (start, end, "zoom to region");
+	
 	if (both_axes) {
 		uint32_t per_track_height = (uint32_t) floor ((_visible_canvas_height - 10.0) / tracks.size());
 
@@ -1518,10 +1526,9 @@ Editor::temporal_zoom_region (bool both_axes)
 		_routes->resume_redisplay ();
 
 		vertical_adjustment.set_value (0.0);
-		no_save_visual = false;
 	}
 
-	redo_visual_stack.push_back (current_visual_state());
+	redo_visual_stack.push_back (current_visual_state (both_axes));
 }
 
 void
@@ -3345,14 +3352,17 @@ Editor::unfreeze_route ()
 void*
 Editor::_freeze_thread (void* arg)
 {
-	SessionEvent::create_per_thread_pool ("freeze events", 64);
-
 	return static_cast<Editor*>(arg)->freeze_thread ();
 }
 
 void*
 Editor::freeze_thread ()
 {
+	/* create event pool because we may need to talk to the session */
+	SessionEvent::create_per_thread_pool ("freeze events", 64);
+	/* create per-thread buffers for process() tree to use */
+	current_interthread_info->process_thread.init ();
+
 	clicked_routeview->audio_track()->freeze_me (*current_interthread_info);
 	current_interthread_info->done = true;
 	return 0;
@@ -3368,21 +3378,41 @@ Editor::freeze_route ()
 	/* stop transport before we start. this is important */
 
 	_session->request_transport_speed (0.0);
+	
+	/* wait for just a little while, because the above call is asynchronous */
+
+	::usleep (250000);
 
 	if (clicked_routeview == 0 || !clicked_routeview->is_audio_track()) {
 		return;
 	}
 
-	if (!clicked_routeview->track()->bounceable()) {
-		RouteTimeAxisView* rtv = dynamic_cast<RouteTimeAxisView*> (clicked_routeview);
-		if (rtv && !rtv->track()->bounceable()) {
-			MessageDialog d (
-				_("This route cannot be frozen because it has more outputs than inputs.  "
-				  "You can fix this by increasing the number of inputs.")
-				);
-			d.set_title (_("Cannot freeze"));
-			d.run ();
+	if (!clicked_routeview->track()->bounceable (clicked_routeview->track()->main_outs(), true)) {
+		MessageDialog d (
+			_("This track/bus cannot be frozen because the signal adds or loses channels before reaching the outputs.\n"
+			  "This is typically caused by plugins that generate stereo output from mono input or vice versa.")
+			);
+		d.set_title (_("Cannot freeze"));
+		d.run ();
+		return;
+	}
+
+	if (clicked_routeview->track()->has_external_redirects()) {
+		MessageDialog d (string_compose (_("<b>%1</b>\n\nThis track has at least one send/insert/return as part of its signal flow.\n\n"
+						   "Freezing will only process the signal as far as the first send/insert/return."),
+						 clicked_routeview->track()->name()), true, MESSAGE_INFO, BUTTONS_NONE, true);
+
+		d.add_button (_("Freeze anyway"), Gtk::RESPONSE_OK);
+		d.add_button (_("Don't freeze"), Gtk::RESPONSE_CANCEL);
+		d.set_title (_("Freeze Limits"));
+
+		int response = d.run ();
+
+		switch (response) {
+		case Gtk::RESPONSE_CANCEL:
 			return;
+		default:
+			break;
 		}
 	}
 
@@ -3413,16 +3443,21 @@ Editor::bounce_range_selection (bool replace, bool enable_processing)
 	TrackSelection views = selection->tracks;
 
 	for (TrackViewList::iterator i = views.begin(); i != views.end(); ++i) {
-		RouteTimeAxisView* rtv = dynamic_cast<RouteTimeAxisView*> (*i);
-		if (rtv && rtv->track() && replace && enable_processing && !rtv->track()->bounceable()) {
-			MessageDialog d (
-				_("You can't perform this operation because the processing of the signal "
-				  "will cause one or more of the tracks will end up with a region with more channels than this track has inputs.\n\n"
-				  "You can do this without processing, which is a different operation.")
-				);
-			d.set_title (_("Cannot bounce"));
-			d.run ();
-			return;
+
+		if (enable_processing) {
+
+			RouteTimeAxisView* rtv = dynamic_cast<RouteTimeAxisView*> (*i);
+
+			if (rtv && rtv->track() && replace && enable_processing && !rtv->track()->bounceable (rtv->track()->main_outs(), false)) {
+				MessageDialog d (
+					_("You can't perform this operation because the processing of the signal "
+					  "will cause one or more of the tracks will end up with a region with more channels than this track has inputs.\n\n"
+					  "You can do this without processing, which is a different operation.")
+					);
+				d.set_title (_("Cannot bounce"));
+				d.run ();
+				return;
+			}
 		}
 	}
 
@@ -3451,7 +3486,13 @@ Editor::bounce_range_selection (bool replace, bool enable_processing)
 		playlist->clear_changes ();
 		playlist->clear_owned_changes ();
 
-		boost::shared_ptr<Region> r = rtv->track()->bounce_range (start, start+cnt, itt, enable_processing);
+		boost::shared_ptr<Region> r;
+
+		if (enable_processing) {
+			r = rtv->track()->bounce_range (start, start+cnt, itt, rtv->track()->main_outs(), false);
+		} else {
+			r = rtv->track()->bounce_range (start, start+cnt, itt, boost::shared_ptr<Processor>(), false);
+		}
 
 		if (!r) {
 			continue;
@@ -6492,7 +6533,8 @@ Editor::fit_tracks (TrackViewList & tracks)
 		return;
 	}
 
-	undo_visual_stack.push_back (current_visual_state());
+	undo_visual_stack.push_back (current_visual_state (true));
+	no_save_visual = true;
 
 	/* build a list of all tracks, including children */
 
@@ -6547,7 +6589,7 @@ Editor::fit_tracks (TrackViewList & tracks)
 	controls_layout.property_height () = _full_canvas_height;
 	vertical_adjustment.set_value (first_y_pos);
 
-	redo_visual_stack.push_back (current_visual_state());
+	redo_visual_stack.push_back (current_visual_state (true));
 }
 
 void
@@ -6557,7 +6599,9 @@ Editor::save_visual_state (uint32_t n)
 		visual_states.push_back (0);
 	}
 
-	delete visual_states[n];
+	if (visual_states[n] != 0) {
+		delete visual_states[n];
+	}
 
 	visual_states[n] = current_visual_state (true);
 	gdk_beep ();
@@ -6580,38 +6624,19 @@ Editor::goto_visual_state (uint32_t n)
 void
 Editor::start_visual_state_op (uint32_t n)
 {
-	if (visual_state_op_connection.empty()) {
-		visual_state_op_connection = Glib::signal_timeout().connect (sigc::bind (sigc::mem_fun (*this, &Editor::end_visual_state_op), n), 1000);
-	}
-}
-
-void
-Editor::cancel_visual_state_op (uint32_t n)
-{
-	if (!visual_state_op_connection.empty()) {
-		visual_state_op_connection.disconnect();
-		goto_visual_state (n);
-	}  else {
-		//we land here if called from the menu OR if end_visual_state_op has been called
-		//so check if we are already in visual state n
-		// XXX not yet checking it at all, but redoing does not hurt
-		goto_visual_state (n);
-	}
-}
-
-bool
-Editor::end_visual_state_op (uint32_t n)
-{
-	visual_state_op_connection.disconnect();
 	save_visual_state (n);
-
+	
 	PopUp* pup = new PopUp (WIN_POS_MOUSE, 1000, true);
 	char buf[32];
 	snprintf (buf, sizeof (buf), _("Saved view %u"), n+1);
 	pup->set_text (buf);
 	pup->touch();
+}
 
-	return false; // do not call again
+void
+Editor::cancel_visual_state_op (uint32_t n)
+{
+        goto_visual_state (n);
 }
 
 void

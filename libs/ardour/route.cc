@@ -518,11 +518,6 @@ Route::process_output_buffers (BufferSet& bufs,
 			continue;
 		}
 
-		if (Config->get_plugins_stop_with_transport() && _session.transport_speed() == 0 && boost::dynamic_pointer_cast<PluginInsert> (*i)) {
-			/* don't run plugins with the transport stopped, if configured this way */
-			continue;
-		}
-		
 #ifndef NDEBUG
 		/* if it has any inputs, make sure they match */
 		if (boost::dynamic_pointer_cast<UnknownProcessor> (*i) == 0 && (*i)->input_streams() != ChanCount::ZERO) {
@@ -2990,34 +2985,6 @@ Route::silent_roll (pframes_t nframes, framepos_t /*start_frame*/, framepos_t /*
 	return 0;
 }
 
-bool
-Route::has_external_redirects () const
-{
-	// FIXME: what about sends? - they don't return a signal back to ardour?
-
-	boost::shared_ptr<const PortInsert> pi;
-
-	for (ProcessorList::const_iterator i = _processors.begin(); i != _processors.end(); ++i) {
-
-		if ((pi = boost::dynamic_pointer_cast<const PortInsert>(*i)) != 0) {
-
-			for (PortSet::const_iterator port = pi->output()->ports().begin(); port != pi->output()->ports().end(); ++port) {
-
-				string port_name = port->name();
-				string client_name = port_name.substr (0, port_name.find(':'));
-
-				/* only say "yes" if the redirect is actually in use */
-
-				if (client_name != "ardour" && pi->active()) {
-					return true;
-				}
-			}
-		}
-	}
-
-	return false;
-}
-
 void
 Route::flush_processors ()
 {
@@ -4067,3 +4034,21 @@ Route::metering_state () const
 {
 	return MeteringRoute;
 }
+
+bool
+Route::has_external_redirects () const
+{
+	for (ProcessorList::const_iterator i = _processors.begin(); i != _processors.end(); ++i) {
+
+		/* ignore inactive processors and obviously ignore the main
+		 * outs since everything has them and we don't care.
+		 */
+		 
+		if ((*i)->active() && (*i) != _main_outs && (*i)->does_routing()) {
+			return true;;
+		}
+	}
+
+	return false;
+}
+

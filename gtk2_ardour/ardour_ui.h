@@ -138,14 +138,6 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 
 	ARDOUR::Session* the_session() { return _session; }
 
-	bool will_create_new_session_automatically() const {
-		return _will_create_new_session_automatically;
-	}
-
-	void set_will_create_new_session_automatically (bool yn) {
-		_will_create_new_session_automatically = yn;
-	}
-
 	int get_session_parameters (bool quit_on_cancel, bool should_be_new = false, std::string load_template = "");
 	int  build_session_from_nsd (const std::string& session_name, const std::string& session_path);
 	bool ask_about_loading_existing_session (const std::string& session_path);
@@ -195,7 +187,6 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	void save_ardour_state ();
 	gboolean configure_handler (GdkEventConfigure* conf);
 
-	void do_transport_locate (framepos_t, bool);
 	void halt_on_xrun_message ();
 	void xrun_handler (framepos_t);
 	void create_xrun_marker (framepos_t);
@@ -251,7 +242,6 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	void restore_editing_space ();
 
 	void setup_profile ();
-	void setup_theme ();
 	void setup_tooltips ();
 
 	void set_shuttle_fract (double);
@@ -265,7 +255,6 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
   protected:
 	friend class PublicEditor;
 
-	void toggle_clocking ();
 	void toggle_auto_play ();
 	void toggle_auto_input ();
 	void toggle_punch ();
@@ -299,7 +288,6 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 
 	static ARDOUR_UI *theArdourUI;
 
-	void backend_audio_error (bool we_set_params, Gtk::Window* toplevel = 0);
 	void startup ();
 	void shutdown ();
 
@@ -528,10 +516,6 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	sigc::connection point_oh_five_second_connection;
 	sigc::connection point_zero_one_second_connection;
 
-	gint session_menu (GdkEventButton *);
-
-	bool _will_create_new_session_automatically;
-
 	void open_session ();
 	void open_recent_session ();
 	void save_template ();
@@ -544,14 +528,11 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 
 	void set_transport_sensitivity (bool);
 
-	void remove_last_capture ();
-
 	void transport_goto_zero ();
 	void transport_goto_start ();
 	void transport_goto_end ();
 	void transport_goto_wallclock ();
 	void transport_stop ();
-	void transport_stop_and_forget_capture ();
 	void transport_record (bool roll);
 	void transport_roll ();
 	void transport_play_selection();
@@ -691,7 +672,6 @@ class ARDOUR_UI : public Gtkmm2ext::UI, public ARDOUR::SessionHandlePtr
 	Gtk::ToggleButton error_log_button;
 
 	void loading_message (const std::string& msg);
-	void end_loading_messages ();
 
         void toggle_translations ();
 

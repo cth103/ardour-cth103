@@ -60,11 +60,14 @@ public:
 
 	const std::string& write_buffer() const;
 
+	boost::shared_ptr<XMLSharedNodeList> find(const std::string xpath, XMLNode* = 0) const;
+
 private:
 	bool read_internal(bool validate);
 	
 	std::string _filename;
 	XMLNode*    _root;
+	xmlDocPtr   _doc;
 	int         _compression;
 };
 
@@ -74,6 +77,8 @@ public:
 	XMLNode(const std::string& name, const std::string& content);
 	XMLNode(const XMLNode& other);
 	~XMLNode();
+
+	XMLNode& operator= (const XMLNode& other);
 
 	const std::string& name() const { return _name; }
 
@@ -88,7 +93,6 @@ public:
 	XMLNode* add_child_copy(const XMLNode&);
 	void     add_child_nocopy(XMLNode&);
 
-	boost::shared_ptr<XMLSharedNodeList> find(const std::string xpath) const;
 	std::string attribute_value();
 
 	const XMLPropertyList& properties() const { return _proplist; }
@@ -121,6 +125,8 @@ private:
 	XMLPropertyList     _proplist;
 	XMLPropertyMap      _propmap;
 	mutable XMLNodeList _selected_children;
+
+	void clear_lists ();
 };
 
 class XMLProperty {

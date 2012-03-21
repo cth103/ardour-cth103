@@ -43,7 +43,7 @@
 #include "pbd/enumwriter.h"
 #include "pbd/memento_command.h"
 #include "pbd/unknown_type.h"
-#include "pbd/stacktrace.h"
+#include "pbd/unwind.h"
 
 #include <glibmm/miscutils.h>
 #include <gtkmm/image.h>
@@ -380,6 +380,7 @@ Editor::Editor ()
 	layering_order_editor = 0;
 	no_save_visual = false;
 	resize_idle_id = -1;
+	within_track_canvas = false;
 
 	scrubbing_direction = 0;
 
@@ -1229,20 +1230,6 @@ Editor::set_session (Session *t)
 	_session->locations()->changed.connect (_session_connections, invalidator (*this), boost::bind (&Editor::refresh_location_display, this), gui_context());
 	_session->locations()->StateChanged.connect (_session_connections, invalidator (*this), ui_bind (&Editor::refresh_location_display, this), gui_context());
 	_session->history().Changed.connect (_session_connections, invalidator (*this), boost::bind (&Editor::history_changed, this), gui_context());
-
-	if (Profile->get_sae()) {
-		Timecode::BBT_Time bbt;
-		bbt.bars = 0;
-		bbt.beats = 0;
-		bbt.ticks = 120;
-		framepos_t pos = _session->tempo_map().bbt_duration_at (0, bbt, 1);
-		nudge_clock->set_mode(AudioClock::BBT);
-		nudge_clock->set (pos, true);
-
-	} else {
-		nudge_clock->set_mode (AudioClock::Timecode);
-		nudge_clock->set (_session->frame_rate() * 5, true);
-	}
 
 	playhead_cursor->show ();
 
@@ -2427,6 +2414,15 @@ Editor::set_state (const XMLNode& node, int /*version*/)
 		}
 	}
 
+	if ((prop = node.property ("nudge-clock-value"))) {
+		framepos_t f;
+		sscanf (prop->value().c_str(), "%" PRId64, &f);
+		nudge_clock->set (f);
+	} else {
+		nudge_clock->set_mode (AudioClock::Timecode);
+		nudge_clock->set (_session->frame_rate() * 5, true);
+	}
+
 	return 0;
 }
 
@@ -2521,6 +2517,9 @@ Editor::get_state ()
 
 	node->add_child_nocopy (selection->get_state ());
 	node->add_child_nocopy (_regions->get_state ());
+
+	snprintf (buf, sizeof (buf), "%" PRId64, nudge_clock->current_duration());
+	node->add_property ("nudge-clock-value", buf);
 
 	return *node;
 }
@@ -3207,16 +3206,6 @@ Editor::map_transport_state ()
 }
 
 /* UNDO/REDO */
-
-Editor::State::State (PublicEditor const * e)
-{
-	selection = new Selection (e);
-}
-
-Editor::State::~State ()
-{
-	delete selection;
-}
 
 void
 Editor::begin_reversible_command (string name)
@@ -4171,8 +4160,8 @@ Editor::reposition_and_zoom (framepos_t frame, double fpu)
 	}
 }
 
-Editor::VisualState::VisualState ()
-	: gui_state (new GUIObjectState)
+Editor::VisualState::VisualState (bool with_tracks)
+	: gui_state (with_tracks ? new GUIObjectState : 0)
 {
 }
 
@@ -4184,14 +4173,14 @@ Editor::VisualState::~VisualState ()
 Editor::VisualState*
 Editor::current_visual_state (bool with_tracks)
 {
-	VisualState* vs = new VisualState;
+	VisualState* vs = new VisualState (with_tracks);
 	vs->y_position = vertical_adjustment.get_value();
 	vs->frames_per_pixel = frames_per_pixel;
 	vs->leftmost_frame = leftmost_frame;
 	vs->zoom_focus = zoom_focus;
 
 	if (with_tracks) {	
-		*(vs->gui_state) = *ARDOUR_UI::instance()->gui_object_state;
+		*vs->gui_state = *ARDOUR_UI::instance()->gui_object_state;
 	}
 
 	return vs;
@@ -4204,10 +4193,12 @@ Editor::undo_visual_state ()
 		return;
 	}
 
-	redo_visual_stack.push_back (current_visual_state());
-
 	VisualState* vs = undo_visual_stack.back();
 	undo_visual_stack.pop_back();
+
+
+	redo_visual_stack.push_back (current_visual_state (vs ? vs->gui_state != 0 : false));
+
 	use_visual_state (*vs);
 }
 
@@ -4218,10 +4209,11 @@ Editor::redo_visual_state ()
 		return;
 	}
 
-	undo_visual_stack.push_back (current_visual_state());
-
 	VisualState* vs = redo_visual_stack.back();
 	redo_visual_stack.pop_back();
+
+	undo_visual_stack.push_back (current_visual_state (vs ? vs->gui_state != 0 : false));
+
 	use_visual_state (*vs);
 }
 
@@ -4238,7 +4230,7 @@ Editor::swap_visual_state ()
 void
 Editor::use_visual_state (VisualState& vs)
 {
-	no_save_visual = true;
+	PBD::Unwinder<bool> nsv (no_save_visual, true);
 
 	_routes->suspend_redisplay ();
 
@@ -4248,16 +4240,16 @@ Editor::use_visual_state (VisualState& vs)
 	reposition_and_zoom (vs.leftmost_frame, vs.frames_per_pixel);
 	reposition_and_zoom (vs.leftmost_frame, vs.frames_per_pixel);
 	
-	*ARDOUR_UI::instance()->gui_object_state = *vs.gui_state;
-
-	for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {	
-		(*i)->reset_visual_state ();
+	if (vs.gui_state) {
+		*ARDOUR_UI::instance()->gui_object_state = *vs.gui_state;
+		
+		for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {	
+			(*i)->reset_visual_state ();
+		}
 	}
 
 	_routes->update_visibility ();
 	_routes->resume_redisplay ();
-
-	no_save_visual = false;
 }
 
 void

@@ -52,6 +52,7 @@
 #include "ardour/ardour.h"
 #include "ardour/chan_count.h"
 #include "ardour/delivery.h"
+#include "ardour/interthread_info.h"
 #include "ardour/rc_configuration.h"
 #include "ardour/session_configuration.h"
 #include "ardour/session_event.h"
@@ -607,8 +608,8 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 	/* flattening stuff */
 
 	boost::shared_ptr<Region> write_one_track (AudioTrack&, framepos_t start, framepos_t end,
-			bool overwrite, std::vector<boost::shared_ptr<Source> >&, InterThreadInfo& wot,
-			bool enable_processing = true);
+						   bool overwrite, std::vector<boost::shared_ptr<Source> >&, InterThreadInfo& wot,
+						   boost::shared_ptr<Processor> endpoint, bool include_endpoint, bool for_export);
 	int freeze_all (InterThreadInfo&);
 
 	/* session-wide solo/mute/rec-enable */
@@ -1224,7 +1225,7 @@ class Session : public PBD::StatefulDestructible, public PBD::ScopedConnectionLi
 
 	SerializedRCUManager<RouteList>  routes;
 
-	void add_routes (RouteList&, bool auto_connect, bool save);
+	void add_routes (RouteList&, bool input_auto_connect, bool output_auto_connect, bool save);
 	uint32_t destructive_index;
 
 	boost::shared_ptr<Route> XMLRouteFactory (const XMLNode&, int);

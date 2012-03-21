@@ -155,6 +155,7 @@ IOProcessor::set_state (const XMLNode& node, int version)
 
 	Processor::set_state(node, version);
 
+
 	if ((prop = node.property ("own-input")) != 0) {
 		_own_input = string_is_affirmative (prop->value());
 	}
@@ -169,7 +170,7 @@ IOProcessor::set_state (const XMLNode& node, int version)
 	XMLNodeIterator niter;
 	const string instr = enum_2_string (IO::Input);
 	const string outstr = enum_2_string (IO::Output);
-
+	
 	if (_own_input) {
 		for (niter = nlist.begin(); niter != nlist.end(); ++niter) {
 			const XMLProperty* prop;
@@ -184,21 +185,21 @@ IOProcessor::set_state (const XMLNode& node, int version)
 				}
 			}
 		}
-
+		
 		if (io_node) {
 			_input->set_state(*io_node, version);
-
+			
 			// legacy sessions: use IO name
 			if ((prop = node.property ("name")) == 0) {
 				set_name (_input->name());
 			}
-
+			
 		} else {
 			/* no input, which is OK */
 		}
-
+		
 	}
-
+	
 	if (_own_output) {
 		for (niter = nlist.begin(); niter != nlist.end(); ++niter) {
 			if ((*niter)->name() == "IO") {
@@ -215,10 +216,10 @@ IOProcessor::set_state (const XMLNode& node, int version)
 				}
 			}
 		}
-
+		
 		if (io_node) {
 			_output->set_state(*io_node, version);
-
+			
 			// legacy sessions: use IO name
 			if ((prop = node.property ("name")) == 0) {
 				set_name (_output->name());
@@ -300,5 +301,23 @@ IOProcessor::disconnect ()
 
 	if (_output) {
 		_output->disconnect (this);
+	}
+}
+
+/** Set up the XML description of a send so that we will not
+ *  reset its name or bitslot during ::set_state()
+ *  @param state XML send state.
+ *  @param session Session.
+ */
+void
+IOProcessor::prepare_for_reset (XMLNode &state, const std::string& name)
+{
+	state.add_property ("ignore-bitslot", "1");
+	state.add_property ("ignore-name", "1");
+
+	XMLNode* io_node = state.child (IO::state_node_name.c_str());
+
+	if (io_node) {
+		IO::prepare_for_reset (*io_node, name);
 	}
 }
