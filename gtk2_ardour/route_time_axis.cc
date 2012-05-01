@@ -67,7 +67,6 @@
 #include "global_signals.h"
 #include "route_time_axis.h"
 #include "automation_time_axis.h"
-#include "crossfade_view.h"
 #include "enums.h"
 #include "gui_thread.h"
 #include "keyboard.h"
@@ -192,8 +191,8 @@ RouteTimeAxisView::set_route (boost::shared_ptr<Route> rt)
 	
 	controls_hbox.pack_start(gm.get_level_meter(), false, false);
 	_route->meter_change.connect (*this, invalidator (*this), bind (&RouteTimeAxisView::meter_changed, this), gui_context());
-	_route->input()->changed.connect (*this, invalidator (*this), ui_bind (&RouteTimeAxisView::io_changed, this, _1, _2), gui_context());
-	_route->output()->changed.connect (*this, invalidator (*this), ui_bind (&RouteTimeAxisView::io_changed, this, _1, _2), gui_context());
+	_route->input()->changed.connect (*this, invalidator (*this), boost::bind (&RouteTimeAxisView::io_changed, this, _1, _2), gui_context());
+	_route->output()->changed.connect (*this, invalidator (*this), boost::bind (&RouteTimeAxisView::io_changed, this, _1, _2), gui_context());
 
 	controls_table.attach (*mute_button, 6, 7, 0, 1, Gtk::FILL|Gtk::EXPAND, Gtk::FILL|Gtk::EXPAND, 0, 0);
 
@@ -225,8 +224,8 @@ RouteTimeAxisView::set_route (boost::shared_ptr<Route> rt)
 
 	_y_position = -1;
 
-	_route->processors_changed.connect (*this, invalidator (*this), ui_bind (&RouteTimeAxisView::processors_changed, this, _1), gui_context());
-	_route->PropertyChanged.connect (*this, invalidator (*this), ui_bind (&RouteTimeAxisView::route_property_changed, this, _1), gui_context());
+	_route->processors_changed.connect (*this, invalidator (*this), boost::bind (&RouteTimeAxisView::processors_changed, this, _1), gui_context());
+	_route->PropertyChanged.connect (*this, invalidator (*this), boost::bind (&RouteTimeAxisView::route_property_changed, this, _1), gui_context());
 
 	if (is_track()) {
 

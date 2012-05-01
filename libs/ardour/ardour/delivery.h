@@ -74,7 +74,7 @@ public:
 
 	/* supplemental method used with MIDI */
 
-	void flush_buffers (framecnt_t nframes, framepos_t time);
+	void flush_buffers (framecnt_t nframes);
 	void no_outs_cuz_we_no_monitor(bool);
 	void transport_stopped (framepos_t frame);
 	void realtime_locate ();
@@ -89,7 +89,7 @@ public:
 	/* Panning */
 
 	static int  disable_panners (void);
-	static int  reset_panners (void);
+	static void reset_panners ();
 
 	boost::shared_ptr<PannerShell> panner_shell() const { return _panshell; }
 	boost::shared_ptr<Panner> panner() const;
@@ -115,9 +115,9 @@ public:
 	boost::shared_ptr<MuteMaster> _mute_master;
 	
 	static bool panners_legal;
-	static PBD::Signal0<int> PannersLegal;
+	static PBD::Signal0<void> PannersLegal;
 
-	int panners_became_legal ();
+	void panners_became_legal ();
 	PBD::ScopedConnection panner_legal_c;
 	void output_changed (IOChange, void*);
 

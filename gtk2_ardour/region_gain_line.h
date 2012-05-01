@@ -42,7 +42,7 @@ class AudioRegionGainLine : public AutomationLine
 
 	void remove_point (ControlPoint&);
 
-  private:
+private:
 	AudioRegionView& rv;
 };
 

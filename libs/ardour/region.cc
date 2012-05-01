@@ -685,7 +685,7 @@ Region::set_start (framepos_t pos)
 			return;
 		}
 
-		_start = pos;
+		set_start_internal (pos);
 		_whole_file = false;
 		first_edit ();
 		invalidate_transients ();
@@ -700,6 +700,7 @@ Region::trim_start (framepos_t new_position)
 	if (locked() || position_locked()) {
 		return;
 	}
+
 	framepos_t new_start;
 	frameoffset_t const start_shift = new_position - _position;
 
@@ -731,7 +732,7 @@ Region::trim_start (framepos_t new_position)
 		return;
 	}
 
-	_start = new_start;
+	set_start_internal (new_start);
 	_whole_file = false;
 	first_edit ();
 
@@ -887,7 +888,7 @@ Region::trim_to_internal (framepos_t position, framecnt_t length)
 	PropertyChange what_changed;
 
 	if (_start != new_start) {
-		_start = new_start;
+		set_start_internal (new_start);
 		what_changed.add (Properties::start);
 	}
 
@@ -1310,7 +1311,7 @@ Region::send_change (const PropertyChange& what_changed)
 bool
 Region::overlap_equivalent (boost::shared_ptr<const Region> other) const
 {
-	return coverage (other->first_frame(), other->last_frame()) != OverlapNone;
+	return coverage (other->first_frame(), other->last_frame()) != Evoral::OverlapNone;
 }
 
 bool
@@ -1647,3 +1648,8 @@ Region::post_set (const PropertyChange& pc)
 	}
 }
 
+void
+Region::set_start_internal (framecnt_t s)
+{
+	_start = s;
+}

@@ -55,7 +55,8 @@ using namespace Gtkmm2ext;
 
 Pango::FontDescription TimeAxisViewItem::NAME_FONT;
 const double TimeAxisViewItem::NAME_X_OFFSET = 14.5;
-const double TimeAxisViewItem::GRAB_HANDLE_LENGTH = 6;
+const double TimeAxisViewItem::GRAB_HANDLE_TOP = 6;
+const double TimeAxisViewItem::GRAB_HANDLE_WIDTH = 5;
 
 int    TimeAxisViewItem::NAME_HEIGHT;
 double TimeAxisViewItem::NAME_Y_OFFSET;
@@ -216,10 +217,13 @@ TimeAxisViewItem::init (
 
 	/* create our grab handles used for trimming/duration etc */
 	if (!_recregion && !_automation) {
-		frame_handle_start = new Canvas::Rectangle (group, Canvas::Rect (0.0, TimeAxisViewItem::GRAB_HANDLE_LENGTH, 5.0, trackview.current_height()));
+		double top   = TimeAxisViewItem::GRAB_HANDLE_TOP;
+		double width = TimeAxisViewItem::GRAB_HANDLE_WIDTH;
+		
+		frame_handle_start = new Canvas::Rectangle (group, Canvas::Rect (0.0, top, width, trackview.current_height()));
 		CANVAS_DEBUG_NAME (frame_handle_start, "TAVI frame handle start");
 		frame_handle_start->set_outline_what (0);
-		frame_handle_end = new Canvas::Rectangle (group, Canvas::Rect (0.0, TimeAxisViewItem::GRAB_HANDLE_LENGTH, 5.0, trackview.current_height()));
+		frame_handle_end = new Canvas::Rectangle (group, Canvas::Rect (0.0, top, width, trackview.current_height()));
 		CANVAS_DEBUG_NAME (frame_handle_end, "TAVI frame handle end");
 		frame_handle_end->set_outline_what (0);
 	} else {
@@ -231,7 +235,7 @@ TimeAxisViewItem::init (
 	set_duration (item_duration, this);
 	set_position (start, this);
 
-	Config->ParameterChanged.connect (*this, invalidator (*this), ui_bind (&TimeAxisViewItem::parameter_changed, this, _1), gui_context ());
+	Config->ParameterChanged.connect (*this, invalidator (*this), boost::bind (&TimeAxisViewItem::parameter_changed, this, _1), gui_context ());
 }
 
 TimeAxisViewItem::~TimeAxisViewItem()
@@ -313,7 +317,7 @@ TimeAxisViewItem::get_position() const
  */
 
 bool
-TimeAxisViewItem::set_duration (framepos_t dur, void* src)
+TimeAxisViewItem::set_duration (framecnt_t dur, void* src)
 {
 	if ((dur > max_item_duration) || (dur < min_item_duration)) {
 		warning << string_compose (_("new duration %1 frames is out of bounds for %2"), get_item_name(), dur)
@@ -798,14 +802,6 @@ TimeAxisViewItem::set_frames_per_pixel (double fpp)
 void
 TimeAxisViewItem::reset_width_dependent_items (double pixel_width)
 {
-	if (pixel_width < GRAB_HANDLE_LENGTH * 2) {
-
-		if (frame_handle_start) {
-			frame_handle_start->hide();
-			frame_handle_end->hide();
-		}
-
-	}
 
 	if (pixel_width < 2.0) {
 
@@ -853,14 +849,20 @@ TimeAxisViewItem::reset_width_dependent_items (double pixel_width)
 		}
 
 		if (frame_handle_start) {
-			if (pixel_width < (2*TimeAxisViewItem::GRAB_HANDLE_LENGTH)) {
+			if (pixel_width < (3 * TimeAxisViewItem::GRAB_HANDLE_WIDTH)) {
+				/*
+				 * there's less than GRAB_HANDLE_WIDTH of the region between 
+				 * the right-hand end of frame_handle_start and the left-hand
+				 * end of frame_handle_end, so disable the handles
+				 */
 				frame_handle_start->hide();
 				frame_handle_end->hide();
+			} else {
+				frame_handle_start->show();
+				frame_handle_end->set_x0 (pixel_width - (TimeAxisViewItem::GRAB_HANDLE_WIDTH));
+				frame_handle_end->set_x1 (pixel_width);
+				frame_handle_end->show();
 			}
-			frame_handle_start->show();
-			frame_handle_end->set_x0 (rint (pixel_width - (TimeAxisViewItem::GRAB_HANDLE_LENGTH)));
-			frame_handle_end->show();
-			frame_handle_end->set_x1 (rint (pixel_width));
 		}
 
 		wide_enough_for_name = true;

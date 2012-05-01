@@ -36,6 +36,8 @@
 
 #include "pbd/id.h"
 
+#include "evoral/Range.hpp"
+
 #include "ardour/chan_count.h"
 
 #include <map>
@@ -101,17 +103,6 @@ namespace ARDOUR {
 		ARDOUR::ChanCount after;
 	};
 
-	enum OverlapType {
-		OverlapNone,      // no overlap
-		OverlapInternal,  // the overlap is 100% with the object
-		OverlapStart,     // overlap covers start, but ends within
-		OverlapEnd,       // overlap begins within and covers end
-		OverlapExternal   // overlap extends to (at least) begin+end
-	};
-
-	ARDOUR::OverlapType coverage (framepos_t sa, framepos_t ea,
-	                              framepos_t sb, framepos_t eb);
-
 	/* policies for inserting/pasting material where overlaps
 	   might be an issue.
 	*/
@@ -145,7 +136,8 @@ namespace ARDOUR {
 		MidiSystemExclusiveAutomation,
 		FadeInAutomation,
 		FadeOutAutomation,
-		EnvelopeAutomation
+		EnvelopeAutomation,
+		RecEnableAutomation
 	};
 
 	enum AutoState {
@@ -277,6 +269,9 @@ namespace ARDOUR {
 		}
 	};
 
+	/* XXX: slightly unfortunate that there is this and Evoral::Range<>,
+	   but this has a uint32_t id which Evoral::Range<> does not.
+	*/
 	struct AudioRange {
 		framepos_t start;
 		framepos_t end;
@@ -294,8 +289,8 @@ namespace ARDOUR {
 			return start == other.start && end == other.end;
 		}
 
-		OverlapType coverage (framepos_t s, framepos_t e) const {
-			return ARDOUR::coverage (start, end, s, e);
+		Evoral::OverlapType coverage (framepos_t s, framepos_t e) const {
+			return Evoral::coverage (start, end, s, e);
 		}
 	};
 
@@ -409,6 +404,12 @@ namespace ARDOUR {
 	enum CrossfadeModel {
 		FullCrossfade,
 		ShortCrossfade
+	};
+
+	enum CrossfadeChoice {
+		RegionFades,
+		ConstantPowerMinus3dB,
+		ConstantPowerMinus6dB,
 	};
 
 	enum ListenPosition {
@@ -563,7 +564,9 @@ namespace ARDOUR {
 		FadeFast,
 		FadeSlow,
 		FadeLogA,
-		FadeLogB
+		FadeLogB,
+		FadeConstantPowerMinus3dB,
+		FadeConstantPowerMinus6dB,
 	};
 
 } // namespace ARDOUR
@@ -584,6 +587,7 @@ std::istream& operator>>(std::istream& o, ARDOUR::RemoteModel& sf);
 std::istream& operator>>(std::istream& o, ARDOUR::ListenPosition& sf);
 std::istream& operator>>(std::istream& o, ARDOUR::InsertMergePolicy& sf);
 std::istream& operator>>(std::istream& o, ARDOUR::CrossfadeModel& sf);
+std::istream& operator>>(std::istream& o, ARDOUR::CrossfadeChoice& sf);
 std::istream& operator>>(std::istream& o, ARDOUR::SyncSource& sf);
 std::istream& operator>>(std::istream& o, ARDOUR::ShuttleBehaviour& sf);
 std::istream& operator>>(std::istream& o, ARDOUR::ShuttleUnits& sf);
@@ -604,6 +608,7 @@ std::ostream& operator<<(std::ostream& o, const ARDOUR::RemoteModel& sf);
 std::ostream& operator<<(std::ostream& o, const ARDOUR::ListenPosition& sf);
 std::ostream& operator<<(std::ostream& o, const ARDOUR::InsertMergePolicy& sf);
 std::ostream& operator<<(std::ostream& o, const ARDOUR::CrossfadeModel& sf);
+std::ostream& operator<<(std::ostream& o, const ARDOUR::CrossfadeChoice& sf);
 std::ostream& operator<<(std::ostream& o, const ARDOUR::SyncSource& sf);
 std::ostream& operator<<(std::ostream& o, const ARDOUR::ShuttleBehaviour& sf);
 std::ostream& operator<<(std::ostream& o, const ARDOUR::ShuttleUnits& sf);

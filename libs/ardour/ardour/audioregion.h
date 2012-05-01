@@ -34,7 +34,8 @@
 #include "ardour/region.h"
 
 class XMLNode;
-
+class AudioRegionTest;
+class PlaylistReadTest;
 
 namespace ARDOUR {
 
@@ -88,22 +89,22 @@ class AudioRegion : public Region
 	bool fade_in_active ()  const { return _fade_in_active; }
 	bool fade_out_active () const { return _fade_out_active; }
 
+	bool fade_in_is_xfade() const { return _fade_in_is_xfade; }
+	void set_fade_in_is_xfade (bool yn);
+	bool fade_out_is_xfade() const { return _fade_out_is_xfade; }
+	void set_fade_out_is_xfade (bool yn);
+
 	boost::shared_ptr<AutomationList> fade_in()  { return _fade_in; }
 	boost::shared_ptr<AutomationList> fade_out() { return _fade_out; }
 	boost::shared_ptr<AutomationList> envelope() { return _envelope; }
+
+	Evoral::Range<framepos_t> body_range () const;
 
 	virtual framecnt_t read_peaks (PeakData *buf, framecnt_t npeaks,
 			framecnt_t offset, framecnt_t cnt,
 			uint32_t chan_n=0, double frames_per_pixel = 1.0) const;
 
 	/* Readable interface */
-
-	enum ReadOps {
-		ReadOpsNone = 0x0,
-		ReadOpsOwnAutomation = 0x1,
-		ReadOpsOwnScaling = 0x2,
-		ReadOpsFades = 0x4
-	};
 
 	virtual framecnt_t read (Sample*, framepos_t pos, framecnt_t cnt, int channel) const;
 	virtual framecnt_t readable_length() const { return length(); }
@@ -137,6 +138,9 @@ class AudioRegion : public Region
 	void set_fade_out (FadeShape, framecnt_t);
 	void set_fade_out (boost::shared_ptr<AutomationList>);
 
+	void set_default_fade_in ();
+	void set_default_fade_out ();
+	
 	void set_envelope_active (bool yn);
 	void set_default_envelope ();
 
@@ -166,7 +170,7 @@ class AudioRegion : public Region
 	int set_transients (AnalysisFeatureList&);
 	int get_transients (AnalysisFeatureList&, bool force_new = false);
 	int update_transient (framepos_t old_position, framepos_t new_position);
-	int adjust_transients (framepos_t delta);
+	int adjust_transients (frameoffset_t delta);
 
 	AudioIntervalResult find_silence (Sample, framecnt_t, InterThreadInfo&) const;
 
@@ -182,6 +186,9 @@ class AudioRegion : public Region
 	AudioRegion (SourceList &);
 
   private:
+	friend class ::AudioRegionTest;
+	friend class ::PlaylistReadTest;
+	
 	PBD::Property<bool>     _envelope_active;
 	PBD::Property<bool>     _default_fade_in;
 	PBD::Property<bool>     _default_fade_out;
@@ -195,17 +202,11 @@ class AudioRegion : public Region
 
 	void init ();
 	void set_default_fades ();
-	void set_default_fade_in ();
-	void set_default_fade_out ();
 
 	void recompute_gain_at_end ();
 	void recompute_gain_at_start ();
 
-	framecnt_t _read_at (const SourceList&, framecnt_t limit,
-			     Sample *buf, Sample *mixdown_buffer, float *gain_buffer,
-			     framepos_t position, framecnt_t cnt,
-			     uint32_t chan_n = 0,
-			     ReadOps readops = ReadOps (~0)) const;
+	framecnt_t read_from_sources (SourceList const &, framecnt_t, Sample *, framepos_t, framecnt_t, uint32_t) const;
 
 	void recompute_at_start ();
 	void recompute_at_end ();
@@ -221,10 +222,17 @@ class AudioRegion : public Region
 	Automatable _automatable;
 
 	boost::shared_ptr<AutomationList> _fade_in;
+	boost::shared_ptr<AutomationList> _inverse_fade_in;
 	boost::shared_ptr<AutomationList> _fade_out;
+	boost::shared_ptr<AutomationList> _inverse_fade_out;
 	boost::shared_ptr<AutomationList> _envelope;
 	uint32_t                          _fade_in_suspended;
 	uint32_t                          _fade_out_suspended;
+	/* This is not a Property because its not subject to user control,
+	   or undo/redo. XXX this may prove to be a mistake.
+	*/
+	bool                              _fade_in_is_xfade;
+	bool                              _fade_out_is_xfade;
 
   protected:
 	/* default constructor for derived (compound) types */

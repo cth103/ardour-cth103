@@ -21,6 +21,7 @@
 #include "ardour/utils.h"
 #include "pbd/xml++.h"
 #include "pbd/compose.h"
+#include "pbd/convert.h"
 #include "canvas/fill.h"
 #include "canvas/utils.h"
 
@@ -80,7 +81,7 @@ void
 Fill::set_fill_state (XMLNode const * node)
 {
 	_fill_color = atoll (node->property("fill-color")->value().c_str());
-	_fill = string_is_affirmative (node->property("fill")->value ().c_str());
+	_fill = PBD::string_is_affirmative (node->property("fill")->value ().c_str());
 
 	_bbox_dirty = true;
 }

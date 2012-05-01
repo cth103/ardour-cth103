@@ -96,7 +96,8 @@ class TimeAxisViewItem : public Selectable, public PBD::ScopedConnectionList
 	static Pango::FontDescription NAME_FONT;
 	static void set_constant_heights ();
 	static const double NAME_X_OFFSET;
-	static const double GRAB_HANDLE_LENGTH;
+	static const double GRAB_HANDLE_TOP;
+	static const double GRAB_HANDLE_WIDTH;
 
 	/* these are not constant, but vary with the pixel size
 	   of the font used to display the item name.
@@ -146,7 +147,7 @@ class TimeAxisViewItem : public Selectable, public PBD::ScopedConnectionList
 
   protected:
 	TimeAxisViewItem(const std::string &, Canvas::Group&, TimeAxisView&, double, Gdk::Color const &,
-			 framepos_t, framepos_t, bool recording = false, bool automation = false, Visibility v = Visibility (0));
+			 framepos_t, framecnt_t, bool recording = false, bool automation = false, Visibility v = Visibility (0));
 
 	TimeAxisViewItem (const TimeAxisViewItem&);
 

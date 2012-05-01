@@ -25,6 +25,7 @@
 #include <cairomm/context.h>
 #include "pbd/xml++.h"
 #include "pbd/compose.h"
+#include "pbd/convert.h"
 #include "ardour/utils.h"
 #include "canvas/outline.h"
 #include "canvas/utils.h"
@@ -129,7 +130,7 @@ void
 Outline::set_outline_state (XMLNode const * node)
 {
 	_outline_color = atoll (node->property("outline-color")->value().c_str());
-	_outline = string_is_affirmative (node->property("outline")->value().c_str());
+	_outline = PBD::string_is_affirmative (node->property("outline")->value().c_str());
 	_outline_width = atof (node->property("outline-width")->value().c_str());
 
 	_bbox_dirty = true;

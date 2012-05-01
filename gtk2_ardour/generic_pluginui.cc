@@ -101,6 +101,9 @@ GenericPluginUI::GenericPluginUI (boost::shared_ptr<PluginInsert> pi, bool scrol
 	VBox* v1_box = manage (new VBox);
 	VBox* v2_box = manage (new VBox);
 	pack_end (plugin_analysis_expander, false, false);
+	if (!plugin->get_docs().empty()) {
+		pack_end (description_expander, false, false);
+	}
 
 	v1_box->pack_start (*smaller_hbox, false, true);
 	v2_box->pack_start (focus_button, false, true);
@@ -262,6 +265,11 @@ GenericPluginUI::build ()
 			if ((cui = build_control_ui (i, c)) == 0) {
 				error << string_compose(_("Plugin Editor: could not build control element for port %1"), i) << endmsg;
 				continue;
+			}
+
+			const std::string param_docs = plugin->get_parameter_docs(i);
+			if (!param_docs.empty()) {
+				ARDOUR_UI::instance()->set_tip(cui, param_docs.c_str());
 			}
 
 			if (cui->controller || cui->clickbox || cui->combo) {
@@ -459,9 +467,25 @@ GenericPluginUI::automation_state_changed (ControlUI* cui)
 }
 
 
-static void integer_printer (char buf[32], Adjustment &adj, void */*arg*/)
+bool
+GenericPluginUI::integer_printer (char buf[32], Adjustment &adj, ControlUI* cui)
 {
-	snprintf (buf, 32, "%.0f", adj.get_value());
+	float const v = adj.get_value ();
+	
+	if (cui->scale_points) {
+		Plugin::ScalePoints::const_iterator i = cui->scale_points->begin ();
+		while (i != cui->scale_points->end() && i->second != v) {
+			++i;
+		}
+
+		if (i != cui->scale_points->end ()) {
+			snprintf (buf, 32, "%s", i->first.c_str());
+			return true;
+		}
+	}
+		
+	snprintf (buf, 32, "%.0f", v);
+	return true;
 }
 
 void
@@ -494,15 +518,25 @@ GenericPluginUI::build_control_ui (guint32 port_index, boost::shared_ptr<Automat
 
 	if (plugin->parameter_is_input(port_index)) {
 
-		/* Build a combo box */
+		/* See if there any named values for our input value */
+		control_ui->scale_points = plugin->get_scale_points (port_index);
 
-		control_ui->combo_map = plugin->get_scale_points (port_index);
+		/* If this parameter is an integer, work out the number of distinct values
+		   it can take on (assuming that lower and upper values are allowed).
+		*/
+		int const steps = desc.integer_step ? (desc.upper - desc.lower + 1) / desc.step : 0;
 
-		if (control_ui->combo_map) {
+		if (control_ui->scale_points && ((steps && int (control_ui->scale_points->size()) == steps) || desc.enumeration)) {
+			
+			/* Either:
+			 *   a) There is a label for each possible value of this input, or
+			 *   b) This port is marked as being an enumeration.
+			 */
+
 			std::vector<std::string> labels;
 			for (
-				ARDOUR::Plugin::ScalePoints::const_iterator i = control_ui->combo_map->begin();
-				i != control_ui->combo_map->end();
+				ARDOUR::Plugin::ScalePoints::const_iterator i = control_ui->scale_points->begin();
+				i != control_ui->scale_points->end();
 				++i) {
 				
 				labels.push_back(i->first);
@@ -574,7 +608,7 @@ GenericPluginUI::build_control_ui (guint32 port_index, boost::shared_ptr<Automat
 		if (desc.integer_step) {
 			control_ui->clickbox = new ClickBox (adj, "PluginUIClickBox");
 			Gtkmm2ext::set_size_request_to_display_given_text (*control_ui->clickbox, "g9999999", 2, 2);
-			control_ui->clickbox->set_print_func (integer_printer, 0);
+			control_ui->clickbox->set_printer (sigc::bind (sigc::mem_fun (*this, &GenericPluginUI::integer_printer), control_ui));
 		} else {
 			//sigc::slot<void,char*,uint32_t> pslot = sigc::bind (sigc::mem_fun(*this, &GenericPluginUI::print_parameter), (uint32_t) port_index);
 
@@ -744,8 +778,8 @@ GenericPluginUI::update_control_display (ControlUI* cui)
 
 	cui->ignore_change++;
 
-	if (cui->combo && cui->combo_map) {
-		for (ARDOUR::Plugin::ScalePoints::iterator it = cui->combo_map->begin(); it != cui->combo_map->end(); ++it) {
+	if (cui->combo && cui->scale_points) {
+		for (ARDOUR::Plugin::ScalePoints::iterator it = cui->scale_points->begin(); it != cui->scale_points->end(); ++it) {
 			if (it->second == val) {
 				cui->combo->set_active_text(it->first);
 				break;
@@ -787,9 +821,9 @@ GenericPluginUI::control_port_toggled (ControlUI* cui)
 void
 GenericPluginUI::control_combo_changed (ControlUI* cui)
 {
-	if (!cui->ignore_change && cui->combo_map) {
+	if (!cui->ignore_change && cui->scale_points) {
 		string value = cui->combo->get_active_text();
-		insert->automation_control (cui->parameter())->set_value ((*cui->combo_map)[value]);
+		insert->automation_control (cui->parameter())->set_value ((*cui->scale_points)[value]);
 	}
 }
 

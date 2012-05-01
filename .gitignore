@@ -126,4 +126,8 @@ libs/ardour/po/*.mo
 gtk2_ardour/*.pot
 libs/ardour/libardour.pot
 libs/canvas/doc/ardour.ps
-
+.lock-wafbuild
+GPATH
+GRTAGS
+GSYMS
+GTAGS

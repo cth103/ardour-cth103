@@ -35,8 +35,7 @@ int     atoi (const std::string&);
 int32_t atol (const std::string&);
 int64_t atoll (const std::string&);
 double  atof (const std::string&);
-void    url_decode (std::string&);
-void    url_decode (Glib::ustring&);
+std::string url_decode (std::string const &);
 
 std::string capitalize (const std::string&);
 
@@ -53,6 +52,8 @@ to_string (T t, std::ios_base & (*f)(std::ios_base&))
 	oss << f << t;
 	return oss.str();
 }
+
+bool string_is_affirmative (const std::string&);
 
 const char *
 sgettext (const char *, const char *);

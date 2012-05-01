@@ -26,10 +26,9 @@
 *****************************************************/
 
 CONFIG_VARIABLE (CrossfadeModel, xfade_model, "xfade-model", FullCrossfade)
+CONFIG_VARIABLE (CrossfadeChoice, xfade_choice, "xfade-choice", ConstantPowerMinus3dB)
 CONFIG_VARIABLE (bool, auto_xfade, "auto-xfade", true)
 CONFIG_VARIABLE (float, short_xfade_seconds, "short-xfade-seconds", 0.015)
-CONFIG_VARIABLE (bool, xfades_active, "xfades-active", true)
-CONFIG_VARIABLE (bool, xfades_visible, "xfades-visible", true)
 CONFIG_VARIABLE (uint32_t, destructive_xfade_msecs,  "destructive-xfade-msecs", 2)
 CONFIG_VARIABLE (bool, use_region_fades, "use-region-fades", true)
 CONFIG_VARIABLE (bool, show_region_fades, "show-region-fades", true)
@@ -45,8 +44,6 @@ CONFIG_VARIABLE (TimecodeFormat, timecode_format, "timecode-format", timecode_30
 CONFIG_VARIABLE_SPECIAL(std::string, raid_path, "raid-path", "", path_expand)
 CONFIG_VARIABLE_SPECIAL(std::string, audio_search_path, "audio-search-path", "", search_path_expand)
 CONFIG_VARIABLE_SPECIAL(std::string, midi_search_path, "midi-search-path", "", search_path_expand)
-CONFIG_VARIABLE (std::string, bwf_country_code, "bwf-country-code", "US")
-CONFIG_VARIABLE (std::string, bwf_organization_code, "bwf-organization-code", "US")
 CONFIG_VARIABLE (std::string, auditioner_output_left, "auditioner-output-left", "default")
 CONFIG_VARIABLE (std::string, auditioner_output_right, "auditioner-output-right", "default")
 CONFIG_VARIABLE (bool, timecode_source_is_synced, "timecode-source-is-synced", true)

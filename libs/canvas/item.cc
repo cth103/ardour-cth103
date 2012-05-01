@@ -23,6 +23,7 @@
  */
 
 #include "pbd/compose.h"
+#include "pbd/convert.h"
 #include "pbd/stacktrace.h"
 #include "pbd/xml++.h"
 #include "ardour/utils.h"

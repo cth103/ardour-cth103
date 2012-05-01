@@ -469,8 +469,8 @@ StereoPanner::on_motion_notify_event (GdkEventMotion* ev)
 		return false;
 	}
 
-	int w = get_width();
-	double delta = (ev->x - last_drag_x) / (double) w;
+	int usable_width = get_width() - lr_box_size;
+	double delta = (ev->x - last_drag_x) / (double) usable_width;
 	double current_width = width_control->get_value ();
 
 	if (dragging_left) {
@@ -503,7 +503,8 @@ StereoPanner::on_motion_notify_event (GdkEventMotion* ev)
 			}
 
 		} else {
-			width_control->set_value (current_width + delta);
+			/* width needs to change by 2 * delta because both L & R move */
+			width_control->set_value (current_width + delta * 2);
 		}
 
 	} else if (dragging_position) {
@@ -548,6 +549,7 @@ StereoPanner::on_key_press_event (GdkEventKey* ev)
 		} else {
 			width_control->set_value (wv - step);
 		}
+		break;
 
 	case GDK_Left:
 		pv -= step;
@@ -556,8 +558,6 @@ StereoPanner::on_key_press_event (GdkEventKey* ev)
 	case GDK_Right:
 		pv += step;
 		position_control->set_value (pv);
-		break;
-
 		break;
 	case GDK_0:
 	case GDK_KP_0:

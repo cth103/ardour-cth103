@@ -515,7 +515,7 @@ def configure(conf):
         conf.env.append_value('LINKFLAGS_OSX', ['-flat_namespace'])
 
         conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DAUDIOUNIT_SUPPORT")
-        conf.env.append_value('LINKFLAGS_AUDIOUNITS', ['-framework', 'Audiotoolbox', '-framework', 'AudioUnit'])
+        conf.env.append_value('LINKFLAGS_AUDIOUNITS', ['-framework', 'AudioToolbox', '-framework', 'AudioUnit'])
         conf.env.append_value('LINKFLAGS_AUDIOUNITS', ['-framework', 'Cocoa'])
 
         if not Options.options.freebie:
@@ -551,6 +551,14 @@ def configure(conf):
     autowaf.check_pkg(conf, 'glibmm-2.4', uselib_store='GLIBMM', atleast_version='2.14.0')
     autowaf.check_pkg(conf, 'sndfile', uselib_store='SNDFILE', atleast_version='1.0.18')
     autowaf.check_pkg(conf, 'giomm-2.4', uselib_store='GIOMM', atleast_version='2.2')
+
+    conf.check_cxx(fragment = '#include <glibmm/threads.h>\nstatic Glib::Threads::RecMutex foo;\nint main () {}',
+                   uselib = ['GLIBMM'],
+                   msg = 'Checking for Glib::Threads::RecMutex',
+                   mandatory = False,
+                   okmsg = 'yes',
+                   errmsg = 'no; using deprecated API',
+                   define_name = 'HAVE_GLIB_THREADS_RECMUTEX')
 
     for i in children:
         sub_config_and_use(conf, i)
@@ -647,7 +655,6 @@ const char* const ardour_config_info = "\\n\\
     write_config_text('JACK session support',  conf.is_defined('JACK_SESSION'))
     write_config_text('LV2 UI embedding',      conf.is_defined('HAVE_SUIL'))
     write_config_text('LV2 support',           conf.is_defined('LV2_SUPPORT'))
-    write_config_text('LV2 state support',     conf.is_defined('HAVE_NEW_LILV'))
     write_config_text('LXVST support',         conf.is_defined('LXVST_SUPPORT'))
     write_config_text('OGG',                   conf.is_defined('HAVE_OGG'))
     write_config_text('Phone home',            conf.is_defined('PHONE_HOME'))

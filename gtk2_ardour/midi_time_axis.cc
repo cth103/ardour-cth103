@@ -61,7 +61,6 @@
 #include "ardour_button.h"
 #include "automation_line.h"
 #include "automation_time_axis.h"
-#include "crossfade_view.h"
 #include "editor.h"
 #include "enums.h"
 #include "ghostregion.h"
@@ -158,7 +157,7 @@ MidiTimeAxisView::set_route (boost::shared_ptr<Route> rt)
 
 	processors_changed (RouteProcessorChange ());
 
-	_route->processors_changed.connect (*this, invalidator (*this), ui_bind (&MidiTimeAxisView::processors_changed, this, _1), gui_context());
+	_route->processors_changed.connect (*this, invalidator (*this), boost::bind (&MidiTimeAxisView::processors_changed, this, _1), gui_context());
 
 	if (is_track()) {
 		_piano_roll_header->SetNoteSelection.connect (sigc::mem_fun (*this, &MidiTimeAxisView::set_note_selection));
@@ -312,7 +311,6 @@ MidiTimeAxisView::model_changed()
 
 	for (std::list<std::string>::const_iterator i = device_modes.begin();
 			i != device_modes.end(); ++i) {
-		cerr << "found custom device mode " << *i << " thread_id: " << pthread_self() << endl;
 		_custom_device_mode_selector.append_text(*i);
 	}
 
