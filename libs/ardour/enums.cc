@@ -122,7 +122,6 @@ setup_enum_writer ()
 	MidiModel::PatchChangeDiffCommand::Property _MidiModel_PatchChangeDiffCommand_Property;
 	WaveformScale _WaveformScale;
 	WaveformShape _WaveformShape;
-	QuantizeType _QuantizeType;
 	Session::PostTransportWork _Session_PostTransportWork;
 	Session::SlaveState _Session_SlaveState;
 	MTC_Status _MIDI_MTC_Status;
@@ -415,10 +414,8 @@ setup_enum_writer ()
 	REGISTER_ENUM (FadeLinear);
 	REGISTER_ENUM (FadeFast);
 	REGISTER_ENUM (FadeSlow);
-	REGISTER_ENUM (FadeLogA);
-	REGISTER_ENUM (FadeLogB);
-	REGISTER_ENUM (FadeConstantPowerMinus3dB);
-	REGISTER_ENUM (FadeConstantPowerMinus6dB);
+	REGISTER_ENUM (FadeConstantPower);
+	REGISTER_ENUM (FadeSymmetric);
 	REGISTER (_FadeShape);
 
 	REGISTER_CLASS_ENUM (Diskstream, Recordable);
@@ -576,11 +573,6 @@ setup_enum_writer ()
 	REGISTER_ENUM(Traditional);
 	REGISTER_ENUM(Rectified);
 	REGISTER(_WaveformShape);
-
-	REGISTER_ENUM(Plain);
-	REGISTER_ENUM(Legato);
-	REGISTER_ENUM(Groove);
-	REGISTER(_QuantizeType);
 
 	REGISTER_ENUM(AudioTime);
 	REGISTER_ENUM(MusicTime);

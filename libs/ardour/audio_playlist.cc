@@ -66,7 +66,7 @@ AudioPlaylist::AudioPlaylist (boost::shared_ptr<const AudioPlaylist> other, stri
 AudioPlaylist::AudioPlaylist (boost::shared_ptr<const AudioPlaylist> other, framepos_t start, framecnt_t cnt, string name, bool hidden)
 	: Playlist (other, start, cnt, name, hidden)
 {
-	RegionLock rlock2 (const_cast<AudioPlaylist*> (other.get()));
+	RegionReadLock rlock2 (const_cast<AudioPlaylist*> (other.get()));
 	in_set_state++;
 
 	framepos_t const end = start + cnt - 1;
@@ -186,16 +186,12 @@ AudioPlaylist::read (Sample *buf, Sample *mixdown_buffer, float *gain_buffer, fr
 	   its OK to block (for short intervals).
 	*/
 
-#ifdef HAVE_GLIB_THREADS_RECMUTEX
-	Glib::Threads::RecMutex::Lock lm (region_lock);
-#else	
-	Glib::RecMutex::Lock rm (region_lock);
-#endif	
+	Playlist::RegionReadLock rl (this);
 
 	/* Find all the regions that are involved in the bit we are reading,
 	   and sort them by descending layer and ascending position.
 	*/
-	boost::shared_ptr<RegionList> all = regions_touched (start, start + cnt - 1);
+	boost::shared_ptr<RegionList> all = regions_touched_locked (start, start + cnt - 1);
 	all->sort (ReadSorter ());
 
 	/* This will be a list of the bits of our read range that we have
@@ -329,19 +325,24 @@ AudioPlaylist::check_crossfades (Evoral::Range<framepos_t> range)
 						break;
 					}
 					
+					top->set_fade_in_active (true);
+					top->set_fade_in_is_xfade (true);
+
+					/* XXX may 2012: -3dB and -6dB curves
+					 * are the same right now 
+					 */
+
 					switch (_session.config.get_xfade_choice ()) {
 					case ConstantPowerMinus3dB:
-						top->set_fade_in (FadeConstantPowerMinus3dB, len);
+						top->set_fade_in (FadeConstantPower, len);
 						break;
 					case ConstantPowerMinus6dB:
-						top->set_fade_in (FadeConstantPowerMinus6dB, len);
+						top->set_fade_in (FadeConstantPower, len);
 						break;
 					case RegionFades:
 						top->set_fade_in_length (len);
 						break;
 					}
-					top->set_fade_in_active (true);
-					top->set_fade_in_is_xfade (true);
 					
 					done_start.insert (top);
 				}
@@ -367,19 +368,20 @@ AudioPlaylist::check_crossfades (Evoral::Range<framepos_t> range)
 						break;
 					}
 					
+					top->set_fade_out_active (true);
+					top->set_fade_out_is_xfade (true);
+
 					switch (_session.config.get_xfade_choice ()) {
 					case ConstantPowerMinus3dB:
-						top->set_fade_out (FadeConstantPowerMinus3dB, len);
+						top->set_fade_out (FadeConstantPower, len);
 						break;
 					case ConstantPowerMinus6dB:
-						top->set_fade_out (FadeConstantPowerMinus6dB, len);
+						top->set_fade_out (FadeConstantPower, len);
 						break;
 					case RegionFades:
 						top->set_fade_out_length (len);
 						break;
 					}
-					top->set_fade_out_active (true);
-					top->set_fade_out_is_xfade (true);
 
 					done_end.insert (top);
 				}
@@ -435,7 +437,7 @@ AudioPlaylist::destroy_region (boost::shared_ptr<Region> region)
 	bool changed = false;
 
 	{
-		RegionLock rlock (this);
+		RegionWriteLock rlock (this);
 
 		for (RegionList::iterator i = regions.begin(); i != regions.end(); ) {
 

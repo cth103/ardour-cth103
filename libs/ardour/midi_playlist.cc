@@ -107,11 +107,8 @@ MidiPlaylist::read (Evoral::EventSink<framepos_t>& dst, framepos_t start, framec
 	   its OK to block (for short intervals).
 	*/
 
-#ifdef HAVE_GLIB_THREADS_RECMUTEX
-	Glib::Threads::RecMutex::Lock rm (region_lock);
-#else	
-	Glib::RecMutex::Lock rm (region_lock);
-#endif	
+	Playlist::RegionReadLock rl (this);
+
 	DEBUG_TRACE (DEBUG::MidiPlaylistIO, string_compose ("++++++ %1 .. %2  +++++++ %3 trackers +++++++++++++++++\n", 
 							    start, start + dur, _note_trackers.size()));
 
@@ -298,11 +295,8 @@ MidiPlaylist::read (Evoral::EventSink<framepos_t>& dst, framepos_t start, framec
 void
 MidiPlaylist::clear_note_trackers ()
 {
-#ifdef HAVE_GLIB_THREADS_RECMUTEX
-	Glib::Threads::RecMutex::Lock rm (region_lock);
-#else	
-	Glib::RecMutex::Lock rm (region_lock);
-#endif	
+	Playlist::RegionWriteLock rl (this, false);
+
 	for (NoteTrackers::iterator n = _note_trackers.begin(); n != _note_trackers.end(); ++n) {
 		delete n->second;
 	}
@@ -373,7 +367,7 @@ MidiPlaylist::destroy_region (boost::shared_ptr<Region> region)
 	bool changed = false;
 
 	{
-		RegionLock rlock (this);
+		RegionWriteLock rlock (this);
 		RegionList::iterator i;
 		RegionList::iterator tmp;
 
@@ -407,12 +401,7 @@ MidiPlaylist::contained_automation()
 	   its OK to block (for short intervals).
 	*/
 
-#ifdef HAVE_GLIB_THREADS_RECMUTEX
-	Glib::Threads::RecMutex::Lock rm (region_lock);
-#else	
-	Glib::RecMutex::Lock rm (region_lock);
-#endif	
-
+	Playlist::RegionReadLock rl (this);
 	set<Evoral::Parameter> ret;
 
 	for (RegionList::const_iterator r = regions.begin(); r != regions.end(); ++r) {

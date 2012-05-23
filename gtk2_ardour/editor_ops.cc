@@ -3209,14 +3209,9 @@ Editor::trim_region (bool front)
 	framepos_t where = get_preferred_edit_position();
 	RegionSelection rs = get_regions_from_selection_and_edit_point ();
 
-	cerr << "trim regions\n";
-
 	if (rs.empty()) {
-		cerr << " no regions\n";
 		return;
 	}
-
-	cerr << "where = " << where << endl;
 
 	begin_reversible_command (front ? _("trim front") : _("trim back"));
 
@@ -4715,8 +4710,7 @@ Editor::quantize_region ()
 	qd->hide ();
 
 	if (r == Gtk::RESPONSE_OK) {
-		Quantize quant (*_session, Plain,
-				qd->snap_start(), qd->snap_end(),
+		Quantize quant (*_session, qd->snap_start(), qd->snap_end(),
 				qd->start_grid_size(), qd->end_grid_size(),
 				qd->strength(), qd->swing(), qd->threshold());
 
@@ -5257,6 +5251,10 @@ Editor::set_fade_out_active (bool yn)
 void
 Editor::toggle_region_fades (int dir)
 {
+	if (_ignore_region_action) {
+		return;
+	}
+	
 	boost::shared_ptr<AudioRegion> ar;
 	bool yn = false;
 

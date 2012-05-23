@@ -20,6 +20,8 @@
 #include <cassert>
 #include <algorithm>
 
+#include <boost/scoped_ptr.hpp>
+
 #include <gtkmm.h>
 
 #include <gtkmm2ext/gtk_ui.h>
@@ -44,6 +46,7 @@
 #include "audio_time_axis.h"
 #include "public_editor.h"
 #include "audio_region_editor.h"
+#include "audio_streamview.h"
 #include "region_gain_line.h"
 #include "control_point.h"
 #include "ghostregion.h"
@@ -74,12 +77,17 @@ AudioRegionView::AudioRegionView (Canvas::Group *parent, RouteTimeAxisView &tv, 
 	, fade_in_handle(0)
 	, fade_out_handle(0)
 	, fade_position_line(0)
+	, start_xfade_in (0)
+	, start_xfade_out (0)
+	, start_xfade_rect (0)
+	, end_xfade_in (0)
+	, end_xfade_out (0)
+	, end_xfade_rect (0)
 	, _amplitude_above_axis(1.0)
 	, _flags(0)
 	, fade_color(0)
 {
 }
-
 
 AudioRegionView::AudioRegionView (Canvas::Group *parent, RouteTimeAxisView &tv, boost::shared_ptr<AudioRegion> r, double spu,
 				  Gdk::Color const & basic_color, bool recording, TimeAxisViewItem::Visibility visibility)
@@ -90,6 +98,12 @@ AudioRegionView::AudioRegionView (Canvas::Group *parent, RouteTimeAxisView &tv, 
 	, fade_in_handle(0)
 	, fade_out_handle(0)
 	, fade_position_line(0)
+	, start_xfade_in (0)
+	, start_xfade_out (0)
+	, start_xfade_rect (0)
+	, end_xfade_in (0)
+	, end_xfade_out (0)
+	, end_xfade_rect (0)
 	, _amplitude_above_axis(1.0)
 	, _flags(0)
 	, fade_color(0)
@@ -103,6 +117,12 @@ AudioRegionView::AudioRegionView (const AudioRegionView& other, boost::shared_pt
 	, fade_in_handle(0)
 	, fade_out_handle(0)
 	, fade_position_line(0)
+	, start_xfade_in (0)
+	, start_xfade_out (0)
+	, start_xfade_rect (0)
+	, end_xfade_in (0)
+	, end_xfade_out (0)
+	, end_xfade_rect (0)
 	, _amplitude_above_axis (other._amplitude_above_axis)
 	, _flags (other._flags)
 	, fade_color(0)
@@ -288,6 +308,7 @@ AudioRegionView::fade_out_changed ()
 {
 	reset_fade_out_shape ();
 }
+
 void
 AudioRegionView::fade_in_active_changed ()
 {
@@ -533,9 +554,30 @@ AudioRegionView::reset_fade_in_shape ()
 void
 AudioRegionView::reset_fade_in_shape_width (framecnt_t width)
 {
+	if (dragging()) {
+		return;
+	}
+
+	if (audio_region()->fade_in_is_xfade()) {
+		if (fade_in_handle) {
+			fade_in_handle->hide ();
+			fade_in_shape->hide ();
+		}
+		redraw_start_xfade ();
+		return;
+	} else {
+		if (start_xfade_in) {
+			start_xfade_in->hide ();
+			start_xfade_out->hide ();
+			start_xfade_rect->hide ();
+		}
+	}
+
 	if (fade_in_handle == 0) {
 		return;
 	}
+
+	fade_in_handle->show ();
 
 	/* smallest size for a fade is 64 frames */
 
@@ -620,9 +662,30 @@ AudioRegionView::reset_fade_out_shape ()
 void
 AudioRegionView::reset_fade_out_shape_width (framecnt_t width)
 {
+	if (dragging()) {
+		return;
+	}
+
+	if (audio_region()->fade_out_is_xfade()) {
+		if (fade_out_handle) {
+			fade_out_handle->hide ();
+			fade_out_shape->hide ();
+		}
+		redraw_end_xfade ();
+		return;
+	} else {
+		if (end_xfade_in) {
+			end_xfade_in->hide ();
+			end_xfade_out->hide ();
+			end_xfade_rect->hide ();
+		}
+	}
+
 	if (fade_out_handle == 0) {
 		return;
 	}
+
+	fade_out_handle->show ();
 
 	/* smallest size for a fade is 64 frames */
 
@@ -1415,6 +1478,289 @@ void
 AudioRegionView::thaw_after_trim ()
 {
 	RegionView::thaw_after_trim ();
-
 	unhide_envelope ();
+	drag_end ();
 }
+
+void
+AudioRegionView::redraw_start_xfade ()
+{
+	boost::shared_ptr<AudioRegion> ar (audio_region());
+
+	if (!ar->fade_in() || ar->fade_in()->empty()) {
+		return;
+	}
+
+	if (!ar->fade_in_is_xfade()) {
+		if (start_xfade_in) {
+			start_xfade_in->hide ();
+			start_xfade_out->hide ();
+			start_xfade_rect->hide ();
+		}
+		return;
+	}
+
+	redraw_start_xfade_to (ar, ar->fade_in()->back()->when);
+}
+
+void
+AudioRegionView::redraw_start_xfade_to (boost::shared_ptr<AudioRegion> ar, framecnt_t len)
+{
+	int32_t const npoints = trackview.editor().frame_to_pixel (len);
+
+	if (npoints < 3) {
+		return;
+	}
+
+	if (!start_xfade_in) {
+		start_xfade_in = new Canvas::PolyLine (group);
+		start_xfade_in->set_outline_width (1);
+		start_xfade_in->set_outline_color (ARDOUR_UI::config()->canvasvar_GainLine.get());
+	}
+
+	if (!start_xfade_out) {
+		start_xfade_out = new Canvas::PolyLine (group);
+		start_xfade_out->set_outline_width (1);
+		uint32_t col = UINT_RGBA_CHANGE_A (ARDOUR_UI::config()->canvasvar_GainLine.get(), 125);
+		start_xfade_out->set_outline_color (col);
+	}
+
+	if (!start_xfade_rect) {
+		start_xfade_rect = new Canvas::Rectangle (group);
+		start_xfade_rect->set_outline (true);
+		start_xfade_rect->set_fill (true);
+		start_xfade_rect->set_fill_color (ARDOUR_UI::config()->canvasvar_ActiveCrossfade.get());
+		start_xfade_rect->set_outline_width (0);
+		start_xfade_rect->Event.connect (sigc::bind (sigc::mem_fun (PublicEditor::instance(), &PublicEditor::canvas_start_xfade_event), start_xfade_rect, this));
+		start_xfade_rect->set_data ("regionview", this);
+	}
+
+	Points* points = get_canvas_points ("xfade edit redraw", npoints);
+	boost::scoped_ptr<float> vec (new float[npoints]);
+	double effective_height = _height - NAME_HIGHLIGHT_SIZE - 1.0;
+
+	ar->fade_in()->curve().get_vector (0, ar->fade_in()->back()->when, vec.get(), npoints);
+
+	for (int i = 0, pci = 0; i < npoints; ++i) {
+		Canvas::Duple &p ((*points)[pci++]);
+		p.x = i;
+		p.y = 1.0 + effective_height - (effective_height * vec.get()[i]);
+	}
+
+	start_xfade_rect->set_x0 (((*points)[0]).x);
+	start_xfade_rect->set_y0 (1);
+	start_xfade_rect->set_x1 (((*points)[npoints-1]).x);
+	start_xfade_rect->set_y1 (effective_height);
+	start_xfade_rect->show ();
+	start_xfade_rect->raise_to_top ();
+
+	start_xfade_in->set (*points);
+	start_xfade_in->show ();
+	start_xfade_in->raise_to_top ();
+
+	/* fade out line */
+
+	boost::shared_ptr<AutomationList> inverse = ar->inverse_fade_in();
+
+	if (!inverse) {
+
+		for (int i = 0, pci = 0; i < npoints; ++i) {
+			Canvas::Duple &p ((*points)[pci++]);
+			p.x = i;
+			p.y = 1.0 + effective_height - (effective_height * (1.0 - vec.get()[i]));
+		}
+
+	} else {
+
+		inverse->curve().get_vector (0, inverse->back()->when, vec.get(), npoints);
+
+		for (int i = 0, pci = 0; i < npoints; ++i) {
+			Canvas::Duple &p ((*points)[pci++]);
+			p.x = i;
+			p.y = 1.0 + effective_height - (effective_height * vec.get()[i]);
+		}
+	}
+
+	start_xfade_out->set (*points);
+	start_xfade_out->show ();
+	start_xfade_out->raise_to_top ();
+
+	delete points;
+}
+
+void
+AudioRegionView::redraw_end_xfade ()
+{
+	boost::shared_ptr<AudioRegion> ar (audio_region());
+
+	if (!ar->fade_out() || ar->fade_out()->empty()) {
+		return;
+	}
+
+	if (!ar->fade_out_is_xfade()) {
+		if (end_xfade_in) {
+			end_xfade_in->hide ();
+			end_xfade_out->hide ();
+			end_xfade_rect->hide ();
+		}
+		return;
+	}
+
+	redraw_end_xfade_to (ar, ar->fade_out()->back()->when);
+}
+
+void
+AudioRegionView::redraw_end_xfade_to (boost::shared_ptr<AudioRegion> ar, framecnt_t len)
+{
+	int32_t const npoints = trackview.editor().frame_to_pixel (len);
+
+	if (npoints < 3) {
+		return;
+	}
+
+	if (!end_xfade_in) {
+		end_xfade_in = new Canvas::PolyLine (group);
+		end_xfade_in->set_outline_width (1);
+		end_xfade_in->set_outline_color (ARDOUR_UI::config()->canvasvar_GainLine.get());
+	}
+
+	if (!end_xfade_out) {
+		end_xfade_out = new Canvas::PolyLine (group);
+		end_xfade_out->set_outline_width (1);
+		uint32_t col UINT_RGBA_CHANGE_A (ARDOUR_UI::config()->canvasvar_GainLine.get(), 125);
+		end_xfade_out->set_outline_color (col);
+	}
+
+	if (!end_xfade_rect) {
+		end_xfade_rect = new Canvas::Rectangle (group);
+		end_xfade_rect->set_outline (true);
+		end_xfade_rect->set_fill (true);
+		end_xfade_rect->set_fill_color (ARDOUR_UI::config()->canvasvar_ActiveCrossfade.get());
+		end_xfade_rect->set_outline_width (0);
+		end_xfade_rect->Event.connect (sigc::bind (sigc::mem_fun (PublicEditor::instance(), &PublicEditor::canvas_end_xfade_event), end_xfade_rect, this));
+		end_xfade_rect->set_data ("regionview", this);
+	}
+
+	Points* points = get_canvas_points ("xfade edit redraw", npoints);
+	boost::scoped_ptr<float> vec (new float[npoints]);
+
+	ar->fade_out()->curve().get_vector (0, ar->fade_out()->back()->when, vec.get(), npoints);
+
+	double rend = trackview.editor().frame_to_pixel (_region->length() - len);
+	double effective_height = _height - NAME_HIGHLIGHT_SIZE - 1;
+
+	for (int i = 0, pci = 0; i < npoints; ++i) {
+		Canvas::Duple &p ((*points)[pci++]);
+		p.x = rend + i;
+		p.y = 1.0 + effective_height - (effective_height * vec.get()[i]);
+	}
+
+	end_xfade_rect->set_x0 (((*points)[0]).x);
+	end_xfade_rect->set_y0 (1);
+	end_xfade_rect->set_x1 (((*points)[npoints-1]).x);
+	end_xfade_rect->set_y1 (effective_height);
+	end_xfade_rect->show ();
+	end_xfade_rect->raise_to_top ();
+
+	end_xfade_in->set (*points);
+	end_xfade_in->show ();
+	end_xfade_in->raise_to_top ();
+
+	/* fade in line */
+
+	boost::shared_ptr<AutomationList> inverse = ar->inverse_fade_out ();
+
+	if (!inverse) {
+
+		for (int i = 0, pci = 0; i < npoints; ++i) {
+			Canvas::Duple &p ((*points)[pci++]);
+			p.x = rend + i;
+			p.y = 1.0 + effective_height - (effective_height * (1.0 - vec.get()[i]));
+		}
+
+	} else {
+
+		inverse->curve().get_vector (inverse->front()->when, inverse->back()->when, vec.get(), npoints);
+
+		for (int i = 0, pci = 0; i < npoints; ++i) {
+			Canvas::Duple &p ((*points)[pci++]);
+			p.x = rend + i;
+			p.y = 1.0 + effective_height - (effective_height * vec.get()[i]);
+		}
+	}
+
+	end_xfade_out->set (*points);
+	end_xfade_out->show ();
+	end_xfade_out->raise_to_top ();
+
+	delete points;
+}
+
+void
+AudioRegionView::hide_xfades ()
+{
+	if (start_xfade_in) {
+		start_xfade_in->hide();
+	}
+	if (start_xfade_out) {
+		start_xfade_out->hide();
+	}
+	if (start_xfade_rect) {
+		start_xfade_rect->hide ();
+	}
+	if (end_xfade_in) {
+		end_xfade_in->hide();
+	}
+	if (end_xfade_out) {
+		end_xfade_out->hide();
+	}
+	if (end_xfade_rect) {
+		end_xfade_rect->hide ();
+	}
+}
+
+void
+AudioRegionView::show_xfades ()
+{
+	if (start_xfade_in) {
+		start_xfade_in->show();
+	}
+	if (start_xfade_out) {
+		start_xfade_out->show();
+	}
+	if (start_xfade_rect) {
+		start_xfade_rect->show ();
+	}
+	if (end_xfade_in) {
+		end_xfade_in->show();
+	}
+	if (end_xfade_out) {
+		end_xfade_out->show();
+	}
+	if (end_xfade_rect) {
+		end_xfade_rect->show ();
+	}
+}
+
+void
+AudioRegionView::drag_start ()
+{
+	TimeAxisViewItem::drag_start ();
+	AudioTimeAxisView* atav = dynamic_cast<AudioTimeAxisView*> (&trackview);
+
+	if (atav) {
+		AudioStreamView* av = atav->audio_view();
+		if (av) {
+			/* this will hide our xfades too */
+			av->hide_xfades_with (audio_region());
+		}
+	}
+}
+
+void
+AudioRegionView::drag_end ()
+{
+	TimeAxisViewItem::drag_end ();
+	/* fades will be redrawn if they changed */
+}
+

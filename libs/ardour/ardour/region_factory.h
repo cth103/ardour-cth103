@@ -83,8 +83,7 @@ public:
 	static void get_regions_using_source (boost::shared_ptr<Source>, std::set<boost::shared_ptr<Region> >& );
 	static void remove_regions_using_source (boost::shared_ptr<Source>);
 
-	static void map_remove (boost::shared_ptr<Region>);
-	static void map_remove_with_equivalents (boost::shared_ptr<Region>);
+	static void map_remove (boost::weak_ptr<Region>);
 	static void delete_all_regions ();
 	static const RegionMap& regions() { return region_map; }
 	static uint32_t nregions ();
@@ -125,7 +124,7 @@ public:
 	static std::map<std::string, uint32_t> region_name_map;
 	static void update_region_name_map (boost::shared_ptr<Region>);
 
-	static PBD::ScopedConnectionList region_list_connections;
+	static PBD::ScopedConnectionList* region_list_connections;
 	static CompoundAssociations _compound_associations;
 };
 

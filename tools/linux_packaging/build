@@ -85,7 +85,7 @@ if test x$STRIP != xall -a x$STRIP != xnone -a x$STRIP != xsome ; then
 fi
 
 release_version=`grep -m 1 '^VERSION' ../../wscript | awk '{print $3}' | sed "s/'//g"`
-svn_version=`grep -m 1 'svn_revision =' ../../libs/ardour/svn_revision.cc | cut -d"\"" -f 2`
+svn_version=`grep -m 1 'svn_revision =' ../../libs/ardour/svn_revision.cc | cut -d"'" -f 2`
 echo "Version is $release_version / $svn_version"
 info_string="$release_version/$svn_version built on `hostname` by `whoami` on `date`"
 echo "Info string is $info_string"
@@ -144,15 +144,20 @@ APPLIB=$APPDIR/lib
 Libraries=$APPLIB
 Etc=$APPDIR/etc
 Shared=$APPDIR/share
+
 Plugins=$APPLIB/plugins
 Surfaces=$APPLIB/surfaces
 Panners=$APPLIB/panners
-ExportFormats=$Shared/export
-Locale=$Shared/locale
-MidiMaps=$Shared/midi_maps
+
 Modules=$Libraries/modules
 Loaders=$Libraries/loaders
 
+Templates=$Shared/templates
+ExportFormats=$Shared/export
+Locale=$Shared/locale
+MidiMaps=$Shared/midi_maps
+PatchFiles=$Shared/patchfiles
+MackieControl=$Shared/mcp
 
 if [ x$PRINT_SYSDEPS != x ] ; then
 #
@@ -186,8 +191,11 @@ mkdir -p $Shared
 mkdir -p $Locale
 mkdir -p $Surfaces
 mkdir -p $MidiMaps
+mkdir -p $PatchFiles
+mkdir -p $MackieControl
 mkdir -p $ExportFormats
 mkdir -p $Panners
+mkdir -p $Templates
 mkdir -p $Shared/templates
 mkdir -p $Shared/doc
 
@@ -277,6 +285,25 @@ if test x$WITH_NLS != x ; then
 else
 	echo "Skipping NLS support"
 fi
+
+### Find fontconfig ###
+FCROOT=`pkg-config --libs-only-L fontconfig | sed -e "s/-L//" -e "s/[[:space:]]//g"`
+if [ ! -z "$FCROOT" ]; then
+	echo "Found FCOOT using pkg-config"
+        FCETC=`dirname $FCROOT`/etc
+elif [ -d /usr/lib/gtk-2.0 ]; then
+	FCETC="/etc"
+elif [ -d /usr/local/lib/gtk-2.0 ]; then
+	FCETC="/usr/local/etc"
+else
+	echo ""
+	echo "!!! ERROR !!! - Unable to locate fontconfig directory. Packager will exit"
+	echo ""
+	exit 1
+fi
+
+echo "Copying Fontconfig files to $Etc ..."
+cp -r $FCETC/fonts $Etc
 
 ### Find gtk ###
 GTKROOT=`pkg-config --libs-only-L gtk+-2.0 | sed -e "s/-L//" -e "s/[[:space:]]//g"`
@@ -402,15 +429,21 @@ gdk-pixbuf-query-loaders | sed "s?$GDKPIXBUFLIB/?@ROOTDIR@/?" > $Etc/gdk-pixbuf.
 # this one is special - we will set GTK_PATH to $Libraries/clearlooks
 
 if [ ! -e ${GTKLIB}/engines/libclearlooks.so ]; then
+    if [ ! -e $BUILD_ROOT/libs/clearlooks-newer/libclearlooks.so ] ; then 
 	echo ""
 	echo "!!! ERROR !!! - not able to locate libclearlooks.so"
 	echo ""
 	echo "Packager with exit"
 	exit 1
+    else 
+        clearlooks_so=$BUILD_ROOT/libs/clearlooks-newer/libclearlooks.so
+    fi
+else
+    clearlooks_so=${GTKLIB}/engines/libclearlooks.so
 fi
 
 echo "Copying clearlooks ..."
-cp ${GTKLIB}/engines/libclearlooks.so $Libraries
+cp $clearlooks_so $Libraries
 mkdir -p $Libraries/clearlooks/engines
 (cd $Libraries/clearlooks/engines && ln -s ../../libclearlooks* libclearlooks.so )
 
@@ -437,6 +470,27 @@ mv $Surfaces/libardourcp.so* $Libraries
 for x in $BUILD_ROOT/../midi_maps/*.map ; do
     cp "$x" $MidiMaps
     echo Copied MIDI map $x 
+done
+
+# MIDNAM Patch Files
+# got to be careful with names here
+for x in $BUILD_ROOT/../patchfiles/*.midnam ; do
+    cp "$x" $PatchFiles
+    echo Copied MIDNAM file "$x"
+done
+
+# MackieControl data
+# got to be careful with names here
+for x in $BUILD_ROOT/../mcp/*.device $BUILD_ROOT/../mcp/*.profile ; do
+    cp "$x" $MackieControl
+    echo Copied Mackie Control file $x 
+done
+
+# Templates
+for f in $BUILD_ROOT/../templates/* ; do 
+    if [ -d "$f" ] ; then
+	echo Template: $f ; cp -r "$f" $Templates ; 
+    fi
 done
 
 # ExportFormats
@@ -481,7 +535,6 @@ while [ true ] ; do
 		# do not include libjack
 		deps=`LD_LIBRARY_PATH=$OURLIBS${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} ldd $file | awk '{print $3}'`
 
-		# LD_LIBRARY_PATH=$OURLIBS${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} ldd $file | egrep "(/opt/|/local/|libs/|/usr/lib|/gtk)" | grep -v 'libjack\.'
 		echo -n "."
 		for dep in $deps ; do
 			if test "not" = ${dep}; then 
@@ -500,9 +553,13 @@ while [ true ] ; do
 			if echo $dep | grep -qs "^/lib/" ; then continue; fi
 			# don't include jack
 			if echo $dep | grep -qs libjack ; then continue; fi
+			# don't include ALSA
+			if echo $dep | grep -qs libasound ; then continue; fi
 			# don't include any X Window libraries
-			if echo $dep | grep -qs libX ; then continue; fi  
+			if echo $dep | grep -qs libX\. ; then continue; fi  
 			if echo $dep | grep -qs libxcb ; then continue; fi  
+			if echo $dep | grep -qs libICE\. ; then continue; fi  
+			if echo $dep | grep -qs libSM\. ; then continue; fi  
 			# don't include libc
 			if echo $dep | grep -qs 'libc\.' ; then continue; fi
 			# don't include libstdc++
@@ -536,10 +593,14 @@ echo
 # strip libraries
 if test x$STRIP = xall ; then
     echo Stripping all libraries
+    # Must be writable so that we can strip
+    find $APPLIB/ -name "*.so*" | xargs chmod u+w
+    # and strip ...
     find $APPLIB/ -name "*.so*" | xargs strip
 elif test x$STRIP = xsome ; then
     echo Stripping dependent libraries
     for l in $deplibs ; do
+        chmod u+w $APPLIB/$l
         strip $APPLIB/$l
     done
 fi
@@ -559,10 +620,10 @@ cp $BUILD_ROOT/gtk2_ardour/ardour3*.rc $Etc
 cp ../../gtk2_ardour/ardour3_ui_default.conf $Etc/ardour3_ui_default.conf
 cp ../../gtk2_ardour/ardour3_ui_default.conf $Etc/ardour3_ui.conf
 cp ../../instant.xml $Etc/instant.xml
-cp -r ../../gtk2_ardour/icons $Etc
-cp -r ../../gtk2_ardour/pixmaps $Etc
 cp ../../gtk2_ardour/step_editing.bindings $Etc
 cp ../../gtk2_ardour/mixer.bindings $Etc
+cp -r ../../gtk2_ardour/icons $Shared
+cp -r ../../gtk2_ardour/pixmaps $Shared
 
 
 #
@@ -576,8 +637,6 @@ fi
 # share stuff
 
 cp -R ../../gtk2_ardour/splash.png $Shared
-# currently no templates
-#cp ../../templates/*.template $Shared/templates/
 
 # go through and recursively remove any .svn dirs in the bundle
 for svndir in `find $APPDIR -name .svn -type d`; do

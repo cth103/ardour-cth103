@@ -95,7 +95,9 @@ class AudioRegion : public Region
 	void set_fade_out_is_xfade (bool yn);
 
 	boost::shared_ptr<AutomationList> fade_in()  { return _fade_in; }
+	boost::shared_ptr<AutomationList> inverse_fade_in()  { return _inverse_fade_in; }
 	boost::shared_ptr<AutomationList> fade_out() { return _fade_out; }
+	boost::shared_ptr<AutomationList> inverse_fade_out()  { return _inverse_fade_out; }
 	boost::shared_ptr<AutomationList> envelope() { return _envelope; }
 
 	Evoral::Range<framepos_t> body_range () const;
@@ -140,6 +142,8 @@ class AudioRegion : public Region
 
 	void set_default_fade_in ();
 	void set_default_fade_out ();
+
+	framecnt_t verify_xfade_bounds (framecnt_t, bool start);
 	
 	void set_envelope_active (bool yn);
 	void set_default_envelope ();
@@ -176,7 +180,6 @@ class AudioRegion : public Region
 
   private:
 	friend class RegionFactory;
-	friend class Crossfade;
 
 	AudioRegion (boost::shared_ptr<AudioSource>);
 	AudioRegion (const SourceList &);
@@ -233,6 +236,8 @@ class AudioRegion : public Region
 	*/
 	bool                              _fade_in_is_xfade;
 	bool                              _fade_out_is_xfade;
+
+	boost::shared_ptr<ARDOUR::Region> get_single_other_xfade_region (bool start) const;
 
   protected:
 	/* default constructor for derived (compound) types */

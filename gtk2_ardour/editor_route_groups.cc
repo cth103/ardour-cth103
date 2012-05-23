@@ -367,7 +367,6 @@ EditorRouteGroups::button_press_event (GdkEventButton* ev)
 
 	case 12:
 		val = (*iter)[_columns.active_shared];
-		cerr << "set group active to " << !val << endl;
 		group->set_route_active (!val);
 		ret = true;
 		break;
@@ -380,7 +379,7 @@ EditorRouteGroups::button_press_event (GdkEventButton* ev)
 }
 
 void
-EditorRouteGroups::row_change (const Gtk::TreeModel::Path& path, const Gtk::TreeModel::iterator& iter)
+EditorRouteGroups::row_change (const Gtk::TreeModel::Path&, const Gtk::TreeModel::iterator& iter)
 {
 	RouteGroup* group;
 
@@ -487,7 +486,7 @@ EditorRouteGroups::groups_changed ()
 }
 
 void
-EditorRouteGroups::property_changed (RouteGroup* group, const PropertyChange& change)
+EditorRouteGroups::property_changed (RouteGroup* group, const PropertyChange&)
 {
 	_in_row_change = true;
 

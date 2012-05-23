@@ -859,7 +859,6 @@ void
 MidiTimeAxisView::create_automation_child (const Evoral::Parameter& param, bool show)
 {
 	if (param.type() == NullAutomation) {
-		cerr << "WARNING: Attempt to create NullAutomation child, ignoring" << endl;
 		return;
 	}
 
@@ -871,8 +870,6 @@ MidiTimeAxisView::create_automation_child (const Evoral::Parameter& param, bool 
 		 * the processor, but visibility may need to be controlled
 		 * since it will have been set visible by default.
 		 */
-
-		cerr << "show existing auto track: " << show << " noredraw " << no_redraw << endl;
 
 		if (existing->second->set_marked_for_display (show) && !no_redraw) {
 			request_redraw ();

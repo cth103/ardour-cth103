@@ -29,7 +29,6 @@
 #include <fcntl.h>
 
 #include <glibmm/miscutils.h>
-#include <boost/signals2.hpp>
 
 #include <pbd/pthread_utils.h>
 #include <pbd/file_utils.h>
@@ -192,8 +191,7 @@ OSC::start ()
 
 	PBD::sys::path url_file;
 
-	if (find_file_in_search_path (ardour_search_path() + system_config_search_path(),
-				      "osc_url", url_file)) {
+	if (find_file_in_search_path (ardour_config_search_path(), "osc_url", url_file)) {
 		
 		_osc_url_file = url_file.to_string();
 		ofstream urlfile;

@@ -237,7 +237,7 @@ Marker::Marker (PublicEditor& ed, Canvas::Group& parent, guint32 rgba, const str
 	unit_position = editor.frame_to_unit (frame);
 	unit_position -= _shift;
 	
-	group = new Canvas::Group (&parent, Canvas::Duple (unit_position, 1.0));
+	group = new Canvas::Group (&parent, Canvas::Duple (unit_position, 0));
 #ifdef CANVAS_DEBUG
 	group->name = string_compose ("Marker::group for %1", annotation);
 #endif	

@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 # Variables for 'waf dist'
-VERSION = '3.0beta3'
+VERSION = '3.0beta4'
 APPNAME = 'Ardour3'
 
 # Mandatory variables
@@ -36,6 +36,7 @@ children = [
         'templates',
         'export',
         'midi_maps',
+        'mcp',
         'manual'
 ]
 
@@ -123,52 +124,51 @@ def set_compiler_flags (conf,opt):
     optimization_flags = []
     debug_flags = []
 
-    # guess at the platform, used to define compiler flags
-
-    config_guess = os.popen("tools/config.guess").read()[:-1]
-
-    config_cpu = 0
-    config_arch = 1
-    config_kernel = 2
-    config_os = 3
-    config = config_guess.split ("-")
+    u = os.uname ()
+    cpu = u[4]
+    platform = u[0].lower()
+    version = u[2]
 
     if opt.gprofile:
         debug_flags = [ '-pg' ]
     else:
-        if config[config_arch] != 'apple':
+        if platform != 'darwin':
             debug_flags = [ '-rdynamic' ] # waf adds -O0 -g itself. thanks waf!
 
     # Autodetect
     if opt.dist_target == 'auto':
-        if config[config_arch] == 'apple':
+        if platform == 'darwin':
             # The [.] matches to the dot after the major version, "." would match any character
-            if re.search ("darwin[0-7][.]", config[config_kernel]) != None:
+            if re.search ("^[0-7][.]", version) != None:
                 conf.env['build_target'] = 'panther'
-            elif re.search ("darwin8[.]", config[config_kernel]) != None:
+            elif re.search ("^8[.]", version) != None:
                 conf.env['build_target'] = 'tiger'
-            else:
+            elif re.search ("^9[.]", version) != None:
                 conf.env['build_target'] = 'leopard'
+            elif re.search ("^10[.]", version) != None:
+                conf.env['build_target'] = 'snowleopard'
+            else:
+                conf.env['build_target'] = 'lion'
         else:
-            if re.search ("x86_64", config[config_cpu]) != None:
+            if re.search ("x86_64", cpu) != None:
                 conf.env['build_target'] = 'x86_64'
-            elif re.search("i[0-5]86", config[config_cpu]) != None:
+            elif re.search("i[0-5]86", cpu) != None:
                 conf.env['build_target'] = 'i386'
-            elif re.search("powerpc", config[config_cpu]) != None:
+            elif re.search("powerpc", cpu) != None:
                 conf.env['build_target'] = 'powerpc'
             else:
                 conf.env['build_target'] = 'i686'
     else:
         conf.env['build_target'] = opt.dist_target
 
-    if config[config_cpu] == 'powerpc' and conf.env['build_target'] != 'none':
+    if cpu == 'powerpc' and conf.env['build_target'] != 'none':
         #
         # Apple/PowerPC optimization options
         #
         # -mcpu=7450 does not reliably work with gcc 3.*
         #
         if opt.dist_target == 'panther' or opt.dist_target == 'tiger':
-            if config[config_arch] == 'apple':
+            if platform == 'darwin':
                 # optimization_flags.extend ([ "-mcpu=7450", "-faltivec"])
                 # to support g3s but still have some optimization for above
                 optimization_flags.extend ([ "-mcpu=G3", "-mtune=7450"])
@@ -179,7 +179,7 @@ def set_compiler_flags (conf,opt):
         optimization_flags.extend (["-mhard-float", "-mpowerpc-gfxopt"])
         optimization_flags.extend (["-Os"])
 
-    elif ((re.search ("i[0-9]86", config[config_cpu]) != None) or (re.search ("x86_64", config[config_cpu]) != None)) and conf.env['build_target'] != 'none':
+    elif ((re.search ("i[0-9]86", cpu) != None) or (re.search ("x86_64", cpu) != None)) and conf.env['build_target'] != 'none':
 
 
         #
@@ -188,11 +188,11 @@ def set_compiler_flags (conf,opt):
         # distingush 32 and 64 bit assembler
         #
 
-        if (re.search ("(i[0-9]86|x86_64)", config[config_cpu]) != None):
+        if (re.search ("(i[0-9]86|x86_64)", cpu) != None):
             debug_flags.append ("-DARCH_X86")
             optimization_flags.append ("-DARCH_X86")
 
-        if config[config_kernel] == 'linux' :
+        if platform == 'linux' :
 
             #
             # determine processor flags via /proc/cpuinfo
@@ -210,9 +210,9 @@ def set_compiler_flags (conf,opt):
                 if "3dnow" in x86_flags:
                     optimization_flags.append ("-m3dnow")
 
-            if config[config_cpu] == "i586":
+            if cpu == "i586":
                 optimization_flags.append ("-march=i586")
-            elif config[config_cpu] == "i686":
+            elif cpu == "i686":
                 optimization_flags.append ("-march=i686")
 
         if ((conf.env['build_target'] == 'i686') or (conf.env['build_target'] == 'x86_64')) and build_host_supports_sse:
@@ -223,7 +223,7 @@ def set_compiler_flags (conf,opt):
 
     # optimization section
     if conf.env['FPU_OPTIMIZATION']:
-        if conf.env['build_target'] == 'tiger' or conf.env['build_target'] == 'leopard':
+        if sys.platform == 'darwin':
             optimization_flags.append ("-DBUILD_VECLIB_OPTIMIZATIONS");
             debug_flags.append ("-DBUILD_VECLIB_OPTIMIZATIONS");
             conf.env.append_value('LINKFLAGS', "-framework Accelerate")
@@ -232,11 +232,6 @@ def set_compiler_flags (conf,opt):
             debug_flags.append ("-DBUILD_SSE_OPTIMIZATIONS")
         if not build_host_supports_sse:
             print("\nWarning: you are building Ardour with SSE support even though your system does not support these instructions. (This may not be an error, especially if you are a package maintainer)")
-
-    # check this even if we aren't using FPU optimization
-    if not conf.is_defined('HAVE_POSIX_MEMALIGN'):
-        optimization_flags.append("-DNO_POSIX_MEMALIGN")
-        debug_flags.append("-DNO_POSIX_MEMALIGN")
 
     # end optimization section
 
@@ -271,9 +266,9 @@ def set_compiler_flags (conf,opt):
         conf.define ('IS_OSX', 0)
 
     #
-    # save off guessed arch element in an env
+    # save off CPU element in an env
     #
-    conf.define ('CONFIG_ARCH', config[config_arch])
+    conf.define ('CONFIG_ARCH', cpu)
 
     #
     # ARCH="..." overrides all
@@ -316,14 +311,23 @@ def set_compiler_flags (conf,opt):
         conf.env.append_value('CXXFLAGS', '-DDEBUG_DENORMAL_EXCEPTION')
 
     if opt.universal:
-        if not Options.options.nocarbon:
-            conf.env.append_value('CFLAGS', ["-arch", "i386", "-arch", "ppc"])
-            conf.env.append_value('CXXFLAGS', ["-arch", "i386", "-arch", "ppc"])
-            conf.env.append_value('LINKFLAGS', ["-arch", "i386", "-arch", "ppc"])
+        if opt.generic:
+            print ('Specifying Universal and Generic builds at the same time is not supported')
+            sys.exit (1)
         else:
-            conf.env.append_value('CFLAGS', ["-arch", "x86_64", "-arch", "i386", "-arch", "ppc"])
-            conf.env.append_value('CXXFLAGS', ["-arch", "x86_64", "-arch", "i386", "-arch", "ppc"])
-            conf.env.append_value('LINKFLAGS', ["-arch", "x86_64", "-arch", "i386", "-arch", "ppc"])
+            if not Options.options.nocarbon:
+                conf.env.append_value('CFLAGS', ["-arch", "i386", "-arch", "ppc"])
+                conf.env.append_value('CXXFLAGS', ["-arch", "i386", "-arch", "ppc"])
+                conf.env.append_value('LINKFLAGS', ["-arch", "i386", "-arch", "ppc"])
+            else:
+                conf.env.append_value('CFLAGS', ["-arch", "x86_64", "-arch", "i386", "-arch", "ppc"])
+                conf.env.append_value('CXXFLAGS', ["-arch", "x86_64", "-arch", "i386", "-arch", "ppc"])
+                conf.env.append_value('LINKFLAGS', ["-arch", "x86_64", "-arch", "i386", "-arch", "ppc"])
+    else:
+        if opt.generic:
+            conf.env.append_value('CFLAGS', ['-arch', 'i386'])
+            conf.env.append_value('CXXFLAGS', ['-arch', 'i386'])
+            conf.env.append_value('LINKFLAGS', ['-arch', 'i386'])
 
     #
     # warnings flags
@@ -401,10 +405,12 @@ def options(opt):
                     help='Raise a floating point exception if a denormal is detected')
     opt.add_option('--test', action='store_true', default=False, dest='build_tests',
                     help="Build unit tests")
-    opt.add_option('--tranzport', action='store_true', default=False, dest='tranzport',
-                    help='Compile with support for Frontier Designs Tranzport (if libusb is available)')
+    #opt.add_option('--tranzport', action='store_true', default=False, dest='tranzport',
+    # help='Compile with support for Frontier Designs Tranzport (if libusb is available)')
     opt.add_option('--universal', action='store_true', default=False, dest='universal',
                     help='Compile as universal binary (OS X ONLY, requires that external libraries are universal)')
+    opt.add_option('--generic', action='store_true', default=False, dest='generic',
+                    help='Compile with -arch i386 (OS X ONLY)')
     opt.add_option('--versioned', action='store_true', default=False, dest='versioned',
                     help='Add revision information to executable name inside the build directory')
     opt.add_option('--windows-vst', action='store_true', default=False, dest='windows_vst',
@@ -417,7 +423,9 @@ def options(opt):
     opt.add_option('--boost-include', type='string', action='store', dest='boost_include', default='',
                     help='directory where Boost header files can be found')
     opt.add_option('--also-include', type='string', action='store', dest='also_include', default='',
-                    help='additional include directory where header files can be found')
+                    help='additional include directory where header files can be found (split multiples with commas)')
+    opt.add_option('--also-libdir', type='string', action='store', dest='also_libdir', default='',
+                    help='additional include directory where shared libraries can be found (split multiples with commas)')
     opt.add_option('--wine-include', type='string', action='store', dest='wine_include', default='/usr/include/wine/windows',
                     help='directory where Wine\'s Windows header files can be found')
     opt.add_option('--noconfirm', action='store_true', default=False, dest='noconfirm',
@@ -452,24 +460,28 @@ def configure(conf):
         print('Please use a different version or re-configure with --debug')
         exit (1)
 
-    if sys.platform == 'darwin':
+    # libintl may or may not be trivially locatable. On OS X this is always
+    # true. On Linux it will depend on whether we're on a normal Linux distro,
+    # in which case libintl.h is going to be available in /usr/include and
+    # the library itself is part of glibc, or on a bare-bones build system
+    # where we need to pick it up from the GTK dependency stack.
+    #
+    if not os.path.isfile ('/usr/include/libintl.h'):
+        # XXXX hack hack hack
+        prefinclude = ''.join ([ '-I', os.path.expanduser ('~/gtk/inst/include') ])
+        preflib = ''.join ([ '-L', os.path.expanduser ('~/gtk/inst/lib') ])
+        conf.env.append_value('CFLAGS', [ prefinclude ])
+        conf.env.append_value('CXXFLAGS',  [prefinclude ])
+        conf.env.append_value('LINKFLAGS', [ preflib ])
 
-        # libintl may or may not be trivially locatable
-        if not os.path.isfile ('/usr/include/libintl.h'):
-            # XXXX hack hack hack
-            prefinclude = ''.join ([ '-I', os.path.expanduser ('~/gtk/inst/include') ])
-            preflib = ''.join ([ '-L', os.path.expanduser ('~/gtk/inst/lib') ])
-            conf.env.append_value('CFLAGS', [ prefinclude ])
-            conf.env.append_value('CXXFLAGS',  [prefinclude ])
-            conf.env.append_value('LINKFLAGS', [ preflib ])
+    if sys.platform == 'darwin':
 
         # this is required, potentially, for anything we link and then relocate into a bundle
         conf.env.append_value('LINKFLAGS', [ '-Xlinker', '-headerpad_max_install_names' ])
 
         conf.define ('HAVE_COREAUDIO', 1)
         conf.define ('AUDIOUNIT_SUPPORT', 1)
-        if not Options.options.nocarbon:
-            conf.define ('WITH_CARBON', 1)
+
         if not Options.options.freebie:
             conf.define ('AU_STATE_SUPPORT', 1)
 
@@ -477,8 +489,6 @@ def configure(conf):
         conf.define ('TOP_MENUBAR',1)
         conf.define ('GTKOSX',1)
 
-        conf.env.append_value('CXXFLAGS_APPLEUTILITY', '-I../libs')
-        #
         #       Define OSX as a uselib to use when compiling
         #       on Darwin to add all applicable flags at once
         #
@@ -487,10 +497,13 @@ def configure(conf):
         conf.env.append_value('CXXFLAGS_OSX', '-mmacosx-version-min=10.4')
         conf.env.append_value('CFLAGS_OSX', '-mmacosx-version-min=10.4')
 
+        # It would be nice to be able to use this to force back-compatibility with 10.4
+        # but even by the time of 11, the 10.4 SDK is no longer available in any normal
+        # way.
+        #
         #conf.env.append_value('CXXFLAGS_OSX', "-isysroot /Developer/SDKs/MacOSX10.4u.sdk")
         #conf.env.append_value('CFLAGS_OSX', "-isysroot /Developer/SDKs/MacOSX10.4u.sdk")
-        #conf.env.append_value('LINKFLAGS_OSX', "-isysroot /Developer/SDKs/MacOSX10.4u.sdk")
-
+        #conf.env.append_value('LINKFLAGS_OSX', "-sysroot /Developer/SDKs/MacOSX10.4u.sdk")
         #conf.env.append_value('LINKFLAGS_OSX', "-sysroot /Developer/SDKs/MacOSX10.4u.sdk")
 
         conf.env.append_value('CXXFLAGS_OSX', "-msse")
@@ -520,9 +533,12 @@ def configure(conf):
 
         if not Options.options.freebie:
             conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DAU_STATE_SUPPORT")
-        if not Options.options.nocarbon:
+
+        if re.search ("^[1-9][0-9]\.", os.uname()[2]) == None and not Options.options.nocarbon:
             conf.env.append_value('CXXFLAGS_AUDIOUNITS', "-DWITH_CARBON")
             conf.env.append_value('LINKFLAGS_AUDIOUNITS', ['-framework', 'Carbon'])
+        else:
+            print ('No Carbon support available for this build\n')
 
     if Options.options.boost_include != '':
         conf.env.append_value('CXXFLAGS', '-I' + Options.options.boost_include)
@@ -531,7 +547,8 @@ def configure(conf):
         conf.env.append_value('CXXFLAGS', '-I' + Options.options.also_include)
         conf.env.append_value('CFLAGS', '-I' + Options.options.also_include)
 
-    autowaf.check_header(conf, 'cxx', 'boost/signals2.hpp', mandatory = True)
+    if Options.options.also_libdir != '':
+        conf.env.append_value('LDFLAGS', '-L' + Options.options.also_libdir)
 
     if Options.options.boost_sp_debug:
         conf.env.append_value('CXXFLAGS', '-DBOOST_SP_ENABLE_DEBUG_HOOKS')
@@ -551,23 +568,9 @@ def configure(conf):
     autowaf.check_pkg(conf, 'glibmm-2.4', uselib_store='GLIBMM', atleast_version='2.14.0')
     autowaf.check_pkg(conf, 'sndfile', uselib_store='SNDFILE', atleast_version='1.0.18')
     autowaf.check_pkg(conf, 'giomm-2.4', uselib_store='GIOMM', atleast_version='2.2')
-
-    conf.check_cxx(fragment = '#include <glibmm/threads.h>\nstatic Glib::Threads::RecMutex foo;\nint main () {}',
-                   uselib = ['GLIBMM'],
-                   msg = 'Checking for Glib::Threads::RecMutex',
-                   mandatory = False,
-                   okmsg = 'yes',
-                   errmsg = 'no; using deprecated API',
-                   define_name = 'HAVE_GLIB_THREADS_RECMUTEX')
-
-    for i in children:
-        sub_config_and_use(conf, i)
-
-    # Fix utterly braindead FLAC include path to not smash assert.h
-    conf.env['INCLUDES_FLAC'] = []
+    autowaf.check_pkg(conf, 'libcurl', uselib_store='CURL', atleast_version='7.0.0')
 
     conf.check_cc(function_name='dlopen', header_name='dlfcn.h', linkflags='-ldl', uselib_store='DL')
-    conf.check_cc(function_name='curl_global_init', header_name='curl/curl.h', linkflags='-lcurl', uselib_store='CURL')
 
     # Tell everyone that this is a waf build
 
@@ -590,8 +593,8 @@ def configure(conf):
         conf.env['ENABLE_NLS'] = True
     if opts.build_tests:
         conf.env['BUILD_TESTS'] = opts.build_tests
-    if opts.tranzport:
-        conf.env['TRANZPORT'] = 1
+    #if opts.tranzport:
+    #    conf.env['TRANZPORT'] = 1
     if opts.windows_vst:
         conf.define('WINDOWS_VST_SUPPORT', 1)
         conf.env['WINDOWS_VST_SUPPORT'] = True
@@ -621,6 +624,12 @@ def configure(conf):
         conf.env['BUILD_TESTS'] = False
 
     set_compiler_flags (conf, Options.options)
+
+    for i in children:
+        sub_config_and_use(conf, i)
+
+    # Fix utterly braindead FLAC include path to not smash assert.h
+    conf.env['INCLUDES_FLAC'] = []
 
     config_text = open('libs/ardour/config_text.cc', "w")
     config_text.write('''#include "ardour/ardour.h"
@@ -663,9 +672,10 @@ const char* const ardour_config_info = "\\n\\
     write_config_text('Samplerate',            conf.is_defined('HAVE_SAMPLERATE'))
 #    write_config_text('Soundtouch',            conf.is_defined('HAVE_SOUNDTOUCH'))
     write_config_text('Translation',           opts.nls)
-    write_config_text('Tranzport',             opts.tranzport)
+#    write_config_text('Tranzport',             opts.tranzport)
     write_config_text('Unit tests',            conf.env['BUILD_TESTS'])
     write_config_text('Universal binary',      opts.universal)
+    write_config_text('Generic x86 CPU',       opts.generic)
     write_config_text('Windows VST support',   opts.windows_vst)
     write_config_text('Wiimote support',       opts.wiimote)
     write_config_text('Windows key',           opts.windows_key)
@@ -731,3 +741,4 @@ def i18n_po(bld):
 
 def i18n_mo(bld):
     bld.recurse (i18n_children)
+

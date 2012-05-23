@@ -41,7 +41,7 @@ using namespace std;
 PBD::Signal1<void,boost::shared_ptr<Region> > RegionFactory::CheckNewRegion;
 Glib::StaticMutex                             RegionFactory::region_map_lock;
 RegionFactory::RegionMap                      RegionFactory::region_map;
-PBD::ScopedConnectionList                     RegionFactory::region_list_connections;
+PBD::ScopedConnectionList*                    RegionFactory::region_list_connections = 0;
 Glib::StaticMutex                             RegionFactory::region_name_map_lock;
 std::map<std::string, uint32_t>               RegionFactory::region_name_map;
 RegionFactory::CompoundAssociations           RegionFactory::_compound_associations;
@@ -321,43 +321,29 @@ RegionFactory::map_add (boost::shared_ptr<Region> r)
 		region_map.insert (p);
 	}
 
-	r->DropReferences.connect_same_thread (region_list_connections, boost::bind (&RegionFactory::map_remove, r));
+	if (!region_list_connections) {
+		region_list_connections = new ScopedConnectionList;
+	}
 
-	r->PropertyChanged.connect_same_thread (
-		region_list_connections,
-		boost::bind (&RegionFactory::region_changed, _1, boost::weak_ptr<Region> (r))
-		);
+	r->DropReferences.connect_same_thread (*region_list_connections, boost::bind (&RegionFactory::map_remove, boost::weak_ptr<Region> (r)));
+	r->PropertyChanged.connect_same_thread (*region_list_connections, boost::bind (&RegionFactory::region_changed, _1, boost::weak_ptr<Region> (r)));
 
 	update_region_name_map (r);
 }
 
 void
-RegionFactory::map_remove (boost::shared_ptr<Region> r)
+RegionFactory::map_remove (boost::weak_ptr<Region> w)
 {
+	boost::shared_ptr<Region> r = w.lock ();
+	if (!r) {
+		return;
+	}
+	
 	Glib::Mutex::Lock lm (region_map_lock);
 	RegionMap::iterator i = region_map.find (r->id());
 
 	if (i != region_map.end()) {
 		region_map.erase (i);
-	}
-}
-
-void
-RegionFactory::map_remove_with_equivalents (boost::shared_ptr<Region> r)
-{
-	Glib::Mutex::Lock lm (region_map_lock);
-
-	for (RegionMap::iterator i = region_map.begin(); i != region_map.end(); ) {
-		RegionMap::iterator tmp = i;
-		++tmp;
-
-		if (r->region_list_equivalent (i->second)) {
-			region_map.erase (i);
-		} else if (r == i->second) {
-			region_map.erase (i);
-		}
-
-		i = tmp;
 	}
 }
 
@@ -398,7 +384,9 @@ RegionFactory::region_by_name (const std::string& name)
 void
 RegionFactory::clear_map ()
 {
-	region_list_connections.drop_connections ();
+	if (region_list_connections) {
+		region_list_connections->drop_connections ();
+	}
 
 	{
 		Glib::Mutex::Lock lm (region_map_lock);

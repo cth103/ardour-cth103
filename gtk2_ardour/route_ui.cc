@@ -629,7 +629,7 @@ RouteUI::update_monitoring_display ()
 }
 
 bool
-RouteUI::monitor_input_press(GdkEventButton* ev)
+RouteUI::monitor_input_press(GdkEventButton*)
 {
 	return true;
 }
@@ -641,7 +641,7 @@ RouteUI::monitor_input_release(GdkEventButton* ev)
 }
 
 bool
-RouteUI::monitor_disk_press (GdkEventButton* ev)
+RouteUI::monitor_disk_press (GdkEventButton*)
 {
 	return true;
 }
@@ -1287,10 +1287,13 @@ RouteUI::solo_isolate_button_release (GdkEventButton* ev)
 }
 
 bool
-RouteUI::solo_safe_button_release (GdkEventButton*)
+RouteUI::solo_safe_button_release (GdkEventButton* ev)
 {
-        _route->set_solo_safe (!solo_safe_led->active_state(), this);
-        return true;
+	if (ev->button == 1) {
+		_route->set_solo_safe (!solo_safe_led->active_state(), this);
+		return true;
+	}
+	return false;
 }
 
 void

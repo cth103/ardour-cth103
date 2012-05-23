@@ -55,8 +55,8 @@ static const char * const devprofile_env_variable_name = "ARDOUR_MCP_PATH";
 static const char* const devprofile_dir_name = "mcp";
 static const char* const devprofile_suffix = ".profile";
 
-static sys::path
-system_devprofile_search_path ()
+static SearchPath
+devprofile_search_path ()
 {
 	bool devprofile_path_defined = false;
         sys::path spath_env (Glib::getenv (devprofile_env_variable_name, devprofile_path_defined));
@@ -65,15 +65,10 @@ system_devprofile_search_path ()
 		return spath_env;
 	}
 
-	SearchPath spath (system_data_search_path());
+	SearchPath spath (ardour_data_search_path());
 	spath.add_subdirectory_to_paths(devprofile_dir_name);
 
-	// just return the first directory in the search path that exists
-	SearchPath::const_iterator i = std::find_if(spath.begin(), spath.end(), sys::exists);
-
-	if (i == spath.end()) return sys::path();
-
-	return *i;
+	return spath;
 }
 
 static sys::path
@@ -99,8 +94,7 @@ DeviceProfile::reload_device_profiles ()
 	vector<string> s;
 	vector<string *> *devprofiles;
 	PathScanner scanner;
-	SearchPath spath (system_devprofile_search_path());
-	spath += user_devprofile_directory ();
+	SearchPath spath (devprofile_search_path());
 
 	devprofiles = scanner (spath.to_string(), devprofile_filter, 0, false, true);
 	device_profiles.clear ();

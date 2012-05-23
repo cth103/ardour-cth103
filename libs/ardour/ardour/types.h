@@ -510,12 +510,6 @@ namespace ARDOUR {
 		Rectified
 	};
 
-	enum QuantizeType {
-		Plain,
-		Legato,
-		Groove
-	};
-
 	struct CleanupReport {
 		std::vector<std::string> paths;
 		size_t                   space;
@@ -563,10 +557,8 @@ namespace ARDOUR {
 		FadeLinear,
 		FadeFast,
 		FadeSlow,
-		FadeLogA,
-		FadeLogB,
-		FadeConstantPowerMinus3dB,
-		FadeConstantPowerMinus6dB,
+		FadeConstantPower,
+		FadeSymmetric,
 	};
 
 } // namespace ARDOUR
