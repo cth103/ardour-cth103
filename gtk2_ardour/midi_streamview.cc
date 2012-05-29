@@ -25,15 +25,12 @@
 #include <gtkmm2ext/gtk_ui.h>
 
 #include "canvas/rectangle.h"
-
-#include "ardour/midi_diskstream.h"
-#include "ardour/midi_playlist.h"
 #include "ardour/midi_region.h"
 #include "ardour/midi_source.h"
 #include "ardour/midi_track.h"
 #include "ardour/region_factory.h"
-#include "ardour/smf_source.h"
 #include "ardour/session.h"
+#include "ardour/smf_source.h"
 
 #include "canvas/line_set.h"
 
@@ -638,4 +635,15 @@ MidiStreamView::resume_updates ()
 
 	draw_note_lines ();
 	apply_note_range_to_regions ();
+}
+
+void
+MidiStreamView::leave_internal_edit_mode ()
+{
+	StreamView::leave_internal_edit_mode ();
+	for (RegionViewList::iterator i = region_views.begin(); i != region_views.end(); ++i) {
+		MidiRegionView* mrv = dynamic_cast<MidiRegionView*> (*i);
+		assert (mrv);
+		mrv->clear_selection ();
+	}
 }

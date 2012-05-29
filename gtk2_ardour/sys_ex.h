@@ -17,8 +17,10 @@
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#ifndef __SYSEX_H__
-#define __SYSEX_H__
+#ifndef CANVAS_SYSEX_H_
+#define CANVAS_SYSEX_H_
+
+#include <string>
 
 class MidiRegionView;
 

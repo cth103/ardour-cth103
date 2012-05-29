@@ -31,7 +31,7 @@
 
 namespace ARDOUR {
 	class AudioRegion;
-	class PeakData;
+	struct PeakData;
 };
 
 namespace Canvas {

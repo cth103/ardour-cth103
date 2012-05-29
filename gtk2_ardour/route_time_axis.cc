@@ -43,22 +43,12 @@
 #include <gtkmm2ext/utils.h>
 
 #include "ardour/amp.h"
-#include "ardour/audioplaylist.h"
-#include "ardour/diskstream.h"
 #include "ardour/event_type_map.h"
-#include "ardour/ladspa_plugin.h"
-#include "ardour/location.h"
-#include "ardour/panner.h"
-#include "ardour/playlist.h"
-#include "ardour/playlist.h"
 #include "ardour/processor.h"
 #include "ardour/profile.h"
-#include "ardour/region_factory.h"
 #include "ardour/route_group.h"
 #include "ardour/session.h"
-#include "ardour/session_playlist.h"
-#include "ardour/debug.h"
-#include "ardour/utils.h"
+#include "ardour/session_playlists.h"
 #include "evoral/Parameter.hpp"
 
 #include "ardour_ui.h"
@@ -663,30 +653,30 @@ RouteTimeAxisView::build_display_menu ()
 		build_playlist_menu ();
 		items.push_back (MenuElem (_("Playlist"), *playlist_action_menu));
 		items.back().set_sensitive (_editor.get_selection().tracks.size() <= 1);
-
-		route_group_menu->detach ();
-
-		WeakRouteList r;
-		for (TrackSelection::iterator i = _editor.get_selection().tracks.begin(); i != _editor.get_selection().tracks.end(); ++i) {
-			RouteTimeAxisView* rtv = dynamic_cast<RouteTimeAxisView*> (*i);
-			if (rtv) {
-				r.push_back (rtv->route ());
-			}
-		}
-
-		if (r.empty ()) {
-			r.push_back (route ());
-		}
-
-		route_group_menu->build (r);
-		items.push_back (MenuElem (_("Route Group"), *route_group_menu->menu ()));
-
-		build_automation_action_menu (true);
-		items.push_back (MenuElem (_("Automation"), *automation_action_menu));
-
-		items.push_back (SeparatorElem());
 	}
 
+	route_group_menu->detach ();
+	
+	WeakRouteList r;
+	for (TrackSelection::iterator i = _editor.get_selection().tracks.begin(); i != _editor.get_selection().tracks.end(); ++i) {
+		RouteTimeAxisView* rtv = dynamic_cast<RouteTimeAxisView*> (*i);
+		if (rtv) {
+			r.push_back (rtv->route ());
+		}
+	}
+	
+	if (r.empty ()) {
+		r.push_back (route ());
+	}
+
+	route_group_menu->build (r);
+	items.push_back (MenuElem (_("Group"), *route_group_menu->menu ()));
+	
+	build_automation_action_menu (true);
+	items.push_back (MenuElem (_("Automation"), *automation_action_menu));
+	
+	items.push_back (SeparatorElem());
+	
 	int active = 0;
 	int inactive = 0;
 	TrackSelection const & s = _editor.get_selection().tracks;
@@ -765,13 +755,9 @@ RouteTimeAxisView::set_track_mode (TrackMode mode, bool apply_to_selection)
 }
 
 void
-RouteTimeAxisView::show_timestretch (framepos_t start, framepos_t end)
+RouteTimeAxisView::show_timestretch (framepos_t start, framepos_t end, int layers, int layer)
 {
-	double x1;
-	double x2;
-	double y2;
-
-	TimeAxisView::show_timestretch (start, end);
+	TimeAxisView::show_timestretch (start, end, layers, layer);
 
 	hide_timestretch ();
 
@@ -806,11 +792,10 @@ RouteTimeAxisView::show_timestretch (framepos_t start, framepos_t end)
 	timestretch_rect->show ();
 	timestretch_rect->raise_to_top ();
 
-	x1 = start / _editor.get_current_zoom();
-	x2 = (end - 1) / _editor.get_current_zoom();
-	y2 = current_height() - 2;
+	double const x1 = start / _editor.get_current_zoom();
+	double const x2 = (end - 1) / _editor.get_current_zoom();
 
-	timestretch_rect->set (Canvas::Rect (x1, 1, x2, y2));
+	timestretch_rect->set (Canvas::Rect (x1, current_height() * (layers - layer - 1) / layers, x2, current_height() * (layers - layer) / layers));
 }
 
 void

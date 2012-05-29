@@ -34,10 +34,10 @@ namespace Gdk {
 }
 
 namespace ARDOUR {
-	class Route;
-	class PeakData;
 	class AudioRegion;
+	class Route;
 	class Source;
+	struct PeakData;
 }
 
 class PublicEditor;

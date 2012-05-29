@@ -48,9 +48,9 @@ public:
 
 private:	
 
-	Editor&               _editor;
+	Editor&         _editor;
 	Canvas::Arrow   _time_bars_canvas_item;
 	Canvas::Line    _track_canvas_item;
-	framepos_t            _current_frame;
-	double		      _length;
+	framepos_t      _current_frame;
+	double	        _length;
 };

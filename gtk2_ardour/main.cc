@@ -182,7 +182,8 @@ fixup_bundle_environment (int, char* [])
 	export_search_path (dir_path, "ARDOUR_INSTANT_XML_PATH", "/../Resources");
 
 	export_search_path (dir_path, "LADSPA_PATH", "/../Plugins");
-	export_search_path (dir_path, "VAMP_PATH", "/../Frameworks");
+	export_search_path (dir_path, "VAMP_PATH", "/../lib");
+	export_search_path (dir_path, "SUIL_MODULE_DIR", "/../lib");
 
 	path = dir_path;
 	path += "/../lib/clearlooks";
@@ -262,7 +263,7 @@ fixup_bundle_environment (int, char* [])
 		// JACK driver dir
 
 		path = dir_path;
-		path += "/../Frameworks";
+		path += "/../lib";
 
 		setenv ("JACK_DRIVER_DIR", path.c_str(), 1);
 	}
@@ -298,6 +299,7 @@ fixup_bundle_environment (int /*argc*/, char* argv[])
 
 	export_search_path (dir_path, "LADSPA_PATH", "/../plugins");
 	export_search_path (dir_path, "VAMP_PATH", "/lib");
+	export_search_path (dir_path, "SUIL_MODULE_DIR", "/lib");
 
 	path = dir_path;
 	path += "/lib/clearlooks";
@@ -421,10 +423,6 @@ sigpipe_handler (int /*signal*/)
 	}
 }
 
-#ifdef HAVE_LV2
-void close_external_ui_windows();
-#endif
-
 #ifdef WINDOWS_VST_SUPPORT
 
 extern int windows_vst_gui_init (int* argc, char** argv[]);
@@ -532,9 +530,6 @@ int main (int argc, char *argv[])
 	ARDOUR::cleanup ();
 	pthread_cancel_all ();
 
-#ifdef HAVE_LV2
-	close_external_ui_windows();
-#endif
 	return 0;
 }
 #ifdef WINDOWS_VST_SUPPORT

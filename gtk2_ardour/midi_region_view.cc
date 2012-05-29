@@ -31,8 +31,6 @@
 #include "pbd/memento_command.h"
 #include "pbd/stateful_diff_command.h"
 
-#include "ardour/playlist.h"
-#include "ardour/tempo.h"
 #include "ardour/midi_region.h"
 #include "ardour/midi_source.h"
 #include "ardour/midi_model.h"
@@ -605,8 +603,8 @@ MidiRegionView::motion (GdkEventMotion* ev)
 				editor.verbose_cursor()->hide ();
 				return true;
 			} else if (m == MouseObject) {
-				
 				editor.drags()->set (new MidiRubberbandSelectDrag (dynamic_cast<Editor *> (&editor), this), (GdkEvent *) ev);
+				clear_selection ();
 				_mouse_state = SelectRectDragging;
 				return true;
 			} else if (m == MouseRange) {
@@ -1975,9 +1973,7 @@ MidiRegionView::delete_note (boost::shared_ptr<NoteType> n)
 void
 MidiRegionView::clear_selection_except (NoteBase* ev, bool signal)
 {
-	bool changed = false;
-
-	for (Selection::iterator i = _selection.begin(); i != _selection.end(); ) {
+ 	for (Selection::iterator i = _selection.begin(); i != _selection.end(); ) {
 		if ((*i) != ev) {
 			Selection::iterator tmp = i;
 			++tmp;
@@ -1985,7 +1981,6 @@ MidiRegionView::clear_selection_except (NoteBase* ev, bool signal)
 			(*i)->set_selected (false);
 			(*i)->hide_velocity ();
 			_selection.erase (i);
-			changed = true;
 
 			i = tmp;
 		} else {
@@ -1997,7 +1992,7 @@ MidiRegionView::clear_selection_except (NoteBase* ev, bool signal)
 	   selection.
 	*/
 
-	if (changed && signal) {
+	if (signal) {
 		SelectionCleared (this); /* EMIT SIGNAL */
 	}
 }

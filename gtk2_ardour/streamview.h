@@ -32,12 +32,12 @@ namespace Gdk {
 }
 
 namespace ARDOUR {
-	class Route;
 	class Crossfade;
-	class PeakData;
 	class Region;
+	class Route;
 	class Source;
 	class Track;
+	struct PeakData;
 }
 
 namespace Canvas {

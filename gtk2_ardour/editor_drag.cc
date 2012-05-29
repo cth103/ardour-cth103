@@ -2806,6 +2806,10 @@ ControlPointDrag::start_grab (GdkEvent* event, Gdk::Cursor* /*cursor*/)
 					event->button.x + 10, event->button.y + 10);
 
 	_editor->verbose_cursor()->show ();
+
+	if (!_point->can_slide ()) {
+		_x_constrained = true;
+	}
 }
 
 void
@@ -3226,11 +3230,16 @@ void
 TimeFXDrag::motion (GdkEvent* event, bool)
 {
 	RegionView* rv = _primary;
+	StreamView* cv = rv->get_time_axis_view().view ();
+
+	pair<TimeAxisView*, double> const tv = _editor->trackview_by_y_position (grab_y());
+	int layer = tv.first->layer_display() == Overlaid ? 0 : tv.second;
+	int layers = tv.first->layer_display() == Overlaid ? 1 : cv->layers();
 
 	framepos_t const pf = adjusted_current_frame (event);
 
 	if (pf > rv->region()->position()) {
-		rv->get_time_axis_view().show_timestretch (rv->region()->position(), pf);
+		rv->get_time_axis_view().show_timestretch (rv->region()->position(), pf, layers, layer);
 	}
 
 	show_verbose_cursor_time (pf);

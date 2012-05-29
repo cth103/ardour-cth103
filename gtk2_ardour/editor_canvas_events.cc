@@ -24,10 +24,8 @@
 
 #include "pbd/stacktrace.h"
 
-#include "ardour/audioplaylist.h"
-#include "ardour/audioregion.h"
-#include "ardour/region_factory.h"
 #include "ardour/midi_region.h"
+#include "ardour/region_factory.h"
 
 #include "canvas/canvas.h"
 #include "canvas/text.h"

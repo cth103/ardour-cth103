@@ -84,7 +84,7 @@ public:
 
 	void set_frames_per_pixel (double);
  	void set_height (uint32_t h);
-	void show_timestretch (framepos_t start, framepos_t end);
+	void show_timestretch (framepos_t start, framepos_t end, int layers, int layer);
 	void hide_timestretch ();
 	void selection_click (GdkEventButton*);
 	void set_selected_points (PointSelection&);

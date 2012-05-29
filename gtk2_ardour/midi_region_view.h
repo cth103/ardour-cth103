@@ -289,6 +289,8 @@ public:
 	void trim_front_ending ();
 
 	void create_note_at (framepos_t, double, double, bool);
+
+	void clear_selection (bool signal = true) { clear_selection_except (0, signal); }
 	
 protected:
 	/** Allows derived types to specify their visibility requirements
@@ -315,7 +317,10 @@ private:
 	friend class MidiRubberbandSelectDrag;
 	friend class MidiVerticalSelectDrag;
 
-	/** Emitted when the selection has been cleared in one MidiRegionView */
+	/** Emitted when the selection has been cleared in one MidiRegionView,
+	 *  with the expectation that others will clear their selections in
+	 *  sympathy.
+	 */
 	static PBD::Signal1<void, MidiRegionView*> SelectionCleared;
 	PBD::ScopedConnection _selection_cleared_connection;
 	void selection_cleared (MidiRegionView *);
@@ -355,7 +360,6 @@ private:
 		       ARDOUR::MidiModel::TimeType end_delta);
 
 	void clear_selection_except (NoteBase* ev, bool signal = true);
-	void clear_selection (bool signal = true) { clear_selection_except (0, signal); }
 	void update_drag_selection (double last_x, double x, double last_y, double y, bool extend);
 	void update_vertical_drag_selection (double last_y, double y, bool extend);
 

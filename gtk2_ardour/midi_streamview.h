@@ -33,12 +33,12 @@ namespace Gdk {
 }
 
 namespace ARDOUR {
-	class Route;
 	class Crossfade;
-	class PeakData;
-	class MidiRegion;
-	class Source;
 	class MidiModel;
+	class MidiRegion;
+	class Route;
+	class Source;
+	struct PeakData;
 }
 
 namespace Canvas {
@@ -79,6 +79,8 @@ class MidiStreamView : public StreamView
 
 	void redisplay_track ();
 
+	void leave_internal_edit_mode ();
+	
 	inline double contents_height() const
 	{ return (child_height() - TimeAxisViewItem::NAME_HIGHLIGHT_SIZE - 2); }
 
