@@ -39,6 +39,7 @@
 #include "ardour/graph.h"
 #include "ardour/audio_port.h"
 #include "ardour/tempo.h"
+#include "ardour/ticker.h"
 #include "ardour/cycle_timer.h"
 
 #include "midi++/manager.h"
@@ -57,6 +58,8 @@ using namespace std;
 void
 Session::process (pframes_t nframes)
 {
+	framepos_t transport_at_start = _transport_frame;
+
 	MIDI::Manager::instance()->cycle_start(nframes);
 
 	_silent = false;
@@ -78,14 +81,16 @@ Session::process (pframes_t nframes)
 
 	_engine.main_thread()->drop_buffers ();
 
-	// the ticker is for sending time information like MidiClock
-	framepos_t transport_frames = transport_frame();
-	Timecode::BBT_Time transport_bbt;
+	/* deliver MIDI clock. Note that we need to use the transport frame
+	 * position at the start of process(), not the value at the end of
+	 * it. We may already have ticked() because of a transport state
+	 * change, for example.
+	 */
+
 	try {
-		_tempo_map->bbt_time_rt (transport_frames, transport_bbt);
-		Timecode::Time transport_timecode;
-		timecode_time(transport_frames, transport_timecode);
-		tick (transport_frames, transport_bbt, transport_timecode); /* EMIT SIGNAL */
+		if (!_engine.freewheeling() && Config->get_send_midi_clock() && transport_speed() == 1.0f && midi_clock->has_midi_port()) {
+			midi_clock->tick (transport_at_start);
+		}
 	} catch (...) {
 		/* don't bother with a message */
 	}
@@ -115,7 +120,7 @@ Session::no_roll (pframes_t nframes)
 		_click_io->silence (nframes);
 	}
 
-	if (1 || _process_graph->threads_in_use() > 0) {
+	if (_process_graph) {
 		DEBUG_TRACE(DEBUG::ProcessThreads,"calling graph/no-roll\n");
 		_process_graph->routes_no_roll( nframes, _transport_frame, end_frame, non_realtime_work_pending(), declick);
 	} else {
@@ -141,6 +146,9 @@ Session::no_roll (pframes_t nframes)
 	return ret;
 }
 
+/** @param need_butler to be set to true by this method if it needs the butler,
+ *  otherwise it must be left alone.
+ */
 int
 Session::process_routes (pframes_t nframes, bool& need_butler)
 {
@@ -155,11 +163,7 @@ Session::process_routes (pframes_t nframes, bool& need_butler)
 	const framepos_t start_frame = _transport_frame;
 	const framepos_t end_frame = _transport_frame + floor (nframes * _transport_speed);
 
-	/* XXX this is hack to force use of the graph even if we are only
-	   using 1 thread. its needed because otherwise when we remove
-	   tracks, the graph never gets updated.
-	*/
-	if (1 || _process_graph->threads_in_use() > 0) {
+	if (_process_graph) {
 		DEBUG_TRACE(DEBUG::ProcessThreads,"calling graph/process-routes\n");
 		_process_graph->process_routes (nframes, start_frame, end_frame, declick, need_butler);
 	} else {
@@ -174,9 +178,15 @@ Session::process_routes (pframes_t nframes, bool& need_butler)
 
 			(*i)->set_pending_declick (declick);
 
-			if ((ret = (*i)->roll (nframes, start_frame, end_frame, declick, need_butler)) < 0) {
+			bool b = false;
+
+			if ((ret = (*i)->roll (nframes, start_frame, end_frame, declick, b)) < 0) {
 				stop_transport ();
 				return -1;
+			}
+
+			if (b) {
+				need_butler = true;
 			}
 		}
 	}
@@ -184,6 +194,9 @@ Session::process_routes (pframes_t nframes, bool& need_butler)
 	return 0;
 }
 
+/** @param need_butler to be set to true by this method if it needs the butler,
+ *  otherwise it must be left alone.
+ */
 int
 Session::silent_process_routes (pframes_t nframes, bool& need_butler)
 {
@@ -192,11 +205,7 @@ Session::silent_process_routes (pframes_t nframes, bool& need_butler)
 	const framepos_t start_frame = _transport_frame;
 	const framepos_t end_frame = _transport_frame + lrintf(nframes * _transport_speed);
 
-	/* XXX this is hack to force use of the graph even if we are only
-	   using 1 thread. its needed because otherwise when we remove
-	   tracks, the graph never gets updated.
-	*/
-	if (1 || _process_graph->threads_in_use() > 0) {
+	if (_process_graph) {
 		_process_graph->silent_process_routes (nframes, start_frame, end_frame, need_butler);
 	} else {
 		for (RouteList::iterator i = r->begin(); i != r->end(); ++i) {
@@ -207,9 +216,15 @@ Session::silent_process_routes (pframes_t nframes, bool& need_butler)
 				continue;
 			}
 
-			if ((ret = (*i)->silent_roll (nframes, start_frame, end_frame, need_butler)) < 0) {
+			bool b = false;
+
+			if ((ret = (*i)->silent_roll (nframes, start_frame, end_frame, b)) < 0) {
 				stop_transport ();
 				return -1;
+			}
+
+			if (b) {
+				need_butler = true;
 			}
 		}
 	}

@@ -107,9 +107,13 @@ CONFIG_VARIABLE (bool, quieten_at_speed, "quieten-at-speed", true)
 CONFIG_VARIABLE (bool, clicking, "clicking", false)
 CONFIG_VARIABLE (std::string, click_sound, "click-sound", "")
 CONFIG_VARIABLE (std::string, click_emphasis_sound, "click-emphasis-sound", "")
+CONFIG_VARIABLE (gain_t, click_gain, "click-gain", 1.0)
 
 /* transport control and related */
 
+/** if true, we call Processor::flush() on all processors when the transport is stopped.
+ *  Note that processors are still run when the transport is not moving.
+ */
 CONFIG_VARIABLE (bool, plugins_stop_with_transport, "plugins-stop-with-transport", false)
 CONFIG_VARIABLE (bool, do_not_record_plugins, "do-not-record-plugins", false)
 CONFIG_VARIABLE (bool, stop_recording_on_xrun, "stop-recording-on-xrun", false)
@@ -128,6 +132,7 @@ CONFIG_VARIABLE (bool, secondary_clock_delta_edit_cursor, "secondary-clock-delta
 CONFIG_VARIABLE (bool, show_track_meters, "show-track-meters", true)
 CONFIG_VARIABLE (bool, locate_while_waiting_for_sync, "locate-while-waiting-for-sync", false)
 CONFIG_VARIABLE (bool, disable_disarm_during_roll, "disable-disarm-during-roll", false)
+CONFIG_VARIABLE (bool, always_play_range, "always-play-range", false)
 
 /* metering */
 
@@ -171,6 +176,8 @@ CONFIG_VARIABLE (gain_t, max_gain, "max-gain", 2.0) /* +6.0dB */
 CONFIG_VARIABLE (bool, update_editor_during_summary_drag, "update-editor-during-summary-drag", true)
 CONFIG_VARIABLE (bool, never_display_periodic_midi, "never-display-periodic-midi", true)
 CONFIG_VARIABLE (bool, sound_midi_notes, "sound-midi-notes", false)
+CONFIG_VARIABLE (bool, use_plugin_own_gui, "use-plugin-own-gui", true)
+CONFIG_VARIABLE (uint32_t, max_recent_sessions, "max-recent-sessions", 10)
 
 /* denormal management */
 
@@ -183,3 +190,4 @@ CONFIG_VARIABLE (bool, show_zoom_tools, "show-zoom-tools", true)
 CONFIG_VARIABLE (bool, widget_prelight, "widget-prelight", true)
 CONFIG_VARIABLE (std::string, mixer_strip_visibility, "mixer-strip-visibility", "PhaseInvert,SoloSafe,SoloIsolated,Group,MeterPoint")
 CONFIG_VARIABLE (bool, allow_non_quarter_pulse, "allow-non-quarter-pulse", false)
+CONFIG_VARIABLE (bool, show_region_gain, "show-region-gain", false)

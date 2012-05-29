@@ -91,13 +91,13 @@ ExportDialog::set_session (ARDOUR::Session* s)
 	/* Warnings */
 
 	preset_selector->CriticalSelectionChanged.connect (sigc::mem_fun (*this, &ExportDialog::sync_with_manager));
-	timespan_selector->CriticalSelectionChanged.connect (sigc::mem_fun (*this, &ExportDialog::update_warnings));
-	channel_selector->CriticalSelectionChanged.connect (sigc::mem_fun (*this, &ExportDialog::update_warnings));
-	file_notebook->CriticalSelectionChanged.connect (sigc::mem_fun (*this, &ExportDialog::update_warnings));
+	timespan_selector->CriticalSelectionChanged.connect (sigc::mem_fun (*this, &ExportDialog::update_warnings_and_example_filename));
+	channel_selector->CriticalSelectionChanged.connect (sigc::mem_fun (*this, &ExportDialog::update_warnings_and_example_filename));
+	file_notebook->CriticalSelectionChanged.connect (sigc::mem_fun (*this, &ExportDialog::update_warnings_and_example_filename));
 
 	status->Aborting.connect (abort_connection, invalidator (*this), boost::bind (&ExportDialog::notify_errors, this), gui_context());
 
-	update_warnings ();
+	update_warnings_and_example_filename ();
 }
 
 void
@@ -122,7 +122,6 @@ ExportDialog::init ()
 
 	/* Progress indicators */
 
-	progress_widget.pack_start (progress_label, false, false, 6);
 	progress_widget.pack_start (progress_bar, false, false, 6);
 
 	/* Buttons */
@@ -147,6 +146,12 @@ ExportDialog::init ()
 }
 
 void
+ExportDialog::expanded_changed ()
+{
+	set_resizable(advanced->get_expanded());
+}
+
+void
 ExportDialog::init_gui ()
 {
 	Gtk::Alignment * preset_align = Gtk::manage (new Gtk::Alignment());
@@ -154,30 +159,46 @@ ExportDialog::init_gui ()
 	preset_align->set_padding (0, 12, 0, 0);
 	get_vbox()->pack_start (*preset_align, false, false, 0);
 
-	Gtk::VBox* advanced_vbox = Gtk::manage (new Gtk::VBox());
-	advanced_vbox->set_spacing (12);
-	advanced_vbox->set_border_width (12);
+	Gtk::VPaned * advanced_paned = Gtk::manage (new Gtk::VPaned());
+
+	Gtk::VBox* timespan_vbox = Gtk::manage (new Gtk::VBox());
+	timespan_vbox->set_spacing (12);
+	timespan_vbox->set_border_width (12);
 
 	Gtk::Alignment * timespan_align = Gtk::manage (new Gtk::Alignment());
 	timespan_label = Gtk::manage (new Gtk::Label (_("Time Span"), Gtk::ALIGN_LEFT));
 	timespan_align->add (*timespan_selector);
-	timespan_align->set_padding (0, 12, 18, 0);
-	advanced_vbox->pack_start (*timespan_label, false, false, 0);
-	advanced_vbox->pack_start (*timespan_align, true, true, 0);
+	timespan_align->set_padding (0, 0, 18, 0);
+	timespan_vbox->pack_start (*timespan_label, false, false, 0);
+	timespan_vbox->pack_start (*timespan_align, true, true, 0);
+	advanced_paned->pack1(*timespan_vbox, true, false);
+
+	Gtk::VBox* channels_vbox = Gtk::manage (new Gtk::VBox());
+	channels_vbox->set_spacing (12);
+	channels_vbox->set_border_width (12);
 
 	Gtk::Alignment * channels_align = Gtk::manage (new Gtk::Alignment());
 	channels_label = Gtk::manage (new Gtk::Label (_("Channels"), Gtk::ALIGN_LEFT));
 	channels_align->add (*channel_selector);
 	channels_align->set_padding (0, 12, 18, 0);
-	advanced_vbox->pack_start (*channels_label, false, false, 0);
-	advanced_vbox->pack_start (*channels_align, false, false, 0);
+	channels_vbox->pack_start (*channels_label, false, false, 0);
+	channels_vbox->pack_start (*channels_align, true, true, 0);
+	advanced_paned->pack2(*channels_vbox, channel_selector_is_expandable(), false);
 
 	get_vbox()->pack_start (*file_notebook, false, false, 0);
 	get_vbox()->pack_start (warning_widget, false, false, 0);
 	get_vbox()->pack_start (progress_widget, false, false, 0);
 
-	Gtk::Expander* advanced = Gtk::manage (new Gtk::Expander (_("Advanced options")));
-	advanced->add (*advanced_vbox);
+	advanced = Gtk::manage (new Gtk::Expander (_("Advanced options")));
+	advanced->property_expanded().signal_changed().connect(
+		sigc::mem_fun(*this, &ExportDialog::expanded_changed));
+	advanced->add (*advanced_paned);
+
+	if (channel_selector_is_expandable()) {
+		advanced_sizegroup = Gtk::SizeGroup::create(Gtk::SIZE_GROUP_VERTICAL);
+		advanced_sizegroup->add_widget(*timespan_selector);
+		advanced_sizegroup->add_widget(*channel_selector);
+	}
 
 	get_vbox()->pack_start (*advanced, true, true);
 
@@ -227,11 +248,11 @@ ExportDialog::sync_with_manager ()
 	channel_selector->sync_with_manager();
 	file_notebook->sync_with_manager ();
 
-	update_warnings ();
+	update_warnings_and_example_filename ();
 }
 
 void
-ExportDialog::update_warnings ()
+ExportDialog::update_warnings_and_example_filename ()
 {
 	/* Reset state */
 
@@ -263,6 +284,10 @@ ExportDialog::update_warnings ()
 			list_files_string += it->substr (0, pos + 1) + "<b>" + it->substr (pos + 1) + "</b>\n";
 		}
 	}
+
+	/* Update example filename */
+
+	file_notebook->update_example_filenames();
 }
 
 void
@@ -330,16 +355,26 @@ gint
 ExportDialog::progress_timeout ()
 {
 	std::string status_text;
+	float progress = 0.0;
 	if (status->normalizing) {
-		 status_text = string_compose (_("Normalizing timespan %1 of %2"),
-		                               status->timespan, status->total_timespans);
+		status_text = string_compose (_("Normalizing '%3' (timespan %1 of %2)"),
+		                              status->timespan, status->total_timespans, status->timespan_name);
+		progress = ((float) status->current_normalize_cycle) / status->total_normalize_cycles;
 	} else {
-		status_text = string_compose (_("Exporting timespan %1 of %2"),
-		                              status->timespan, status->total_timespans);
+		status_text = string_compose (_("Exporting '%3' (timespan %1 of %2)"),
+		                              status->timespan, status->total_timespans, status->timespan_name);
+		progress = ((float) status->processed_frames_current_timespan) / status->total_frames_current_timespan;
 	}
-	progress_label.set_text (status_text);
+	progress_bar.set_text (status_text);
 
-	progress_bar.set_fraction (status->progress);
+	if (progress < previous_progress) {
+		// Work around gtk bug
+		progress_bar.hide();
+		progress_bar.show();
+	}
+	previous_progress = progress;
+
+	progress_bar.set_fraction (progress);
 	return TRUE;
 }
 
@@ -438,4 +473,3 @@ StemExportDialog::init_components ()
 	channel_selector.reset (new TrackExportChannelSelector (_session, profile_manager));
 	file_notebook.reset (new ExportFileNotebook ());
 }
-

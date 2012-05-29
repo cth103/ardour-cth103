@@ -33,14 +33,16 @@
 #include "ardour/utils.h"
 
 #include "midicontrollable.h"
+#include "generic_midi_control_protocol.h"
 
 using namespace std;
 using namespace MIDI;
 using namespace PBD;
 using namespace ARDOUR;
 
-MIDIControllable::MIDIControllable (Port& p, bool m)
-	: controllable (0)
+MIDIControllable::MIDIControllable (GenericMidiControlProtocol* s, Port& p, bool m)
+	: _surface (s)
+	, controllable (0)
 	, _descriptor (0)
 	, _port (p)
 	, _momentary (m)
@@ -55,8 +57,9 @@ MIDIControllable::MIDIControllable (Port& p, bool m)
 	feedback = true; // for now
 }
 
-MIDIControllable::MIDIControllable (Port& p, Controllable& c, bool m)
-	: controllable (&c)
+MIDIControllable::MIDIControllable (GenericMidiControlProtocol* s, Port& p, Controllable& c, bool m)
+	: _surface (s)
+	, controllable (&c)
 	, _descriptor (0)
 	, _port (p)
 	, _momentary (m)
@@ -134,43 +137,39 @@ MIDIControllable::stop_learning ()
 	midi_learn_connection.disconnect ();
 }
 
-float
+int
 MIDIControllable::control_to_midi (float val)
 {
-	const float midi_range = 127.0f; // TODO: NRPN etc.
-
         if (controllable->is_gain_like()) {
-                return gain_to_slider_position (val/midi_range);
+                return gain_to_slider_position (val) * max_value_for_type ();
         }
 
 	float control_min = controllable->lower ();
 	float control_max = controllable->upper ();
 	const float control_range = control_max - control_min;
 
-	return (val - control_min) / control_range * midi_range;
+	return (val - control_min) / control_range * max_value_for_type ();
 }
 
 float
-MIDIControllable::midi_to_control(float val)
+MIDIControllable::midi_to_control (int val)
 {
         /* fiddle with MIDI value so that we get an odd number of integer steps
            and can thus represent "middle" precisely as 0.5. this maps to
            the range 0..+1.0
-
-           TODO: 14bit values
         */
 
-        val = (val == 0.0f ? 0.0f : (val-1.0f) / 126.0f);
+        float fv = (val == 0 ? 0 : float (val - 1) / (max_value_for_type() - 1));
 
         if (controllable->is_gain_like()) {
-                return slider_position_to_gain (val);
+                return slider_position_to_gain (fv);
         }
 
 	float control_min = controllable->lower ();
 	float control_max = controllable->upper ();
 	const float control_range = control_max - control_min;
 
-	return  (val * control_range) + control_min;
+	return (fv * control_range) + control_min;
 }
 
 void
@@ -192,11 +191,9 @@ MIDIControllable::midi_sense_note (Parser &, EventTwoBytes *msg, bool /*is_on*/)
 		return;
 	}
 
-
 	if (!controllable->is_toggle()) {
-		controllable->set_value (msg->note_number/127.0);
+		controllable->set_value (midi_to_control (msg->note_number));
 	} else {
-
 		if (control_additional == msg->note_number) {
 			controllable->set_value (controllable->get_value() > 0.5f ? 0.0f : 1.0f);
 		}
@@ -225,11 +222,19 @@ MIDIControllable::midi_sense_controller (Parser &, EventTwoBytes *msg)
 			float range = max_value - min_value;
 			float threshold = 10;
 
-			// prevent jumps when MIDI controller and controllable are "out of sync"
-			if (range < threshold &&
-			    controllable->get_value() <= midi_to_control(max_value) &&
-			    controllable->get_value() >= midi_to_control(min_value)) {
-				controllable->set_value (midi_to_control (new_value) );
+			bool const in_sync = (
+				range < threshold &&
+				controllable->get_value() <= midi_to_control(max_value) &&
+				controllable->get_value() >= midi_to_control(min_value)
+				);
+
+			/* If the surface is not motorised, we try to prevent jumps when
+			   the MIDI controller and controllable are out of sync.
+			   There might be a better way of doing this.
+			*/
+
+			if (in_sync || _surface->motorised ()) {
+				controllable->set_value (midi_to_control (new_value));
 			}
 
 			last_controllable_value = new_value;
@@ -253,8 +258,8 @@ MIDIControllable::midi_sense_program_change (Parser &, byte msg)
 	}
 
 	if (!controllable->is_toggle()) {
-		controllable->set_value (msg/127.0);
-	} else {
+		controllable->set_value (midi_to_control (msg));
+	} else if (msg == control_additional) {
 		controllable->set_value (controllable->get_value() > 0.5f ? 0.0f : 1.0f);
 	}
 
@@ -269,13 +274,12 @@ MIDIControllable::midi_sense_pitchbend (Parser &, pitchbend_t pb)
 	}
 
 	if (!controllable->is_toggle()) {
-		/* XXX gack - get rid of assumption about typeof pitchbend_t */
-		controllable->set_value ((pb/(float) SHRT_MAX));
+		controllable->set_value (midi_to_control (pb));
 	} else {
 		controllable->set_value (controllable->get_value() > 0.5f ? 0.0f : 1.0f);
 	}
 
-	last_value = (MIDI::byte) (controllable->get_value() * 127.0); // to prevent feedback fights
+	last_value = control_to_midi (controllable->get_value ());
 }
 
 void
@@ -360,48 +364,34 @@ MIDIControllable::bind_midi (channel_t chn, eventType ev, MIDI::byte additional)
 	}
 }
 
-void
-MIDIControllable::send_feedback ()
-{
-	byte msg[3];
-
-	if (!_learned || setting || !feedback || control_type == none || !controllable) {
-		return;
-	}
-
-	msg[0] = (control_type & 0xF0) | (control_channel & 0xF);
-	msg[1] = control_additional;
-
-	if (controllable->is_gain_like()) {
-		msg[2] = (byte) lrintf (gain_to_slider_position (controllable->get_value()) * 127.0f);
-	} else {
-		msg[2] = (byte) (control_to_midi(controllable->get_value()));
-	}
-
-	_port.write (msg, 3, 0);
-}
-
 MIDI::byte*
 MIDIControllable::write_feedback (MIDI::byte* buf, int32_t& bufsize, bool /*force*/)
 {
-	if (controllable && control_type != none && feedback && bufsize > 2) {
-
-		MIDI::byte gm;
-
-		if (controllable->is_gain_like()) {
-			gm = (byte) lrintf (gain_to_slider_position (controllable->get_value()) * 127.0f);
-		} else {
-			gm = (byte) (control_to_midi(controllable->get_value()));
-		}
-
-		if (gm != last_value) {
-			*buf++ = (0xF0 & control_type) | (0xF & control_channel);
-			*buf++ = control_additional; /* controller number */
-			*buf++ = gm;
-			last_value = gm;
-			bufsize -= 3;
-		}
+	if (!controllable || control_type == none || !feedback || bufsize <= 2) {
+		return buf;
 	}
+	
+	int const gm = control_to_midi (controllable->get_value());
+
+	if (gm == last_value) {
+		return buf;
+	}
+
+	*buf++ = (0xF0 & control_type) | (0xF & control_channel);
+	
+	switch (control_type) {
+	case MIDI::pitchbend:
+		*buf++ = int (gm) & 127;
+		*buf++ = (int (gm) >> 7) & 127;
+		break;
+	default:
+		*buf++ = control_additional; /* controller number */
+		*buf++ = gm;
+		break;
+	}
+
+	last_value = gm;
+	bufsize -= 3;
 
 	return buf;
 }
@@ -470,3 +460,17 @@ MIDIControllable::get_state ()
 	return *node;
 }
 
+/** @return the maximum value for a control value transmitted
+ *  using a given MIDI::eventType.
+ */
+int
+MIDIControllable::max_value_for_type () const
+{
+	/* XXX: this is not complete */
+	
+	if (control_type == MIDI::pitchbend) {
+		return 16383;
+	}
+
+	return 127;
+}

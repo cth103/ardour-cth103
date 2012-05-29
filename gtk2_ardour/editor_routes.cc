@@ -121,9 +121,9 @@ EditorRoutes::EditorRoutes (Editor* e)
 	// Mute enable toggle
 	CellRendererPixbufMulti* mute_col_renderer = manage (new CellRendererPixbufMulti());
 
-	mute_col_renderer->set_pixbuf (ActiveState(0), ::get_icon("mute-disabled"));
-	mute_col_renderer->set_pixbuf (Mid, ::get_icon("muted-by-others"));
-	mute_col_renderer->set_pixbuf (Active, ::get_icon("mute-enabled"));
+	mute_col_renderer->set_pixbuf (Gtkmm2ext::Off, ::get_icon("mute-disabled"));
+	mute_col_renderer->set_pixbuf (Gtkmm2ext::ImplicitActive, ::get_icon("muted-by-others"));
+	mute_col_renderer->set_pixbuf (Gtkmm2ext::ExplicitActive, ::get_icon("mute-enabled"));
 	mute_col_renderer->signal_changed().connect (sigc::mem_fun (*this, &EditorRoutes::on_tv_mute_enable_toggled));
 
 	TreeViewColumn* mute_state_column = manage (new TreeViewColumn("M", *mute_col_renderer));
@@ -137,9 +137,9 @@ EditorRoutes::EditorRoutes (Editor* e)
 	// Solo enable toggle
 	CellRendererPixbufMulti* solo_col_renderer = manage (new CellRendererPixbufMulti());
 
-	solo_col_renderer->set_pixbuf (ActiveState(0), ::get_icon("solo-disabled"));
-	solo_col_renderer->set_pixbuf (Active, ::get_icon("solo-enabled"));
-	solo_col_renderer->set_pixbuf (Mid, ::get_icon("soloed-by-others"));
+	solo_col_renderer->set_pixbuf (Gtkmm2ext::Off, ::get_icon("solo-disabled"));
+	solo_col_renderer->set_pixbuf (Gtkmm2ext::ExplicitActive, ::get_icon("solo-enabled"));
+	solo_col_renderer->set_pixbuf (Gtkmm2ext::ImplicitActive, ::get_icon("soloed-by-others"));
 	solo_col_renderer->signal_changed().connect (sigc::mem_fun (*this, &EditorRoutes::on_tv_solo_enable_toggled));
 
 	TreeViewColumn* solo_state_column = manage (new TreeViewColumn("S", *solo_col_renderer));
@@ -182,6 +182,10 @@ EditorRoutes::EditorRoutes (Editor* e)
 	solo_safe_state_column->set_expand(false);
 	solo_safe_state_column->set_fixed_width(column_width);
 
+        _name_column = _display.append_column ("", _columns.text) - 1;
+	_visible_column = _display.append_column ("", _columns.visible) - 1;
+	_active_column = _display.append_column ("", _columns.active) - 1;
+
 	_display.append_column (*input_active_column);
 	_display.append_column (*rec_state_column);
 	_display.append_column (*mute_state_column);
@@ -189,23 +193,20 @@ EditorRoutes::EditorRoutes (Editor* e)
 	_display.append_column (*solo_isolate_state_column);
 	_display.append_column (*solo_safe_state_column);
 
-        _name_column = _display.append_column ("", _columns.text) - 1;
-	_visible_column = _display.append_column ("", _columns.visible) - 1;
-	_active_column = _display.append_column ("", _columns.active) - 1;
 
 	TreeViewColumn* col;
 	Gtk::Label* l;
 
 	ColumnInfo ci[] = {
-		{ 0, _("I"), _("MIDI input enabled") },
-		{ 1, _("R"), _("Record enabled") },
-		{ 2, _("M"), _("Muted") },
-		{ 3, _("S"), _("Soloed") },
-		{ 4, _("SI"), _("Solo Isolated") },
-		{ 5, _("SS"), _("Solo Safe (Locked)") },
-		{ 6, _("Name"), _("Track/Bus Name") },
-		{ 7, _("V"), _("Track/Bus visible ?") },
-		{ 8, _("A"), _("Track/Bus active ?") },
+		{ 0, _("Name"), _("Track/Bus Name") },
+		{ 1, _("V"), _("Track/Bus visible ?") },
+		{ 2, _("A"), _("Track/Bus active ?") },
+		{ 3, _("I"), _("MIDI input enabled") },
+		{ 4, _("R"), _("Record enabled") },
+		{ 5, _("M"), _("Muted") },
+		{ 6, _("S"), _("Soloed") },
+		{ 7, _("SI"), _("Solo Isolated") },
+		{ 8, _("SS"), _("Solo Safe (Locked)") },
 		{ -1, 0, 0 }
 	};
 
@@ -488,7 +489,7 @@ EditorRoutes::show_menu ()
 void
 EditorRoutes::redisplay ()
 {
-	if (_no_redisplay || !_session) {
+	if (_no_redisplay || !_session || _session->deletion_in_progress()) {
 		return;
 	}
 
@@ -641,7 +642,7 @@ EditorRoutes::routes_added (list<RouteTimeAxisView*> routes)
 			row[_columns.is_midi] = false;
 		}
 
-		row[_columns.mute_state] = (*x)->route()->muted() ? Active : ActiveState (0);
+		row[_columns.mute_state] = (*x)->route()->muted() ? Gtkmm2ext::ExplicitActive : Gtkmm2ext::Off;
 		row[_columns.solo_state] = RouteUI::solo_active_state ((*x)->route());
 		row[_columns.solo_visible] = !(*x)->route()->is_master ();
 		row[_columns.solo_isolate_state] = (*x)->route()->solo_isolated();

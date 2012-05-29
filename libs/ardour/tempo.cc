@@ -891,7 +891,6 @@ TempoMap::_extend_map (TempoSection* tempo, MeterSection* meter,
 
 	TempoSection* ts;
 	MeterSection* ms;
-	double divisions_per_bar;
 	double beat_frames;
 	framepos_t bar_start_frame;
 
@@ -903,7 +902,6 @@ TempoMap::_extend_map (TempoSection* tempo, MeterSection* meter,
 		bar_start_frame = 0;
 	}
 
-	divisions_per_bar = meter->divisions_per_bar ();
 	beat_frames = meter->frames_per_grid (*tempo,_frame_rate);
 
 	while (current_frame < end) {
@@ -1004,11 +1002,10 @@ TempoMap::_extend_map (TempoSection* tempo, MeterSection* meter,
 					meter->set_frame (current_frame);
 				}
 				
-				divisions_per_bar = meter->divisions_per_bar ();
 				beat_frames = meter->frames_per_grid (*tempo, _frame_rate);
 				
 				DEBUG_TRACE (DEBUG::TempoMath, string_compose ("New metric with beat frames = %1 dpb %2 meter %3 tempo %4\n", 
-									       beat_frames, divisions_per_bar, *((Meter*)meter), *((Tempo*)tempo)));
+									       beat_frames, meter->divisions_per_bar(), *((Meter*)meter), *((Tempo*)tempo)));
 			
 				++next_metric;
 
@@ -1190,14 +1187,11 @@ TempoMap::frame_time (const BBT_Time& bbt)
 framecnt_t
 TempoMap::bbt_duration_at (framepos_t pos, const BBT_Time& bbt, int dir)
 {
-	Glib::RWLock::ReaderLock lm (lock);
-	framecnt_t frames = 0;
 	BBT_Time when;
-
 	bbt_time (pos, when);
-	frames = bbt_duration_at_unlocked (when, bbt,dir);
-
-	return frames;
+	
+	Glib::RWLock::ReaderLock lm (lock);
+	return bbt_duration_at_unlocked (when, bbt, dir);
 }
 
 framecnt_t

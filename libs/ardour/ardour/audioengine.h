@@ -64,7 +64,7 @@ class ProcessThread;
 class AudioEngine : public SessionHandlePtr
 {
 public:
-	typedef std::set<boost::shared_ptr<Port> > Ports;
+	typedef std::map<std::string,boost::shared_ptr<Port> > Ports;
 
 	AudioEngine (std::string client_name, std::string session_uuid);
 	virtual ~AudioEngine ();
@@ -185,6 +185,7 @@ public:
 	void get_physical_inputs (DataType type, std::vector<std::string>&);
 
 	boost::shared_ptr<Port> get_port_by_name (const std::string &);
+	void port_renamed (const std::string&, const std::string&);
 
 	enum TransportState {
 		TransportStopped = JackTransportStopped,
@@ -279,6 +280,7 @@ private:
 	/// the number of frames processed since start() was called
 	framecnt_t                _processed_frames;
 	bool                      _freewheeling;
+	bool                      _pre_freewheel_mmc_enabled;
 	int                       _usecs_per_cycle;
 	bool                       port_remove_in_progress;
 
@@ -313,6 +315,7 @@ private:
 	int  jack_sync_callback (jack_transport_state_t, jack_position_t*);
 	int  jack_bufsize_callback (pframes_t);
 	int  jack_sample_rate_callback (pframes_t);
+	void freewheel_callback (int);
 
 	void set_jack_callbacks ();
 

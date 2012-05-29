@@ -60,8 +60,10 @@ class ArdourButton : public CairoWidget , public Gtkmm2ext::Activatable
 	void set_visual_state (Gtkmm2ext::VisualState);
 
 	Element elements() const { return _elements; }
-
+	void set_elements (Element);
+	
 	void set_corner_radius (float);
+	void set_rounded_corner_mask (int);
 	void set_diameter (float);
 
 	void set_text (const std::string&);
@@ -109,9 +111,11 @@ class ArdourButton : public CairoWidget , public Gtkmm2ext::Activatable
 	int   _text_height;
 	float _diameter;
 	float _corner_radius;
+	int   _corner_mask;
 
 	cairo_pattern_t* edge_pattern;
-	cairo_pattern_t* fill_pattern;
+	cairo_pattern_t* active_pattern;
+	cairo_pattern_t* inactive_pattern;
 	cairo_pattern_t* led_inset_pattern;
 	cairo_pattern_t* reflection_pattern;
 
@@ -126,6 +130,11 @@ class ArdourButton : public CairoWidget , public Gtkmm2ext::Activatable
 	double led_g;
 	double led_b;
 	double led_a;
+
+	double active_r;
+	double active_g;
+	double active_b;
+	double active_a;
 
 	bool _act_on_release;
 	bool _led_left;

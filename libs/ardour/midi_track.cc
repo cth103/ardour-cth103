@@ -269,6 +269,9 @@ MidiTrack::set_state_part_two ()
 	return;
 }
 
+/** @param need_butler to be set to true if this track now needs the butler, otherwise it can be left alone
+ *  or set to false.
+ */
 int
 MidiTrack::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame, int declick, bool& need_butler)
 {
@@ -475,7 +478,8 @@ MidiTrack::write_out_of_band_data (BufferSet& bufs, framepos_t /*start*/, framep
 }
 
 int
-MidiTrack::export_stuff (BufferSet& /*bufs*/, framecnt_t /*nframes*/, framepos_t /*end_frame*/)
+MidiTrack::export_stuff (BufferSet& /*bufs*/, framecnt_t /*nframes*/, framepos_t /*end_frame*/, 
+			 boost::shared_ptr<Processor> /*endpoint*/, bool /*include_endpoint*/, bool /*forexport*/)
 {
 	return -1;
 }
@@ -489,7 +493,8 @@ MidiTrack::bounce (InterThreadInfo& /*itt*/)
 
 
 boost::shared_ptr<Region>
-MidiTrack::bounce_range (framepos_t /*start*/, framepos_t /*end*/, InterThreadInfo& /*itt*/, bool /*enable_processing*/)
+MidiTrack::bounce_range (framepos_t /*start*/, framepos_t /*end*/, InterThreadInfo& /*itt*/,
+			 boost::shared_ptr<Processor> /*endpoint*/, bool /*include_endpoint*/)
 {
 	std::cerr << "MIDI bounce range currently unsupported" << std::endl;
 	return boost::shared_ptr<Region> ();

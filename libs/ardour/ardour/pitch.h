@@ -25,6 +25,7 @@
 #endif
 
 #include "ardour/filter.h"
+#include "ardour/timefx_request.h"
 
 namespace ARDOUR {
 	class AudioRegion;
@@ -53,7 +54,7 @@ class Pitch : public Filter {
 	Pitch (ARDOUR::Session&, TimeFXRequest&);
 	~Pitch () {}
 
-	int run (boost::shared_ptr<ARDOUR::Region>);
+	int run (boost::shared_ptr<ARDOUR::Region>, Progress *);
 
   private:
 	TimeFXRequest& tsr;

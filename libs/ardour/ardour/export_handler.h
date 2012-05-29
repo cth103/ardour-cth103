@@ -115,6 +115,8 @@ class ExportHandler : public ExportElementFactory
 	                        BroadcastInfoPtr broadcast_info);
 	void do_export (bool rt = false);
 
+	std::string get_cd_marker_filename(std::string filename, CDMarkerFormat format);
+
   private:
 
 	int process (framecnt_t frames);
@@ -183,6 +185,9 @@ class ExportHandler : public ExportElementFactory
 	void write_index_info_toc (CDMarkerStatus & status);
 
 	void frames_to_cd_frames_string (char* buf, framepos_t when);
+	std::string toc_escape_cdtext (const std::string&);
+	std::string toc_escape_filename (const std::string&);
+	std::string cue_escape_cdtext (const std::string& txt);
 
 	int cue_tracknum;
 	int cue_indexnum;

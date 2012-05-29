@@ -465,7 +465,6 @@ Session::non_realtime_stop (bool abort, int on_entry, bool& finished)
 		auditioner->cancel_audition ();
 	}
 
-	clear_clicks();
 	cumulative_rf_motion = 0;
 	reset_rf_scale (0);
 
@@ -588,6 +587,8 @@ Session::non_realtime_stop (bool abort, int on_entry, bool& finished)
 
 	}
 
+	clear_clicks();
+
 	/* do this before seeking, because otherwise the tracks will do the wrong thing in seamless loop mode.
 	*/
 
@@ -615,11 +616,13 @@ Session::non_realtime_stop (bool abort, int on_entry, bool& finished)
 
 	have_looped = false;
 
-	send_full_time_code (_transport_frame);
-
-	if (!dynamic_cast<MTC_Slave*>(_slave)) {
-		MIDI::Manager::instance()->mmc()->send (MIDI::MachineControlCommand (MIDI::MachineControl::cmdStop));
-		send_mmc_locate (_transport_frame);
+	if (!_engine.freewheeling()) {
+		send_full_time_code (_transport_frame);
+		
+		if (!dynamic_cast<MTC_Slave*>(_slave)) {
+			MIDI::Manager::instance()->mmc()->send (MIDI::MachineControlCommand (MIDI::MachineControl::cmdStop));
+			send_mmc_locate (_transport_frame);
+		}
 	}
 
 	if ((ptw & PostTransportLocate) && get_record_enabled()) {
@@ -1186,10 +1189,12 @@ Session::start_transport ()
 		(*i)->automation_snapshot (_transport_frame, true);
 	}
 
-	Timecode::Time time;
-	timecode_time_subframes (_transport_frame, time);
-	if (!dynamic_cast<MTC_Slave*>(_slave)) {
-		MIDI::Manager::instance()->mmc()->send (MIDI::MachineControlCommand (MIDI::MachineControl::cmdDeferredPlay));
+	if (!_engine.freewheeling()) {
+		Timecode::Time time;
+		timecode_time_subframes (_transport_frame, time);
+		if (!dynamic_cast<MTC_Slave*>(_slave)) {
+			MIDI::Manager::instance()->mmc()->send (MIDI::MachineControlCommand (MIDI::MachineControl::cmdDeferredPlay));
+		}
 	}
 
 	TransportStateChange (); /* EMIT SIGNAL */
@@ -1550,9 +1555,11 @@ Session::maybe_stop (framepos_t limit)
 void
 Session::send_mmc_locate (framepos_t t)
 {
-	Timecode::Time time;
-	timecode_time_subframes (t, time);
-	MIDI::Manager::instance()->mmc()->send (MIDI::MachineControlCommand (time));
+	if (!_engine.freewheeling()) {
+		Timecode::Time time;
+		timecode_time_subframes (t, time);
+		MIDI::Manager::instance()->mmc()->send (MIDI::MachineControlCommand (time));
+	}
 }
 
 /** Ask the transport to not send timecode until further notice.  The suspension

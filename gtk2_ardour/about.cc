@@ -135,6 +135,7 @@ static const char* authors[] = {
 	N_("Paul Davis"),
 	N_("Gerard van Dongen"),
 	N_("Colin Fletcher"),
+	N_("Dave Flick"),
 	N_("Hans Fugal"),
         N_("Robin Gareus"),
 	N_("Christopher George"),
@@ -151,6 +152,7 @@ static const char* authors[] = {
 	N_("Stefan Kersten"),
 	N_("Armand Klenk"),
 	N_("Matt Krai"),
+	N_("Nick Lanham"),
 	N_("Colin Law"),
 	N_("Joshua Leach"),
 	N_("Ben Loftis"),
@@ -601,6 +603,7 @@ About::show_config_info ()
 		config_info = new ConfigInfoDialog;
 	}
 
-	config_info->present ();
+	config_info->run ();
+	config_info->hide ();
 }
 

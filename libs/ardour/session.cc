@@ -81,6 +81,7 @@
 #include "ardour/named_selection.h"
 #include "ardour/process_thread.h"
 #include "ardour/playlist.h"
+#include "ardour/plugin.h"
 #include "ardour/plugin_insert.h"
 #include "ardour/port_insert.h"
 #include "ardour/processor.h"
@@ -153,7 +154,6 @@ Session::Session (AudioEngine &eng,
 	, _post_transport_work (0)
 	, _send_timecode_update (false)
 	, _all_route_group (new RouteGroup (*this, "all"))
-	, _process_graph (new Graph (*this))
 	, routes (new RouteList)
 	, _total_free_4k_blocks (0)
 	, _bundles (new BundleList)
@@ -168,6 +168,13 @@ Session::Session (AudioEngine &eng,
 	, _suspend_timecode_transmission (0)
 {
 	_locations = new Locations (*this);
+
+	if (how_many_dsp_threads () > 1) {
+		/* For now, only create the graph if we are using >1 DSP threads, as
+		   it is a bit slower than the old code with 1 thread.
+		*/
+		_process_graph.reset (new Graph (*this));
+	}
 
 	playlists.reset (new SessionPlaylists);
 
@@ -371,19 +378,27 @@ Session::when_engine_running ()
 		XMLNode* child = 0;
 
 		_click_io.reset (new ClickIO (*this, "click"));
+		_click_gain.reset (new Amp (*this));
+		_click_gain->activate ();
 
 		if (state_tree && (child = find_named_node (*state_tree->root(), "Click")) != 0) {
 
 			/* existing state for Click */
-			int c;
+			int c = 0;
 
 			if (Stateful::loading_state_version < 3000) {
 				c = _click_io->set_state_2X (*child->children().front(), Stateful::loading_state_version, false);
 			} else {
-				c = _click_io->set_state (*child->children().front(), Stateful::loading_state_version);
+				const XMLNodeList& children (child->children());
+				XMLNodeList::const_iterator i = children.begin();
+				if ((c = _click_io->set_state (**i, Stateful::loading_state_version)) == 0) {
+					++i;
+					if (i != children.end()) {
+						c = _click_gain->set_state (**i, Stateful::loading_state_version);
+					}
+				}
 			}
-
-
+			
 			if (c == 0) {
 				_clicking = Config->get_clicking ();
 
@@ -658,7 +673,7 @@ Session::add_monitor_section ()
 	}
 
 	rl.push_back (r);
-	add_routes (rl, false, false);
+	add_routes (rl, false, false, false);
 	
 	assert (_monitor_out);
 
@@ -1384,8 +1399,6 @@ Session::resort_routes ()
 		/* writer goes out of scope and forces update */
 	}
 
-	//_process_graph->dump(1);
-
 #ifndef NDEBUG
 	boost::shared_ptr<RouteList> rl = routes.reader ();
 	for (RouteList::iterator i = rl->begin(); i != rl->end(); ++i) {
@@ -1460,7 +1473,10 @@ Session::resort_routes_using (boost::shared_ptr<RouteList> r)
 		   Note: the process graph rechain does not require a
 		   topologically-sorted list, but hey ho.
 		*/
-		_process_graph->rechain (sorted_routes, edges);
+		if (_process_graph) {
+			_process_graph->rechain (sorted_routes, edges);
+		}
+		
 		_current_route_graph = edges;
 
 		/* Complete the building of the routes' lists of what directly
@@ -1552,9 +1568,10 @@ Session::count_existing_track_channels (ChanCount& in, ChanCount& out)
 
 /** Caller must not hold process lock
  *  @param name_template string to use for the start of the name, or "" to use "MIDI".
+ *  @param instrument plugin info for the instrument to insert pre-fader, if any
  */
 list<boost::shared_ptr<MidiTrack> >
-Session::new_midi_track (TrackMode mode, RouteGroup* route_group, uint32_t how_many, string name_template)
+Session::new_midi_track (boost::shared_ptr<PluginInfo> instrument, TrackMode mode, RouteGroup* route_group, uint32_t how_many, string name_template)
 {
 	char track_name[32];
 	uint32_t track_id = 0;
@@ -1629,7 +1646,16 @@ Session::new_midi_track (TrackMode mode, RouteGroup* route_group, uint32_t how_m
 
   failed:
 	if (!new_routes.empty()) {
-		add_routes (new_routes, true, true);
+		add_routes (new_routes, true, true, true);
+
+		if (instrument) {
+			for (RouteList::iterator r = new_routes.begin(); r != new_routes.end(); ++r) {
+				PluginPtr plugin = instrument->load (*this);
+				boost::shared_ptr<Processor> p (new PluginInsert (*this, plugin));
+				(*r)->add_processor (p, PreFader);
+				
+			}
+		}
 	}
 
 	return ret;
@@ -1863,7 +1889,7 @@ Session::new_audio_track (int input_channels, int output_channels, TrackMode mod
 
   failed:
 	if (!new_routes.empty()) {
-		add_routes (new_routes, true, true);
+		add_routes (new_routes, true, true, true);
 	}
 
 	return ret;
@@ -1975,7 +2001,7 @@ Session::new_audio_route (int input_channels, int output_channels, RouteGroup* r
 
   failure:
 	if (!ret.empty()) {
-		add_routes (ret, false, true);
+		add_routes (ret, false, true, true); // autoconnect outputs only
 	}
 
 	return ret;
@@ -1995,6 +2021,8 @@ Session::new_route_from_template (uint32_t how_many, const std::string& template
 	}
 
 	XMLNode* node = tree.root();
+
+	IO::disable_connecting ();
 
 	control_id = next_control_id ();
 
@@ -2072,14 +2100,15 @@ Session::new_route_from_template (uint32_t how_many, const std::string& template
 
   out:
 	if (!ret.empty()) {
-		add_routes (ret, true, true);
+		add_routes (ret, true, true, true);
+		IO::enable_connecting ();
 	}
 
 	return ret;
 }
 
 void
-Session::add_routes (RouteList& new_routes, bool auto_connect, bool save)
+Session::add_routes (RouteList& new_routes, bool input_auto_connect, bool output_auto_connect, bool save)
 {
         ChanCount existing_inputs;
         ChanCount existing_outputs;
@@ -2136,8 +2165,8 @@ Session::add_routes (RouteList& new_routes, bool auto_connect, bool save)
 			}
 		}
 
-		if (auto_connect) {
-			auto_connect_route (r, existing_inputs, existing_outputs, true);
+		if (input_auto_connect || output_auto_connect) {
+			auto_connect_route (r, existing_inputs, existing_outputs, true, input_auto_connect);
 		}
 	}
 
@@ -2229,23 +2258,29 @@ Session::globally_add_internal_sends (boost::shared_ptr<Route> dest, Placement p
 void
 Session::add_internal_sends (boost::shared_ptr<Route> dest, Placement p, boost::shared_ptr<RouteList> senders)
 {
-	if (dest->is_monitor() || dest->is_master()) {
+	for (RouteList::iterator i = senders->begin(); i != senders->end(); ++i) {
+		add_internal_send (dest, (*i)->before_processor_for_placement (p), *i);
+	}
+}
+
+void
+Session::add_internal_send (boost::shared_ptr<Route> dest, int index, boost::shared_ptr<Route> sender)
+{
+	add_internal_send (dest, sender->before_processor_for_index (index), sender);
+}
+
+void
+Session::add_internal_send (boost::shared_ptr<Route> dest, boost::shared_ptr<Processor> before, boost::shared_ptr<Route> sender)
+{
+	if (sender->is_monitor() || sender->is_master() || sender == dest || dest->is_monitor() || dest->is_master()) {
 		return;
 	}
 
 	if (!dest->internal_return()) {
-		dest->add_internal_return();
+		dest->add_internal_return ();
 	}
 
-	
-	for (RouteList::iterator i = senders->begin(); i != senders->end(); ++i) {
-		
-		if ((*i)->is_monitor() || (*i)->is_master() || (*i) == dest) {
-			continue;
-		}
-		
-		(*i)->add_aux_send (dest, p);
-	}
+	sender->add_aux_send (dest, before);
 
 	graph_reordered ();
 }
@@ -2315,7 +2350,9 @@ Session::remove_route (boost::shared_ptr<Route> route)
 	 */
 
 	resort_routes ();
-	_process_graph->clear_other_chain ();
+	if (_process_graph) {
+		_process_graph->clear_other_chain ();
+	}
 
 	/* get rid of it from the dead wood collection in the route list manager */
 
@@ -3864,7 +3901,9 @@ Session::freeze_all (InterThreadInfo& itt)
 boost::shared_ptr<Region>
 Session::write_one_track (AudioTrack& track, framepos_t start, framepos_t end,
 			  bool /*overwrite*/, vector<boost::shared_ptr<Source> >& srcs,
-			  InterThreadInfo& itt, bool enable_processing)
+			  InterThreadInfo& itt, 
+			  boost::shared_ptr<Processor> endpoint, bool include_endpoint,
+			  bool for_export)
 {
 	boost::shared_ptr<Region> result;
 	boost::shared_ptr<Playlist> playlist;
@@ -3901,12 +3940,6 @@ Session::write_one_track (AudioTrack& track, framepos_t start, framepos_t end,
 		goto out;
 	}
 
-	/* external redirects will be a problem */
-
-	if (track.has_external_redirects()) {
-		goto out;
-	}
-
 	ext = native_header_format_extension (config.get_native_file_header_format(), DataType::AUDIO);
 
 	for (uint32_t chan_n = 0; chan_n < diskstream_channels.n_audio(); ++chan_n) {
@@ -3936,12 +3969,13 @@ Session::write_one_track (AudioTrack& track, framepos_t start, framepos_t end,
 		srcs.push_back (fsource);
 	}
 
-	/* tell redirects that care that we are about to use a much larger blocksize */
+	/* tell redirects that care that we are about to use a much larger
+	 * blocksize. this will flush all plugins too, so that they are ready
+	 * to be used for this process.
+	 */
 
 	need_block_size_reset = true;
 	track.set_block_size (chunk_size);
-
-	/* XXX need to flush all redirects */
 
 	position = start;
 	to_do = len;
@@ -3960,7 +3994,7 @@ Session::write_one_track (AudioTrack& track, framepos_t start, framepos_t end,
 
 		this_chunk = min (to_do, chunk_size);
 
-		if (track.export_stuff (buffers, start, this_chunk, enable_processing)) {
+		if (track.export_stuff (buffers, start, this_chunk, endpoint, include_endpoint, for_export)) {
 			goto out;
 		}
 
@@ -4445,7 +4479,13 @@ Session::ensure_search_path_includes (const string& path, DataType type)
 	split (search_path, dirs, ':');
 
 	for (vector<string>::iterator i = dirs.begin(); i != dirs.end(); ++i) {
-		if (*i == path) {
+		/* No need to add this new directory if it has the same inode as
+		   an existing one; checking inode rather than name prevents duplicated
+		   directories when we are using symlinks.
+
+		   On Windows, I think we could just do if (*i == path) here.
+		*/
+		if (inodes_same (*i, path)) {
 			return;
 		}
 	}

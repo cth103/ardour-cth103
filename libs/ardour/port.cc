@@ -39,6 +39,8 @@ using namespace std;
 using namespace ARDOUR;
 using namespace PBD;
 
+PBD::Signal2<void,boost::shared_ptr<Port>, boost::shared_ptr<Port> > Port::PostDisconnect;
+
 AudioEngine* Port::_engine = 0;
 bool         Port::_connecting_blocked = false;
 pframes_t    Port::_global_port_buffer_offset = 0;
@@ -68,7 +70,7 @@ Port::Port (std::string const & n, DataType t, Flags f)
 	}
 
 	if ((_jack_port = jack_port_register (_engine->jack (), _name.c_str (), t.to_jack_type (), _flags, 0)) == 0) {
-		cerr << "Failed to register JACK port, reason is unknown from here\n";
+		cerr << "Failed to register JACK port \"" << _name << "\", reason is unknown from here\n";
 		throw failed_constructor ();
 	}
 }
@@ -93,6 +95,11 @@ Port::disconnect_all ()
 {
 	jack_port_disconnect (_engine->jack(), _jack_port);
 	_connections.clear ();
+
+	/* a cheaper, less hacky way to do boost::shared_from_this() ... 
+	 */
+	boost::shared_ptr<Port> pself = _engine->get_port_by_name (name());
+	PostDisconnect (pself, boost::shared_ptr<Port>()); // emit signal
 
 	return 0;
 }
@@ -168,19 +175,32 @@ Port::connect (std::string const & other)
 int
 Port::disconnect (std::string const & other)
 {
-	std::string const other_shrt = _engine->make_port_name_non_relative (other);
-	std::string const this_shrt = _engine->make_port_name_non_relative (_name);
+	std::string const other_fullname = _engine->make_port_name_non_relative (other);
+	std::string const this_fullname = _engine->make_port_name_non_relative (_name);
 
 	int r = 0;
 
 	if (sends_output ()) {
-		r = jack_disconnect (_engine->jack (), this_shrt.c_str (), other_shrt.c_str ());
+		r = jack_disconnect (_engine->jack (), this_fullname.c_str (), other_fullname.c_str ());
 	} else {
-		r = jack_disconnect (_engine->jack (), other_shrt.c_str (), this_shrt.c_str ());
+		r = jack_disconnect (_engine->jack (), other_fullname.c_str (), this_fullname.c_str ());
 	}
 
 	if (r == 0) {
 		_connections.erase (other);
+	}
+
+	/* a cheaper, less hacky way to do boost::shared_from_this() ... 
+	 */
+	boost::shared_ptr<Port> pself = _engine->get_port_by_name (name());
+	boost::shared_ptr<Port> pother = _engine->get_port_by_name (other);
+
+	if (pself && pother) {
+		/* Disconnecting from another Ardour port: need to allow
+		   a check on whether this may affect anything that we
+		   need to know about.
+		*/
+		PostDisconnect (pself, pother); // emit signal 
 	}
 
 	return r;
@@ -452,8 +472,10 @@ Port::set_name (std::string const & n)
 	int const r = jack_port_set_name (_jack_port, n.c_str());
 
 	if (r == 0) {
+		_engine->port_renamed (_name, n);
 		_name = n;
 	}
+
 
 	return r;
 }

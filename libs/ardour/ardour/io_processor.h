@@ -52,6 +52,8 @@ class IOProcessor : public Processor
 
 	bool set_name (const std::string& str);
 
+	bool does_routing() const { return true; }
+
 	virtual ChanCount natural_output_streams() const;
 	virtual ChanCount natural_input_streams () const;
 
@@ -74,6 +76,8 @@ class IOProcessor : public Processor
 
 	XMLNode& state (bool full_state);
 	int set_state (const XMLNode&, int version);
+
+	static void prepare_for_reset (XMLNode& state, const std::string& name);
 
   protected:
 	boost::shared_ptr<IO> _input;

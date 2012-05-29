@@ -40,11 +40,13 @@ namespace MIDI {
 	class Parser;
 }
 
+class GenericMidiControlProtocol;
+
 class MIDIControllable : public PBD::Stateful
 {
   public:
-	MIDIControllable (MIDI::Port&, PBD::Controllable&, bool momentary);
-	MIDIControllable (MIDI::Port&, bool momentary = false);
+	MIDIControllable (GenericMidiControlProtocol *, MIDI::Port&, PBD::Controllable&, bool momentary);
+	MIDIControllable (GenericMidiControlProtocol *, MIDI::Port&, bool momentary = false);
 	virtual ~MIDIControllable ();
 
 	int init (const std::string&);
@@ -54,7 +56,6 @@ class MIDIControllable : public PBD::Stateful
 	uint32_t rid() const { return _rid; }
 	std::string what() const { return _what; }
 
-	void send_feedback ();
 	MIDI::byte* write_feedback (MIDI::byte* buf, int32_t& bufsize, bool force = false);
 	
 	void midi_rebind (MIDI::channel_t channel=-1);
@@ -66,8 +67,8 @@ class MIDIControllable : public PBD::Stateful
 	bool get_midi_feedback () { return feedback; }
 	void set_midi_feedback (bool val) { feedback = val; }
 
-	float control_to_midi(float val);
-	float midi_to_control(float val);
+	int control_to_midi(float val);
+	float midi_to_control(int val);
 
 	bool learned() const { return _learned; }
 
@@ -89,12 +90,16 @@ class MIDIControllable : public PBD::Stateful
 	MIDI::byte get_control_additional () { return control_additional; }
 	
   private:
+
+	int max_value_for_type () const;
+
+	GenericMidiControlProtocol* _surface;
 	PBD::Controllable* controllable;
 	PBD::ControllableDescriptor* _descriptor;
 	std::string        _current_uri;
 	MIDI::Port&     _port;
 	bool             setting;
-	MIDI::byte       last_value;
+	int              last_value;
 	float            last_controllable_value;
 	bool            _momentary;
 	bool            _is_gain_controller;
@@ -102,6 +107,7 @@ class MIDIControllable : public PBD::Stateful
 	int              midi_msg_id;      /* controller ID or note number */
 	PBD::ScopedConnection midi_sense_connection[2];
 	PBD::ScopedConnection midi_learn_connection;
+	/** the type of MIDI message that is used for this control */
 	MIDI::eventType  control_type;
 	MIDI::byte       control_additional;
 	MIDI::channel_t  control_channel;

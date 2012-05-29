@@ -73,7 +73,6 @@ AudioRegionView::AudioRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView
 	, fade_in_handle(0)
 	, fade_out_handle(0)
 	, fade_position_line(0)
-	, gain_line(0)
 	, _amplitude_above_axis(1.0)
 	, _flags(0)
 	, fade_color(0)
@@ -90,7 +89,6 @@ AudioRegionView::AudioRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView
 	, fade_in_handle(0)
 	, fade_out_handle(0)
 	, fade_position_line(0)
-	, gain_line(0)
 	, _amplitude_above_axis(1.0)
 	, _flags(0)
 	, fade_color(0)
@@ -104,7 +102,6 @@ AudioRegionView::AudioRegionView (const AudioRegionView& other, boost::shared_pt
 	, fade_in_handle(0)
 	, fade_out_handle(0)
 	, fade_position_line(0)
-	, gain_line(0)
 	, _amplitude_above_axis (other._amplitude_above_axis)
 	, _flags (other._flags)
 	, fade_color(0)
@@ -136,12 +133,6 @@ AudioRegionView::init (Gdk::Color const & basic_color, bool wfd)
 	} else {
 		_flags = WaveformVisible;
 		store_flags ();
-	}
-
-	/* make envelope visible if it has anything interesting in it */
-	boost::shared_ptr<AutomationList> env = audio_region()->envelope ();
-	if (env->size() > 2 || (env->size() == 2 && env->front()->value != env->back()->value)) {
-		_flags |= EnvelopeVisible;
 	}
 
 	compute_colors (basic_color);
@@ -186,13 +177,13 @@ AudioRegionView::init (Gdk::Color const & basic_color, bool wfd)
 	const string line_name = _region->name() + ":gain";
 
 	if (!Profile->get_sae()) {
-		gain_line = new AudioRegionGainLine (line_name, *this, *group, audio_region()->envelope());
+		gain_line.reset (new AudioRegionGainLine (line_name, *this, *group, audio_region()->envelope()));
 	}
 
-	if (!(_flags & EnvelopeVisible)) {
-		gain_line->hide ();
-	} else {
+	if (Config->get_show_region_gain()) {
 		gain_line->show ();
+	} else {
+		gain_line->hide ();
 	}
 
 	gain_line->reset ();
@@ -246,8 +237,6 @@ AudioRegionView::~AudioRegionView ()
 	}
 
 	/* all waveviews etc will be destroyed when the group is destroyed */
-
-	delete gain_line;
 }
 
 boost::shared_ptr<ARDOUR::AudioRegion>
@@ -489,7 +478,7 @@ AudioRegionView::set_height (gdouble height)
 		if ((height/wcnt) < NAME_HIGHLIGHT_THRESH) {
 			gain_line->hide ();
 		} else {
-			if (_flags & EnvelopeVisible) {
+			if (Config->get_show_region_gain ()) {
 				gain_line->show ();
 			}
 		}
@@ -805,7 +794,7 @@ AudioRegionView::temporarily_hide_envelope ()
 void
 AudioRegionView::unhide_envelope ()
 {
-	if (gain_line && (_flags & EnvelopeVisible)) {
+	if (gain_line) {
 		gain_line->show ();
 	}
 }
@@ -813,15 +802,12 @@ AudioRegionView::unhide_envelope ()
 void
 AudioRegionView::set_envelope_visible (bool yn)
 {
-	if (gain_line && ((_flags & EnvelopeVisible) != yn)) {
+	if (gain_line) {
 		if (yn) {
 			gain_line->show ();
-			_flags |= EnvelopeVisible;
 		} else {
 			gain_line->hide ();
-			_flags &= ~EnvelopeVisible;
 		}
-		store_flags ();
 	}
 }
 
@@ -978,7 +964,7 @@ AudioRegionView::peaks_ready_handler (uint32_t which)
 void
 AudioRegionView::add_gain_point_event (ArdourCanvas::Item *item, GdkEvent *ev)
 {
-	if (gain_line == 0) {
+	if (!gain_line) {
 		return;
 	}
 
@@ -1041,7 +1027,6 @@ AudioRegionView::store_flags()
 	XMLNode *node = new XMLNode ("GUI");
 
 	node->add_property ("waveform-visible", (_flags & WaveformVisible) ? "yes" : "no");
-	node->add_property ("envelope-visible", (_flags & EnvelopeVisible) ? "yes" : "no");
 	node->add_property ("waveform-rectified", (_flags & WaveformRectified) ? "yes" : "no");
 	node->add_property ("waveform-logscaled", (_flags & WaveformLogScaled) ? "yes" : "no");
 
@@ -1056,12 +1041,6 @@ AudioRegionView::set_flags (XMLNode* node)
 	if ((prop = node->property ("waveform-visible")) != 0) {
 		if (string_is_affirmative (prop->value())) {
 			_flags |= WaveformVisible;
-		}
-	}
-
-	if ((prop = node->property ("envelope-visible")) != 0) {
-		if (string_is_affirmative (prop->value())) {
-			_flags |= EnvelopeVisible;
 		}
 	}
 
@@ -1181,7 +1160,7 @@ AudioRegionView::entered (bool internal_editing)
 	trackview.editor().set_current_trimmable (_region);
 	trackview.editor().set_current_movable (_region);
 
-	if (gain_line && _flags & EnvelopeVisible) {
+	if (gain_line && Config->get_show_region_gain ()) {
 		gain_line->show_all_control_points ();
 	}
 

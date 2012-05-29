@@ -256,8 +256,8 @@ Editor::initialize_canvas ()
 
 	track_canvas->set_name ("EditorMainCanvas");
 	track_canvas->add_events (Gdk::POINTER_MOTION_HINT_MASK | Gdk::SCROLL_MASK | Gdk::KEY_PRESS_MASK | Gdk::KEY_RELEASE_MASK);
-	track_canvas->signal_leave_notify_event().connect (sigc::mem_fun(*this, &Editor::left_track_canvas));
-	track_canvas->signal_enter_notify_event().connect (sigc::mem_fun(*this, &Editor::entered_track_canvas));
+	track_canvas->signal_leave_notify_event().connect (sigc::mem_fun(*this, &Editor::left_track_canvas), false);
+	track_canvas->signal_enter_notify_event().connect (sigc::mem_fun(*this, &Editor::entered_track_canvas), false);
 	track_canvas->set_flags (CAN_FOCUS);
 
 	/* set up drag-n-drop */
@@ -491,8 +491,15 @@ Editor::autoscroll_fudge_threshold () const
 	return current_page_frames() / 6;
 }
 
+/** @param allow_horiz true to allow horizontal autoscroll, otherwise false.
+ *  @param allow_vert true to allow vertical autoscroll, otherwise false.
+ *  @param moving_left true if we are moving left, so we only want to autoscroll on the left of the canvas,
+ *  otherwise false, so we only want to autoscroll on the right of the canvas.
+ *  @param moving_up true if we are moving up, so we only want to autoscroll at the top of the canvas,
+ *  otherwise false, so we only want to autoscroll at the bottom of the canvas.
+ */
 void
-Editor::maybe_autoscroll (bool allow_horiz, bool allow_vert)
+Editor::maybe_autoscroll (bool allow_horiz, bool allow_vert, bool moving_left, bool moving_up)
 {
 	bool startit = false;
 
@@ -522,10 +529,10 @@ Editor::maybe_autoscroll (bool allow_horiz, bool allow_vert)
 
 	autoscroll_y = 0;
 	autoscroll_x = 0;
-	if (ty < canvas_timebars_vsize && allow_vert) {
+	if (ty < canvas_timebars_vsize && moving_up && allow_vert) {
 		autoscroll_y = -1;
 		startit = true;
-	} else if (ty > _canvas_height && allow_vert) {
+	} else if (ty > _canvas_height && !moving_up && allow_vert) {
 		autoscroll_y = 1;
 		startit = true;
 	}
@@ -536,12 +543,12 @@ Editor::maybe_autoscroll (bool allow_horiz, bool allow_vert)
 	}
 
 	if (_drags->current_pointer_frame() > rightmost_frame && allow_horiz) {
-		if (rightmost_frame < max_framepos) {
+		if (rightmost_frame < max_framepos && !moving_left) {
 			autoscroll_x = 1;
 			startit = true;
 		}
 	} else if (_drags->current_pointer_frame() < leftmost_frame && allow_horiz) {
-		if (leftmost_frame > 0) {
+		if (leftmost_frame > 0 && moving_left) {
 			autoscroll_x = -1;
 			startit = true;
 		}
@@ -724,6 +731,8 @@ bool
 Editor::left_track_canvas (GdkEventCrossing */*ev*/)
 {
 	DropDownKeys ();
+	within_track_canvas = false;
+	cerr << "left track canvas\n";
 	set_entered_track (0);
 	set_entered_regionview (0);
 	reset_canvas_action_sensitivity (false);
@@ -733,6 +742,8 @@ Editor::left_track_canvas (GdkEventCrossing */*ev*/)
 bool
 Editor::entered_track_canvas (GdkEventCrossing */*ev*/)
 {
+	cerr << "entered track canvas\n";
+	within_track_canvas = true;
 	reset_canvas_action_sensitivity (true);
 	return FALSE;
 }

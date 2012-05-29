@@ -212,6 +212,8 @@ protected:
 		return _last_pointer_frame;
 	}
 
+	boost::shared_ptr<ARDOUR::Region> add_midi_region (MidiTimeAxisView*);
+
 	void show_verbose_cursor_time (framepos_t);
 	void show_verbose_cursor_duration (framepos_t, framepos_t, double xoffset = 0);
 	void show_verbose_cursor_text (std::string const &);
@@ -417,7 +419,6 @@ public:
 private:
 	MidiTimeAxisView* _view;
 	boost::shared_ptr<ARDOUR::Region> _region;
-        void add_region ();
 };
 
 /** Drags to resize MIDI notes */
@@ -501,21 +502,6 @@ private:
 	MidiRegionView* _region_view;
 	ArdourCanvas::CanvasPatchChange* _patch_change;
 	double _cumulative_dx;
-};
-
-/** Drag of region gain */
-class RegionGainDrag : public Drag
-{
-public:
-	RegionGainDrag (Editor *, ArdourCanvas::Item *);
-
-	void motion (GdkEvent *, bool);
-	void finished (GdkEvent *, bool);
-	bool active (Editing::MouseMode m) {
-		return (m == Editing::MouseGain);
-	}
-
-	void aborted (bool);
 };
 
 /** Drag to trim region(s) */
@@ -891,6 +877,7 @@ private:
 	int _original_pointer_time_axis;
 	int _last_pointer_time_axis;
 	std::list<TimeAxisView*> _added_time_axes;
+	bool _time_selection_at_start;
 };
 
 /** Range marker drag */

@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 # Variables for 'waf dist'
-VERSION = '3.0beta2'
+VERSION = '3.0beta3'
 APPNAME = 'Ardour3'
 
 # Mandatory variables
@@ -400,7 +400,7 @@ def options(opt):
     opt.add_option('--tranzport', action='store_true', default=False, dest='tranzport',
                     help='Compile with support for Frontier Designs Tranzport (if libusb is available)')
     opt.add_option('--universal', action='store_true', default=False, dest='universal',
-                    help='Compile as universal binary (requires that external libraries are universal)')
+                    help='Compile as universal binary (OS X ONLY, requires that external libraries are universal)')
     opt.add_option('--versioned', action='store_true', default=False, dest='versioned',
                     help='Add revision information to executable name inside the build directory')
     opt.add_option('--windows-vst', action='store_true', default=False, dest='windows_vst',
@@ -436,7 +436,6 @@ def configure(conf):
                'Thanks for your co-operation with our development process.\n\n' +
                'Press Enter to continue.\n')
         sys.stdin.readline()
-    create_stored_revision()
     conf.env['VERSION'] = VERSION
     conf.line_just = 52
     autowaf.set_recursive()
@@ -451,8 +450,17 @@ def configure(conf):
 
     if sys.platform == 'darwin':
 
+        # libintl may or may not be trivially locatable
+        if not os.path.isfile ('/usr/include/libintl.h'):
+            # XXXX hack hack hack
+            prefinclude = ''.join ([ '-I', os.path.expanduser ('~/gtk/inst/include') ])
+            preflib = ''.join ([ '-L', os.path.expanduser ('~/gtk/inst/lib') ])
+            conf.env.append_value('CFLAGS', [ prefinclude ])
+            conf.env.append_value('CXXFLAGS',  [prefinclude ])
+            conf.env.append_value('LINKFLAGS', [ preflib ])
+
         # this is required, potentially, for anything we link and then relocate into a bundle
-        conf.env.append_value('LINKFLAGS', [ '-Xlinker', '-headerpad', '-Xlinker', '2048'])
+        conf.env.append_value('LINKFLAGS', [ '-Xlinker', '-headerpad_max_install_names' ])
 
         conf.define ('HAVE_COREAUDIO', 1)
         conf.define ('AUDIOUNIT_SUPPORT', 1)
@@ -490,7 +498,7 @@ def configure(conf):
         #       off processor type.  Need to add in a check
         #       for that.
         #
-        conf.env.append_value('CXXFLAGS_OSX', '-F/System/LibraryFrameworks')
+        conf.env.append_value('CXXFLAGS_OSX', '-F/System/Library/Frameworks')
         conf.env.append_value('CXXFLAGS_OSX', '-F/Library/Frameworks')
 
         conf.env.append_value('LINKFLAGS_OSX', ['-framework', 'AppKit'])
@@ -635,6 +643,7 @@ const char* const ardour_config_info = "\\n\\
     write_config_text('JACK session support',  conf.is_defined('JACK_SESSION'))
     write_config_text('LV2 UI embedding',      conf.is_defined('HAVE_SUIL'))
     write_config_text('LV2 support',           conf.is_defined('LV2_SUPPORT'))
+    write_config_text('LV2 state support',     conf.is_defined('HAVE_NEW_LILV'))
     write_config_text('LXVST support',         conf.is_defined('LXVST_SUPPORT'))
     write_config_text('OGG',                   conf.is_defined('HAVE_OGG'))
     write_config_text('Phone home',            conf.is_defined('PHONE_HOME'))
@@ -658,6 +667,8 @@ const char* const ardour_config_info = "\\n\\
     print('')
 
 def build(bld):
+    create_stored_revision()
+
     # add directories that contain only headers, to workaround an issue with waf
 
     bld.path.find_dir ('libs/evoral/evoral')

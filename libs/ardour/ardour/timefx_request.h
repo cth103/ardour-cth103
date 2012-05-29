@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2000-2007 Paul Davis
+    Copyright (C) 2002 Paul Davis
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,30 +17,25 @@
 
 */
 
-#ifndef __gtk_ardour_add_midi_cc_track_dialog_h__
-#define __gtk_ardour_add_midi_cc_track_dialog_h__
+#ifndef __libardour_timefx_request_h__
+#define __libardour_timefx_request_h__
 
-#include <string>
+#include "ardour/interthread_info.h"
 
-#include <gtkmm/dialog.h>
-#include <gtkmm/adjustment.h>
-#include <gtkmm/spinbutton.h>
-#include "ardour/types.h"
-#include "ardour/data_type.h"
-#include "evoral/Parameter.hpp"
+namespace ARDOUR {
 
-class AddMidiCCTrackDialog : public Gtk::Dialog
-{
-  public:
-	AddMidiCCTrackDialog ();
+	struct TimeFXRequest : public InterThreadInfo {
+		TimeFXRequest()
+			: time_fraction(0), pitch_fraction(0),
+			quick_seek(false), antialias(false),  opts(0) {}
+		float time_fraction;
+		float pitch_fraction;
+		/* SoundTouch */
+		bool  quick_seek;
+		bool  antialias;
+		/* RubberBand */
+		int   opts; // really RubberBandStretcher::Options
+	};
+}
 
-	Evoral::Parameter parameter ();
-
-  private:
-	Gtk::Adjustment _chan_adjustment;
-	Gtk::SpinButton _chan_spinner;
-	Gtk::Adjustment _cc_num_adjustment;
-	Gtk::SpinButton _cc_num_spinner;
-};
-
-#endif /* __gtk_ardour_add_midi_cc_track_dialog_h__ */
+#endif /* __libardour_timefx_request_h__ */

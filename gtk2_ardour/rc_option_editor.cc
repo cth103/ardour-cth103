@@ -80,7 +80,7 @@ public:
 		b = manage (new Button (_("Browse...")));
 		b->signal_clicked().connect (sigc::mem_fun (*this, &ClickOptions::click_emphasis_browse_clicked));
 		t->attach (*b, 2, 3, 1, 2, FILL);
-
+		
 		_box->pack_start (*t, false, false);
 
 		_click_path_entry.signal_activate().connect (sigc::mem_fun (*this, &ClickOptions::click_changed));	
@@ -757,6 +757,7 @@ private:
 				if (box) {
 					string title = row[_model.name];
 					ArdourWindow* win = new ArdourWindow (_parent, title);
+					win->set_title ("Control Protocol Options");
 					win->add (*box);
 					box->show ();
 					win->present ();
@@ -877,6 +878,8 @@ RCOptionEditor::RCOptionEditor ()
                         procs->add (i, string_compose (_("%1 processors"), i));
                 }
 
+		procs->set_note (string_compose (_("This setting will only take effect when %1 is restarted."), PROGRAM_NAME));
+
                 add_option (_("Misc"), procs);
         }
 
@@ -917,9 +920,26 @@ RCOptionEditor::RCOptionEditor ()
 			    sigc::mem_fun (*_rc_config, &RCConfiguration::set_default_session_parent_dir)
 			    ));
 
+	add_option (_("Misc"),
+	     new SpinOption<uint32_t> (
+		     "max-recent-sessions",
+		     _("Maximum number of recent sessions"),
+		     sigc::mem_fun (*_rc_config, &RCConfiguration::get_max_recent_sessions),
+		     sigc::mem_fun (*_rc_config, &RCConfiguration::set_max_recent_sessions),
+		     0, 1000, 1, 20
+		     ));
+
 	add_option (_("Misc"), new OptionEditorHeading (_("Click")));
 
 	add_option (_("Misc"), new ClickOptions (_rc_config, this));
+
+	add_option (_("Misc"),
+	     new FaderOption (
+		     "click-gain",
+		     _("Click Gain Level"),
+		     sigc::mem_fun (*_rc_config, &RCConfiguration::get_click_gain),
+		     sigc::mem_fun (*_rc_config, &RCConfiguration::set_click_gain)
+		     ));
 
 	/* TRANSPORT */
 
@@ -1043,6 +1063,14 @@ RCOptionEditor::RCOptionEditor ()
 		     _("Show waveforms in regions"),
 		     sigc::mem_fun (*_rc_config, &RCConfiguration::get_show_waveforms),
 		     sigc::mem_fun (*_rc_config, &RCConfiguration::set_show_waveforms)
+		     ));
+
+	add_option (_("Editor"),
+	     new BoolOption (
+		     "show-region-gain-envelopes",
+		     _("Show gain envelopes in audio regions"),
+		     sigc::mem_fun (*_rc_config, &RCConfiguration::get_show_region_gain),
+		     sigc::mem_fun (*_rc_config, &RCConfiguration::set_show_region_gain)
 		     ));
 
 	ComboOption<WaveformScale>* wfs = new ComboOption<WaveformScale> (
@@ -1242,7 +1270,7 @@ RCOptionEditor::RCOptionEditor ()
 	add_option (_("Audio"),
 	     new BoolOption (
 		     "plugins-stop-with-transport",
-		     _("Stop plugins when the transport is stopped"),
+		     _("Silence plugins when the transport is stopped"),
 		     sigc::mem_fun (*_rc_config, &RCConfiguration::get_plugins_stop_with_transport),
 		     sigc::mem_fun (*_rc_config, &RCConfiguration::set_plugins_stop_with_transport)
 		     ));
@@ -1521,7 +1549,7 @@ RCOptionEditor::RCOptionEditor ()
 
 	add_option (S_("Visual|Interface"),
 	     new BoolOption (
-		     "widget_prelight",
+		     "widget-prelight",
 		     _("Graphically indicate mouse pointer hovering over various widgets"),
 		     sigc::mem_fun (*_rc_config, &RCConfiguration::get_widget_prelight),
 		     sigc::mem_fun (*_rc_config, &RCConfiguration::set_widget_prelight)
@@ -1531,6 +1559,13 @@ RCOptionEditor::RCOptionEditor ()
 	/* font scaling does nothing with GDK/Quartz */
 	add_option (S_("Visual|Interface"), new FontScalingOptions (_rc_config));
 #endif
+	add_option (S_("Visual|Interface"),
+		    new BoolOption (
+			    "use-own-plugin-gui",
+			    _("Use plugins' own interface instead of a builtin one"),
+			    sigc::mem_fun (*_rc_config, &RCConfiguration::get_use_plugin_own_gui),
+			    sigc::mem_fun (*_rc_config, &RCConfiguration::set_use_plugin_own_gui)
+			    ));
 
 	/* The names of these controls must be the same as those given in MixerStrip
 	   for the actual widgets being controlled.

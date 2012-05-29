@@ -21,18 +21,19 @@
 #define __ardour_midi_stretch_h__
 
 #include "ardour/filter.h"
+#include "ardour/timefx_request.h"
 
 namespace ARDOUR {
 
 class MidiStretch : public Filter {
   public:
-	MidiStretch (ARDOUR::Session&, TimeFXRequest&);
+	MidiStretch (ARDOUR::Session&, const TimeFXRequest&);
 	~MidiStretch ();
 
 	int run (boost::shared_ptr<ARDOUR::Region>, Progress* progress = 0);
 
   private:
-	TimeFXRequest& _request;
+	const TimeFXRequest& _request;
 };
 
 } /* namespace ARDOUR */

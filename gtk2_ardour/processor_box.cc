@@ -115,10 +115,7 @@ ProcessorEntry::ProcessorEntry (ProcessorBox* parent, boost::shared_ptr<Processo
 
 		_vbox.pack_start (_button, true, true);
 
-		if (_processor->active()) {
-			_button.set_active_state (Gtkmm2ext::Active);
-		}
-		
+		_button.set_active (_processor->active());
 		_button.show ();
 		
 		_processor->ActiveChanged.connect (active_connection, invalidator (*this), boost::bind (&ProcessorEntry::processor_active_changed, this), gui_context());
@@ -225,7 +222,7 @@ void
 ProcessorEntry::led_clicked()
 {
 	if (_processor) {
-		if (_button.active_state() == Gtkmm2ext::Active) {
+		if (_button.get_active ()) {
 			_processor->deactivate ();
 		} else {
 			_processor->activate ();
@@ -237,11 +234,7 @@ void
 ProcessorEntry::processor_active_changed ()
 {
 	if (_processor) {
-		if (_processor->active()) {
-			_button.set_active_state (Gtkmm2ext::Active);
-		} else {
-			_button.unset_active_state ();
-		}
+		_button.set_active (_processor->active());
 	}
 }
 
@@ -485,10 +478,10 @@ ProcessorEntry::Control::button_clicked ()
 		return;
 	}
 
-	bool const n = _button.active_state() == Gtkmm2ext::Active ? false : true;
-	
-	c->set_value (n ? 1 : 0);
-	_button.set_active_state (n ? Gtkmm2ext::Active : Gtkmm2ext::ActiveState (0));
+	bool const n = _button.get_active ();
+
+	c->set_value (n ? 0 : 1);
+	_button.set_active (!n);
 }
 
 void
@@ -503,7 +496,7 @@ ProcessorEntry::Control::control_changed ()
 
 	if (c->toggled ()) {
 
-		_button.set_active_state (c->get_value() > 0.5 ? Gtkmm2ext::Active : Gtkmm2ext::ActiveState (0));
+		_button.set_active (c->get_value() > 0.5);
 		
 	} else {
 
@@ -769,6 +762,21 @@ ProcessorBox::object_drop(DnDVBox<ProcessorEntry>* source, ProcessorEntry* posit
 	boost::shared_ptr<Processor> p;
 	if (position) {
 		p = position->processor ();
+		if (!p) {
+			/* dropped on the blank entry (which will be before the
+			   fader), so use the first non-blank child as our
+			   `dropped on' processor */
+			list<ProcessorEntry*> c = processor_display.children ();
+			list<ProcessorEntry*>::iterator i = c.begin ();
+			while (dynamic_cast<BlankProcessorEntry*> (*i)) {
+				assert (i != c.end ());
+				++i;
+			}
+
+			assert (i != c.end ());
+			p = (*i)->processor ();
+			assert (p);
+		}
 	}
 
 	list<ProcessorEntry*> children = source->selection ();
@@ -797,12 +805,6 @@ ProcessorBox::object_drop(DnDVBox<ProcessorEntry>* source, ProcessorEntry* posit
 			other->delete_dragged_processors (procs);
 		}
 	}
-}
-
-void
-ProcessorBox::update()
-{
-	redisplay_processors ();
 }
 
 void
@@ -927,10 +929,8 @@ ProcessorBox::show_processor_menu (int arg)
 	processor_display.get_pointer (x, y);
 	_placement = processor_display.add_placeholder (y);
 
-	if (_visible_prefader_processors == 0) {
-		if (_placement == 1) {
-			_placement = 0;
-		}
+	if (_visible_prefader_processors == 0 && _placement > 0) {
+		--_placement;
 	}
 }
 
@@ -1025,7 +1025,11 @@ ProcessorBox::processor_button_press_event (GdkEventButton *ev, ProcessorEntry* 
 
 		if (_session->engine().connected()) {
 			/* XXX giving an error message here is hard, because we may be in the midst of a button press */
-			toggle_edit_processor (processor);
+			if (Config->get_use_plugin_own_gui ()) {
+				toggle_edit_processor (processor);
+			} else {
+				toggle_edit_generic_processor (processor);
+			}
 		}
 		ret = true;
 
@@ -1293,10 +1297,7 @@ ProcessorBox::choose_aux (boost::weak_ptr<Route> wr)
 		return;
 	}
 
-	boost::shared_ptr<RouteList> rlist (new RouteList);
-	rlist->push_back (_route);
-
-	_session->add_internal_sends (target, PreFader, rlist);
+	_session->add_internal_send (target, _placement, _route);
 }
 
 void
@@ -1649,19 +1650,6 @@ ProcessorBox::copy_processors (const ProcSelection& to_be_copied)
 }
 
 void
-ProcessorBox::processors_up ()
-{
-	/* unimplemented */
-}
-
-void
-ProcessorBox::processors_down ()
-{
-	/* unimplemented */
-}
-	
-
-void
 ProcessorBox::delete_processors (const ProcSelection& targets)
 {
 	if (targets.empty()) {
@@ -1818,8 +1806,10 @@ ProcessorBox::paste_processor_state (const XMLNodeList& nlist, boost::shared_ptr
 			} else if (type->value() == "send") {
 
 				XMLNode n (**niter);
-				Send::make_unique (n, *_session);
                                 Send* s = new Send (*_session, _route->pannable(), _route->mute_master());
+
+				IOProcessor::prepare_for_reset (n, s->name());
+				
                                 if (s->set_state (n, Stateful::loading_state_version)) {
                                         delete s;
                                         return;
@@ -1827,12 +1817,12 @@ ProcessorBox::paste_processor_state (const XMLNodeList& nlist, boost::shared_ptr
 
 				p.reset (s);
 
-
 			} else if (type->value() == "return") {
 
 				XMLNode n (**niter);
-				Return::make_unique (n, *_session);
                                 Return* r = new Return (*_session);
+
+				IOProcessor::prepare_for_reset (n, r->name());
 
                                 if (r->set_state (n, Stateful::loading_state_version)) {
                                         delete r;
@@ -1844,10 +1834,15 @@ ProcessorBox::paste_processor_state (const XMLNodeList& nlist, boost::shared_ptr
 			} else if (type->value() == "port") {
 
 				XMLNode n (**niter);
-				p.reset (new PortInsert (*_session, _route->pannable (), _route->mute_master ()));
-				if (p->set_state (n, Stateful::loading_state_version)) {
+				PortInsert* pi = new PortInsert (*_session, _route->pannable (), _route->mute_master ());
+				
+				IOProcessor::prepare_for_reset (n, pi->name());
+				
+				if (pi->set_state (n, Stateful::loading_state_version)) {
 					return;
 				}
+				
+				p.reset (pi);
 
 			} else {
 				/* XXX its a bit limiting to assume that everything else
@@ -1879,18 +1874,6 @@ could not match the configuration of this track.");
 		MessageDialog am (msg);
 		am.run ();
 	}
-}
-
-void
-ProcessorBox::activate_processor (boost::shared_ptr<Processor> r)
-{
-	r->activate ();
-}
-
-void
-ProcessorBox::deactivate_processor (boost::shared_ptr<Processor> r)
-{
-	r->deactivate ();
 }
 
 void

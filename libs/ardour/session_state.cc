@@ -226,6 +226,7 @@ Session::first_stage_init (string fullpath, string snapshot_name)
         _speakers.reset (new Speakers);
 	_clicks_cleared = 0;
 	ignore_route_processor_changes = false;
+	_pre_export_mmc_enabled = false;
 
 	AudioDiskstream::allocate_working_buffers();
 
@@ -348,6 +349,9 @@ Session::second_stage_init ()
 	_engine.Halted.connect_same_thread (*this, boost::bind (&Session::engine_halted, this));
 	_engine.Xrun.connect_same_thread (*this, boost::bind (&Session::xrun_recovery, this));
 
+	midi_clock = new MidiClockTicker ();
+	midi_clock->set_session (this);
+
 	try {
 		when_engine_running ();
 	}
@@ -371,7 +375,6 @@ Session::second_stage_init ()
 	MIDI::Manager::instance()->mmc()->send (MIDI::MachineControlCommand (MIDI::MachineControl::cmdMmcReset));
 	MIDI::Manager::instance()->mmc()->send (MIDI::MachineControlCommand (Timecode::Time ()));
 
-	MidiClockTicker::instance().set_session (this);
 	MIDI::Name::MidiPatchManager::instance().set_session (this);
 
 	/* initial program change will be delivered later; see ::config_changed() */
@@ -501,6 +504,13 @@ Session::ensure_subdirs ()
 		return -1;
 	}
 
+	dir = externals_dir ();
+
+	if (g_mkdir_with_parents (dir.c_str(), 0755) < 0) {
+		error << string_compose(_("Session: cannot create session externals folder \"%1\" (%2)"), dir, strerror (errno)) << endmsg;
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -595,7 +605,7 @@ Session::create (const string& session_template, BusProfile* bus_profile)
 		}
 
 		if (!rl.empty()) {
-			add_routes (rl, false, false);
+			add_routes (rl, false, false, false);
 		}
 
                 /* this allows the user to override settings with an environment variable.
@@ -1165,15 +1175,16 @@ Session::state(bool full_state)
 	}
 
 	if (_click_io) {
-		child = node->add_child ("Click");
-		child->add_child_nocopy (_click_io->state (full_state));
+		XMLNode* gain_child = node->add_child ("Click");
+		gain_child->add_child_nocopy (_click_io->state (full_state));
+		gain_child->add_child_nocopy (_click_gain->state (full_state));
 	}
 
 	if (full_state) {
-		child = node->add_child ("NamedSelections");
+		XMLNode* ns_child = node->add_child ("NamedSelections");
 		for (NamedSelectionList::iterator i = named_selections.begin(); i != named_selections.end(); ++i) {
 			if (full_state) {
-				child->add_child_nocopy ((*i)->get_state());
+				ns_child->add_child_nocopy ((*i)->get_state());
 			}
 		}
 	}
@@ -1407,12 +1418,20 @@ Session::set_state (const XMLNode& node, int version)
 	if ((child = find_named_node (node, "Click")) == 0) {
 		warning << _("Session: XML state has no click section") << endmsg;
 	} else if (_click_io) {
-		_click_io->set_state (*child, version);
+		const XMLNodeList& children (child->children());
+		XMLNodeList::const_iterator i = children.begin();
+		_click_io->set_state (**i, version);
+		++i;
+		if (i != children.end()) {
+			_click_gain->set_state (**i, version);
+		}
 	}
 
 	if ((child = find_named_node (node, "ControlProtocols")) != 0) {
 		ControlProtocolManager::instance().set_protocol_states (*child);
 	}
+
+	update_have_rec_enabled_track ();
 
 	/* here beginneth the second phase ... */
 
@@ -1454,7 +1473,7 @@ Session::load_routes (const XMLNode& node, int version)
 		new_routes.push_back (route);
 	}
 
-	add_routes (new_routes, false, false);
+	add_routes (new_routes, false, false, false);
 
 	return 0;
 }
@@ -2247,6 +2266,12 @@ string
 Session::plugins_dir () const
 {
 	return Glib::build_filename (_path, "plugins");
+}
+
+string
+Session::externals_dir () const
+{
+	return Glib::build_filename (_path, "externals");
 }
 
 int
@@ -3477,6 +3502,12 @@ Session::config_changed (std::string p, bool ours)
 			}
 		} else {
 			_clicking = false;
+		}
+
+	} else if (p == "click-gain") {
+		
+		if (_click_gain) {
+			_click_gain->set_gain (Config->get_click_gain(), this);
 		}
 
 	} else if (p == "send-mtc") {

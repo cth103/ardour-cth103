@@ -135,7 +135,7 @@ SessionOptionEditor::SessionOptionEditor (Session* s)
 
 	add_option (_("Timecode"), new BoolOption (
 			    "jack-time-master",
-			    _("Ardour is JACK Time Master (provides Bar|Beat|Tick and other information to JACK)"),
+			    string_compose (_("%1 is JACK Time Master (provides Bar|Beat|Tick and other information to JACK)"), PROGRAM_NAME),
 			    sigc::mem_fun (*_session_config, &SessionConfiguration::get_jack_time_master),
 			    sigc::mem_fun (*_session_config, &SessionConfiguration::set_jack_time_master)
 			    ));
@@ -280,7 +280,7 @@ SessionOptionEditor::SessionOptionEditor (Session* s)
 
 	ComboOption<InsertMergePolicy>* li = new ComboOption<InsertMergePolicy> (
 		"insert-merge-policy",
-		_("Policy for handling same note\nand channel overlaps"),
+		_("Policy for handling overlapping notes\n on the same MIDI channel"),
 		sigc::mem_fun (*_session_config, &SessionConfiguration::get_insert_merge_policy),
 		sigc::mem_fun (*_session_config, &SessionConfiguration::set_insert_merge_policy)
 		);

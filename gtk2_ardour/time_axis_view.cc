@@ -380,7 +380,7 @@ TimeAxisView::controls_ebox_motion (GdkEventMotion* ev)
 		controls_ebox.translate_coordinates (*control_parent, ev->x, ev->y, tx, ty);
 		ev->y = ty - _editor.get_trackview_group_vertical_offset();
 		_editor.drags()->motion_handler ((GdkEvent *) ev, false);
-		_editor.maybe_autoscroll (false, true);
+		_editor.maybe_autoscroll (false, true, false, ev->y_root < _resize_drag_start);
 
 		/* now do the actual TAV resize */
                 int32_t const delta = (int32_t) floor (ev->y_root - _resize_drag_start);
@@ -1312,7 +1312,7 @@ TimeAxisView::reset_visual_state ()
 	/* this method is not required to trigger a global redraw */
 
 	string str = gui_property ("height");
-
+	
 	if (!str.empty()) {
 		set_height (atoi (str));
 	} else {

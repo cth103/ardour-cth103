@@ -305,175 +305,6 @@ MidiDiskstream::set_note_mode (NoteMode m)
 		_write_source->model()->set_note_mode(m);
 }
 
-#if 0
-static void
-trace_midi (ostream& o, MIDI::byte *msg, size_t len)
-{
-	using namespace MIDI;
-	eventType type;
-	const char trace_prefix = ':';
-
-	type = (eventType) (msg[0]&0xF0);
-
-	switch (type) {
-	case off:
-		o << trace_prefix
-		   << "Channel "
-		   << (msg[0]&0xF)+1
-		   << " NoteOff NoteNum "
-		   << (int) msg[1]
-		   << " Vel "
-		   << (int) msg[2]
-		   << endl;
-		break;
-
-	case on:
-		o << trace_prefix
-		   << "Channel "
-		   << (msg[0]&0xF)+1
-		   << " NoteOn NoteNum "
-		   << (int) msg[1]
-		   << " Vel "
-		   << (int) msg[2]
-		   << endl;
-		break;
-
-	case polypress:
-		o << trace_prefix
-		   << "Channel "
-		   << (msg[0]&0xF)+1
-		   << " PolyPressure"
-		   << (int) msg[1]
-		   << endl;
-		break;
-
-	case MIDI::controller:
-		o << trace_prefix
-		   << "Channel "
-		   << (msg[0]&0xF)+1
-		   << " Controller "
-		   << (int) msg[1]
-		   << " Value "
-		   << (int) msg[2]
-		   << endl;
-		break;
-
-	case program:
-		o << trace_prefix
-		   << "Channel "
-		   << (msg[0]&0xF)+1
-		   <<  " Program Change ProgNum "
-		   << (int) msg[1]
-		   << endl;
-		break;
-
-	case chanpress:
-		o << trace_prefix
-		   << "Channel "
-		   << (msg[0]&0xF)+1
-		   << " Channel Pressure "
-		   << (int) msg[1]
-		   << endl;
-		break;
-
-	case MIDI::pitchbend:
-		o << trace_prefix
-		   << "Channel "
-		   << (msg[0]&0xF)+1
-		   << " Pitch Bend "
-		   << ((msg[2]<<7)|msg[1])
-		   << endl;
-		break;
-
-	case MIDI::sysex:
-		if (len == 1) {
-			switch (msg[0]) {
-			case 0xf8:
-				o << trace_prefix
-				   << "Clock"
-				   << endl;
-				break;
-			case 0xfa:
-				o << trace_prefix
-				   << "Start"
-				   << endl;
-				break;
-			case 0xfb:
-				o << trace_prefix
-				   << "Continue"
-				   << endl;
-				break;
-			case 0xfc:
-				o << trace_prefix
-				   << "Stop"
-				   << endl;
-				break;
-			case 0xfe:
-				o << trace_prefix
-				   << "Active Sense"
-				   << endl;
-				break;
-			case 0xff:
-				o << trace_prefix
-				   << "System Reset"
-				   << endl;
-				break;
-			default:
-				o << trace_prefix
-				   << "System Exclusive (1 byte : " << hex << (int) *msg << dec << ')'
-				   << endl;
-				break;
-			}
-		} else {
-			o << trace_prefix
-			   << "System Exclusive (" << len << ") = [ " << hex;
-			for (unsigned int i = 0; i < len; ++i) {
-				o << (int) msg[i] << ' ';
-			}
-			o << dec << ']' << endl;
-
-		}
-		break;
-
-	case MIDI::song:
-		o << trace_prefix << "Song" << endl;
-		break;
-
-	case MIDI::tune:
-		o << trace_prefix << "Tune" << endl;
-		break;
-
-	case MIDI::eox:
-		o << trace_prefix << "End-of-System Exclusive" << endl;
-		break;
-
-	case MIDI::timing:
-		o << trace_prefix << "Timing" << endl;
-		break;
-
-	case MIDI::start:
-		o << trace_prefix << "Start" << endl;
-		break;
-
-	case MIDI::stop:
-		o << trace_prefix << "Stop" << endl;
-		break;
-
-	case MIDI::contineu:
-		o << trace_prefix << "Continue" << endl;
-		break;
-
-	case active:
-		o << trace_prefix << "Active Sense" << endl;
-		break;
-
-	default:
-		o << trace_prefix << "Unrecognized MIDI message" << endl;
-		break;
-	}
-}
-#endif
-
 int
 MidiDiskstream::process (framepos_t transport_frame, pframes_t nframes, framecnt_t& playback_distance)
 {
@@ -623,13 +454,26 @@ MidiDiskstream::commit (framecnt_t playback_distance)
 
 	uint32_t frames_read = g_atomic_int_get(&_frames_read_from_ringbuffer);
 	uint32_t frames_written = g_atomic_int_get(&_frames_written_to_ringbuffer);
-	if ((frames_written - frames_read) + playback_distance < midi_readahead) {
-		need_butler = true;
+
+	/*
+	  cerr << name() << " MDS written: " << frames_written << " - read: " << frames_read <<
+	  " = " << frames_written - frames_read
+	  << " + " << playback_distance << " < " << midi_readahead << " = " << need_butler << ")" << endl;
+	*/
+
+	/* frames_read will generally be less than frames_written, but
+	 * immediately after an overwrite, we can end up having read some data
+	 * before we've written any. we don't need to trip an assert() on this,
+	 * but we do need to check so that the decision on whether or not we
+	 * need the butler is done correctly.
+	 */
+	
+	if (frames_read <= frames_written) {
+		if ((frames_written - frames_read) + playback_distance < midi_readahead) {
+			need_butler = true;
+		}
 	}
 
-	/*cerr << "MDS written: " << frames_written << " - read: " << frames_read <<
-		" = " << frames_written - frames_read
-		<< " + " << nframes << " < " << midi_readahead << " = " << need_butler << ")" << endl;*/
 
 	return need_butler;
 }
@@ -766,7 +610,7 @@ MidiDiskstream::read (framepos_t& start, framecnt_t dur, bool reversed)
 			return -1;
 		}
 
-		g_atomic_int_add(&_frames_written_to_ringbuffer, this_read);
+		g_atomic_int_add (&_frames_written_to_ringbuffer, this_read);
 
 		if (reversed) {
 

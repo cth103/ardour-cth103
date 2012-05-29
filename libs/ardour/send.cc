@@ -191,34 +191,37 @@ Send::set_state (const XMLNode& node, int version)
 
 	Delivery::set_state (node, version);
 
-        /* don't try to reset bitslot if there is a node for it already: this can cause
-           issues with the session's accounting of send ID's
-        */
+	if (node.property ("ignore-bitslot") == 0) {
 
-        if ((prop = node.property ("bitslot")) == 0) {
-		if (_role == Delivery::Aux) {
-			_bitslot = _session.next_aux_send_id ();
-		} else if (_role == Delivery::Send) {
-			_bitslot = _session.next_send_id ();
+		/* don't try to reset bitslot if there is a node for it already: this can cause
+		   issues with the session's accounting of send ID's
+		*/
+		
+		if ((prop = node.property ("bitslot")) == 0) {
+			if (_role == Delivery::Aux) {
+				_bitslot = _session.next_aux_send_id ();
+			} else if (_role == Delivery::Send) {
+				_bitslot = _session.next_send_id ();
+			} else {
+				// bitslot doesn't matter but make it zero anyway
+				_bitslot = 0;
+			}
 		} else {
-			// bitslot doesn't matter but make it zero anyway
-			_bitslot = 0;
+			if (_role == Delivery::Aux) {
+				_session.unmark_aux_send_id (_bitslot);
+				sscanf (prop->value().c_str(), "%" PRIu32, &_bitslot);
+				_session.mark_aux_send_id (_bitslot);
+			} else if (_role == Delivery::Send) {
+				_session.unmark_send_id (_bitslot);
+				sscanf (prop->value().c_str(), "%" PRIu32, &_bitslot);
+				_session.mark_send_id (_bitslot);
+			} else {
+				// bitslot doesn't matter but make it zero anyway
+				_bitslot = 0;
+			}
 		}
-        } else {
-		if (_role == Delivery::Aux) {
-			_session.unmark_aux_send_id (_bitslot);
-			sscanf (prop->value().c_str(), "%" PRIu32, &_bitslot);
-			_session.mark_aux_send_id (_bitslot);
-		} else if (_role == Delivery::Send) {
-			_session.unmark_send_id (_bitslot);
-			sscanf (prop->value().c_str(), "%" PRIu32, &_bitslot);
-			_session.mark_send_id (_bitslot);
-		} else {
-			// bitslot doesn't matter but make it zero anyway
-			_bitslot = 0;
-		}
-        }
-
+	}
+	
 	XMLNodeList nlist = node.children();
 	for (XMLNodeIterator i = nlist.begin(); i != nlist.end(); ++i) {
 		if ((*i)->name() == X_("Processor")) {
@@ -292,30 +295,6 @@ Send::configure_io (ChanCount in, ChanCount out)
 	return true;
 }
 
-/** Set up the XML description of a send so that its name is unique.
- *  @param state XML send state.
- *  @param session Session.
- */
-void
-Send::make_unique (XMLNode &state, Session &session)
-{
-	uint32_t const bitslot = session.next_send_id() + 1;
-
-	char buf[32];
-	snprintf (buf, sizeof (buf), "%" PRIu32, bitslot);
-	state.property("bitslot")->set_value (buf);
-
-	string const name = string_compose (_("send %1"), bitslot);
-
-	state.property("name")->set_value (name);
-
-	XMLNode* io = state.child ("IO");
-
-	if (io) {
-		io->property("name")->set_value (name);
-	}
-}
-
 bool
 Send::set_name (const string& new_name)
 {
@@ -357,3 +336,11 @@ Send::display_to_user () const
 
 	return true;
 }
+
+string
+Send::value_as_string (boost::shared_ptr<AutomationControl> ac) const
+{
+	return _amp->value_as_string (ac);
+}
+
+	

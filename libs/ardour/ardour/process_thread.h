@@ -9,6 +9,7 @@
 namespace ARDOUR {
 
 class ThreadBuffers;
+class BufferSet;
 
 class ProcessThread
 {
@@ -34,8 +35,6 @@ protected:
 	void session_going_away ();
 
 private:
-	Glib::Thread* _thread;
-
 	static Glib::Private<ThreadBuffers>* _private_thread_buffers;
 };
 
