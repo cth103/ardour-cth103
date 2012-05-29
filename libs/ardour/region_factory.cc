@@ -20,17 +20,14 @@
 #include <inttypes.h>
 
 #include "pbd/error.h"
-#include "pbd/boost_debug.h"
 
-#include "ardour/session.h"
-
-#include "ardour/region_factory.h"
-#include "ardour/region.h"
 #include "ardour/audioregion.h"
 #include "ardour/audiosource.h"
-#include "ardour/midi_source.h"
 #include "ardour/midi_region.h"
-#include "ardour/utils.h"
+#include "ardour/midi_source.h"
+#include "ardour/region.h"
+#include "ardour/region_factory.h"
+#include "ardour/session.h"
 
 #include "i18n.h"
 
@@ -41,7 +38,7 @@ using namespace std;
 PBD::Signal1<void,boost::shared_ptr<Region> > RegionFactory::CheckNewRegion;
 Glib::StaticMutex                             RegionFactory::region_map_lock;
 RegionFactory::RegionMap                      RegionFactory::region_map;
-PBD::ScopedConnectionList                     RegionFactory::region_list_connections;
+PBD::ScopedConnectionList*                    RegionFactory::region_list_connections = 0;
 Glib::StaticMutex                             RegionFactory::region_name_map_lock;
 std::map<std::string, uint32_t>               RegionFactory::region_name_map;
 RegionFactory::CompoundAssociations           RegionFactory::_compound_associations;
@@ -78,11 +75,10 @@ RegionFactory::create (boost::shared_ptr<const Region> region, bool announce)
 		if (ret->session().config.get_glue_new_regions_to_bars_and_beats ()) {
 			ret->set_position_lock_style (MusicTime);
 		}
-		
-		map_add (ret);
 
 		/* pure copy constructor - no property list */
 		if (announce) {
+			map_add (ret);
 			CheckNewRegion (ret);
 		}
 	}
@@ -122,9 +118,8 @@ RegionFactory::create (boost::shared_ptr<Region> region, const PropertyList& pli
 			ret->set_position_lock_style (MusicTime);
 		}
 		
-		map_add (ret);
-
 		if (announce) {
+			map_add (ret);
 			CheckNewRegion (ret);
 		}
 	}
@@ -164,9 +159,8 @@ RegionFactory::create (boost::shared_ptr<Region> region, frameoffset_t offset, c
 			ret->set_position_lock_style (MusicTime);
 		}
 
-		map_add (ret);
-
 		if (announce) {
+			map_add (ret);
 			CheckNewRegion (ret);
 		}
 	}
@@ -206,9 +200,8 @@ RegionFactory::create (boost::shared_ptr<Region> region, const SourceList& srcs,
 			ret->set_position_lock_style (MusicTime);
 		}
 
-		map_add (ret);
-
 		if (announce) {
+			map_add (ret);
 			CheckNewRegion (ret);
 		}
 	}
@@ -251,9 +244,8 @@ RegionFactory::create (const SourceList& srcs, const PropertyList& plist, bool a
 			ret->set_position_lock_style (MusicTime);
 		}
 		
-		map_add (ret);
-
 		if (announce) {
+			map_add (ret);
 			CheckNewRegion (ret);
 		}
 	}
@@ -321,43 +313,29 @@ RegionFactory::map_add (boost::shared_ptr<Region> r)
 		region_map.insert (p);
 	}
 
-	r->DropReferences.connect_same_thread (region_list_connections, boost::bind (&RegionFactory::map_remove, r));
+	if (!region_list_connections) {
+		region_list_connections = new ScopedConnectionList;
+	}
 
-	r->PropertyChanged.connect_same_thread (
-		region_list_connections,
-		boost::bind (&RegionFactory::region_changed, _1, boost::weak_ptr<Region> (r))
-		);
+	r->DropReferences.connect_same_thread (*region_list_connections, boost::bind (&RegionFactory::map_remove, boost::weak_ptr<Region> (r)));
+	r->PropertyChanged.connect_same_thread (*region_list_connections, boost::bind (&RegionFactory::region_changed, _1, boost::weak_ptr<Region> (r)));
 
 	update_region_name_map (r);
 }
 
 void
-RegionFactory::map_remove (boost::shared_ptr<Region> r)
+RegionFactory::map_remove (boost::weak_ptr<Region> w)
 {
+	boost::shared_ptr<Region> r = w.lock ();
+	if (!r) {
+		return;
+	}
+	
 	Glib::Mutex::Lock lm (region_map_lock);
 	RegionMap::iterator i = region_map.find (r->id());
 
 	if (i != region_map.end()) {
 		region_map.erase (i);
-	}
-}
-
-void
-RegionFactory::map_remove_with_equivalents (boost::shared_ptr<Region> r)
-{
-	Glib::Mutex::Lock lm (region_map_lock);
-
-	for (RegionMap::iterator i = region_map.begin(); i != region_map.end(); ) {
-		RegionMap::iterator tmp = i;
-		++tmp;
-
-		if (r->region_list_equivalent (i->second)) {
-			region_map.erase (i);
-		} else if (r == i->second) {
-			region_map.erase (i);
-		}
-
-		i = tmp;
 	}
 }
 
@@ -398,7 +376,9 @@ RegionFactory::region_by_name (const std::string& name)
 void
 RegionFactory::clear_map ()
 {
-	region_list_connections.drop_connections ();
+	if (region_list_connections) {
+		region_list_connections->drop_connections ();
+	}
 
 	{
 		Glib::Mutex::Lock lm (region_map_lock);
@@ -620,10 +600,17 @@ RegionFactory::remove_regions_using_source (boost::shared_ptr<Source> src)
 {
 	Glib::Mutex::Lock lm (region_map_lock);
 
-	for (RegionMap::iterator i = region_map.begin(); i != region_map.end(); ++i) {
+	RegionMap::iterator i = region_map.begin();
+	while (i != region_map.end()) {
+
+		RegionMap::iterator j = i;
+		++j;
+		
 		if (i->second->uses_source (src)) {
 			region_map.erase (i);
                 }
+
+		i = j;
 	}
 }
 

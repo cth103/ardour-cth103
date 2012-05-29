@@ -63,20 +63,14 @@
 #include "verbose_cursor.h"
 #include "hints.h"
 
-#include "ardour/types.h"
-#include "ardour/profile.h"
-#include "ardour/route.h"
-#include "ardour/audio_track.h"
-#include "ardour/playlist.h"
-#include "ardour/audioplaylist.h"
 #include "ardour/audioregion.h"
-#include "ardour/midi_region.h"
-#include "ardour/dB.h"
-#include "ardour/utils.h"
-#include "ardour/region_factory.h"
-#include "ardour/source_factory.h"
-#include "ardour/session.h"
 #include "ardour/operations.h"
+#include "ardour/playlist.h"
+#include "ardour/profile.h"
+#include "ardour/region_factory.h"
+#include "ardour/route.h"
+#include "ardour/session.h"
+#include "ardour/types.h"
 
 #include <bitset>
 
@@ -457,9 +451,9 @@ Editor::mouse_mode_toggled (MouseMode m)
 	instant_save ();
 
 	if (!internal_editing()) {
-		if (mouse_mode != MouseRange && _join_object_range_state == JOIN_OBJECT_RANGE_NONE) {
+		if (mouse_mode != MouseRange && mouse_mode != MouseGain && _join_object_range_state == JOIN_OBJECT_RANGE_NONE) {
 
-			/* in all modes except range and joined object/range, hide the range selection,
+			/* in all modes except range, gain and joined object/range, hide the range selection,
 			   show the object (region) selection.
 			*/
 
@@ -641,11 +635,12 @@ Editor::button_selection (ArdourCanvas::Item* /*item*/, GdkEvent* event, ItemTyp
 		}
 		break;
 
-
 	case FadeInHandleItem:
 	case FadeInItem:
 	case FadeOutHandleItem:
 	case FadeOutItem:
+	case StartCrossFadeItem:
+	case EndCrossFadeItem:
 		if (doing_object_stuff() || (mouse_mode != MouseRange && mouse_mode != MouseObject)) {
 			set_selected_regionview_from_click (press, op);
 		} else if (event->type == GDK_BUTTON_PRESS) {
@@ -656,7 +651,7 @@ Editor::button_selection (ArdourCanvas::Item* /*item*/, GdkEvent* event, ItemTyp
 	case ControlPointItem:
 		set_selected_track_as_side_effect (op);
 		if (doing_object_stuff() || (mouse_mode != MouseRange && mouse_mode != MouseObject)) {
-			set_selected_control_point_from_click (op, false);
+			set_selected_control_point_from_click (press, op);
 		}
 		break;
 
@@ -825,7 +820,7 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 					AutomationTimeAxisView* atv = dynamic_cast<AutomationTimeAxisView*> (tvp.first);
 					if (smart_mode_action->get_active() && atv) {
 						/* smart "join" mode: drag automation */
-						_drags->set (new AutomationRangeDrag (this, atv->base_item(), selection->time), event, _cursors->up_down);
+						_drags->set (new AutomationRangeDrag (this, atv, selection->time), event, _cursors->up_down);
 					} else {
 						/* this was debated, but decided the more common action was to
 						   make a new selection */
@@ -890,6 +885,7 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 		default:
 			break;
 		}
+		break;
 
 	case MouseObject:
 		switch (item_type) {
@@ -930,6 +926,14 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 				_drags->set (new FadeOutDrag (this, item, reinterpret_cast<RegionView*> (item->get_data("regionview")), s), event, _cursors->fade_out);
 				return true;
 			}
+
+			case StartCrossFadeItem:
+				_drags->set (new CrossfadeEdgeDrag (this, reinterpret_cast<AudioRegionView*>(item->get_data("regionview")), item, true), event, 0);
+				break;
+
+			case EndCrossFadeItem:
+				_drags->set (new CrossfadeEdgeDrag (this, reinterpret_cast<AudioRegionView*>(item->get_data("regionview")), item, false), event, 0);
+				break;
 
 			case FeatureLineItem:
 			{
@@ -1041,7 +1045,7 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 						/* if we're over an automation track, start a drag of its data */
 						AutomationTimeAxisView* atv = dynamic_cast<AutomationTimeAxisView*> (tvp.first);
 						if (atv) {
-							_drags->set (new AutomationRangeDrag (this, atv->base_item(), selection->time), event, _cursors->up_down);
+							_drags->set (new AutomationRangeDrag (this, atv, selection->time), event, _cursors->up_down);
 						}
 
 						/* if we're over a track and a region, and in the `object' part of a region,
@@ -1119,6 +1123,17 @@ Editor::button_press_handler_1 (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 			_drags->set (new ControlPointDrag (this, item), event);
 			return true;
 			break;
+
+		case SelectionItem:
+		{
+			AudioRegionView* arv = dynamic_cast<AudioRegionView *> (clicked_regionview);
+			if (arv) {
+				_drags->set (new AutomationRangeDrag (this, arv, selection->time), event, _cursors->up_down);
+				_drags->start_grab (event);
+			}
+			return true;
+			break;
+		}
 
 		case AutomationLineItem:
 			_drags->set (new LineDrag (this, item), event);
@@ -1287,7 +1302,7 @@ Editor::button_press_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemTyp
 			break;
 
 		case RegionItem:
-			if (!dynamic_cast<MidiRegionView*> (clicked_regionview)) {
+			if (!dynamic_cast<MidiRegionView*> (clicked_regionview) && !dynamic_cast<AutomationRegionView*> (clicked_regionview)) {
 				leave_internal_edit_mode = true;
 			}
 			break;
@@ -1460,6 +1475,14 @@ Editor::button_release_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 				popup_fade_context_menu (1, event->button.time, item, item_type);
 				break;
 
+			case StartCrossFadeItem:
+				popup_xfade_in_context_menu (1, event->button.time, item, item_type);
+				break;
+
+			case EndCrossFadeItem:
+				popup_xfade_out_context_menu (1, event->button.time, item, item_type);
+				break;
+
 			case StreamItem:
 				popup_track_context_menu (1, event->button.time, item_type, false);
 				break;
@@ -1475,7 +1498,7 @@ Editor::button_release_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 			case SelectionItem:
 				popup_track_context_menu (1, event->button.time, item_type, true);
 				break;
-
+				
 			case AutomationTrackItem:
 				popup_track_context_menu (1, event->button.time, item_type, false);
 				break;
@@ -2411,10 +2434,6 @@ Editor::point_trim (GdkEvent* event, framepos_t new_bound)
 			for (list<RegionView*>::const_iterator i = selection->regions.by_layer().begin();
 			     i != selection->regions.by_layer().end(); ++i)
 			{
-				if ( (*i) == NULL){
-				    cerr << "region view contains null region" << endl;
-				}
-
 				if (!(*i)->region()->locked()) {
 					(*i)->region()->clear_changes ();
 					(*i)->region()->trim_front (new_bound);

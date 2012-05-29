@@ -62,31 +62,25 @@
 #include "midi++/mmc.h"
 
 #include "ardour/analyser.h"
-#include "ardour/ardour.h"
 #include "ardour/audio_library.h"
 #include "ardour/audioengine.h"
+#include "ardour/audioplaylist.h"
 #include "ardour/audioregion.h"
-#include "ardour/audiosource.h"
 #include "ardour/buffer_manager.h"
 #include "ardour/control_protocol_manager.h"
-#include "ardour/dB.h"
-#include "ardour/debug.h"
 #include "ardour/filesystem_paths.h"
 #include "ardour/midi_region.h"
 #include "ardour/mix.h"
-#include "ardour/audioplaylist.h"
 #include "ardour/panner_manager.h"
 #include "ardour/plugin_manager.h"
 #include "ardour/process_thread.h"
 #include "ardour/profile.h"
-#include "ardour/region.h"
 #include "ardour/rc_configuration.h"
+#include "ardour/region.h"
 #include "ardour/route_group.h"
 #include "ardour/runtime_functions.h"
-#include "ardour/session.h"
 #include "ardour/session_event.h"
 #include "ardour/source_factory.h"
-#include "ardour/utils.h"
 
 #include "audiographer/routines.h"
 
@@ -112,7 +106,9 @@ mix_buffers_no_gain_t   ARDOUR::mix_buffers_no_gain = 0;
 
 PBD::Signal1<void,std::string> ARDOUR::BootMessage;
 
-void ARDOUR::setup_enum_writer ();
+namespace ARDOUR {
+extern void setup_enum_writer ();
+}
 
 /* this is useful for quite a few things that want to check
    if any bounds-related property has changed
@@ -277,7 +273,7 @@ ARDOUR::init (bool use_windows_vst, bool try_optimization)
 
 	Stateful::current_state_version = CURRENT_SESSION_FILE_VERSION;
 
-	setup_enum_writer ();
+	ARDOUR::setup_enum_writer ();
 
 	// allow ardour the absolute maximum number of open files
 	lotsa_files_please ();
@@ -316,17 +312,6 @@ ARDOUR::init (bool use_windows_vst, bool try_optimization)
 #ifdef AUDIOUNIT_SUPPORT
 	AUPluginInfo::load_cached_info ();
 #endif
-
-	/* Make VAMP look in our library ahead of anything else */
-
-	char *p = getenv ("VAMP_PATH");
-	string vamppath = VAMP_DIR;
-	if (p) {
-		vamppath += ':';
-		vamppath += p;
-	}
-	setenv ("VAMP_PATH", vamppath.c_str(), 1);
-
 
 	setup_hardware_optimization (try_optimization);
 
@@ -400,7 +385,7 @@ void
 ARDOUR::find_bindings_files (map<string,string>& files)
 {
 	vector<sys::path> found;
-	SearchPath spath = ardour_search_path() + user_config_directory() + system_config_search_path();
+	SearchPath spath = ardour_config_search_path();
 
 	if (getenv ("ARDOUR_SAE")) {
 		Glib::PatternSpec pattern("*SAE-*.bindings");
@@ -491,82 +476,6 @@ ARDOUR::setup_fpu ()
 	_mm_setcsr (MXCSR);
 
 #endif
-}
-
-ARDOUR::OverlapType
-ARDOUR::coverage (framepos_t sa, framepos_t ea,
-		  framepos_t sb, framepos_t eb)
-{
-	/* OverlapType returned reflects how the second (B)
-	   range overlaps the first (A).
-
-	   The diagrams show various relative placements
-	   of A and B for each OverlapType.
-
-	   Notes:
-	      Internal: the start points cannot coincide
-	      External: the start and end points can coincide
-	      Start: end points can coincide
-	      End: start points can coincide
-
-	   XXX Logically, Internal should disallow end
-	   point equality.
-	*/
-
-	/*
-	     |--------------------|   A
-	          |------|            B
-	        |-----------------|   B
-
-
-             "B is internal to A"
-
-	*/
-
-	if ((sb > sa) && (eb <= ea)) {
-		return OverlapInternal;
-	}
-
-	/*
-	     |--------------------|   A
-	   ----|                      B
-           -----------------------|   B
-	   --|                        B
-
-	     "B overlaps the start of A"
-
-	*/
-
-	if ((eb >= sa) && (eb <= ea)) {
-		return OverlapStart;
-	}
-	/*
-	     |---------------------|  A
-                   |----------------- B
-	     |----------------------- B
-                                   |- B
-
-            "B overlaps the end of A"
-
-	*/
-	if ((sb > sa) && (sb <= ea)) {
-		return OverlapEnd;
-	}
-	/*
-	     |--------------------|     A
-	   --------------------------  B
-	     |-----------------------  B
-	    ----------------------|    B
-             |--------------------|    B
-
-
-           "B overlaps all of A"
-	*/
-	if ((sa >= sb) && (sa <= eb) && (ea <= eb)) {
-		return OverlapExternal;
-	}
-
-	return OverlapNone;
 }
 
 string

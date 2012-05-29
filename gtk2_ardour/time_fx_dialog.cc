@@ -36,15 +36,6 @@
 #include "audio_region_view.h"
 #include "region_selection.h"
 
-#include "ardour/session.h"
-#include "ardour/region.h"
-#include "ardour/audioplaylist.h"
-#include "ardour/audio_track.h"
-#include "ardour/audioregion.h"
-#include "ardour/stretch.h"
-#include "ardour/midi_stretch.h"
-#include "ardour/pitch.h"
-
 #ifdef USE_RUBBERBAND
 #include "rubberband/RubberBandStretcher.h"
 using namespace RubberBand;
@@ -71,7 +62,7 @@ TimeFXDialog::TimeFXDialog (Editor& e, bool pitch)
 	, quick_button (_("Quick but Ugly"))
 	, antialias_button (_("Skip Anti-aliasing"))
 	, stretch_opts_label (_("Contents:"))
-	, precise_button (_("Strict Linear"))
+	, precise_button (_("Minimize time distortion"))
 	, preserve_formants_button(_("Preserve Formants"))
 {
 	set_modal (true);

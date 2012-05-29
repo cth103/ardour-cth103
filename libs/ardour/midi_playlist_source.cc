@@ -20,31 +20,27 @@
 #include "libardour-config.h"
 #endif
 
-#include <vector>
-#include <cstdio>
-
-#include <glibmm/fileutils.h>
-#include <glibmm/miscutils.h>
-
 #include "pbd/error.h"
-#include "pbd/convert.h"
-#include "pbd/enumwriter.h"
 
 #include "ardour/midi_playlist.h"
 #include "ardour/midi_playlist_source.h"
-#include "ardour/midi_region.h"
-#include "ardour/debug.h"
-#include "ardour/filename_extensions.h"
-#include "ardour/session.h"
-#include "ardour/session_directory.h"
-#include "ardour/session_playlists.h"
-#include "ardour/source_factory.h"
 
 #include "i18n.h"
 
 using namespace std;
 using namespace ARDOUR;
 using namespace PBD;
+
+namespace ARDOUR {
+class MidiStateTracker;
+class Session;
+template <typename T> class MidiRingBuffer;
+}
+
+namespace Evoral {
+template <typename T> class EventSink;
+template <typename Time> class Event;
+}
 
 /*******************************************************************************
 As of May 2011, it appears too complex to support compound regions for MIDI
@@ -98,7 +94,6 @@ MidiPlaylistSource::get_state ()
 	return node;
 }
 
-
 int
 MidiPlaylistSource::set_state (const XMLNode& node, int version)
 {
@@ -126,7 +121,7 @@ MidiPlaylistSource::length (framepos_t)  const
 	return extent.second - extent.first;
 }
 
-framepos_t
+framecnt_t
 MidiPlaylistSource::read_unlocked (Evoral::EventSink<framepos_t>& dst,
 				   framepos_t /*position*/,
 				   framepos_t start, framecnt_t cnt,
@@ -141,8 +136,8 @@ MidiPlaylistSource::read_unlocked (Evoral::EventSink<framepos_t>& dst,
 	return mp->read (dst, start, cnt);
 }
 
-framepos_t
-MidiPlaylistSource::write_unlocked (MidiRingBuffer<framepos_t>& dst,
+framecnt_t
+MidiPlaylistSource::write_unlocked (MidiRingBuffer<framepos_t>&,
 				    framepos_t,
 				    framecnt_t)
 {

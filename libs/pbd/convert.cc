@@ -28,6 +28,8 @@
 #endif
 #include <inttypes.h>
 
+#include <glib.h>
+
 #include "pbd/convert.h"
 
 #include "i18n.h"
@@ -178,94 +180,23 @@ int_from_hex (char hic, char loc)
 	return lo + (16 * hi);
 }
 
-void
-url_decode (string& url)
+string
+url_decode (string const & url)
 {
-	string::iterator last;
-	string::iterator next;
+	string decoded;
 
-	for (string::iterator i = url.begin(); i != url.end(); ++i) {
-		if ((*i) == '+') {
-			*i = ' ';
-		}
-	}
-
-	if (url.length() <= 3) {
-		return;
-	}
-
-	last = url.end();
-
-	--last; /* points at last char */
-	--last; /* points at last char - 1 */
-
-	for (string::iterator i = url.begin(); i != last; ) {
-
-		if (*i == '%') {
-
-			next = i;
-
-			url.erase (i);
-			
-			i = next;
-			++next;
-			
-			if (isxdigit (*i) && isxdigit (*next)) {
-				/* replace first digit with char */
-				*i = int_from_hex (*i,*next);
-				++i; /* points at 2nd of 2 digits */
-				url.erase (i);
-			}
+	for (string::size_type i = 0; i < url.length(); ++i) {
+		if (url[i] == '+') {
+			decoded += ' ';
+		} else if (url[i] == '%' && i <= url.length() - 3) {
+			decoded += char (int_from_hex (url[i + 1], url[i + 2]));
+			i += 2;
 		} else {
-			++i;
-		}
-	}
-}
-
-void
-url_decode (ustring& url)
-{
-	ustring::iterator last;
-	ustring::iterator next;
-
-	for (ustring::iterator i = url.begin(); i != url.end(); ++i) {
-		if ((*i) == '+') {
-			next = i;
-			++next;
-			url.replace (i, next, 1, ' ');
+			decoded += url[i];
 		}
 	}
 
-	if (url.length() <= 3) {
-		return;
-	}
-
-	last = url.end();
-
-	--last; /* points at last char */
-	--last; /* points at last char - 1 */
-
-	for (ustring::iterator i = url.begin(); i != last; ) {
-
-		if (*i == '%') {
-
-			next = i;
-
-			url.erase (i);
-			
-			i = next;
-			++next;
-			
-			if (isxdigit (*i) && isxdigit (*next)) {
-				/* replace first digit with char */
-				url.replace (i, next, 1, (gunichar) int_from_hex (*i,*next));
-				++i; /* points at 2nd of 2 digits */
-				url.erase (i);
-			}
-		} else {
-			++i;
-		}
-	}
+	return decoded;
 }
 
 #if 0
@@ -324,6 +255,26 @@ strings_equal_ignore_case (const string& a, const string& b)
 		return std::equal (a.begin(), a.end(), b.begin(), chars_equal_ignore_case);
 	}
 	return false;
+}
+
+bool
+string_is_affirmative (const std::string& str)
+{
+	/* to be used only with XML data - not intended to handle user input */
+
+	if (str.empty ()) {
+		return false;
+	}
+
+	/* the use of g_ascii_strncasecmp() is solely to get around issues with
+	 * charsets posed by trying to use C++ for the same
+	 * comparison. switching a std::string to its lower- or upper-case
+	 * version has several issues, but handled by default
+	 * in the way we desire when doing it in C.
+	 */
+
+	return str == "1" || str == "y" || str == "Y" || (!g_ascii_strncasecmp(str.c_str(), "yes", str.length())) ||
+		(!g_ascii_strncasecmp(str.c_str(), "true", str.length()));
 }
 
 /** A wrapper for dgettext that takes a msgid of the form Context|Text.

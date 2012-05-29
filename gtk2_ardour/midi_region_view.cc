@@ -31,8 +31,6 @@
 #include "pbd/memento_command.h"
 #include "pbd/stateful_diff_command.h"
 
-#include "ardour/playlist.h"
-#include "ardour/tempo.h"
 #include "ardour/midi_region.h"
 #include "ardour/midi_source.h"
 #include "ardour/midi_model.h"
@@ -89,7 +87,6 @@ PBD::Signal1<void, MidiRegionView *> MidiRegionView::SelectionCleared;
 MidiRegionView::MidiRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView &tv,
                                 boost::shared_ptr<MidiRegion> r, double spu, Gdk::Color const & basic_color)
 	: RegionView (parent, tv, r, spu, basic_color)
-	, _force_channel(-1)
 	, _last_channel_selection(0xFFFF)
 	, _current_range_min(0)
 	, _current_range_max(0)
@@ -116,17 +113,16 @@ MidiRegionView::MidiRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView &
 	_note_group->raise_to_top();
 	PublicEditor::DropDownKeys.connect (sigc::mem_fun (*this, &MidiRegionView::drop_down_keys));
 
-	Config->ParameterChanged.connect (*this, invalidator (*this), ui_bind (&MidiRegionView::parameter_changed, this, _1), gui_context());
+	Config->ParameterChanged.connect (*this, invalidator (*this), boost::bind (&MidiRegionView::parameter_changed, this, _1), gui_context());
 	connect_to_diskstream ();
 
-	SelectionCleared.connect (_selection_cleared_connection, invalidator (*this), ui_bind (&MidiRegionView::selection_cleared, this, _1), gui_context ());
+	SelectionCleared.connect (_selection_cleared_connection, invalidator (*this), boost::bind (&MidiRegionView::selection_cleared, this, _1), gui_context ());
 }
 
 MidiRegionView::MidiRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView &tv,
                                 boost::shared_ptr<MidiRegion> r, double spu, Gdk::Color& basic_color,
                                 TimeAxisViewItem::Visibility visibility)
 	: RegionView (parent, tv, r, spu, basic_color, false, visibility)
-	, _force_channel(-1)
 	, _last_channel_selection(0xFFFF)
 	, _current_range_min(0)
 	, _current_range_max(0)
@@ -155,7 +151,7 @@ MidiRegionView::MidiRegionView (ArdourCanvas::Group *parent, RouteTimeAxisView &
 
 	connect_to_diskstream ();
 
-	SelectionCleared.connect (_selection_cleared_connection, invalidator (*this), ui_bind (&MidiRegionView::selection_cleared, this, _1), gui_context ());
+	SelectionCleared.connect (_selection_cleared_connection, invalidator (*this), boost::bind (&MidiRegionView::selection_cleared, this, _1), gui_context ());
 }
 
 void
@@ -171,7 +167,6 @@ MidiRegionView::parameter_changed (std::string const & p)
 MidiRegionView::MidiRegionView (const MidiRegionView& other)
 	: sigc::trackable(other)
 	, RegionView (other)
-	, _force_channel(-1)
 	, _last_channel_selection(0xFFFF)
 	, _current_range_min(0)
 	, _current_range_max(0)
@@ -206,7 +201,6 @@ MidiRegionView::MidiRegionView (const MidiRegionView& other)
 
 MidiRegionView::MidiRegionView (const MidiRegionView& other, boost::shared_ptr<MidiRegion> region)
 	: RegionView (other, boost::shared_ptr<Region> (region))
-	, _force_channel(-1)
 	, _last_channel_selection(0xFFFF)
 	, _current_range_min(0)
 	, _current_range_max(0)
@@ -245,7 +239,7 @@ MidiRegionView::init (Gdk::Color const & basic_color, bool wfd)
 	PublicEditor::DropDownKeys.connect (sigc::mem_fun (*this, &MidiRegionView::drop_down_keys));
 
 	CanvasNoteEvent::CanvasNoteEventDeleted.connect (note_delete_connection, MISSING_INVALIDATOR,
-	                                                 ui_bind (&MidiRegionView::maybe_remove_deleted_note_from_selection, this, _1),
+	                                                 boost::bind (&MidiRegionView::maybe_remove_deleted_note_from_selection, this, _1),
 	                                                 gui_context());
 
 	if (wfd) {
@@ -288,13 +282,13 @@ MidiRegionView::init (Gdk::Color const & basic_color, bool wfd)
 		sigc::mem_fun(this, &MidiRegionView::midi_patch_settings_changed));
 
 	trackview.editor().SnapChanged.connect(snap_changed_connection, invalidator(*this),
-	                                       ui_bind(&MidiRegionView::snap_changed, this),
+	                                       boost::bind (&MidiRegionView::snap_changed, this),
 	                                       gui_context());
 
-	Config->ParameterChanged.connect (*this, invalidator (*this), ui_bind (&MidiRegionView::parameter_changed, this, _1), gui_context());
+	Config->ParameterChanged.connect (*this, invalidator (*this), boost::bind (&MidiRegionView::parameter_changed, this, _1), gui_context());
 	connect_to_diskstream ();
 
-	SelectionCleared.connect (_selection_cleared_connection, invalidator (*this), ui_bind (&MidiRegionView::selection_cleared, this, _1), gui_context ());
+	SelectionCleared.connect (_selection_cleared_connection, invalidator (*this), boost::bind (&MidiRegionView::selection_cleared, this, _1), gui_context ());
 }
 
 const boost::shared_ptr<ARDOUR::MidiRegion>
@@ -308,7 +302,7 @@ MidiRegionView::connect_to_diskstream ()
 {
 	midi_view()->midi_track()->DataRecorded.connect(
 		*this, invalidator(*this),
-		ui_bind(&MidiRegionView::data_recorded, this, _1),
+		boost::bind (&MidiRegionView::data_recorded, this, _1),
 		gui_context());
 }
 
@@ -380,7 +374,7 @@ bool
 MidiRegionView::enter_notify (GdkEventCrossing* ev)
 {
 	trackview.editor().MouseModeChanged.connect (
-		_mouse_mode_connection, invalidator (*this), ui_bind (&MidiRegionView::mouse_mode_changed, this), gui_context ()
+		_mouse_mode_connection, invalidator (*this), boost::bind (&MidiRegionView::mouse_mode_changed, this), gui_context ()
 		);
 
 	if (trackview.editor().current_mouse_mode() == MouseDraw && _mouse_state != AddDragging) {
@@ -602,8 +596,8 @@ MidiRegionView::motion (GdkEventMotion* ev)
 				editor.verbose_cursor()->hide ();
 				return true;
 			} else if (m == MouseObject) {
-				
 				editor.drags()->set (new MidiRubberbandSelectDrag (dynamic_cast<Editor *> (&editor), this), (GdkEvent *) ev);
+				clear_selection ();
 				_mouse_state = SelectRectDragging;
 				return true;
 			} else if (m == MouseRange) {
@@ -853,7 +847,7 @@ MidiRegionView::create_note_at (framepos_t t, double y, double length, bool snap
 
 	view->update_note_range(new_note->note());
 
-	MidiModel::NoteDiffCommand* cmd = _model->new_note_diff_command("add note");
+	MidiModel::NoteDiffCommand* cmd = _model->new_note_diff_command(_("add note"));
 	cmd->add (new_note);
 	_model->apply_command(*trackview.session(), cmd);
 
@@ -1396,7 +1390,7 @@ MidiRegionView::add_ghost (TimeAxisView& tv)
 	ghost->set_duration (_region->length() / samples_per_unit);
 	ghosts.push_back (ghost);
 
-	GhostRegion::CatchDeletion.connect (*this, invalidator (*this), ui_bind (&RegionView::remove_ghost, this, _1), gui_context());
+	GhostRegion::CatchDeletion.connect (*this, invalidator (*this), boost::bind (&RegionView::remove_ghost, this, _1), gui_context());
 
 	return ghost;
 }
@@ -1945,9 +1939,7 @@ MidiRegionView::delete_note (boost::shared_ptr<NoteType> n)
 void
 MidiRegionView::clear_selection_except (ArdourCanvas::CanvasNoteEvent* ev, bool signal)
 {
-	bool changed = false;
-
-	for (Selection::iterator i = _selection.begin(); i != _selection.end(); ) {
+ 	for (Selection::iterator i = _selection.begin(); i != _selection.end(); ) {
 		if ((*i) != ev) {
 			Selection::iterator tmp = i;
 			++tmp;
@@ -1955,7 +1947,6 @@ MidiRegionView::clear_selection_except (ArdourCanvas::CanvasNoteEvent* ev, bool 
 			(*i)->set_selected (false);
 			(*i)->hide_velocity ();
 			_selection.erase (i);
-			changed = true;
 
 			i = tmp;
 		} else {
@@ -1967,7 +1958,7 @@ MidiRegionView::clear_selection_except (ArdourCanvas::CanvasNoteEvent* ev, bool 
 	   selection.
 	*/
 
-	if (changed && signal) {
+	if (signal) {
 		SelectionCleared (this); /* EMIT SIGNAL */
 	}
 }
@@ -2913,7 +2904,7 @@ MidiRegionView::change_note_lengths (bool fine, bool shorter, Evoral::MusicalTim
 			delta = trackview.editor().get_grid_type_as_beats (success, _region->position());
 			if (!success) {
 				/* XXX cannot get grid type as beats ... should always be possible ... FIX ME */
-				cerr << "Grid type not available as beats - TO BE FIXED\n";
+				error << string_compose (_("programming error: %1"), "Grid type not available as beats - TO BE FIXED") << endmsg;
 				return;
 			}
 		}
@@ -2953,7 +2944,7 @@ MidiRegionView::nudge_notes (bool forward)
 
 	framepos_t ref_point = source_beats_to_absolute_frames ((*(_selection.begin()))->note()->time());
 	framepos_t unused;
-	framepos_t distance;
+	framecnt_t distance;
 
 	if (trackview.editor().snap_mode() == Editing::SnapOff) {
 
@@ -3109,15 +3100,9 @@ MidiRegionView::set_frame_color()
 void
 MidiRegionView::midi_channel_mode_changed(ChannelMode mode, uint16_t mask)
 {
-	switch (mode) {
-	case AllChannels:
-	case FilterChannels:
-		_force_channel = -1;
-		break;
-	case ForceChannel:
-		_force_channel = mask;
+	if (mode == ForceChannel) {
 		mask = 0xFFFF; // Show all notes as active (below)
-	};
+	}
 
 	// Update notes for selection
 	for (Events::iterator i = _events.begin(); i != _events.end(); ++i) {

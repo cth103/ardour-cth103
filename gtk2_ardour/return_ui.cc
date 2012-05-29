@@ -19,10 +19,9 @@
 
 #include <gtkmm2ext/doi.h>
 
-#include "ardour/amp.h"
 #include "ardour/io.h"
-#include "ardour/return.h"
 #include "ardour/rc_configuration.h"
+#include "ardour/return.h"
 
 #include "utils.h"
 #include "return_ui.h"
@@ -59,7 +58,7 @@ ReturnUI::ReturnUI (Gtk::Window* parent, boost::shared_ptr<Return> r, Session* s
 	show_all ();
 
 	_return->set_metering (true);
-	_return->input()->changed.connect (input_change_connection, invalidator (*this), ui_bind (&ReturnUI::ins_changed, this, _1, _2), gui_context());
+	_return->input()->changed.connect (input_change_connection, invalidator (*this), boost::bind (&ReturnUI::ins_changed, this, _1, _2), gui_context());
 
 	_gpm.setup_meters ();
 	_gpm.set_fader_name ("ReturnUIFrame");

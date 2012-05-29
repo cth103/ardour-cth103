@@ -25,13 +25,14 @@
 #include "ardour/internal_return.h"
 #include "ardour/internal_send.h"
 #include "ardour/meter.h"
-#include "ardour/panner.h"
 #include "ardour/panner_shell.h"
 #include "ardour/route.h"
 #include "ardour/session.h"
 #include "ardour/audioengine.h"
 
 #include "i18n.h"
+
+namespace ARDOUR { class MuteMaster; class Pannable; }
 
 using namespace PBD;
 using namespace ARDOUR;
@@ -359,7 +360,7 @@ InternalSend::set_can_pan (bool yn)
 }
 
 void
-InternalSend::cycle_start (pframes_t nframes)
+InternalSend::cycle_start (pframes_t /*nframes*/)
 {
 	for (BufferSet::audio_iterator b = mixbufs.audio_begin(); b != mixbufs.audio_end(); ++b) {
 		b->prepare ();

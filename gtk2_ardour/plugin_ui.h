@@ -85,6 +85,7 @@ class PlugUIBase : public virtual sigc::trackable, public PBD::ScopedConnectionL
 
 	virtual gint get_preferred_height () = 0;
 	virtual gint get_preferred_width () = 0;
+	virtual bool resizable () { return true; }
 	virtual bool start_updating(GdkEventAny*) = 0;
 	virtual bool stop_updating(GdkEventAny*) = 0;
 
@@ -124,6 +125,8 @@ class PlugUIBase : public virtual sigc::trackable, public PBD::ScopedConnectionL
 	ArdourButton bypass_button;
 	/** a button to acquire keyboard focus */
 	Gtk::EventBox focus_button;
+	/** an expander containing the plugin description */
+	Gtk::Expander description_expander;
 	/** an expander containing the plugin analysis graph */
 	Gtk::Expander plugin_analysis_expander;
 	/** a label indicating the plugin latency */
@@ -149,6 +152,7 @@ class PlugUIBase : public virtual sigc::trackable, public PBD::ScopedConnectionL
 	void delete_plugin_setting ();
 	bool focus_toggled(GdkEventButton*);
 	bool bypass_button_release(GdkEventButton*);
+	void toggle_description ();
 	void toggle_plugin_analysis ();
 	void processor_active_changed (boost::weak_ptr<ARDOUR::Processor> p);
 	void plugin_going_away ();
@@ -228,7 +232,7 @@ class GenericPluginUI : public PlugUIBase, public Gtk::VBox
 		/* input */
 
 		Gtk::ComboBoxText*                      combo;
-		boost::shared_ptr<ARDOUR::Plugin::ScalePoints> combo_map;
+		boost::shared_ptr<ARDOUR::Plugin::ScalePoints> scale_points;
 		Gtk::ToggleButton*                      button;
 		boost::shared_ptr<AutomationController> controller;
 		Gtkmm2ext::ClickBox*                    clickbox;
@@ -269,7 +273,9 @@ class GenericPluginUI : public PlugUIBase, public Gtk::VBox
 	void start_touch (ControlUI*);
 	void stop_touch (ControlUI*);
 
+	/* XXX: remove */
 	void print_parameter (char *buf, uint32_t len, uint32_t param);
+	bool integer_printer (char* buf, Gtk::Adjustment &, ControlUI *);
 };
 
 class PluginUIWindow : public Gtk::Window

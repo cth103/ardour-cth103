@@ -24,9 +24,7 @@
 #include <gtkmm2ext/utils.h>
 #include <gtkmm2ext/window_title.h>
 
-#include "ardour/ardour.h"
 #include "ardour/audioengine.h"
-#include "ardour/audio_track.h"
 #include "ardour/plugin.h"
 #include "ardour/plugin_insert.h"
 #include "ardour/plugin_manager.h"
@@ -34,9 +32,6 @@
 #include "ardour/return.h"
 #include "ardour/route.h"
 #include "ardour/send.h"
-#include "ardour/session.h"
-#include "ardour/session.h"
-#include "ardour/session_route.h"
 
 #include "ardour_ui.h"
 #include "gui_thread.h"
@@ -180,7 +175,7 @@ RouteParams_UI::add_routes (RouteList& routes)
 
 		//route_select_list.rows().back().select ();
 
-		route->PropertyChanged.connect (*this, invalidator (*this), ui_bind (&RouteParams_UI::route_property_changed, this, _1, boost::weak_ptr<Route>(route)), gui_context());
+		route->PropertyChanged.connect (*this, invalidator (*this), boost::bind (&RouteParams_UI::route_property_changed, this, _1, boost::weak_ptr<Route>(route)), gui_context());
 		route->DropReferences.connect (*this, invalidator (*this), boost::bind (&RouteParams_UI::route_removed, this, boost::weak_ptr<Route>(route)), gui_context());
 	}
 }
@@ -402,7 +397,7 @@ RouteParams_UI::set_session (Session *sess)
 	if (_session) {
 		boost::shared_ptr<RouteList> r = _session->get_routes();
 		add_routes (*r);
-		_session->RouteAdded.connect (_session_connections, invalidator (*this), ui_bind (&RouteParams_UI::add_routes, this, _1), gui_context());
+		_session->RouteAdded.connect (_session_connections, invalidator (*this), boost::bind (&RouteParams_UI::add_routes, this, _1), gui_context());
 		start_updating ();
 	} else {
 		stop_updating ();
@@ -461,7 +456,7 @@ RouteParams_UI::route_selected()
 		setup_processor_boxes();
 		setup_latency_frame ();
 
-		route->processors_changed.connect (_route_processors_connection, invalidator (*this), ui_bind (&RouteParams_UI::processors_changed, this, _1), gui_context());
+		route->processors_changed.connect (_route_processors_connection, invalidator (*this), boost::bind (&RouteParams_UI::processors_changed, this, _1), gui_context());
 
 		track_input_label.set_text (_route->name());
 

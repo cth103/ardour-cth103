@@ -367,7 +367,6 @@ EditorRouteGroups::button_press_event (GdkEventButton* ev)
 
 	case 12:
 		val = (*iter)[_columns.active_shared];
-		cerr << "set group active to " << !val << endl;
 		group->set_route_active (!val);
 		ret = true;
 		break;
@@ -380,7 +379,7 @@ EditorRouteGroups::button_press_event (GdkEventButton* ev)
 }
 
 void
-EditorRouteGroups::row_change (const Gtk::TreeModel::Path& path, const Gtk::TreeModel::iterator& iter)
+EditorRouteGroups::row_change (const Gtk::TreeModel::Path&, const Gtk::TreeModel::iterator& iter)
 {
 	RouteGroup* group;
 
@@ -455,7 +454,7 @@ EditorRouteGroups::add (RouteGroup* group)
 		focus = true;
 	}
 
-	group->PropertyChanged.connect (_property_changed_connections, MISSING_INVALIDATOR, ui_bind (&EditorRouteGroups::property_changed, this, group, _1), gui_context());
+	group->PropertyChanged.connect (_property_changed_connections, MISSING_INVALIDATOR, boost::bind (&EditorRouteGroups::property_changed, this, group, _1), gui_context());
 
 	if (focus) {
 		TreeViewColumn* col = _display.get_column (0);
@@ -487,7 +486,7 @@ EditorRouteGroups::groups_changed ()
 }
 
 void
-EditorRouteGroups::property_changed (RouteGroup* group, const PropertyChange& change)
+EditorRouteGroups::property_changed (RouteGroup* group, const PropertyChange&)
 {
 	_in_row_change = true;
 
@@ -567,9 +566,9 @@ EditorRouteGroups::set_session (Session* s)
 
 		RouteGroup& arg (_session->all_route_group());
 
-		arg.PropertyChanged.connect (all_route_groups_changed_connection, MISSING_INVALIDATOR, ui_bind (&EditorRouteGroups::all_group_changed, this, _1), gui_context());
+		arg.PropertyChanged.connect (all_route_groups_changed_connection, MISSING_INVALIDATOR, boost::bind (&EditorRouteGroups::all_group_changed, this, _1), gui_context());
 
-		_session->route_group_added.connect (_session_connections, MISSING_INVALIDATOR, ui_bind (&EditorRouteGroups::add, this, _1), gui_context());
+		_session->route_group_added.connect (_session_connections, MISSING_INVALIDATOR, boost::bind (&EditorRouteGroups::add, this, _1), gui_context());
 		_session->route_group_removed.connect (
 			_session_connections, MISSING_INVALIDATOR, boost::bind (&EditorRouteGroups::groups_changed, this), gui_context()
 			);

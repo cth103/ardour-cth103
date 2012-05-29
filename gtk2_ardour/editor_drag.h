@@ -242,8 +242,9 @@ private:
 class RegionDrag;
 
 /** Container for details about a region being dragged */
-struct DraggingView
+class DraggingView
 {
+public:
 	DraggingView (RegionView *, RegionDrag *);
 
 	RegionView* view; ///< the view
@@ -310,7 +311,7 @@ public:
 
 protected:
 
-	double compute_x_delta (GdkEvent const *, ARDOUR::framecnt_t *);
+	double compute_x_delta (GdkEvent const *, ARDOUR::framepos_t *);
 	bool y_movement_allowed (int, double) const;
 
 	bool _brushing;
@@ -932,11 +933,14 @@ private:
 	bool _zoom_out;
 };
 
-/** Drag of a range of automation data, changing value but not position */
+/** Drag of a range of automation data (either on an automation track or region gain),
+ *  changing value but not position.
+ */
 class AutomationRangeDrag : public Drag
 {
 public:
-	AutomationRangeDrag (Editor *, ArdourCanvas::Item *, std::list<ARDOUR::AudioRange> const &);
+	AutomationRangeDrag (Editor *, AutomationTimeAxisView *, std::list<ARDOUR::AudioRange> const &);
+	AutomationRangeDrag (Editor *, AudioRegionView *, std::list<ARDOUR::AudioRange> const &);
 
 	void start_grab (GdkEvent *, Gdk::Cursor* c = 0);
 	void motion (GdkEvent *, bool);
@@ -947,9 +951,14 @@ public:
 		return false;
 	}
 
+	bool active (Editing::MouseMode) {
+		return true;
+	}
+
 private:
+	void setup (std::list<boost::shared_ptr<AutomationLine> > const &);
+	
 	std::list<ARDOUR::AudioRange> _ranges;
-	AutomationTimeAxisView* _atav;
 
 	/** A line that is part of the drag */
 	struct Line {
@@ -962,6 +971,31 @@ private:
 	std::list<Line> _lines;
 
 	bool _nothing_to_drag;
+};
+
+/** Drag of one edge of an xfade
+ */
+class CrossfadeEdgeDrag : public Drag
+{
+  public:
+	CrossfadeEdgeDrag (Editor*, AudioRegionView*, ArdourCanvas::Item*, bool start);
+
+	void start_grab (GdkEvent*, Gdk::Cursor* c = 0);
+	void motion (GdkEvent*, bool);
+	void finished (GdkEvent*, bool);
+	void aborted (bool);
+	
+	bool y_movement_matters () const {
+		return false;
+	}
+
+	virtual std::pair<ARDOUR::framecnt_t, int> move_threshold () const {
+		return std::make_pair (4, 4);
+	}
+
+  private:
+	AudioRegionView* arv;
+	bool start;
 };
 
 #endif /* __gtk2_ardour_editor_drag_h_ */

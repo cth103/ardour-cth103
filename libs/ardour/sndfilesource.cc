@@ -35,8 +35,6 @@
 #include "ardour/sndfilesource.h"
 #include "ardour/sndfile_helpers.h"
 #include "ardour/utils.h"
-#include "ardour/version.h"
-#include "ardour/rc_configuration.h"
 #include "ardour/session.h"
 
 #include "i18n.h"
@@ -223,6 +221,9 @@ SndFileSource::open ()
 
 	bool bwf_info_exists = _broadcast_info->load_from_file (sf);
 
+	/* Set our timeline position to either the time reference from a BWF header or the current
+	   start of the session.
+	*/
 	set_timeline_position (bwf_info_exists ? _broadcast_info->get_time_reference() : header_position_offset);
 
 	if (_length != 0 && !bwf_info_exists) {
@@ -336,7 +337,7 @@ SndFileSource::read_unlocked (Sample *dst, framepos_t start, framecnt_t cnt) con
 			if (ret != file_cnt) {
 				char errbuf[256];
 				sf_error_str (0, errbuf, sizeof (errbuf) - 1);
-				error << string_compose(_("SndFileSource: @ %1 could not read %2 within %3 (%4) (len = %5)"), start, file_cnt, _name.val().substr (1), errbuf, _length) << endl;
+				error << string_compose(_("SndFileSource: @ %1 could not read %2 within %3 (%4) (len = %5, ret was %6)"), start, file_cnt, _name.val().substr (1), errbuf, _length, ret) << endl;
 			}
 			_descriptor->release ();
 			return ret;
@@ -390,15 +391,13 @@ SndFileSource::nondestructive_write_unlocked (Sample *data, framecnt_t cnt)
 		return 0;
 	}
 
-	framecnt_t oldlen;
 	int32_t frame_pos = _length;
 
 	if (write_float (data, frame_pos, cnt) != cnt) {
 		return 0;
 	}
 
-	oldlen = _length;
-	update_length (oldlen, cnt);
+	update_length (_length + cnt);
 
 	if (_build_peakfiles) {
 		compute_and_write_peaks (data, frame_pos, cnt, false, true);
@@ -485,7 +484,7 @@ SndFileSource::destructive_write_unlocked (Sample* data, framecnt_t cnt)
 		}
 	}
 
-	update_length (file_pos, cnt);
+	update_length (file_pos + cnt);
 
 	if (_build_peakfiles) {
 		compute_and_write_peaks (data, file_pos, cnt, false, true);
@@ -584,7 +583,7 @@ SndFileSource::set_header_timeline_position ()
 	_broadcast_info->set_time_reference (_timeline_position);
 
 	SNDFILE* sf = _descriptor->allocate ();
-
+	
 	if (sf == 0 || !_broadcast_info->write_to_file (sf)) {
 		error << string_compose (_("cannot set broadcast info for audio file %1 (%2); dropping broadcast info for this file"),
 		                           _path, _broadcast_info->get_error())

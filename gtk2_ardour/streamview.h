@@ -34,12 +34,12 @@ namespace Gdk {
 }
 
 namespace ARDOUR {
-	class Route;
 	class Crossfade;
-	class PeakData;
 	class Region;
+	class Route;
 	class Source;
 	class Track;
+	struct PeakData;
 }
 
 struct RecBoxInfo {
@@ -142,7 +142,7 @@ protected:
 	void         diskstream_changed ();
 	void         layer_regions ();
 
-	virtual void playlist_switched (boost::weak_ptr<ARDOUR::Track>);
+	void playlist_switched (boost::weak_ptr<ARDOUR::Track>);
 
 	virtual void color_handler () = 0;
 

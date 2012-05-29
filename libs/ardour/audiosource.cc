@@ -35,13 +35,9 @@
 #include <glibmm/miscutils.h>
 
 #include "pbd/xml++.h"
-#include "pbd/pthread_utils.h"
 
 #include "ardour/audiosource.h"
-#include "ardour/audio_diskstream.h"
-#include "ardour/cycle_timer.h"
-#include "ardour/session.h"
-#include "ardour/transient_detector.h"
+#include "ardour/rc_configuration.h"
 #include "ardour/runtime_functions.h"
 
 #include "i18n.h"
@@ -139,10 +135,10 @@ AudioSource::length (framepos_t /*pos*/) const
 }
 
 void
-AudioSource::update_length (framepos_t pos, framecnt_t cnt)
+AudioSource::update_length (framecnt_t len)
 {
-	if (pos + cnt > _length) {
-		_length = pos + cnt;
+	if (len > _length) {
+		_length = len;
 	}
 }
 
@@ -398,7 +394,6 @@ AudioSource::read_peaks_with_fpp (PeakData *peaks, framecnt_t npeaks, framepos_t
 #endif
 
 		nread = ::pread (peakfile_fd, peaks, sizeof (PeakData)* npeaks, first_peak_byte);
-		delete peakfile_descriptor;
 
 		if (nread != sizeof (PeakData) * npeaks) {
 			cerr << "AudioSource["

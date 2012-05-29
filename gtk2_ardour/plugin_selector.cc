@@ -37,8 +37,6 @@
 
 #include "ardour/plugin_manager.h"
 #include "ardour/plugin.h"
-#include "ardour/configuration.h"
-#include "ardour/session.h"
 
 #include "ardour_ui.h"
 #include "plugin_selector.h"
@@ -181,7 +179,7 @@ PluginSelector::PluginSelector (PluginManager& mgr)
 	//plugin_display.set_name("PluginSelectorList");
 	added_list.set_name("PluginSelectorList");
 
-	plugin_display.signal_button_press_event().connect_notify (sigc::mem_fun(*this, &PluginSelector::row_clicked));
+	plugin_display.signal_row_activated().connect_notify (sigc::mem_fun(*this, &PluginSelector::row_activated));
 	plugin_display.get_selection()->signal_changed().connect (sigc::mem_fun(*this, &PluginSelector::display_selection_changed));
 	plugin_display.grab_focus();
 
@@ -199,11 +197,9 @@ PluginSelector::~PluginSelector ()
 }
 
 void
-PluginSelector::row_clicked(GdkEventButton* event)
+PluginSelector::row_activated(Gtk::TreeModel::Path, Gtk::TreeViewColumn*)
 {
-	if (event->type == GDK_2BUTTON_PRESS) {
-		btn_add_clicked();
-	}
+	btn_add_clicked();
 }
 
 bool
@@ -321,15 +317,22 @@ PluginSelector::refiller (const PluginInfoList& plugs, const::std::string& filte
 
 			newrow[plugin_columns.creator] = creator;
 
-			snprintf (buf, sizeof(buf), "%d", (*i)->n_inputs.n_audio());
-			newrow[plugin_columns.audio_ins] = buf;
-			snprintf (buf, sizeof(buf), "%d", (*i)->n_inputs.n_midi());
-			newrow[plugin_columns.midi_ins] = buf;
-
-			snprintf (buf, sizeof(buf), "%d", (*i)->n_outputs.n_audio());
-			newrow[plugin_columns.audio_outs] = buf;
-			snprintf (buf, sizeof(buf), "%d", (*i)->n_outputs.n_midi());
-			newrow[plugin_columns.midi_outs] = buf;
+			if ((*i)->reconfigurable_io ()) {
+				newrow[plugin_columns.audio_ins] = _("variable");
+				newrow[plugin_columns.midi_ins] = _("variable");
+				newrow[plugin_columns.audio_outs] = _("variable");
+				newrow[plugin_columns.midi_outs] = _("variable");
+			} else {
+				snprintf (buf, sizeof(buf), "%d", (*i)->n_inputs.n_audio());
+				newrow[plugin_columns.audio_ins] = buf;
+				snprintf (buf, sizeof(buf), "%d", (*i)->n_inputs.n_midi());
+				newrow[plugin_columns.midi_ins] = buf;
+				
+				snprintf (buf, sizeof(buf), "%d", (*i)->n_outputs.n_audio());
+				newrow[plugin_columns.audio_outs] = buf;
+				snprintf (buf, sizeof(buf), "%d", (*i)->n_outputs.n_midi());
+				newrow[plugin_columns.midi_outs] = buf;
+			}
 
 			newrow[plugin_columns.plugin] = *i;
 		}

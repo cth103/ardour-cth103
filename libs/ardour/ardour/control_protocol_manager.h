@@ -35,7 +35,8 @@ class ControlProtocol;
 class ControlProtocolDescriptor;
 class Session;
 
-struct ControlProtocolInfo {
+class ControlProtocolInfo {
+public:
     ControlProtocolDescriptor* descriptor;
     ControlProtocol* protocol;
     std::string name;
@@ -62,10 +63,11 @@ class ControlProtocolManager : public PBD::Stateful, public ARDOUR::SessionHandl
 	void discover_control_protocols ();
 	void foreach_known_protocol (boost::function<void(const ControlProtocolInfo*)>);
 	void load_mandatory_protocols ();
+	void midi_connectivity_established ();
 
 	ControlProtocol* instantiate (ControlProtocolInfo&);
 	int              teardown (ControlProtocolInfo&);
-
+	
 	std::list<ControlProtocolInfo*> control_protocol_info;
 
 	static const std::string state_node_name;

@@ -20,22 +20,18 @@
 #include "pbd/enumwriter.h"
 #include "midi++/types.h"
 
-#include "ardour/audiofilesource.h"
-#include "ardour/audioregion.h"
 #include "ardour/delivery.h"
 #include "ardour/diskstream.h"
+#include "ardour/export_channel.h"
 #include "ardour/export_filename.h"
 #include "ardour/export_format_base.h"
 #include "ardour/export_profile_manager.h"
-#include "ardour/export_channel_configuration.h"
 #include "ardour/io.h"
 #include "ardour/location.h"
 #include "ardour/midi_model.h"
-#include "ardour/midi_track.h"
 #include "ardour/mute_master.h"
-#include "ardour/panner.h"
-#include "ardour/route_group.h"
 #include "ardour/session.h"
+#include "ardour/source.h"
 #include "ardour/track.h"
 #include "ardour/types.h"
 
@@ -53,7 +49,6 @@ setup_enum_writer ()
 	vector<int> i;
 	vector<string> s;
 
-	OverlapType _OverlapType;
 	AlignStyle _AlignStyle;
 	AlignChoice _AlignChoice;
 	MeterPoint _MeterPoint;
@@ -74,6 +69,7 @@ setup_enum_writer ()
 	RemoteModel _RemoteModel;
 	DenormalModel _DenormalModel;
 	CrossfadeModel _CrossfadeModel;
+	CrossfadeChoice _CrossfadeChoice;
 	InsertMergePolicy _InsertMergePolicy;
 	ListenPosition _ListenPosition;
 	SampleFormat _SampleFormat;
@@ -122,7 +118,6 @@ setup_enum_writer ()
 	MidiModel::PatchChangeDiffCommand::Property _MidiModel_PatchChangeDiffCommand_Property;
 	WaveformScale _WaveformScale;
 	WaveformShape _WaveformShape;
-	QuantizeType _QuantizeType;
 	Session::PostTransportWork _Session_PostTransportWork;
 	Session::SlaveState _Session_SlaveState;
 	MTC_Status _MIDI_MTC_Status;
@@ -131,13 +126,6 @@ setup_enum_writer ()
 #define REGISTER_BITS(e) enum_writer.register_bits (typeid(e).name(), i, s); i.clear(); s.clear()
 #define REGISTER_ENUM(e) i.push_back (e); s.push_back (#e)
 #define REGISTER_CLASS_ENUM(t,e) i.push_back (t::e); s.push_back (#e)
-
-	REGISTER_ENUM (OverlapNone);
-	REGISTER_ENUM (OverlapInternal);
-	REGISTER_ENUM (OverlapStart);
-	REGISTER_ENUM (OverlapEnd);
-	REGISTER_ENUM (OverlapExternal);
-	REGISTER (_OverlapType);
 
 	REGISTER_ENUM (GainAutomation);
 	REGISTER_ENUM (PanAzimuthAutomation);
@@ -264,6 +252,11 @@ setup_enum_writer ()
 	REGISTER_ENUM (FullCrossfade);
 	REGISTER_ENUM (ShortCrossfade);
 	REGISTER (_CrossfadeModel);
+
+	REGISTER_ENUM (RegionFades);
+	REGISTER_ENUM (ConstantPowerMinus3dB);
+	REGISTER_ENUM (ConstantPowerMinus6dB);
+	REGISTER (_CrossfadeChoice);
 
         REGISTER_ENUM (InsertMergeReject);
         REGISTER_ENUM (InsertMergeRelax);
@@ -417,8 +410,8 @@ setup_enum_writer ()
 	REGISTER_ENUM (FadeLinear);
 	REGISTER_ENUM (FadeFast);
 	REGISTER_ENUM (FadeSlow);
-	REGISTER_ENUM (FadeLogA);
-	REGISTER_ENUM (FadeLogB);
+	REGISTER_ENUM (FadeConstantPower);
+	REGISTER_ENUM (FadeSymmetric);
 	REGISTER (_FadeShape);
 
 	REGISTER_CLASS_ENUM (Diskstream, Recordable);
@@ -576,11 +569,6 @@ setup_enum_writer ()
 	REGISTER_ENUM(Traditional);
 	REGISTER_ENUM(Rectified);
 	REGISTER(_WaveformShape);
-
-	REGISTER_ENUM(Plain);
-	REGISTER_ENUM(Legato);
-	REGISTER_ENUM(Groove);
-	REGISTER(_QuantizeType);
 
 	REGISTER_ENUM(AudioTime);
 	REGISTER_ENUM(MusicTime);
@@ -740,6 +728,21 @@ std::ostream& operator<<(std::ostream& o, const CrossfadeModel& var)
 	std::string s = enum_2_string (var);
 	return o << s;
 }
+
+std::istream& operator>>(std::istream& o, CrossfadeChoice& var)
+{
+	std::string s;
+	o >> s;
+	var = (CrossfadeChoice) string_2_enum (s, var);
+	return o;
+}
+
+std::ostream& operator<<(std::ostream& o, const CrossfadeChoice& var)
+{
+	std::string s = enum_2_string (var);
+	return o << s;
+}
+
 std::istream& operator>>(std::istream& o, SyncSource& var)
 {
 	std::string s;

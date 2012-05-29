@@ -36,26 +36,16 @@
 #include <gtkmm2ext/bindable_button.h>
 #include <gtkmm2ext/utils.h>
 
-#include "ardour/amp.h"
-#include "ardour/audioplaylist.h"
 #include "ardour/event_type_map.h"
-#include "ardour/location.h"
 #include "ardour/pannable.h"
 #include "ardour/panner.h"
 #include "ardour/panner_shell.h"
-#include "ardour/playlist.h"
-#include "ardour/processor.h"
-#include "ardour/profile.h"
-#include "ardour/session.h"
-#include "ardour/session_playlist.h"
-#include "ardour/utils.h"
 
 #include "ardour_button.h"
 #include "ardour_ui.h"
 #include "audio_time_axis.h"
 #include "automation_line.h"
 #include "canvas_impl.h"
-#include "crossfade_view.h"
 #include "enums.h"
 #include "gui_thread.h"
 #include "automation_time_axis.h"
@@ -67,8 +57,6 @@
 #include "simplerect.h"
 #include "audio_streamview.h"
 #include "utils.h"
-
-#include "ardour/audio_track.h"
 
 #include "i18n.h"
 
@@ -176,27 +164,10 @@ AudioTimeAxisView::hide ()
 	TimeAxisView::hide ();
 }
 
-
-void
-AudioTimeAxisView::append_extra_display_menu_items ()
-{
-	using namespace Menu_Helpers;
-
-	MenuList& items = display_menu->items();
-
-	// crossfade stuff
-	if (!Profile->get_sae() && is_track ()) {
-		items.push_back (MenuElem (_("Hide All Crossfades"), sigc::bind (sigc::mem_fun(*this, &AudioTimeAxisView::hide_all_xfades), true)));
-		items.push_back (MenuElem (_("Show All Crossfades"), sigc::bind (sigc::mem_fun(*this, &AudioTimeAxisView::show_all_xfades), true)));
-		items.push_back (SeparatorElem ());
-	}
-}
-
 void
 AudioTimeAxisView::create_automation_child (const Evoral::Parameter& param, bool show)
 {
 	if (param.type() == NullAutomation) {
-		cerr << "WARNING: Attempt to create NullAutomation child, ignoring" << endl;
 		return;
 	}
 
@@ -362,54 +333,6 @@ AudioTimeAxisView::hide_all_automation (bool apply_to_selection)
 
 		no_redraw = false;
 		request_redraw ();
-	}
-}
-
-void
-AudioTimeAxisView::show_all_xfades (bool apply_to_selection)
-{
-	if (apply_to_selection) {
-		_editor.get_selection().tracks.foreach_audio_time_axis (boost::bind (&AudioTimeAxisView::show_all_xfades, _1, false));
-	} else {
-		AudioStreamView* asv = audio_view ();
-		if (asv) {
-			asv->show_all_xfades ();
-		}
-	}
-}
-
-void
-AudioTimeAxisView::hide_all_xfades (bool apply_to_selection)
-{
-	if (apply_to_selection) {
-		_editor.get_selection().tracks.foreach_audio_time_axis (boost::bind (&AudioTimeAxisView::hide_all_xfades, _1, false));
-	} else {
-		AudioStreamView* asv = audio_view ();
-		if (asv) {
-			asv->hide_all_xfades ();
-		}
-	}
-}
-
-void
-AudioTimeAxisView::hide_dependent_views (TimeAxisViewItem& tavi)
-{
-	AudioStreamView* asv = audio_view();
-	AudioRegionView* rv;
-
-	if (asv && (rv = dynamic_cast<AudioRegionView*>(&tavi)) != 0) {
-		asv->hide_xfades_involving (*rv);
-	}
-}
-
-void
-AudioTimeAxisView::reveal_dependent_views (TimeAxisViewItem& tavi)
-{
-	AudioStreamView* asv = audio_view();
-	AudioRegionView* rv;
-
-	if (asv && (rv = dynamic_cast<AudioRegionView*>(&tavi)) != 0) {
-		asv->reveal_xfades_involving (*rv);
 	}
 }
 

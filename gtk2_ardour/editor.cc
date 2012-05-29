@@ -60,20 +60,14 @@
 #include "gtkmm2ext/cell_renderer_pixbuf_toggle.h"
 
 #include "ardour/audio_track.h"
-#include "ardour/audioplaylist.h"
+#include "ardour/audioengine.h"
 #include "ardour/audioregion.h"
 #include "ardour/location.h"
-#include "ardour/midi_region.h"
-#include "ardour/plugin_manager.h"
 #include "ardour/profile.h"
 #include "ardour/route_group.h"
-#include "ardour/session_directory.h"
-#include "ardour/session_route.h"
-#include "ardour/session_state_utils.h"
+#include "ardour/session_playlists.h"
 #include "ardour/tempo.h"
 #include "ardour/utils.h"
-#include "ardour/session_playlists.h"
-#include "ardour/audioengine.h"
 
 #include "control_protocol/control_protocol.h"
 
@@ -90,7 +84,6 @@
 #include "canvas-noevent-text.h"
 #include "canvas_impl.h"
 #include "crossfade_edit.h"
-#include "crossfade_view.h"
 #include "debug.h"
 #include "editing.h"
 #include "editor.h"
@@ -304,7 +297,6 @@ Editor::Editor ()
 	clicked_regionview = 0;
 	clicked_axisview = 0;
 	clicked_routeview = 0;
-	clicked_crossfadeview = 0;
 	clicked_control_point = 0;
 	last_update_frame = 0;
         pre_press_cursor = 0;
@@ -341,7 +333,6 @@ Editor::Editor ()
 	have_pending_keyboard_selection = false;
 	_follow_playhead = true;
         _stationary_playhead = false;
-	_xfade_visibility = true;
 	editor_ruler_menu = 0;
 	no_ruler_shown_update = false;
 	marker_menu = 0;
@@ -553,7 +544,7 @@ Editor::Editor ()
 	add_notebook_page (_("Regions"), _regions->widget ());
 	add_notebook_page (_("Tracks & Busses"), _routes->widget ());
 	add_notebook_page (_("Snapshots"), _snapshots->widget ());
-	add_notebook_page (_("Route Groups"), _route_groups->widget ());
+	add_notebook_page (_("Track & Bus Groups"), _route_groups->widget ());
 	add_notebook_page (_("Ranges & Marks"), _locations->widget ());
 
 	_the_notebook.set_show_tabs (true);
@@ -662,7 +653,7 @@ Editor::Editor ()
 	_playlist_selector = new PlaylistSelector();
 	_playlist_selector->signal_delete_event().connect (sigc::bind (sigc::ptr_fun (just_hide_it), static_cast<Window *> (_playlist_selector)));
 
-	RegionView::RegionViewGoingAway.connect (*this, invalidator (*this),  ui_bind (&Editor::catch_vanishing_regionview, this, _1), gui_context());
+	RegionView::RegionViewGoingAway.connect (*this, invalidator (*this),  boost::bind (&Editor::catch_vanishing_regionview, this, _1), gui_context());
 
 	/* nudge stuff */
 
@@ -712,17 +703,33 @@ Editor::Editor ()
 	ControlProtocol::ZoomToSession.connect (*this, invalidator (*this), boost::bind (&Editor::temporal_zoom_session, this), gui_context());
 	ControlProtocol::ZoomIn.connect (*this, invalidator (*this), boost::bind (&Editor::temporal_zoom_step, this, false), gui_context());
 	ControlProtocol::ZoomOut.connect (*this, invalidator (*this), boost::bind (&Editor::temporal_zoom_step, this, true), gui_context());
-	ControlProtocol::ScrollTimeline.connect (*this, invalidator (*this), ui_bind (&Editor::control_scroll, this, _1), gui_context());
-	ControlProtocol::SelectByRID.connect (*this, invalidator (*this), ui_bind (&Editor::control_select, this, _1), gui_context());
-	BasicUI::AccessAction.connect (*this, invalidator (*this), ui_bind (&Editor::access_action, this, _1, _2), gui_context());
+	ControlProtocol::Undo.connect (*this, invalidator (*this), boost::bind (&Editor::undo, this, true), gui_context());
+	ControlProtocol::Redo.connect (*this, invalidator (*this), boost::bind (&Editor::redo, this, true), gui_context());
+	ControlProtocol::ScrollTimeline.connect (*this, invalidator (*this), boost::bind (&Editor::control_scroll, this, _1), gui_context());
+	ControlProtocol::StepTracksUp.connect (*this, invalidator (*this), boost::bind (&Editor::control_step_tracks_up, this), gui_context());
+	ControlProtocol::StepTracksDown.connect (*this, invalidator (*this), boost::bind (&Editor::control_step_tracks_down, this), gui_context());
+	ControlProtocol::GotoView.connect (*this, invalidator (*this), boost::bind (&Editor::control_view, this, _1), gui_context());
+	ControlProtocol::CloseDialog.connect (*this, invalidator (*this), Keyboard::close_current_dialog, gui_context());
+	ControlProtocol::VerticalZoomInAll.connect (*this, invalidator (*this), boost::bind (&Editor::control_vertical_zoom_in_all, this), gui_context());
+	ControlProtocol::VerticalZoomOutAll.connect (*this, invalidator (*this), boost::bind (&Editor::control_vertical_zoom_out_all, this), gui_context());
+	ControlProtocol::VerticalZoomInSelected.connect (*this, invalidator (*this), boost::bind (&Editor::control_vertical_zoom_in_selected, this), gui_context());
+	ControlProtocol::VerticalZoomOutSelected.connect (*this, invalidator (*this), boost::bind (&Editor::control_vertical_zoom_out_selected, this), gui_context());
+
+	ControlProtocol::AddRouteToSelection.connect (*this, invalidator (*this), boost::bind (&Editor::control_select, this, _1, Selection::Add), gui_context());
+	ControlProtocol::RemoveRouteFromSelection.connect (*this, invalidator (*this), boost::bind (&Editor::control_select, this, _1, Selection::Toggle), gui_context());
+	ControlProtocol::SetRouteSelection.connect (*this, invalidator (*this), boost::bind (&Editor::control_select, this, _1, Selection::Set), gui_context());
+	ControlProtocol::ToggleRouteSelection.connect (*this, invalidator (*this), boost::bind (&Editor::control_select, this, _1, Selection::Toggle), gui_context());
+	ControlProtocol::ClearRouteSelection.connect (*this, invalidator (*this), boost::bind (&Editor::control_unselect, this), gui_context());
+
+	BasicUI::AccessAction.connect (*this, invalidator (*this), boost::bind (&Editor::access_action, this, _1, _2), gui_context());
 
 	/* problematic: has to return a value and thus cannot be x-thread */
 
 	Session::AskAboutPlaylistDeletion.connect_same_thread (*this, boost::bind (&Editor::playlist_deletion_dialog, this, _1));
 
-	Config->ParameterChanged.connect (*this, invalidator (*this), ui_bind (&Editor::parameter_changed, this, _1), gui_context());
+	Config->ParameterChanged.connect (*this, invalidator (*this), boost::bind (&Editor::parameter_changed, this, _1), gui_context());
 
-	TimeAxisView::CatchDeletion.connect (*this, invalidator (*this), ui_bind (&Editor::timeaxisview_deleted, this, _1), gui_context());
+	TimeAxisView::CatchDeletion.connect (*this, invalidator (*this), boost::bind (&Editor::timeaxisview_deleted, this, _1), gui_context());
 
 	_ignore_region_action = false;
 	_last_region_menu_was_main = false;
@@ -776,7 +783,6 @@ Editor::button_settings () const
 	XMLNode* node = find_named_node (*settings, X_("Buttons"));
 
 	if (!node) {
-                cerr << "new empty Button node\n";
 		node = new XMLNode (X_("Buttons"));
 	}
 
@@ -923,7 +929,43 @@ Editor::zoom_adjustment_changed ()
 }
 
 void
-Editor::control_select (uint32_t rid) 
+Editor::control_vertical_zoom_in_all ()
+{
+	tav_zoom_smooth (false, true);
+}
+
+void
+Editor::control_vertical_zoom_out_all ()
+{
+	tav_zoom_smooth (true, true);
+}
+
+void
+Editor::control_vertical_zoom_in_selected ()
+{
+	tav_zoom_smooth (false, false);
+}
+
+void
+Editor::control_vertical_zoom_out_selected ()
+{
+	tav_zoom_smooth (true, false);
+}
+
+void
+Editor::control_view (uint32_t view)
+{
+	goto_visual_state (view);
+}
+
+void
+Editor::control_unselect ()
+{
+	selection->clear_tracks ();
+}
+
+void
+Editor::control_select (uint32_t rid, Selection::Operation op) 
 {
 	/* handles the (static) signal from the ControlProtocol class that
 	 * requests setting the selected track to a given RID
@@ -942,10 +984,34 @@ Editor::control_select (uint32_t rid)
 	TimeAxisView* tav = axis_view_from_route (r);
 
 	if (tav) {
-		selection->set (tav);
+		switch (op) {
+		case Selection::Add:
+			selection->add (tav);
+			break;
+		case Selection::Toggle:
+			selection->toggle (tav);
+			break;
+		case Selection::Extend:
+			break;
+		case Selection::Set:
+			selection->set (tav);
+			break;
+		}
 	} else {
 		selection->clear_tracks ();
 	}
+}
+
+void
+Editor::control_step_tracks_up ()
+{
+	scroll_tracks_up_line ();
+}
+
+void
+Editor::control_step_tracks_down ()
+{
+	scroll_tracks_down_line ();
 }
 
 void
@@ -1201,19 +1267,19 @@ Editor::set_session (Session *t)
 	   but use Gtkmm2ext::UI::instance()->call_slot();
 	*/
 
-	_session->StepEditStatusChange.connect (_session_connections, invalidator (*this), ui_bind(&Editor::step_edit_status_change, this, _1), gui_context());
+	_session->StepEditStatusChange.connect (_session_connections, invalidator (*this), boost::bind (&Editor::step_edit_status_change, this, _1), gui_context());
 	_session->TransportStateChange.connect (_session_connections, invalidator (*this), boost::bind (&Editor::map_transport_state, this), gui_context());
-	_session->PositionChanged.connect (_session_connections, invalidator (*this), ui_bind (&Editor::map_position_change, this, _1), gui_context());
-	_session->RouteAdded.connect (_session_connections, invalidator (*this), ui_bind (&Editor::handle_new_route, this, _1), gui_context());
+	_session->PositionChanged.connect (_session_connections, invalidator (*this), boost::bind (&Editor::map_position_change, this, _1), gui_context());
+	_session->RouteAdded.connect (_session_connections, invalidator (*this), boost::bind (&Editor::handle_new_route, this, _1), gui_context());
 	_session->DirtyChanged.connect (_session_connections, invalidator (*this), boost::bind (&Editor::update_title, this), gui_context());
-	_session->tempo_map().PropertyChanged.connect (_session_connections, invalidator (*this), ui_bind (&Editor::tempo_map_changed, this, _1), gui_context());
+	_session->tempo_map().PropertyChanged.connect (_session_connections, invalidator (*this), boost::bind (&Editor::tempo_map_changed, this, _1), gui_context());
 	_session->Located.connect (_session_connections, invalidator (*this), boost::bind (&Editor::located, this), gui_context());
-	_session->config.ParameterChanged.connect (_session_connections, invalidator (*this), ui_bind (&Editor::parameter_changed, this, _1), gui_context());
-	_session->StateSaved.connect (_session_connections, invalidator (*this), ui_bind (&Editor::session_state_saved, this, _1), gui_context());
-	_session->locations()->added.connect (_session_connections, invalidator (*this), ui_bind (&Editor::add_new_location, this, _1), gui_context());
-	_session->locations()->removed.connect (_session_connections, invalidator (*this), ui_bind (&Editor::location_gone, this, _1), gui_context());
+	_session->config.ParameterChanged.connect (_session_connections, invalidator (*this), boost::bind (&Editor::parameter_changed, this, _1), gui_context());
+	_session->StateSaved.connect (_session_connections, invalidator (*this), boost::bind (&Editor::session_state_saved, this, _1), gui_context());
+	_session->locations()->added.connect (_session_connections, invalidator (*this), boost::bind (&Editor::add_new_location, this, _1), gui_context());
+	_session->locations()->removed.connect (_session_connections, invalidator (*this), boost::bind (&Editor::location_gone, this, _1), gui_context());
 	_session->locations()->changed.connect (_session_connections, invalidator (*this), boost::bind (&Editor::refresh_location_display, this), gui_context());
-	_session->locations()->StateChanged.connect (_session_connections, invalidator (*this), ui_bind (&Editor::refresh_location_display, this), gui_context());
+	_session->locations()->StateChanged.connect (_session_connections, invalidator (*this), boost::bind (&Editor::refresh_location_display, this), gui_context());
 	_session->history().Changed.connect (_session_connections, invalidator (*this), boost::bind (&Editor::history_changed, this), gui_context());
 
 	playhead_cursor->canvas_item.show ();
@@ -1271,6 +1337,101 @@ Editor::action_pre_activated (Glib::RefPtr<Action> const & a)
 	}
 }
 
+void
+Editor::fill_xfade_menu (Menu_Helpers::MenuList& items, bool start)
+{
+	using namespace Menu_Helpers;
+
+	void (Editor::*emf)(FadeShape);
+	std::map<ARDOUR::FadeShape,Gtk::Image*>* images;
+
+	if (start) {
+		images = &_xfade_in_images;
+		emf = &Editor::set_fade_in_shape;
+	} else {
+		images = &_xfade_out_images;
+		emf = &Editor::set_fade_out_shape;
+	}
+
+	items.push_back (
+		ImageMenuElem (
+			_("Linear (for highly correlated material)"),
+			*(*images)[FadeLinear],
+			sigc::bind (sigc::mem_fun (*this, emf), FadeLinear)
+			)
+		);
+	
+	dynamic_cast<ImageMenuItem*>(&items.back())->set_always_show_image ();
+	
+	items.push_back (
+		ImageMenuElem (
+			_("ConstantPower"),
+			*(*images)[FadeConstantPower],
+			sigc::bind (sigc::mem_fun (*this, emf), FadeConstantPower)
+			));
+	
+	dynamic_cast<ImageMenuItem*>(&items.back())->set_always_show_image ();
+	
+	items.push_back (
+		ImageMenuElem (
+			_("Symmetric"),
+			*(*images)[FadeSymmetric],
+			sigc::bind (sigc::mem_fun (*this, emf), FadeSymmetric)
+			)
+		);
+	
+	dynamic_cast<ImageMenuItem*>(&items.back())->set_always_show_image ();
+	
+	items.push_back (
+		ImageMenuElem (
+			_("Slow"),
+			*(*images)[FadeSlow],
+			sigc::bind (sigc::mem_fun (*this, emf), FadeSlow)
+			));
+	
+	dynamic_cast<ImageMenuItem*>(&items.back())->set_always_show_image ();
+	
+	items.push_back (
+		ImageMenuElem (
+			_("Fast"),
+			*(*images)[FadeFast],
+			sigc::bind (sigc::mem_fun (*this, emf), FadeFast)
+			));
+	
+	dynamic_cast<ImageMenuItem*>(&items.back())->set_always_show_image ();
+}
+
+/** Pop up a context menu for when the user clicks on a start crossfade */
+void
+Editor::popup_xfade_in_context_menu (int button, int32_t time, ArdourCanvas::Item* item, ItemType item_type)
+{
+	using namespace Menu_Helpers;
+
+	MenuList& items (xfade_in_context_menu.items());
+
+	if (items.empty()) {
+		fill_xfade_menu (items, true);
+	}
+
+	xfade_in_context_menu.popup (button, time);
+}
+
+/** Pop up a context menu for when the user clicks on an end crossfade */
+void
+Editor::popup_xfade_out_context_menu (int button, int32_t time, ArdourCanvas::Item* item, ItemType item_type)
+{
+	using namespace Menu_Helpers;
+
+	MenuList& items (xfade_out_context_menu.items());
+
+	if (items.empty()) {
+		fill_xfade_menu (items, false);
+	}
+
+	xfade_out_context_menu.popup (button, time);
+}
+
+
 /** Pop up a context menu for when the user clicks on a fade in or fade out */
 void
 Editor::popup_fade_context_menu (int button, int32_t time, ArdourCanvas::Item* item, ItemType item_type)
@@ -1284,7 +1445,6 @@ Editor::popup_fade_context_menu (int button, int32_t time, ArdourCanvas::Item* i
 	}
 
 	MenuList& items (fade_context_menu.items());
-
 	items.clear ();
 
 	switch (item_type) {
@@ -1295,16 +1455,16 @@ Editor::popup_fade_context_menu (int button, int32_t time, ArdourCanvas::Item* i
 		} else {
 			items.push_back (MenuElem (_("Activate"), sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_in_active), true)));
 		}
-
+		
 		items.push_back (SeparatorElem());
-
+		
 		if (Profile->get_sae()) {
-
+			
 			items.push_back (MenuElem (_("Linear"), sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_in_shape), FadeLinear)));
 			items.push_back (MenuElem (_("Slowest"), sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_in_shape), FadeFast)));
-
+			
 		} else {
-
+			
 			items.push_back (
 				ImageMenuElem (
 					_("Linear"),
@@ -1312,41 +1472,39 @@ Editor::popup_fade_context_menu (int button, int32_t time, ArdourCanvas::Item* i
 					sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_in_shape), FadeLinear)
 					)
 				);
-
+				
 			dynamic_cast<ImageMenuItem*>(&items.back())->set_always_show_image ();
-
-			items.push_back (
-				ImageMenuElem (
-					_("Slowest"),
-					*_fade_in_images[FadeFast],
-					sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_in_shape), FadeFast)
-					));
-
-			dynamic_cast<ImageMenuItem*>(&items.back())->set_always_show_image ();
-
+				
 			items.push_back (
 				ImageMenuElem (
 					_("Slow"),
-					*_fade_in_images[FadeLogB],
-					sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_in_shape), FadeLogB)
+					*_fade_in_images[FadeSlow],
+					sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_in_shape), FadeSlow)
 					));
-
+				
 			dynamic_cast<ImageMenuItem*>(&items.back())->set_always_show_image ();
-
+				
 			items.push_back (
 				ImageMenuElem (
 					_("Fast"),
-					*_fade_in_images[FadeLogA],
-					sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_in_shape), FadeLogA)
+					*_fade_in_images[FadeFast],
+					sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_in_shape), FadeFast)
 					));
-
+				
 			dynamic_cast<ImageMenuItem*>(&items.back())->set_always_show_image ();
-
+				
 			items.push_back (
 				ImageMenuElem (
-					_("Fastest"),
-					*_fade_in_images[FadeSlow],
-					sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_in_shape), FadeSlow)
+					_("Symmetric"),
+					*_fade_in_images[FadeSymmetric],
+					sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_in_shape), FadeSymmetric)
+					));
+				
+			items.push_back (
+				ImageMenuElem (
+					_("Constant Power"),
+					*_fade_in_images[FadeConstantPower],
+					sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_in_shape), FadeConstantPower)
 					));
 
 			dynamic_cast<ImageMenuItem*>(&items.back())->set_always_show_image ();
@@ -1381,8 +1539,8 @@ Editor::popup_fade_context_menu (int button, int32_t time, ArdourCanvas::Item* i
 
 			items.push_back (
 				ImageMenuElem (
-					_("Slowest"),
-					*_fade_out_images[FadeFast],
+					_("Slow"),
+					*_fade_out_images[FadeSlow],
 					sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_out_shape), FadeSlow)
 					));
 
@@ -1390,27 +1548,25 @@ Editor::popup_fade_context_menu (int button, int32_t time, ArdourCanvas::Item* i
 
 			items.push_back (
 				ImageMenuElem (
-					_("Slow"),
-					*_fade_out_images[FadeLogB],
-					sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_out_shape), FadeLogA)
-					));
-
-			dynamic_cast<ImageMenuItem*>(&items.back())->set_always_show_image ();
-
-			items.push_back (
-				ImageMenuElem (
 					_("Fast"),
-					*_fade_out_images[FadeLogA],
-					sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_out_shape), FadeLogB)
+					*_fade_out_images[FadeFast],
+					sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_out_shape), FadeFast)
 					));
 
 			dynamic_cast<ImageMenuItem*>(&items.back())->set_always_show_image ();
 
 			items.push_back (
 				ImageMenuElem (
-					_("Fastest"),
-					*_fade_out_images[FadeSlow],
-					sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_out_shape), FadeFast)
+					_("Symmetric"),
+					*_fade_out_images[FadeSymmetric],
+					sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_out_shape), FadeSymmetric)
+					));
+
+			items.push_back (
+				ImageMenuElem (
+					_("Constant Power"),
+					*_fade_out_images[FadeConstantPower],
+					sigc::bind (sigc::mem_fun (*this, &Editor::set_fade_out_shape), FadeConstantPower)
 					));
 
 			dynamic_cast<ImageMenuItem*>(&items.back())->set_always_show_image ();
@@ -1456,10 +1612,6 @@ Editor::popup_track_context_menu (int button, int32_t time, ItemType item_type, 
 		}
 		break;
 
-	case CrossfadeViewItem:
-		build_menu_function = &Editor::build_track_crossfade_context_menu;
-		break;
-
 	case StreamItem:
 		if (clicked_routeview->track()) {
 			build_menu_function = &Editor::build_track_context_menu;
@@ -1503,9 +1655,6 @@ Editor::popup_track_context_menu (int button, int32_t time, ItemType item_type, 
 		break;
 
 	case SelectionItem:
-		break;
-
-	case CrossfadeViewItem:
 		break;
 
 	case StreamItem:
@@ -1592,11 +1741,6 @@ Editor::build_track_region_context_menu ()
 	region_edit_menu_split_item = 0;
 	region_edit_menu_split_multichannel_item = 0;
 
-	/* we might try to use items that are currently attached to a crossfade menu,
-	   so clear that, too.
-	*/
-	track_crossfade_context_menu.items().clear ();
-
 	RouteTimeAxisView* rtv = dynamic_cast<RouteTimeAxisView*> (clicked_axisview);
 
 	if (rtv) {
@@ -1611,54 +1755,6 @@ Editor::build_track_region_context_menu ()
 	add_dstream_context_items (edit_items);
 
 	return &track_region_context_menu;
-}
-
-Menu*
-Editor::build_track_crossfade_context_menu ()
-{
-	using namespace Menu_Helpers;
-	MenuList& edit_items  = track_crossfade_context_menu.items();
-	edit_items.clear ();
-
-	/* we might try to use items that are currently attached to a crossfade menu,
-	   so clear that, too.
-	*/
-	track_region_context_menu.items().clear ();
-
-	AudioTimeAxisView* atv = dynamic_cast<AudioTimeAxisView*> (clicked_axisview);
-
-	if (atv) {
-		boost::shared_ptr<Track> tr;
-		boost::shared_ptr<Playlist> pl;
-		boost::shared_ptr<AudioPlaylist> apl;
-
-		if ((tr = atv->track()) && ((pl = tr->playlist()) != 0) && ((apl = boost::dynamic_pointer_cast<AudioPlaylist> (pl)) != 0)) {
-
-			AudioPlaylist::Crossfades xfades;
-			framepos_t where;
-			bool ignored;
-
-			/* The xfade menu is a bit of a special case, as we always use the mouse position
-			   to decide whether or not to display it (rather than the edit point).  No particularly
-			   strong reasons for this, other than it is a bit surprising to right-click on a xfade
-			   and not get a menu.
-			*/
-			mouse_frame (where, ignored);
-			apl->crossfades_at (where, xfades);
-
-			bool const many = xfades.size() > 1;
-
-			for (AudioPlaylist::Crossfades::iterator i = xfades.begin(); i != xfades.end(); ++i) {
-				add_crossfade_context_items (atv->audio_view(), (*i), edit_items, many);
-			}
-
-			add_region_context_items (edit_items, tr);
-		}
-	}
-
-	add_dstream_context_items (edit_items);
-
-	return &track_crossfade_context_menu;
 }
 
 void
@@ -1709,73 +1805,6 @@ Editor::build_track_selection_context_menu ()
 	// add_dstream_context_items (edit_items);
 
 	return &track_selection_context_menu;
-}
-
-/** Add context menu items relevant to crossfades.
- * @param edit_items List to add the items to.
- */
-void
-Editor::add_crossfade_context_items (AudioStreamView* view, boost::shared_ptr<Crossfade> xfade, Menu_Helpers::MenuList& edit_items, bool many)
-{
-	using namespace Menu_Helpers;
-	Menu     *xfade_menu = manage (new Menu);
-	MenuList& items       = xfade_menu->items();
-	xfade_menu->set_name ("ArdourContextMenu");
-	string str;
-
-	if (xfade->active()) {
-		str = _("Mute");
-	} else {
-		str = _("Unmute");
-	}
-
-	items.push_back (
-		MenuElem (str, sigc::bind (sigc::mem_fun (*this, &Editor::toggle_xfade_active), &view->trackview(), boost::weak_ptr<Crossfade> (xfade)))
-		);
-	
-	items.push_back (
-		MenuElem (_("Edit..."), sigc::bind (sigc::mem_fun (*this, &Editor::edit_xfade), boost::weak_ptr<Crossfade> (xfade)))
-		);
-
-	if (xfade->can_follow_overlap()) {
-
-		if (xfade->following_overlap()) {
-			str = _("Convert to Short");
-		} else {
-			str = _("Convert to Full");
-		}
-
-		items.push_back (
-			MenuElem (str, sigc::bind (sigc::mem_fun (*this, &Editor::toggle_xfade_length), &view->trackview(), xfade))
-			);
-	}
-
-	if (many) {
-		str = xfade->out()->name();
-		str += "->";
-		str += xfade->in()->name();
-	} else {
-		str = _("Crossfade");
-	}
-
-	edit_items.push_back (MenuElem (str, *xfade_menu));
-	edit_items.push_back (SeparatorElem());
-}
-
-void
-Editor::xfade_edit_left_region ()
-{
-	if (clicked_crossfadeview) {
-		clicked_crossfadeview->left_view.show_region_editor ();
-	}
-}
-
-void
-Editor::xfade_edit_right_region ()
-{
-	if (clicked_crossfadeview) {
-		clicked_crossfadeview->right_view.show_region_editor ();
-	}
 }
 
 void
@@ -1963,10 +1992,10 @@ Editor::add_dstream_context_items (Menu_Helpers::MenuList& edit_items)
 	nudge_menu->set_name ("ArdourContextMenu");
 
 	edit_items.push_back (SeparatorElem());
-	nudge_items.push_back (MenuElem (_("Nudge Entire Track Forward"), (sigc::bind (sigc::mem_fun(*this, &Editor::nudge_track), false, true))));
-	nudge_items.push_back (MenuElem (_("Nudge Track After Edit Point Forward"), (sigc::bind (sigc::mem_fun(*this, &Editor::nudge_track), true, true))));
-	nudge_items.push_back (MenuElem (_("Nudge Entire Track Backward"), (sigc::bind (sigc::mem_fun(*this, &Editor::nudge_track), false, false))));
-	nudge_items.push_back (MenuElem (_("Nudge Track After Edit Point Backward"), (sigc::bind (sigc::mem_fun(*this, &Editor::nudge_track), true, false))));
+	nudge_items.push_back (MenuElem (_("Nudge Entire Track Later"), (sigc::bind (sigc::mem_fun(*this, &Editor::nudge_track), false, true))));
+	nudge_items.push_back (MenuElem (_("Nudge Track After Edit Point Later"), (sigc::bind (sigc::mem_fun(*this, &Editor::nudge_track), true, true))));
+	nudge_items.push_back (MenuElem (_("Nudge Entire Track Earlier"), (sigc::bind (sigc::mem_fun(*this, &Editor::nudge_track), false, false))));
+	nudge_items.push_back (MenuElem (_("Nudge Track After Edit Point Earlier"), (sigc::bind (sigc::mem_fun(*this, &Editor::nudge_track), true, false))));
 
 	edit_items.push_back (MenuElem (_("Nudge"), *nudge_menu));
 }
@@ -2019,10 +2048,10 @@ Editor::add_bus_context_items (Menu_Helpers::MenuList& edit_items)
 	nudge_menu->set_name ("ArdourContextMenu");
 
 	edit_items.push_back (SeparatorElem());
-	nudge_items.push_back (MenuElem (_("Nudge Entire Track Forward"), (sigc::bind (sigc::mem_fun(*this, &Editor::nudge_track), false, true))));
-	nudge_items.push_back (MenuElem (_("Nudge Track After Edit Point Forward"), (sigc::bind (sigc::mem_fun(*this, &Editor::nudge_track), true, true))));
-	nudge_items.push_back (MenuElem (_("Nudge Entire Track Backward"), (sigc::bind (sigc::mem_fun(*this, &Editor::nudge_track), false, false))));
-	nudge_items.push_back (MenuElem (_("Nudge Track After Edit Point Backward"), (sigc::bind (sigc::mem_fun(*this, &Editor::nudge_track), true, false))));
+	nudge_items.push_back (MenuElem (_("Nudge Entire Track Later"), (sigc::bind (sigc::mem_fun(*this, &Editor::nudge_track), false, true))));
+	nudge_items.push_back (MenuElem (_("Nudge Track After Edit Point Later"), (sigc::bind (sigc::mem_fun(*this, &Editor::nudge_track), true, true))));
+	nudge_items.push_back (MenuElem (_("Nudge Entire Track Earlier"), (sigc::bind (sigc::mem_fun(*this, &Editor::nudge_track), false, false))));
+	nudge_items.push_back (MenuElem (_("Nudge Track After Edit Point Earlier"), (sigc::bind (sigc::mem_fun(*this, &Editor::nudge_track), true, false))));
 
 	edit_items.push_back (MenuElem (_("Nudge"), *nudge_menu));
 }
@@ -2333,12 +2362,6 @@ Editor::set_state (const XMLNode& node, int /*version*/)
 		_regions->reset_sort_type ((RegionListSortType) string_2_enum (prop->value(), st), true);
 	}
 
-	if ((prop = node.property ("xfades-visible"))) {
-		bool yn = string_is_affirmative (prop->value());
-		_xfade_visibility = !yn;
-		// set_xfade_visibility (yn);
-	}
-
 	if ((prop = node.property ("show-editor-mixer"))) {
 
 		Glib::RefPtr<Action> act = ActionManager::get_action (X_("Editor"), X_("show-editor-mixer"));
@@ -2465,7 +2488,6 @@ Editor::get_state ()
 	node->add_property ("maximised", _maximised ? "yes" : "no");
 	node->add_property ("follow-playhead", _follow_playhead ? "yes" : "no");
 	node->add_property ("stationary-playhead", _stationary_playhead ? "yes" : "no");
-	node->add_property ("xfades-visible", _xfade_visibility ? "yes" : "no");
 	node->add_property ("region-list-sort-type", enum_2_string (_regions->sort_type ()));
 	node->add_property ("mouse-mode", enum2str(mouse_mode));
 	node->add_property ("internal-edit", _internal_editing ? "yes" : "no");
@@ -2820,14 +2842,8 @@ Editor::setup_toolbar ()
 	/* make them just a bit bigger */
 	mouse_move_button.set_size_request (-1, 25);
 
-	smart_mode_joiner = manage (new ButtonJoiner ("mouse mode button", mouse_move_button, mouse_select_button));
+	smart_mode_joiner = manage (new ButtonJoiner ("mouse mode button", mouse_move_button, mouse_select_button, true));
 	smart_mode_joiner->set_related_action (smart_mode_action);
-
-	mouse_move_button.set_elements (ArdourButton::Element (ArdourButton::Body|ArdourButton::Text));
-	mouse_select_button.set_elements (ArdourButton::Element (ArdourButton::Body|ArdourButton::Text));
-
-	mouse_move_button.set_rounded_corner_mask (0x1); // upper left only 
-	mouse_select_button.set_rounded_corner_mask (0x2); // upper right only 
 
 	mouse_mode_hbox2->set_spacing (2);
 	mouse_mode_box->set_spacing (2);
@@ -3040,8 +3056,8 @@ Editor::setup_tooltips ()
 	ARDOUR_UI::instance()->set_tip (smart_mode_joiner, _("Smart Mode (Select/Move Objects + Ranges)"));
 	ARDOUR_UI::instance()->set_tip (internal_edit_button, _("Edit Region Contents (e.g. notes)"));
 	ARDOUR_UI::instance()->set_tip (*_group_tabs, _("Groups: click to (de)activate\nContext-click for other operations"));
-	ARDOUR_UI::instance()->set_tip (nudge_forward_button, _("Nudge Region/Selection Forwards"));
-	ARDOUR_UI::instance()->set_tip (nudge_backward_button, _("Nudge Region/Selection Backwards"));
+	ARDOUR_UI::instance()->set_tip (nudge_forward_button, _("Nudge Region/Selection Later"));
+	ARDOUR_UI::instance()->set_tip (nudge_backward_button, _("Nudge Region/Selection Earlier"));
 	ARDOUR_UI::instance()->set_tip (zoom_in_button, _("Zoom In"));
 	ARDOUR_UI::instance()->set_tip (zoom_out_button, _("Zoom Out"));
 	ARDOUR_UI::instance()->set_tip (zoom_out_full_button, _("Zoom to Session"));
@@ -3135,14 +3151,13 @@ Editor::convert_drop_to_paths (
 
 		if ((*i).substr (0,7) == "file://") {
 
-			string p = *i;
-			PBD::url_decode (p);
+			string const p = PBD::url_decode (*i);
 
 			// scan forward past three slashes
 
 			string::size_type slashcnt = 0;
 			string::size_type n = 0;
-			string::iterator x = p.begin();
+			string::const_iterator x = p.begin();
 
 			while (slashcnt < 3 && x != p.end()) {
 				if ((*x) == '/') {
@@ -3694,80 +3709,6 @@ Editor::set_stationary_playhead (bool yn)
 	}
 }
 
-void
-Editor::toggle_xfade_active (RouteTimeAxisView* tv, boost::weak_ptr<Crossfade> wxfade)
-{
-	boost::shared_ptr<Crossfade> xfade (wxfade.lock());
-	if (!xfade) {
-		return;
-	}
-
-	vector<boost::shared_ptr<Crossfade> > all = get_equivalent_crossfades (*tv, xfade, ARDOUR::Properties::edit.property_id);
-
-	_session->begin_reversible_command (_("Change crossfade active state"));
-	
-	for (vector<boost::shared_ptr<Crossfade> >::iterator i = all.begin(); i != all.end(); ++i) {
-		(*i)->clear_changes ();
-		(*i)->set_active (!(*i)->active());
-		_session->add_command (new StatefulDiffCommand (*i));
-	}
-	
-	_session->commit_reversible_command ();
-}
-
-void
-Editor::toggle_xfade_length (RouteTimeAxisView* tv, boost::weak_ptr<Crossfade> wxfade)
-{
-	boost::shared_ptr<Crossfade> xfade (wxfade.lock());
-	if (!xfade) {
-		return;
-	}
-	
-	vector<boost::shared_ptr<Crossfade> > all = get_equivalent_crossfades (*tv, xfade, ARDOUR::Properties::edit.property_id);
-
-	/* This can't be a StatefulDiffCommand as the fade shapes are not
-	   managed by the Stateful properties system.
-	*/
-	_session->begin_reversible_command (_("Change crossfade length"));
-	
-	for (vector<boost::shared_ptr<Crossfade> >::iterator i = all.begin(); i != all.end(); ++i) {
-		XMLNode& before = (*i)->get_state ();
-		(*i)->set_follow_overlap (!(*i)->following_overlap());
-		XMLNode& after = (*i)->get_state ();
-	
-		_session->add_command (new MementoCommand<Crossfade> (*i->get(), &before, &after));
-	}
-	
-	_session->commit_reversible_command ();
-}
-
-void
-Editor::edit_xfade (boost::weak_ptr<Crossfade> wxfade)
-{
-	boost::shared_ptr<Crossfade> xfade (wxfade.lock());
-
-	if (!xfade) {
-		return;
-	}
-
-	CrossfadeEditor cew (_session, xfade, xfade->fade_in().get_min_y(), 1.0);
-
-	ensure_float (cew);
-
-	switch (cew.run ()) {
-	case RESPONSE_ACCEPT:
-		break;
-	default:
-		return;
-	}
-
-	cew.apply ();
-	PropertyChange all_crossfade_properties;
-	all_crossfade_properties.add (ARDOUR::Properties::active);
-	all_crossfade_properties.add (ARDOUR::Properties::follow_overlap);
-	xfade->PropertyChanged (all_crossfade_properties);
-}
-
 PlaylistSelector&
 Editor::playlist_selector () const
 {
@@ -4271,7 +4212,11 @@ Editor::post_zoom ()
 		zoom_range_clock->set (frames);
 	}
 
-	if (mouse_mode == MouseRange && selection->time.start () != selection->time.end_frame ()) {
+	bool const showing_time_selection =
+		mouse_mode == MouseRange ||
+		(mouse_mode == MouseObject && _join_object_range_state != JOIN_OBJECT_RANGE_NONE);
+
+	if (showing_time_selection && selection->time.start () != selection->time.end_frame ()) {
 		for (TrackViewList::iterator i = selection->tracks.begin(); i != selection->tracks.end(); ++i) {
 			(*i)->reshow_selection (selection->time);
 		}
@@ -4340,19 +4285,6 @@ Editor::idle_visual_changer ()
 	pending_visual_change.pending = (VisualChange::Type) 0;
 
 	double const last_time_origin = horizontal_position ();
-
-	if (p & VisualChange::TimeOrigin) {
-		/* This is a bit of a hack, but set_frames_per_unit
-		   below will (if called) end up with the
-		   CrossfadeViews looking at Editor::leftmost_frame,
-		   and if we're changing origin and zoom in the same
-		   operation it will be the wrong value unless we
-		   update it here.
-		*/
-
-		leftmost_frame = pending_visual_change.time_origin;
-		assert (leftmost_frame >= 0);
-	}
 
 	if (p & VisualChange::ZoomLevel) {
 		set_frames_per_unit (pending_visual_change.frames_per_unit);
@@ -4597,16 +4529,15 @@ Editor::get_regions_from_selection ()
  *  the edit point is `mouse' and the mouse is over an unselected
  *  region.  In this case, start with just that region.
  *
- *  Then, make an initial track list of the tracks that these
- *  regions are on, and if the edit point is not `mouse', add the
- *  selected tracks.
+ *  Then, add equivalent regions in active edit groups to the region list.
  *
- *  Look at this track list and add any other tracks that are on the
- *  same active edit-enabled route group as one of the initial tracks.
+ *  Then, search the list of selected tracks to find any selected tracks which
+ *  do not contain regions already in the region list. If there are no selected
+ *  tracks and 'No Selection = All Tracks' is active, search all tracks rather
+ *  than just the selected.
  *
- *  Finally take the initial region list and add any regions that are
- *  under the edit point on one of the tracks on the track list to get
- *  the returned region list.
+ *  Add any regions that are under the edit point on these tracks to get the
+ *  returned region list.
  *
  *  The rationale here is that the mouse edit point is special in that
  *  its position describes both a time and a track; the other edit
@@ -4634,22 +4565,40 @@ Editor::get_regions_from_selection_and_edit_point ()
 		tracks = selection->tracks;
 	}
 
-	/* Add any other tracks that have regions that are in the same
+	/* Add any other regions that are in the same
 	   edit-activated route group as one of our regions.
 	 */
-	for (RegionSelection::iterator i = regions.begin (); i != regions.end(); ++i) {
+	regions = get_equivalent_regions (regions, ARDOUR::Properties::edit.property_id);
+	framepos_t const where = get_preferred_edit_position ();
 
-		RouteGroup* g = (*i)->get_time_axis_view().route_group ();
-
-		if (g && g->is_active() && g->is_edit()) {
-			tracks.add (axis_views_from_routes (g->route_list()));
-		}
+	if (_route_groups->all_group_active_button().get_active() && tracks.empty()) {
+		/* tracks is empty (no track selected), and 'No Selection = All Tracks'
+		 * is enabled, so consider all tracks
+		 */
+		tracks = track_views; 
 	}
 
 	if (!tracks.empty()) {
-		/* now find regions that are at the edit position on those tracks */
-		framepos_t const where = get_preferred_edit_position ();
-		get_regions_at (regions, where, tracks);
+		/* now search the selected tracks for tracks which don't
+		   already contain regions to be acted upon, and get regions at
+		   the edit point on those tracks too.
+		 */
+		TrackViewList tracks_without_relevant_regions;
+
+		for (TrackViewList::iterator t = tracks.begin (); t != tracks.end (); ++t) {
+			if (!regions.involves (**t)) {
+				/* there are no equivalent regions on this track */
+				tracks_without_relevant_regions.push_back (*t);
+			}
+		}
+
+		if (!tracks_without_relevant_regions.empty()) {
+			/* there are some selected tracks with neither selected
+			 * regions or their equivalents: act upon all regions in
+			 * those tracks
+			 */
+			get_regions_at (regions, where, tracks_without_relevant_regions);
+		}
 	}
 
 	return regions;
@@ -5327,7 +5276,6 @@ Editor::session_going_away ()
 	clicked_regionview = 0;
 	clicked_axisview = 0;
 	clicked_routeview = 0;
-	clicked_crossfadeview = 0;
 	entered_regionview = 0;
 	entered_track = 0;
 	last_update_frame = 0;
@@ -5438,19 +5386,31 @@ Editor::update_region_layering_order_editor ()
 void
 Editor::setup_fade_images ()
 {
-	_fade_in_images[FadeLinear] = new Gtk::Image (get_icon_path (X_("crossfade-in-linear")));
-	_fade_in_images[FadeFast] = new Gtk::Image (get_icon_path (X_("crossfade-in-short-cut")));
-	_fade_in_images[FadeLogB] = new Gtk::Image (get_icon_path (X_("crossfade-in-slow-cut")));
-	_fade_in_images[FadeLogA] = new Gtk::Image (get_icon_path (X_("crossfade-in-fast-cut")));
-	_fade_in_images[FadeSlow] = new Gtk::Image (get_icon_path (X_("crossfade-in-long-cut")));
+	_fade_in_images[FadeLinear] = new Gtk::Image (get_icon_path (X_("fadein-linear")));
+	_fade_in_images[FadeSymmetric] = new Gtk::Image (get_icon_path (X_("fadein-short-cut")));
+	_fade_in_images[FadeFast] = new Gtk::Image (get_icon_path (X_("fadein-slow-cut")));
+	_fade_in_images[FadeSlow] = new Gtk::Image (get_icon_path (X_("fadein-fast-cut")));
+	_fade_in_images[FadeConstantPower] = new Gtk::Image (get_icon_path (X_("fadein-long-cut")));
 
-	_fade_out_images[FadeLinear] = new Gtk::Image (get_icon_path (X_("crossfade-out-linear")));
-	_fade_out_images[FadeFast] = new Gtk::Image (get_icon_path (X_("crossfade-out-short-cut")));
-	_fade_out_images[FadeLogB] = new Gtk::Image (get_icon_path (X_("crossfade-out-slow-cut")));
-	_fade_out_images[FadeLogA] = new Gtk::Image (get_icon_path (X_("crossfade-out-fast-cut")));
-	_fade_out_images[FadeSlow] = new Gtk::Image (get_icon_path (X_("crossfade-out-long-cut")));
+	_fade_out_images[FadeLinear] = new Gtk::Image (get_icon_path (X_("fadeout-linear")));
+	_fade_out_images[FadeSymmetric] = new Gtk::Image (get_icon_path (X_("fadeout-short-cut")));
+	_fade_out_images[FadeFast] = new Gtk::Image (get_icon_path (X_("fadeout-slow-cut")));
+	_fade_out_images[FadeSlow] = new Gtk::Image (get_icon_path (X_("fadeout-fast-cut")));
+	_fade_out_images[FadeConstantPower] = new Gtk::Image (get_icon_path (X_("fadeout-long-cut")));
+	
+	_xfade_in_images[FadeLinear] = new Gtk::Image (get_icon_path (X_("fadeout-linear")));
+	_xfade_in_images[FadeSymmetric] = new Gtk::Image (get_icon_path (X_("fadeout-short-cut")));
+	_xfade_in_images[FadeFast] = new Gtk::Image (get_icon_path (X_("fadeout-slow-cut")));
+	_xfade_in_images[FadeSlow] = new Gtk::Image (get_icon_path (X_("fadeout-fast-cut")));
+	_xfade_in_images[FadeConstantPower] = new Gtk::Image (get_icon_path (X_("fadeout-long-cut")));
+
+	_xfade_out_images[FadeLinear] = new Gtk::Image (get_icon_path (X_("fadeout-linear")));
+	_xfade_out_images[FadeSymmetric] = new Gtk::Image (get_icon_path (X_("fadeout-short-cut")));
+	_xfade_out_images[FadeFast] = new Gtk::Image (get_icon_path (X_("fadeout-slow-cut")));
+	_xfade_out_images[FadeSlow] = new Gtk::Image (get_icon_path (X_("fadeout-fast-cut")));
+	_xfade_out_images[FadeConstantPower] = new Gtk::Image (get_icon_path (X_("fadeout-long-cut")));
+
 }
-
 
 /** @return Gtk::manage()d menu item for a given action from `editor_actions' */
 Gtk::MenuItem&

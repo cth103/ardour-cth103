@@ -38,16 +38,13 @@
 
 #include "timecode/time.h"
 
-#include "ardour/configuration.h"
-#include "ardour/debug.h"
-#include "ardour/audioengine.h"
-#include "ardour/session.h"
 #include "ardour/audio_track.h"
+#include "ardour/audioengine.h"
+#include "ardour/debug.h"
 #include "ardour/midi_track.h"
 #include "ardour/midi_ui.h"
-#include "ardour/audio_diskstream.h"
+#include "ardour/session.h"
 #include "ardour/slave.h"
-#include "ardour/cycles.h"
 
 #include "i18n.h"
 
@@ -91,7 +88,7 @@ Session::setup_midi_control ()
 }
 
 void
-Session::spp_start (Parser &, framepos_t /*timestamp*/)
+Session::spp_start ()
 {
 	if (Config->get_mmc_control ()) {
 		request_transport_speed (1.0);
@@ -99,13 +96,13 @@ Session::spp_start (Parser &, framepos_t /*timestamp*/)
 }
 
 void
-Session::spp_continue (Parser& ignored, framepos_t timestamp)
+Session::spp_continue ()
 {
-	spp_start (ignored, timestamp);
+	spp_start ();
 }
 
 void
-Session::spp_stop (Parser&, framepos_t /*timestamp*/)
+Session::spp_stop ()
 {
 	if (Config->get_mmc_control ()) {
 		request_stop ();

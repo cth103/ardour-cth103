@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2008-2011 Paul Davis
+    Copyright (C) 2008-2012 Paul Davis
     Author: David Robillard
 
     This program is free software; you can redistribute it and/or modify
@@ -26,6 +26,7 @@
 
 #include "ardour/plugin.h"
 #include "ardour/uri_map.h"
+#include "ardour/worker.h"
 #include "pbd/ringbuffer.h"
 
 namespace ARDOUR {
@@ -33,7 +34,7 @@ namespace ARDOUR {
 class AudioEngine;
 class Session;
 
-class LV2Plugin : public ARDOUR::Plugin
+class LV2Plugin : public ARDOUR::Plugin, public ARDOUR::Workee
 {
   public:
 	LV2Plugin (ARDOUR::AudioEngine& engine,
@@ -49,14 +50,16 @@ class LV2Plugin : public ARDOUR::Plugin
 	const char* name () const;
 	const char* maker () const;
 
-	uint32_t   num_ports () const;
-	uint32_t   parameter_count () const;
-	float      default_value (uint32_t port);
-	framecnt_t signal_latency () const;
-	void       set_parameter (uint32_t port, float val);
-	float      get_parameter (uint32_t port) const;
-	int        get_parameter_descriptor (uint32_t which, ParameterDescriptor&) const;
-	uint32_t   nth_parameter (uint32_t port, bool& ok) const;
+	uint32_t    num_ports () const;
+	uint32_t    parameter_count () const;
+	float       default_value (uint32_t port);
+	framecnt_t  signal_latency () const;
+	void        set_parameter (uint32_t port, float val);
+	float       get_parameter (uint32_t port) const;
+	std::string get_docs() const;
+	std::string get_parameter_docs(uint32_t which) const;
+	int         get_parameter_descriptor (uint32_t which, ParameterDescriptor&) const;
+	uint32_t    nth_parameter (uint32_t port, bool& ok) const;
 
 	const void* extension_data (const char* uri) const;
 
@@ -65,8 +68,10 @@ class LV2Plugin : public ARDOUR::Plugin
 	void* c_ui_type();
 
 	bool is_external_ui () const;
+	bool ui_is_resizable () const;
 
 	const char* port_symbol (uint32_t port) const;
+	uint32_t    port_index (const char* symbol) const;
 
 	const LV2_Feature* const* features () { return _features; }
 
@@ -99,10 +104,7 @@ class LV2Plugin : public ARDOUR::Plugin
 	boost::shared_ptr<Plugin::ScalePoints>
 	get_scale_points(uint32_t port_index) const;
 
-	/// Return the URID of midi:MidiEvent
-	static uint32_t midi_event_type (bool event_api) {
-		return event_api ? _midi_event_type_ev : _midi_event_type;
-	}
+	static uint32_t midi_event_type() { return _midi_event_type; }
 
 	void set_insert_info(const PluginInsert* insert);
 
@@ -128,26 +130,33 @@ class LV2Plugin : public ARDOUR::Plugin
 	void enable_ui_emmission();
 	void emit_to_ui(void* controller, UIMessageSink sink);
 
+	Worker* worker() { return _worker; }
+
+	int work(uint32_t size, const void* data);
+	int work_response(uint32_t size, const void* data);
+
 	static URIMap _uri_map;
 
-	static uint32_t _midi_event_type_ev;
 	static uint32_t _midi_event_type;
 	static uint32_t _chunk_type;
 	static uint32_t _sequence_type;
 	static uint32_t _event_transfer_type;
-	static uint32_t _state_path_type;
+	static uint32_t _path_type;
 
   private:
 	struct Impl;
 	Impl*         _impl;
 	void*         _module;
 	LV2_Feature** _features;
+	Worker*       _worker;
 	framecnt_t    _sample_rate;
 	float*        _control_data;
 	float*        _shadow_data;
 	float*        _defaults;
 	LV2_Evbuf**   _ev_buffers;
-	float*        _latency_control_port;
+	float*        _bpm_control_port;  ///< Special input set by ardour
+	float*        _freewheel_control_port;  ///< Special input set by ardour
+	float*        _latency_control_port;  ///< Special output set by ardour
 	PBD::ID       _insert_id;
 
 	typedef enum {
@@ -194,6 +203,7 @@ class LV2Plugin : public ARDOUR::Plugin
 	LV2_Feature    _data_access_feature;
 	LV2_Feature    _instance_access_feature;
 	LV2_Feature    _make_path_feature;
+	LV2_Feature    _work_schedule_feature;
 
 	mutable unsigned _state_version;
 

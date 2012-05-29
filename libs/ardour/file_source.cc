@@ -33,17 +33,17 @@
 #include "pbd/strsplit.h"
 #include "pbd/shortpath.h"
 #include "pbd/enumwriter.h"
+#include "pbd/filesystem.h"
 
 #include <glibmm/miscutils.h>
 #include <glibmm/fileutils.h>
 #include <glibmm/thread.h>
 
+#include "ardour/data_type.h"
 #include "ardour/file_source.h"
-#include "ardour/directory_names.h"
 #include "ardour/session.h"
-#include "ardour/session_directory.h"
-#include "ardour/source_factory.h"
-#include "ardour/filename_extensions.h"
+#include "ardour/source.h"
+#include "ardour/utils.h"
 
 #include "i18n.h"
 
@@ -123,11 +123,7 @@ FileSource::init (const string& pathstr, bool must_exist)
         }
 
 	set_within_session_from_path (_path);
-
-        if (!within_session()) {
-                _session.ensure_search_path_includes (Glib::path_get_dirname (_path), _type);
-        }
-
+	
         _name = Glib::path_get_basename (_path);
 
 	if (_file_is_new && must_exist) {
@@ -282,7 +278,7 @@ FileSource::find (Session& s, DataType type, const string& path, bool must_exist
 			++j;
 			
 			while (j != hits.end()) {
-				if (inodes_same (*i, *j)) {
+				if (PBD::sys::inodes_same (*i, *j)) {
 					/* *i and *j are the same file; break out of the loop early */
 					break;
 				}

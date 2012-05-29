@@ -27,25 +27,25 @@
 
 #include <glibmm/thread.h>
 
-#include "ardour/ardour.h"
 #include "ardour/audioengine.h"
 #include "ardour/auditioner.h"
 #include "ardour/butler.h"
+#include "ardour/cycle_timer.h"
 #include "ardour/debug.h"
+#include "ardour/graph.h"
+#include "ardour/port.h"
 #include "ardour/process_thread.h"
 #include "ardour/session.h"
 #include "ardour/slave.h"
-#include "ardour/timestamps.h"
-#include "ardour/graph.h"
-#include "ardour/audio_port.h"
-#include "ardour/tempo.h"
 #include "ardour/ticker.h"
-#include "ardour/cycle_timer.h"
+#include "ardour/types.h"
 
 #include "midi++/manager.h"
 #include "midi++/mmc.h"
 
 #include "i18n.h"
+
+#include <xmmintrin.h>
 
 using namespace ARDOUR;
 using namespace PBD;
@@ -59,8 +59,6 @@ void
 Session::process (pframes_t nframes)
 {
 	framepos_t transport_at_start = _transport_frame;
-
-	MIDI::Manager::instance()->cycle_start(nframes);
 
 	_silent = false;
 
@@ -96,8 +94,6 @@ Session::process (pframes_t nframes)
 	}
 
 	SendFeedback (); /* EMIT SIGNAL */
-
-	MIDI::Manager::instance()->cycle_end();
 }
 
 int

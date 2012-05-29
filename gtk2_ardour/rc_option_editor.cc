@@ -722,7 +722,18 @@ private:
 			if (!was_enabled) {
 				ControlProtocolManager::instance().instantiate (*cpi);
 			} else {
+				Gtk::Window* win = r[_model.editor];
+				if (win) {
+					win->hide ();
+				}
+
 				ControlProtocolManager::instance().teardown (*cpi);
+					
+				if (win) {
+					delete win;
+				}
+				r[_model.editor] = 0;
+				cpi->requested = false;
 			}
 		}
 
@@ -903,7 +914,7 @@ RCOptionEditor::RCOptionEditor ()
 		     sigc::mem_fun (*_rc_config, &RCConfiguration::set_periodic_safety_backups)
 		     ));
 
-	add_option (_("Misc"), new OptionEditorHeading (_("Misc")));
+	add_option (_("Misc"), new OptionEditorHeading (_("Session Management")));
 
 	add_option (_("Misc"),
 	     new BoolOption (
@@ -939,6 +950,17 @@ RCOptionEditor::RCOptionEditor ()
 		     _("Click Gain Level"),
 		     sigc::mem_fun (*_rc_config, &RCConfiguration::get_click_gain),
 		     sigc::mem_fun (*_rc_config, &RCConfiguration::set_click_gain)
+		     ));
+
+	add_option (_("Misc"), new OptionEditorHeading (_("Automation")));
+
+	add_option (_("Misc"),
+	     new SpinOption<double> (
+		     "automation-thinning-factor",
+		     _("Thinning factor (larger value => less data)"),
+		     sigc::mem_fun (*_rc_config, &RCConfiguration::get_automation_thinning_factor),
+		     sigc::mem_fun (*_rc_config, &RCConfiguration::set_automation_thinning_factor),
+		     0, 1000, 1, 20
 		     ));
 
 	/* TRANSPORT */
@@ -1562,7 +1584,7 @@ RCOptionEditor::RCOptionEditor ()
 	add_option (S_("Visual|Interface"),
 		    new BoolOption (
 			    "use-own-plugin-gui",
-			    _("Use plugins' own interface instead of a builtin one"),
+			    _("Use plugins' own interfaces instead of Ardour's"),
 			    sigc::mem_fun (*_rc_config, &RCConfiguration::get_use_plugin_own_gui),
 			    sigc::mem_fun (*_rc_config, &RCConfiguration::set_use_plugin_own_gui)
 			    ));

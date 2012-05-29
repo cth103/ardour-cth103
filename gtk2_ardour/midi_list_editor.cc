@@ -180,8 +180,8 @@ MidiListEditor::scroll_event (GdkEventScroll* ev)
 	TreeViewColumn* col;
 	int cellx;
 	int celly;
-	int idelta;
-	double fdelta;
+	int idelta = 0;
+	double fdelta = 0;
 	MidiModel::NoteDiffCommand::Property prop (MidiModel::NoteDiffCommand::NoteNumber);
 	bool apply = false;
 	bool was_selected = false;
@@ -282,7 +282,7 @@ MidiListEditor::scroll_event (GdkEventScroll* ev)
 
 				previous_selection.push_back (*i);
 
-				if (iter = model->get_iter (*i)) {
+				if ((iter = model->get_iter (*i))) {
 					
 					note = (*iter)[columns._note];		
 					
@@ -445,7 +445,6 @@ MidiListEditor::key_release (GdkEventKey* ev)
 	TreeModel::Path path;
 	TreeViewColumn* col;
 	TreeModel::iterator iter;
-	TreeModel::Row row;
 	MidiModel::NoteDiffCommand* cmd;
 	boost::shared_ptr<MidiModel> m (region->midi_source(0)->model());
 	boost::shared_ptr<NoteType> note;
@@ -586,8 +585,8 @@ MidiListEditor::edited (const std::string& path, const std::string& text)
 	double fval;
 	int    ival;
 	bool   apply = false;
-	int    idelta;
-	double fdelta;
+	int    idelta = 0;
+	double fdelta = 0;
 	char*  opname;
 	switch (edit_column) {
 	case 0: // start
@@ -702,7 +701,7 @@ MidiListEditor::edited (const std::string& path, const std::string& text)
 		TreeView::Selection::ListHandle_Path rows = view.get_selection()->get_selected_rows ();
 		
 		for (TreeView::Selection::ListHandle_Path::iterator i = rows.begin(); i != rows.end(); ++i) {
-			if (iter = model->get_iter (*i)) {
+			if ((iter = model->get_iter (*i))) {
 
 				note = (*iter)[columns._note];		
 				
@@ -809,7 +808,7 @@ MidiListEditor::selection_changed ()
 	NotePlayer* player = new NotePlayer (track);
 
 	for (TreeView::Selection::ListHandle_Path::iterator i = rows.begin(); i != rows.end(); ++i) {
-		if (iter = model->get_iter (*i)) {
+		if ((iter = model->get_iter (*i))) {
 			note = (*iter)[columns._note];		
 			player->add (note);
 		}

@@ -21,20 +21,16 @@
 
 #include <algorithm>
 #include <iostream>
+#include <utility>
 
 #include <stdlib.h>
 
-#include "pbd/error.h"
-
 #include "evoral/EventList.hpp"
 
-#include "ardour/configuration.h"
 #include "ardour/debug.h"
 #include "ardour/midi_model.h"
 #include "ardour/midi_playlist.h"
 #include "ardour/midi_region.h"
-#include "ardour/midi_ring_buffer.h"
-#include "ardour/session.h"
 #include "ardour/types.h"
 
 #include "i18n.h"
@@ -107,7 +103,8 @@ MidiPlaylist::read (Evoral::EventSink<framepos_t>& dst, framepos_t start, framec
 	   its OK to block (for short intervals).
 	*/
 
-	Glib::RecMutex::Lock rm (region_lock);
+	Playlist::RegionReadLock rl (this);
+
 	DEBUG_TRACE (DEBUG::MidiPlaylistIO, string_compose ("++++++ %1 .. %2  +++++++ %3 trackers +++++++++++++++++\n", 
 							    start, start + dur, _note_trackers.size()));
 
@@ -128,13 +125,13 @@ MidiPlaylist::read (Evoral::EventSink<framepos_t>& dst, framepos_t start, framec
 		 */
 
 		switch ((*i)->coverage (start, end)) {
-		case OverlapStart:
-		case OverlapInternal:
-		case OverlapExternal:
+		case Evoral::OverlapStart:
+		case Evoral::OverlapInternal:
+		case Evoral::OverlapExternal:
 			regs.push_back (*i);
 			break;
 
-		case OverlapEnd:
+		case Evoral::OverlapEnd:
 			/* this region ends within the read range */
 			regs.push_back (*i);
 			ended.push_back (*i);
@@ -256,10 +253,7 @@ MidiPlaylist::read (Evoral::EventSink<framepos_t>& dst, framepos_t start, framec
 			} else {
 
 				if (new_tracker) {
-					pair<Region*,MidiStateTracker*> newpair;
-					newpair.first = mr.get();
-					newpair.second = tracker;
-					_note_trackers.insert (newpair).first;
+					_note_trackers.insert (make_pair (mr.get(), tracker));
 					DEBUG_TRACE (DEBUG::MidiPlaylistIO, "\tadded tracker to trackers\n");
 				}
 			}
@@ -294,7 +288,8 @@ MidiPlaylist::read (Evoral::EventSink<framepos_t>& dst, framepos_t start, framec
 void
 MidiPlaylist::clear_note_trackers ()
 {
-	Glib::RecMutex::Lock rm (region_lock);
+	Playlist::RegionWriteLock rl (this, false);
+
 	for (NoteTrackers::iterator n = _note_trackers.begin(); n != _note_trackers.end(); ++n) {
 		delete n->second;
 	}
@@ -315,26 +310,6 @@ MidiPlaylist::remove_dependents (boost::shared_ptr<Region> region)
 		_note_trackers.erase (t);
 	}
 }
-
-
-void
-MidiPlaylist::refresh_dependents (boost::shared_ptr<Region> /*r*/)
-{
-	/* MIDI regions have no dependents (crossfades) */
-}
-
-void
-MidiPlaylist::finalize_split_region (boost::shared_ptr<Region> /*original*/, boost::shared_ptr<Region> /*left*/, boost::shared_ptr<Region> /*right*/)
-{
-	/* No MIDI crossfading (yet?), so nothing to do here */
-}
-
-void
-MidiPlaylist::check_dependents (boost::shared_ptr<Region> /*r*/, bool /*norefresh*/)
-{
-	/* MIDI regions have no dependents (crossfades) */
-}
-
 
 int
 MidiPlaylist::set_state (const XMLNode& node, int version)
@@ -385,7 +360,7 @@ MidiPlaylist::destroy_region (boost::shared_ptr<Region> region)
 	bool changed = false;
 
 	{
-		RegionLock rlock (this);
+		RegionWriteLock rlock (this);
 		RegionList::iterator i;
 		RegionList::iterator tmp;
 
@@ -419,8 +394,7 @@ MidiPlaylist::contained_automation()
 	   its OK to block (for short intervals).
 	*/
 
-	Glib::RecMutex::Lock rm (region_lock);
-
+	Playlist::RegionReadLock rl (this);
 	set<Evoral::Parameter> ret;
 
 	for (RegionList::const_iterator r = regions.begin(); r != regions.end(); ++r) {

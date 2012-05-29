@@ -26,10 +26,8 @@
 
 #include <gtkmm2ext/utils.h>
 
-#include "ardour/configuration.h"
-#include "ardour/session.h"
-#include "ardour/audioengine.h"
 #include "ardour/rc_configuration.h"
+#include "ardour/session.h"
 
 #ifdef HAVE_LIBLO
 #include "ardour/osc.h"
@@ -293,7 +291,7 @@ ARDOUR_UI::toggle_editing_space()
 void
 ARDOUR_UI::setup_session_options ()
 {
-	_session->config.ParameterChanged.connect (_session_connections, MISSING_INVALIDATOR, ui_bind (&ARDOUR_UI::parameter_changed, this, _1), gui_context());
+	_session->config.ParameterChanged.connect (_session_connections, MISSING_INVALIDATOR, boost::bind (&ARDOUR_UI::parameter_changed, this, _1), gui_context());
 	boost::function<void (std::string)> pc (boost::bind (&ARDOUR_UI::parameter_changed, this, _1));
 	_session->config.map_parameters (pc);
 }

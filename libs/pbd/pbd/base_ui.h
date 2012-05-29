@@ -32,7 +32,16 @@
 #include "pbd/crossthread.h"
 #include "pbd/event_loop.h"
 
-class BaseUI : virtual public sigc::trackable, public PBD::EventLoop
+/** A BaseUI is an abstraction designed to be used with any "user
+ * interface" (not necessarily graphical) that needs to wait on
+ * events/requests and dispatch/process them as they arrive.
+ *
+ * This implementation starts up a thread that runs a Glib main loop
+ * to wait on events/requests etc. 
+ */
+
+
+class BaseUI : public sigc::trackable, public PBD::EventLoop
 {
   public:
 	BaseUI (const std::string& name);
@@ -52,7 +61,13 @@ class BaseUI : virtual public sigc::trackable, public PBD::EventLoop
 	static RequestType CallSlot;
 	static RequestType Quit;
 
+	/** start up a thread to run the main loop 
+	 */
 	void run ();
+
+	/** stop the thread running the main loop (and block
+	 *   until it exits)
+	 */
 	void quit ();
 
   protected:
@@ -61,10 +76,30 @@ class BaseUI : virtual public sigc::trackable, public PBD::EventLoop
 
 	Glib::RefPtr<Glib::MainLoop> _main_loop;
 	Glib::Thread*                 run_loop_thread;
+	Glib::Mutex                  _run_lock;
+	Glib::Cond                   _running;
+
+	/* this signals _running from within the event loop,
+	   from an idle callback 
+	*/
+
+	bool signal_running ();
+
+	/** Derived UI objects can implement thread_init()
+	 * which will be called by the event loop thread
+	 * immediately before it enters the event loop.
+	 */
 
 	virtual void thread_init () {};
+
+	/** Called when there input ready on the request_channel
+	 */
 	bool request_handler (Glib::IOCondition);
 
+	/** Derived UI objects must implement this method,
+	 * which will be called whenever there are requests
+	 * to be dealt with.
+	 */
 	virtual void handle_ui_requests () = 0;
 
   private:

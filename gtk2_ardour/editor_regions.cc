@@ -28,10 +28,9 @@
 
 #include "ardour/audioregion.h"
 #include "ardour/audiofilesource.h"
+#include "ardour/silentfilesource.h"
 #include "ardour/region_factory.h"
 #include "ardour/session.h"
-#include "ardour/session_playlists.h"
-#include "ardour/silentfilesource.h"
 #include "ardour/profile.h"
 
 #include "gtkmm2ext/choice.h"
@@ -212,11 +211,11 @@ EditorRegions::EditorRegions (Editor* e)
 
 	//ARDOUR_UI::instance()->secondary_clock.mode_changed.connect (sigc::mem_fun(*this, &Editor::redisplay_regions));
 	ARDOUR_UI::instance()->secondary_clock->mode_changed.connect (sigc::mem_fun(*this, &EditorRegions::update_all_rows));
-	ARDOUR::Region::RegionPropertyChanged.connect (region_property_connection, MISSING_INVALIDATOR, ui_bind (&EditorRegions::region_changed, this, _1, _2), gui_context());
-	ARDOUR::RegionFactory::CheckNewRegion.connect (check_new_region_connection, MISSING_INVALIDATOR, ui_bind (&EditorRegions::add_region, this, _1), gui_context());
+	ARDOUR::Region::RegionPropertyChanged.connect (region_property_connection, MISSING_INVALIDATOR, boost::bind (&EditorRegions::region_changed, this, _1, _2), gui_context());
+	ARDOUR::RegionFactory::CheckNewRegion.connect (check_new_region_connection, MISSING_INVALIDATOR, boost::bind (&EditorRegions::add_region, this, _1), gui_context());
 
-	e->EditorFreeze.connect (editor_freeze_connection, MISSING_INVALIDATOR, ui_bind (&EditorRegions::freeze_tree_model, this), gui_context());
-	e->EditorThaw.connect (editor_thaw_connection, MISSING_INVALIDATOR, ui_bind (&EditorRegions::thaw_tree_model, this), gui_context());
+	e->EditorFreeze.connect (editor_freeze_connection, MISSING_INVALIDATOR, boost::bind (&EditorRegions::freeze_tree_model, this), gui_context());
+	e->EditorThaw.connect (editor_thaw_connection, MISSING_INVALIDATOR, boost::bind (&EditorRegions::thaw_tree_model, this), gui_context());
 }
 
 bool
@@ -303,7 +302,6 @@ EditorRegions::add_region (boost::shared_ptr<Region> region)
 
 		TreeModel::iterator iter = _model->get_iter ("0");
 		TreeModel::Row parent;
-		TreeModel::Row child;
 
 		if (!iter) {
 			parent = *(_model->append());
@@ -550,7 +548,7 @@ EditorRegions::selection_changed ()
 
 		for (TreeView::Selection::ListHandle_Path::iterator i = rows.begin(); i != rows.end(); ++i) {
 
-			if (iter = _model->get_iter (*i)) {
+			if ((iter = _model->get_iter (*i))) {
 				boost::shared_ptr<Region> region = (*iter)[_columns.region];
 
 				// they could have clicked on a row that is just a placeholder, like "Hidden"

@@ -19,6 +19,8 @@
 
 #include <dlfcn.h>
 
+#include <glibmm/fileutils.h>
+
 #include "pbd/compose.h"
 #include "pbd/file_utils.h"
 #include "pbd/error.h"
@@ -26,7 +28,6 @@
 #include "control_protocol/control_protocol.h"
 
 #include "ardour/debug.h"
-#include "ardour/session.h"
 #include "ardour/control_protocol_manager.h"
 #include "ardour/control_protocol_search_path.h"
 
@@ -41,7 +42,6 @@ const string ControlProtocolManager::state_node_name = X_("ControlProtocols");
 
 ControlProtocolManager::ControlProtocolManager ()
 {
-
 }
 
 ControlProtocolManager::~ControlProtocolManager()
@@ -75,8 +75,16 @@ ControlProtocolManager::set_session (Session* s)
 				instantiate (**i);
 				(*i)->requested = false;
 
-				if ((*i)->protocol && (*i)->state) {
-					(*i)->protocol->set_state (*(*i)->state, Stateful::loading_state_version);
+				if ((*i)->protocol) {
+					if ((*i)->state) {
+						(*i)->protocol->set_state (*(*i)->state, Stateful::loading_state_version);
+					} else {
+						/* guarantee a call to
+						   set_state() whether we have
+						   existing state or not
+						*/
+						(*i)->protocol->set_state (XMLNode(""), Stateful::loading_state_version);
+					}
 				}
 			}
 		}
@@ -162,6 +170,8 @@ ControlProtocolManager::teardown (ControlProtocolInfo& cpi)
 	}
 
 	cpi.protocol = 0;
+	delete cpi.state;
+	cpi.state = 0;
 	dlclose (cpi.descriptor->module);
 	return 0;
 }
@@ -193,13 +203,13 @@ ControlProtocolManager::discover_control_protocols ()
 	Glib::PatternSpec dylib_extension_pattern("*.dylib");
 
 	find_matching_files_in_search_path (control_protocol_search_path (),
-			so_extension_pattern, cp_modules);
+					    so_extension_pattern, cp_modules);
 
 	find_matching_files_in_search_path (control_protocol_search_path (),
-			dylib_extension_pattern, cp_modules);
+					    dylib_extension_pattern, cp_modules);
 
 	DEBUG_TRACE (DEBUG::ControlProtocols, 
-		     string_compose (_("looking for control protocols in %1"), control_protocol_search_path().to_string()));
+		     string_compose (_("looking for control protocols in %1\n"), control_protocol_search_path().to_string()));
 	
 	for (vector<sys::path>::iterator i = cp_modules.begin(); i != cp_modules.end(); ++i) {
 		control_protocol_discover ((*i).to_string());
@@ -210,6 +220,15 @@ int
 ControlProtocolManager::control_protocol_discover (string path)
 {
 	ControlProtocolDescriptor* descriptor;
+
+#ifdef __APPLE__
+	/* don't load OS X shared objects that are just symlinks to the real thing.
+	 */
+
+	if (path.find (".dylib") && Glib::file_test (path, Glib::FILE_TEST_IS_SYMLINK)) {
+		return 0;
+	}
+#endif
 
 	if ((descriptor = get_descriptor (path)) != 0) {
 
@@ -312,12 +331,14 @@ ControlProtocolManager::set_state (const XMLNode& node, int /*version*/)
 			if (prop && string_is_affirmative (prop->value())) {
 				if ((prop = (*citer)->property (X_("name"))) != 0) {
 					ControlProtocolInfo* cpi = cpi_by_name (prop->value());
+
 					if (cpi) {
-						if (!(*citer)->children().empty()) {
-							cpi->state = (*citer)->children().front ();
-						} else {
-							cpi->state = 0;
+
+						if (cpi->state) {
+							delete cpi->state;
 						}
+
+						cpi->state = new XMLNode (**citer);
 
 						if (_session) {
 							instantiate (*cpi);
@@ -400,4 +421,14 @@ ControlProtocolManager::instance ()
 	}
 
 	return *_instance;
+}
+
+void
+ControlProtocolManager::midi_connectivity_established ()
+{
+	Glib::Mutex::Lock lm (protocols_lock);
+
+	for (list<ControlProtocol*>::iterator p = control_protocols.begin(); p != control_protocols.end(); ++p) {
+		(*p)->midi_connectivity_established ();
+	}
 }

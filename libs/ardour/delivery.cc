@@ -22,32 +22,27 @@
 #include "pbd/enumwriter.h"
 #include "pbd/convert.h"
 
-#include "ardour/midi_buffer.h"
-
+#include "ardour/amp.h"
+#include "ardour/audioengine.h"
+#include "ardour/buffer_set.h"
 #include "ardour/debug.h"
 #include "ardour/delivery.h"
-#include "ardour/audio_buffer.h"
-#include "ardour/audio_port.h"
-#include "ardour/amp.h"
-#include "ardour/buffer_set.h"
-#include "ardour/configuration.h"
 #include "ardour/io.h"
-#include "ardour/meter.h"
 #include "ardour/mute_master.h"
-#include "ardour/panner.h"
-#include "ardour/panner_shell.h"
 #include "ardour/pannable.h"
+#include "ardour/panner_shell.h"
 #include "ardour/port.h"
 #include "ardour/session.h"
-#include "ardour/audioengine.h"
 
 #include "i18n.h"
+
+namespace ARDOUR { class Panner; }
 
 using namespace std;
 using namespace PBD;
 using namespace ARDOUR;
 
-PBD::Signal0<int>             Delivery::PannersLegal;
+PBD::Signal0<void>            Delivery::PannersLegal;
 bool                          Delivery::panners_legal = false;
 
 /* deliver to an existing IO object */
@@ -402,7 +397,7 @@ Delivery::reset_panner ()
 	}
 }
 
-int
+void
 Delivery::panners_became_legal ()
 {
 	if (_panshell) {
@@ -414,7 +409,6 @@ Delivery::panners_became_legal ()
 	}
 
 	panner_legal_c.disconnect ();
-	return 0;
 }
 
 void
@@ -438,15 +432,15 @@ Delivery::disable_panners ()
 	return 0;
 }
 
-int
+void
 Delivery::reset_panners ()
 {
 	panners_legal = true;
-	return *PannersLegal ();
+	PannersLegal ();
 }
 
 void
-Delivery::flush_buffers (framecnt_t nframes, framepos_t time)
+Delivery::flush_buffers (framecnt_t nframes)
 {
 	/* io_lock, not taken: function must be called from Session::process() calltree */
 
@@ -457,7 +451,7 @@ Delivery::flush_buffers (framecnt_t nframes, framepos_t time)
 	PortSet& ports (_output->ports());
 
 	for (PortSet::iterator i = ports.begin(); i != ports.end(); ++i) {
-		i->flush_buffers (nframes, time);
+		i->flush_buffers (nframes);
 	}
 }
 

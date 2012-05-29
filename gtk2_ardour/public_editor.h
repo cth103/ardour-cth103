@@ -36,7 +36,6 @@
 #include <sigc++/signal.h>
 
 #include "evoral/types.hpp"
-#include "ardour/route_group.h"
 
 #include "pbd/statefuldestructible.h"
 
@@ -62,32 +61,31 @@ namespace Gtkmm2ext {
         class TearOff;
 }
 
-class Editor;
-class TimeAxisViewItem;
-class TimeAxisView;
-class PluginUIWindow;
-class PluginSelector;
-class PlaylistSelector;
-class XMLNode;
-class Selection;
-class AutomationLine;
-class ControlPoint;
-class SelectionRect;
-class CrossfadeView;
-class RouteTimeAxisView;
-class RegionView;
 class AudioRegionView;
-class TempoMarker;
-class MeterMarker;
-class Marker;
+class AutomationLine;
 class AutomationTimeAxisView;
-class MarkerTimeAxis;
-class ImageFrameView;
-class ImageFrameTimeAxis;
-class MarkerView;
+class ControlPoint;
 class DragManager;
+class Editor;
+class ImageFrameTimeAxis;
+class ImageFrameView;
+class Marker;
+class MarkerTimeAxis;
+class MarkerView;
+class MeterMarker;
 class MouseCursors;
+class PlaylistSelector;
+class PluginSelector;
+class PluginUIWindow;
+class RegionView;
+class RouteTimeAxisView;
+class Selection;
+class TempoMarker;
+class TimeAxisView;
+class TimeAxisViewItem;
 class VerboseCursor;
+class XMLNode;
+struct SelectionRect;
 
 using ARDOUR::framepos_t;
 using ARDOUR::framecnt_t;
@@ -315,7 +313,8 @@ class PublicEditor : public Gtk::Window, public PBD::StatefulDestructible {
 	virtual bool canvas_selection_rect_event (GdkEvent* event, ArdourCanvas::Item*, SelectionRect*) = 0;
 	virtual bool canvas_selection_start_trim_event (GdkEvent* event, ArdourCanvas::Item*, SelectionRect*) = 0;
 	virtual bool canvas_selection_end_trim_event (GdkEvent* event, ArdourCanvas::Item*, SelectionRect*) = 0;
-	virtual bool canvas_crossfade_view_event (GdkEvent* event, ArdourCanvas::Item*, CrossfadeView*) = 0;
+	virtual bool canvas_start_xfade_event (GdkEvent* event, ArdourCanvas::Item*, AudioRegionView*) = 0;
+	virtual bool canvas_end_xfade_event (GdkEvent* event, ArdourCanvas::Item*, AudioRegionView*) = 0;
 	virtual bool canvas_fade_in_event (GdkEvent* event, ArdourCanvas::Item*, AudioRegionView*) = 0;
 	virtual bool canvas_fade_in_handle_event (GdkEvent* event, ArdourCanvas::Item*, AudioRegionView*) = 0;
 	virtual bool canvas_fade_out_event (GdkEvent* event, ArdourCanvas::Item*, AudioRegionView*) = 0;

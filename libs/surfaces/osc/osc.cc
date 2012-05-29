@@ -29,7 +29,6 @@
 #include <fcntl.h>
 
 #include <glibmm/miscutils.h>
-#include <boost/signals2.hpp>
 
 #include <pbd/pthread_utils.h>
 #include <pbd/file_utils.h>
@@ -56,8 +55,6 @@ using namespace Glib;
 
 #include "pbd/abstract_ui.cc" // instantiate template
 
-#define ui_bind(f, ...) boost::protect (boost::bind (f, __VA_ARGS__))
-
 OSC* OSC::_instance = 0;
 
 #ifdef DEBUG
@@ -73,7 +70,7 @@ static void error_callback(int, const char *, const char *)
 #endif
 
 OSC::OSC (Session& s, uint32_t port)
-	: ControlProtocol (s, "OSC", this)
+	: ControlProtocol (s, "OSC")
 	, AbstractUI<OSCUIRequest> ("osc")
 	, _port(port)
 {
@@ -90,7 +87,7 @@ OSC::OSC (Session& s, uint32_t port)
 
 	// "Application Hooks"
 	session_loaded (s);
-	session->Exported.connect (*this, MISSING_INVALIDATOR, ui_bind (&OSC::session_exported, this, _1, _2), this);
+	session->Exported.connect (*this, MISSING_INVALIDATOR, boost::bind (&OSC::session_exported, this, _1, _2), this);
 }
 
 OSC::~OSC()
@@ -194,8 +191,7 @@ OSC::start ()
 
 	PBD::sys::path url_file;
 
-	if (find_file_in_search_path (ardour_search_path() + system_config_search_path(),
-				      "osc_url", url_file)) {
+	if (find_file_in_search_path (ardour_config_search_path(), "osc_url", url_file)) {
 		
 		_osc_url_file = url_file.to_string();
 		ofstream urlfile;

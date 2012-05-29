@@ -33,12 +33,6 @@
 #include <gtkmm2ext/utils.h>
 #include <gtkmm2ext/selector.h>
 
-#include "ardour/session.h"
-#include "ardour/utils.h"
-#include "ardour/ladspa_plugin.h"
-#include "ardour/processor.h"
-#include "ardour/location.h"
-
 #include "ardour_ui.h"
 #include "global_signals.h"
 #include "gui_thread.h"
@@ -177,7 +171,7 @@ TimeAxisView::TimeAxisView (ARDOUR::Session* sess, PublicEditor& ed, TimeAxisVie
 
 	ColorsChanged.connect (sigc::mem_fun (*this, &TimeAxisView::color_handler));
 
-	GhostRegion::CatchDeletion.connect (*this, invalidator (*this), ui_bind (&TimeAxisView::erase_ghost, this, _1), gui_context());
+	GhostRegion::CatchDeletion.connect (*this, invalidator (*this), boost::bind (&TimeAxisView::erase_ghost, this, _1), gui_context());
 }
 
 TimeAxisView::~TimeAxisView()
@@ -496,16 +490,6 @@ TimeAxisView::step_height (bool coarser)
 }
 
 void
-TimeAxisView::set_heights (uint32_t h)
-{
-	TrackSelection& ts (_editor.get_selection().tracks);
-
-	for (TrackSelection::iterator i = ts.begin(); i != ts.end(); ++i) {
-		(*i)->set_height (h);
-	}
-}
-
-void
 TimeAxisView::set_height_enum (Height h, bool apply_to_selection)
 {
 	if (apply_to_selection) {
@@ -780,10 +764,10 @@ TimeAxisView::set_samples_per_unit (double spu)
 }
 
 void
-TimeAxisView::show_timestretch (framepos_t start, framepos_t end)
+TimeAxisView::show_timestretch (framepos_t start, framepos_t end, int layers, int layer)
 {
 	for (Children::iterator i = children.begin(); i != children.end(); ++i) {
-		(*i)->show_timestretch (start, end);
+		(*i)->show_timestretch (start, end, layers, layer);
 	}
 }
 

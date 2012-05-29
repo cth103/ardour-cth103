@@ -53,6 +53,8 @@ class LV2PluginUI : public PlugUIBase, public Gtk::VBox
 
 	gint get_preferred_height ();
 	gint get_preferred_width ();
+	bool resizable ();
+
 	bool start_updating(GdkEventAny*);
 	bool stop_updating(GdkEventAny*);
 
@@ -91,6 +93,12 @@ class LV2PluginUI : public PlugUIBase, public Gtk::VBox
 	                        uint32_t    buffer_size,
 	                        uint32_t    format,
 	                        const void* buffer);
+
+	static uint32_t port_index(void* controller, const char* symbol);
+
+	static void touch(void*    controller,
+	                  uint32_t port_index,
+	                  bool     grabbed);
 
 	void update_timeout();
 

@@ -38,22 +38,22 @@
 #include "gtkmm2ext/bindable_button.h"
 #include "gtkmm2ext/utils.h"
 
-#include "ardour/file_source.h"
-#include "ardour/ladspa_plugin.h"
-#include "ardour/location.h"
-#include "ardour/midi_diskstream.h"
+#include "ardour/event_type_map.h"
 #include "ardour/midi_patch_manager.h"
 #include "ardour/midi_playlist.h"
 #include "ardour/midi_region.h"
 #include "ardour/midi_source.h"
+#include "ardour/midi_track.h"
 #include "ardour/operations.h"
 #include "ardour/playlist.h"
-#include "ardour/processor.h"
+#include "ardour/region.h"
 #include "ardour/region_factory.h"
+#include "ardour/route.h"
 #include "ardour/session.h"
-#include "ardour/session_playlist.h"
-#include "ardour/tempo.h"
-#include "ardour/utils.h"
+#include "ardour/session_object.h"
+#include "ardour/source.h"
+#include "ardour/track.h"
+#include "ardour/types.h"
 
 #include "midi++/names.h"
 
@@ -63,7 +63,6 @@
 #include "automation_time_axis.h"
 #include "canvas-note-event.h"
 #include "canvas_impl.h"
-#include "crossfade_view.h"
 #include "editor.h"
 #include "enums.h"
 #include "ghostregion.h"
@@ -160,7 +159,7 @@ MidiTimeAxisView::set_route (boost::shared_ptr<Route> rt)
 
 	processors_changed (RouteProcessorChange ());
 
-	_route->processors_changed.connect (*this, invalidator (*this), ui_bind (&MidiTimeAxisView::processors_changed, this, _1), gui_context());
+	_route->processors_changed.connect (*this, invalidator (*this), boost::bind (&MidiTimeAxisView::processors_changed, this, _1), gui_context());
 
 	if (is_track()) {
 		_piano_roll_header->SetNoteSelection.connect (sigc::mem_fun (*this, &MidiTimeAxisView::set_note_selection));
@@ -314,7 +313,6 @@ MidiTimeAxisView::model_changed()
 
 	for (std::list<std::string>::const_iterator i = device_modes.begin();
 			i != device_modes.end(); ++i) {
-		cerr << "found custom device mode " << *i << " thread_id: " << pthread_self() << endl;
 		_custom_device_mode_selector.append_text(*i);
 	}
 
@@ -863,7 +861,6 @@ void
 MidiTimeAxisView::create_automation_child (const Evoral::Parameter& param, bool show)
 {
 	if (param.type() == NullAutomation) {
-		cerr << "WARNING: Attempt to create NullAutomation child, ignoring" << endl;
 		return;
 	}
 
@@ -875,8 +872,6 @@ MidiTimeAxisView::create_automation_child (const Evoral::Parameter& param, bool 
 		 * the processor, but visibility may need to be controlled
 		 * since it will have been set visible by default.
 		 */
-
-		cerr << "show existing auto track: " << show << " noredraw " << no_redraw << endl;
 
 		if (existing->second->set_marked_for_display (show) && !no_redraw) {
 			request_redraw ();

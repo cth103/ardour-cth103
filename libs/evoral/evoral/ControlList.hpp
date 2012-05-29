@@ -26,6 +26,7 @@
 #include <glibmm/thread.h>
 #include "pbd/signals.h"
 #include "evoral/types.hpp"
+#include "evoral/Range.hpp"
 #include "evoral/Parameter.hpp"
 
 namespace Evoral {
@@ -34,7 +35,8 @@ class Curve;
 
 /** A single event (time-stamped value) for a control
  */
-struct ControlEvent {
+class ControlEvent {
+public:
 	ControlEvent (double w, double v)
 		: when (w), value (v), coeff (0)
 	{}
@@ -94,6 +96,7 @@ public:
 
 	ControlList& operator= (const ControlList&);
 	bool operator== (const ControlList&);
+        void copy_events (const ControlList&);
 
 	virtual void freeze();
 	virtual void thaw ();
@@ -103,6 +106,10 @@ public:
 	void             set_parameter(const Parameter& p) { _parameter = p; }
 
 	EventList::size_type size() const { return _events.size(); }
+        double length() const { 		
+		Glib::Mutex::Lock lm (_lock);
+		return _events.empty() ? 0.0 : _events.back()->when;
+	}
 	bool empty() const { return _events.empty(); }
 
 	void reset_default (double val) {
@@ -122,7 +129,6 @@ public:
 	void fast_simple_add (double when, double value);
 	void merge_nascent (double when);
 
-	void reset_range (double start, double end);
 	void erase_range (double start, double end);
 	void erase (iterator);
 	void erase (iterator, iterator);
@@ -164,9 +170,6 @@ public:
 		Glib::Mutex::Lock lm (_lock);
 		(obj.*method)(*this);
 	}
-
-	void set_max_xval (double);
-	double get_max_xval() const { return _max_xval; }
 
 	double eval (double where) {
 		Glib::Mutex::Lock lm (_lock);
@@ -249,6 +252,9 @@ public:
 	/** Emitted when our interpolation style changes */
 	PBD::Signal1<void, InterpolationStyle> InterpolationChanged;
 
+        static void set_thinning_factor (double d);
+        static double thinning_factor() { return _thinning_factor; }
+
 protected:
 
 	/** Called by unlocked_eval() to handle cases of 3 or more control points. */
@@ -272,7 +278,6 @@ protected:
 	mutable Glib::Mutex   _lock;
 	int8_t                _frozen;
 	bool                  _changed_when_thawed;
-	double                _max_xval;
 	double                _min_yval;
 	double                _max_yval;
 	double                _default_value;
@@ -292,6 +297,7 @@ protected:
 	};
 
 	std::list<NascentInfo*> nascent;
+        static double _thinning_factor;
 };
 
 } // namespace Evoral

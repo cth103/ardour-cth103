@@ -31,7 +31,6 @@
 
 #include "gtkmm2ext/rgb_macros.h"
 
-#include "ardour/ardour.h"
 #include "ardour/filesystem_paths.h"
 
 #include "ui_config.h"
@@ -75,8 +74,7 @@ UIConfiguration::load_defaults ()
 		rcfile = "ardour3_ui_default.conf";
 	}
 
-	if (find_file_in_search_path (ardour_search_path() + system_config_search_path(),
-				      rcfile, default_ui_rc_file) ) {
+	if (find_file_in_search_path (ardour_config_search_path(), rcfile, default_ui_rc_file) ) {
 		XMLTree tree;
 		found = 1;
 
@@ -107,8 +105,7 @@ UIConfiguration::load_state ()
 
 	sys::path default_ui_rc_file;
 
-	if ( find_file_in_search_path (ardour_search_path() + system_config_search_path(),
-			"ardour3_ui_default.conf", default_ui_rc_file) ) {
+	if ( find_file_in_search_path (ardour_config_search_path(), "ardour3_ui_default.conf", default_ui_rc_file)) {
 		XMLTree tree;
 		found = true;
 
@@ -129,8 +126,7 @@ UIConfiguration::load_state ()
 
 	sys::path user_ui_rc_file;
 
-	if (find_file_in_search_path (ardour_search_path() + user_config_directory(),
-			"ardour3_ui.conf", user_ui_rc_file)) {
+	if (find_file_in_search_path (ardour_config_search_path(), "ardour3_ui.conf", user_ui_rc_file)) {
 		XMLTree tree;
 		found = true;
 

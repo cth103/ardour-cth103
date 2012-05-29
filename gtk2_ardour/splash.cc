@@ -22,7 +22,7 @@ Splash::Splash ()
 {
 	sys::path splash_file;
 
-	if (!find_file_in_search_path (ardour_search_path() + system_data_search_path(), "splash.png", splash_file)) {
+	if (!find_file_in_search_path (ardour_data_search_path(), "splash.png", splash_file)) {
 		throw failed_constructor();
 	}
 
@@ -56,7 +56,7 @@ Splash::Splash ()
 	set_default_size (pixbuf->get_width(), pixbuf->get_height());
 	the_splash = this;
 
-	ARDOUR::BootMessage.connect (msg_connection, invalidator (*this), ui_bind (&Splash::boot_message, this, _1), gui_context());
+	ARDOUR::BootMessage.connect (msg_connection, invalidator (*this), boost::bind (&Splash::boot_message, this, _1), gui_context());
 }
 
 void

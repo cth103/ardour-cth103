@@ -59,14 +59,13 @@ class AutomationLine : public sigc::trackable, public PBD::StatefulDestructible
   public:
 	AutomationLine (const std::string& name, TimeAxisView&, ArdourCanvas::Group&,
 			boost::shared_ptr<ARDOUR::AutomationList>,
-			const Evoral::TimeConverter<double, ARDOUR::framepos_t>* converter = 0);
+			Evoral::TimeConverter<double, ARDOUR::framepos_t>* converter = 0);
 	virtual ~AutomationLine ();
 
 	void queue_reset ();
 	void reset ();
 	void clear ();
 
-	std::list<ControlPoint*> point_selection_to_control_points (PointSelection const &);
 	void set_selected_points (PointSelection const &);
 	void get_selectables (ARDOUR::framepos_t, ARDOUR::framepos_t, double, double, std::list<Selectable*>&);
 	void get_inverted_selectables (Selection&, std::list<Selectable*>& results);
@@ -129,13 +128,10 @@ class AutomationLine : public sigc::trackable, public PBD::StatefulDestructible
 
 	void modify_point_y (ControlPoint&, double);
 
-	void add_always_in_view (double);
-	void clear_always_in_view ();
-
 	virtual MementoCommandBinder<ARDOUR::AutomationList>* memento_command_binder ();
 
 	const Evoral::TimeConverter<double, ARDOUR::framepos_t>& time_converter () const {
-		return _time_converter;
+		return *_time_converter;
 	}
 
 	std::pair<ARDOUR::framepos_t, ARDOUR::framepos_t> get_point_x_range () const;
@@ -148,6 +144,8 @@ class AutomationLine : public sigc::trackable, public PBD::StatefulDestructible
 	void set_offset (ARDOUR::framecnt_t);
 	void set_width (ARDOUR::framecnt_t);
 
+	framepos_t session_position (ARDOUR::AutomationList::const_iterator) const;
+
   protected:
 
 	std::string    _name;
@@ -155,6 +153,9 @@ class AutomationLine : public sigc::trackable, public PBD::StatefulDestructible
 	uint32_t  _line_color;
 
 	boost::shared_ptr<ARDOUR::AutomationList> alist;
+	Evoral::TimeConverter<double, ARDOUR::framepos_t>* _time_converter;
+	/** true if _time_converter belongs to us (ie we should delete it on destruction) */
+	bool _our_time_converter;
 
 	bool    _visible                  : 1;
 	bool    _uses_gain_mapping        : 1;
@@ -171,20 +172,8 @@ class AutomationLine : public sigc::trackable, public PBD::StatefulDestructible
 	ArdourCanvas::Points        line_points; /* coordinates for canvas line */
 	std::vector<ControlPoint*>  control_points; /* visible control points */
 
-	struct ALPoint {
-	    double x;
-	    double y;
-	    ALPoint (double xx, double yy) : x(xx), y(yy) {}
-	};
-
-	typedef std::vector<ALPoint> ALPoints;
-
-	static void invalidate_point (ALPoints&, uint32_t index);
-	static bool invalid_point (ALPoints&, uint32_t index);
-
-	void determine_visible_control_points (ALPoints &, int);
-	void sync_model_with_view_point (ControlPoint&, bool, int64_t);
-	void sync_model_with_view_points (std::list<ControlPoint*>, bool, int64_t);
+	void sync_model_with_view_point (ControlPoint&, ARDOUR::framecnt_t);
+	void sync_model_with_view_points (std::list<ControlPoint*>, ARDOUR::framecnt_t);
 	void start_drag_common (double, float);
 
 	virtual void change_model (ARDOUR::AutomationList::iterator, double x, double y);
@@ -199,36 +188,18 @@ class AutomationLine : public sigc::trackable, public PBD::StatefulDestructible
 	std::list<ControlPoint*> _push_points; ///< additional points we are dragging if "push" is enabled
 	bool _drag_had_movement; ///< true if the drag has seen movement, otherwise false
 	double _drag_x; ///< last x position of the drag, in units
-	double _drag_distance; ///< total x movement of the drag, in units
+	double _drag_distance; ///< total x movement of the drag, in canvas units
 	double _last_drag_fraction; ///< last y position of the drag, as a fraction
-	std::list<double> _always_in_view;
 	/** offset from the start of the automation list to the start of the line, so that
 	 *  a +ve offset means that the 0 on the line is at _offset in the list
 	 */
 	ARDOUR::framecnt_t _offset;
-
-	const Evoral::TimeConverter<double, ARDOUR::framepos_t>& _time_converter;
 
 	void reset_line_coords (ControlPoint&);
 	void add_visible_control_point (uint32_t, uint32_t, double, double, ARDOUR::AutomationList::iterator, uint32_t);
 	double control_point_box_size ();
 	void connect_to_list ();
 	void interpolation_changed (ARDOUR::AutomationList::InterpolationStyle);
-
-	struct ModelRepresentation {
-	    ARDOUR::AutomationList::iterator start;
-	    ARDOUR::AutomationList::iterator end;
-	    double xpos;
-	    double ypos;
-	    double xmin;
-	    double ymin;
-	    double xmax;
-	    double ymax;
-	    double xval;
-	    double yval;
-	};
-
-	void model_representation (ControlPoint&, ModelRepresentation&);
 
 	PBD::ScopedConnectionList _list_connections;
 

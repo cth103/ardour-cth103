@@ -26,6 +26,7 @@
 #include <sstream>
 
 #include "pbd/compose.h"
+#include "pbd/failed_constructor.h"
 
 #include "ardour/buffer.h"
 #include "ardour/buffer_set.h"
@@ -33,7 +34,6 @@
 #include "ardour/midi_buffer.h"
 #include "ardour/port.h"
 #include "ardour/port_set.h"
-#include "ardour/audioengine.h"
 #ifdef LV2_SUPPORT
 #include "ardour/lv2_plugin.h"
 #include "lv2_evbuf.h"
@@ -269,7 +269,7 @@ BufferSet::get_lv2_midi(bool input, size_t i, bool old_api)
 		                           mbuf.size(), (void*) mbuf.data()));
 		
 		LV2_Evbuf_Iterator i    = lv2_evbuf_begin(evbuf);
-		const uint32_t     type = LV2Plugin::midi_event_type(old_api);
+		const uint32_t     type = LV2Plugin::midi_event_type();
 		for (MidiBuffer::iterator e = mbuf.begin(); e != mbuf.end(); ++e) {
 			const Evoral::MIDIEvent<framepos_t> ev(*e, false);
 #ifndef NDEBUG

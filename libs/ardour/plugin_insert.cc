@@ -35,8 +35,6 @@
 #include "ardour/ladspa_plugin.h"
 #include "ardour/plugin.h"
 #include "ardour/plugin_insert.h"
-#include "ardour/port.h"
-#include "ardour/route.h"
 
 #ifdef LV2_SUPPORT
 #include "ardour/lv2_plugin.h"
@@ -54,7 +52,6 @@
 #include "ardour/audio_unit.h"
 #endif
 
-#include "ardour/audioengine.h"
 #include "ardour/session.h"
 #include "ardour/types.h"
 
@@ -138,12 +135,14 @@ PluginInsert::output_streams() const
 {
 	assert (!_plugins.empty());
 
-	if (_plugins.front()->reconfigurable_io()) {
+	PluginInfoPtr info = _plugins.front()->get_info();
+
+	if (info->reconfigurable_io()) {
 		ChanCount out = _plugins.front()->output_streams ();
 		// DEBUG_TRACE (DEBUG::Processors, string_compose ("Plugin insert, reconfigur(able) output streams = %1\n", out));
 		return out;
 	} else {
-		ChanCount out = _plugins.front()->get_info()->n_outputs;
+		ChanCount out = info->n_outputs;
 		// DEBUG_TRACE (DEBUG::Processors, string_compose ("Plugin insert, static output streams = %1 for %2 plugins\n", out, _plugins.size()));
 		out.set_audio (out.n_audio() * _plugins.size());
 		out.set_midi (out.n_midi() * _plugins.size());
@@ -158,11 +157,13 @@ PluginInsert::input_streams() const
 
 	ChanCount in;
 
-	if (_plugins.front()->reconfigurable_io()) {
+	PluginInfoPtr info = _plugins.front()->get_info();
+
+	if (info->reconfigurable_io()) {
 		assert (_plugins.size() == 1);
 		in = _plugins.front()->input_streams();
 	} else {
-		in = _plugins[0]->get_info()->n_inputs;
+		in = info->n_inputs;
 	}
 
 	DEBUG_TRACE (DEBUG::Processors, string_compose ("Plugin insert, input streams = %1, match using %2\n", in, _match.method));
@@ -340,9 +341,12 @@ PluginInsert::connect_and_run (BufferSet& bufs, pframes_t nframes, framecnt_t of
 
 		/* copy the first stream's buffer contents to the others */
 		/* XXX: audio only */
-		Sample const * mono = bufs.get_audio (in_map.get (DataType::AUDIO, 0, &valid)).data (offset);
-		for (uint32_t i = in_streams.n_audio(); i < natural_input_streams().n_audio(); ++i) {
-			memcpy (bufs.get_audio (in_map.get (DataType::AUDIO, i, &valid)).data (offset), mono, sizeof (Sample) * nframes);
+		uint32_t first_idx = in_map.get (DataType::AUDIO, 0, &valid);
+		if (valid) {
+			Sample const * mono = bufs.get_audio (first_idx).data (offset);
+			for (uint32_t i = in_streams.n_audio(); i < natural_input_streams().n_audio(); ++i) {
+				memcpy (bufs.get_audio (in_map.get (DataType::AUDIO, i, &valid)).data (offset), mono, sizeof (Sample) * nframes);
+			}
 		}
 	}
 
@@ -709,7 +713,9 @@ PluginInsert::can_support_io_configuration (const ChanCount& in, ChanCount& out)
 PluginInsert::Match
 PluginInsert::private_can_support_io_configuration (ChanCount const & in, ChanCount& out) const
 {
-	if (_plugins.front()->reconfigurable_io()) {
+	PluginInfoPtr info = _plugins.front()->get_info();
+
+	if (info->reconfigurable_io()) {
 		/* Plugin has flexible I/O, so delegate to it */
 		bool const r = _plugins.front()->can_support_io_configuration (in, out);
 		if (!r) {
@@ -719,8 +725,8 @@ PluginInsert::private_can_support_io_configuration (ChanCount const & in, ChanCo
 		return Match (Delegate, 1);
 	}
 
-	ChanCount inputs  = _plugins[0]->get_info()->n_inputs;
-	ChanCount outputs = _plugins[0]->get_info()->n_outputs;
+	ChanCount inputs  = info->n_inputs;
+	ChanCount outputs = info->n_outputs;
 
 	bool no_inputs = true;
 	for (DataType::iterator t = DataType::begin(); t != DataType::end(); ++t) {

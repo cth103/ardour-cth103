@@ -26,8 +26,6 @@
 #include <gtkmm2ext/gtk_ui.h>
 
 #include "ardour/playlist.h"
-#include "ardour/audioregion.h"
-#include "ardour/audiosource.h"
 #include "ardour/session.h"
 
 #include "ardour_ui.h"
@@ -86,7 +84,7 @@ RegionView::RegionView (ArdourCanvas::Group*              parent,
 	, _region_relative_time_converter(r->session().tempo_map(), r->position())
 	, _source_relative_time_converter(r->session().tempo_map(), r->position() - r->start())
 {
-	GhostRegion::CatchDeletion.connect (*this, invalidator (*this), ui_bind (&RegionView::remove_ghost, this, _1), gui_context());
+	GhostRegion::CatchDeletion.connect (*this, invalidator (*this), boost::bind (&RegionView::remove_ghost, this, _1), gui_context());
 }
 
 RegionView::RegionView (const RegionView& other)
@@ -103,7 +101,7 @@ RegionView::RegionView (const RegionView& other)
 	valid = false;
 	_pixel_width = other._pixel_width;
 
-	GhostRegion::CatchDeletion.connect (*this, invalidator (*this), ui_bind (&RegionView::remove_ghost, this, _1), gui_context());
+	GhostRegion::CatchDeletion.connect (*this, invalidator (*this), boost::bind (&RegionView::remove_ghost, this, _1), gui_context());
 }
 
 RegionView::RegionView (const RegionView& other, boost::shared_ptr<Region> other_region)
@@ -124,7 +122,7 @@ RegionView::RegionView (const RegionView& other, boost::shared_ptr<Region> other
 	valid = false;
 	_pixel_width = other._pixel_width;
 
-	GhostRegion::CatchDeletion.connect (*this, invalidator (*this), ui_bind (&RegionView::remove_ghost, this, _1), gui_context());
+	GhostRegion::CatchDeletion.connect (*this, invalidator (*this), boost::bind (&RegionView::remove_ghost, this, _1), gui_context());
 }
 
 RegionView::RegionView (ArdourCanvas::Group*         parent,
@@ -195,7 +193,7 @@ RegionView::init (Gdk::Color const & basic_color, bool wfd)
 
 	set_height (trackview.current_height());
 
-	_region->PropertyChanged.connect (*this, invalidator (*this), ui_bind (&RegionView::region_changed, this, _1), gui_context());
+	_region->PropertyChanged.connect (*this, invalidator (*this), boost::bind (&RegionView::region_changed, this, _1), gui_context());
 
 	group->signal_event().connect (sigc::bind (sigc::mem_fun (PublicEditor::instance(), &PublicEditor::canvas_region_view_event), group, this));
 

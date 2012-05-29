@@ -52,7 +52,8 @@ using namespace Gtkmm2ext;
 
 Pango::FontDescription TimeAxisViewItem::NAME_FONT;
 const double TimeAxisViewItem::NAME_X_OFFSET = 15.0;
-const double TimeAxisViewItem::GRAB_HANDLE_LENGTH = 6;
+const double TimeAxisViewItem::GRAB_HANDLE_TOP = 6;
+const double TimeAxisViewItem::GRAB_HANDLE_WIDTH = 5;
 
 int    TimeAxisViewItem::NAME_HEIGHT;
 double TimeAxisViewItem::NAME_Y_OFFSET;
@@ -102,6 +103,7 @@ TimeAxisViewItem::TimeAxisViewItem(
 	, _height (1.0)
 	, _recregion (recording)
 	, _automation (automation)
+	, _dragging (false)
 {
 	group = new ArdourCanvas::Group (parent);
 
@@ -115,6 +117,7 @@ TimeAxisViewItem::TimeAxisViewItem (const TimeAxisViewItem& other)
 	, trackview (other.trackview)
 	, _recregion (other._recregion)
 	, _automation (other._automation)
+	, _dragging (other._dragging)
 {
 
 	Gdk::Color c;
@@ -131,10 +134,8 @@ TimeAxisViewItem::TimeAxisViewItem (const TimeAxisViewItem& other)
 
 	_selected = other._selected;
 
-	init (
-		other.item_name, other.samples_per_unit, c, other.frame_position,
-		other.item_duration, other.visibility, other.wide_enough_for_name, other.high_enough_for_name
-		);
+	init (other.item_name, other.samples_per_unit, c, other.frame_position,
+	      other.item_duration, other.visibility, other.wide_enough_for_name, other.high_enough_for_name);
 }
 
 void
@@ -215,9 +216,12 @@ TimeAxisViewItem::init (
 
 	/* create our grab handles used for trimming/duration etc */
 	if (!_recregion && !_automation) {
-		frame_handle_start = new ArdourCanvas::SimpleRect (*group, 0.0, TimeAxisViewItem::GRAB_HANDLE_LENGTH, 5.0, trackview.current_height());
+		double top   = TimeAxisViewItem::GRAB_HANDLE_TOP;
+		double width = TimeAxisViewItem::GRAB_HANDLE_WIDTH;
+
+		frame_handle_start = new ArdourCanvas::SimpleRect (*group, 0.0, top, width, trackview.current_height());
 		frame_handle_start->property_outline_what() = 0x0;
-		frame_handle_end = new ArdourCanvas::SimpleRect (*group, 0.0, TimeAxisViewItem::GRAB_HANDLE_LENGTH, 5.0, trackview.current_height());
+		frame_handle_end = new ArdourCanvas::SimpleRect (*group, 0.0, top, width, trackview.current_height());
 		frame_handle_end->property_outline_what() = 0x0;
 	} else {
 		frame_handle_start = frame_handle_end = 0;
@@ -228,7 +232,7 @@ TimeAxisViewItem::init (
 	set_duration (item_duration, this);
 	set_position (start, this);
 
-	Config->ParameterChanged.connect (*this, invalidator (*this), ui_bind (&TimeAxisViewItem::parameter_changed, this, _1), gui_context ());
+	Config->ParameterChanged.connect (*this, invalidator (*this), boost::bind (&TimeAxisViewItem::parameter_changed, this, _1), gui_context ());
 }
 
 TimeAxisViewItem::~TimeAxisViewItem()
@@ -321,7 +325,7 @@ TimeAxisViewItem::get_position() const
  */
 
 bool
-TimeAxisViewItem::set_duration (framepos_t dur, void* src)
+TimeAxisViewItem::set_duration (framecnt_t dur, void* src)
 {
 	if ((dur > max_item_duration) || (dur < min_item_duration)) {
 		warning << string_compose (_("new duration %1 frames is out of bounds for %2"), get_item_name(), dur)
@@ -807,14 +811,6 @@ TimeAxisViewItem::set_samples_per_unit (double spu)
 void
 TimeAxisViewItem::reset_width_dependent_items (double pixel_width)
 {
-	if (pixel_width < GRAB_HANDLE_LENGTH * 2) {
-
-		if (frame_handle_start) {
-			frame_handle_start->hide();
-			frame_handle_end->hide();
-		}
-
-	}
 
 	if (pixel_width < 2.0) {
 
@@ -862,14 +858,20 @@ TimeAxisViewItem::reset_width_dependent_items (double pixel_width)
 		}
 
 		if (frame_handle_start) {
-			if (pixel_width < (2*TimeAxisViewItem::GRAB_HANDLE_LENGTH)) {
+			if (pixel_width < (3 * TimeAxisViewItem::GRAB_HANDLE_WIDTH)) {
+				/*
+				 * there's less than GRAB_HANDLE_WIDTH of the region between 
+				 * the right-hand end of frame_handle_start and the left-hand
+				 * end of frame_handle_end, so disable the handles
+				 */
 				frame_handle_start->hide();
 				frame_handle_end->hide();
+			} else {
+				frame_handle_start->show();
+				frame_handle_end->property_x1() = pixel_width - (TimeAxisViewItem::GRAB_HANDLE_WIDTH);
+				frame_handle_end->property_x2() = pixel_width;
+				frame_handle_end->show();
 			}
-			frame_handle_start->show();
-			frame_handle_end->property_x1() = pixel_width - (TimeAxisViewItem::GRAB_HANDLE_LENGTH);
-			frame_handle_end->show();
-			frame_handle_end->property_x2() = pixel_width;
 		}
 
 		wide_enough_for_name = true;
@@ -914,9 +916,12 @@ TimeAxisViewItem::reset_name_width (double /*pixel_width*/)
 	}
 
 	update_name_pixbuf_visibility ();
-	if (pb_width > 0) {
-		name_pixbuf->property_pixbuf() = pixbuf_from_string(item_name, NAME_FONT, pb_width, NAME_HEIGHT, Gdk::Color ("#000000"));
+
+	if (pb_width < 1) {
+		pb_width = 1;
 	}
+
+	name_pixbuf->property_pixbuf() = pixbuf_from_string(item_name, NAME_FONT, pb_width, NAME_HEIGHT, Gdk::Color ("#000000"));
 }
 
 /**

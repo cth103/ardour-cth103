@@ -25,6 +25,7 @@
 #include <glibmm/thread.h>
 
 #include "pbd/id.h"
+#include "pbd/property_list.h"
 #include "pbd/signals.h"
 
 #include "ardour/types.h"
@@ -83,8 +84,7 @@ public:
 	static void get_regions_using_source (boost::shared_ptr<Source>, std::set<boost::shared_ptr<Region> >& );
 	static void remove_regions_using_source (boost::shared_ptr<Source>);
 
-	static void map_remove (boost::shared_ptr<Region>);
-	static void map_remove_with_equivalents (boost::shared_ptr<Region>);
+	static void map_remove (boost::weak_ptr<Region>);
 	static void delete_all_regions ();
 	static const RegionMap& regions() { return region_map; }
 	static uint32_t nregions ();
@@ -111,6 +111,13 @@ public:
 
 	static void add_compound_association (boost::shared_ptr<Region>, boost::shared_ptr<Region>);
 
+	/* exposed because there may be cases where regions are created with
+	 * announce=false but they still need to be in the map soon after
+	 * creation.
+	 */
+	 
+	static void map_add (boost::shared_ptr<Region>);
+
   private:
 
 	static void region_changed (PBD::PropertyChange const &, boost::weak_ptr<Region>);
@@ -118,14 +125,13 @@ public:
 	static Glib::StaticMutex region_map_lock;
 
 	static RegionMap region_map;
-	static void map_add (boost::shared_ptr<Region>);
 
 	static Glib::StaticMutex region_name_map_lock;
 
 	static std::map<std::string, uint32_t> region_name_map;
 	static void update_region_name_map (boost::shared_ptr<Region>);
 
-	static PBD::ScopedConnectionList region_list_connections;
+	static PBD::ScopedConnectionList* region_list_connections;
 	static CompoundAssociations _compound_associations;
 };
 

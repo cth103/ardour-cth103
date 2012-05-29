@@ -38,11 +38,8 @@
 #include "pbd/stateful_diff_command.h"
 #include "pbd/stacktrace.h"
 
-#include "ardour/ardour.h"
 #include "ardour/audioengine.h"
 #include "ardour/butler.h"
-#include "ardour/configuration.h"
-#include "ardour/cycle_timer.h"
 #include "ardour/debug.h"
 #include "ardour/io.h"
 #include "ardour/midi_diskstream.h"
@@ -52,11 +49,10 @@
 #include "ardour/midi_region.h"
 #include "ardour/playlist_factory.h"
 #include "ardour/region_factory.h"
-#include "ardour/route.h"
-#include "ardour/send.h"
 #include "ardour/session.h"
 #include "ardour/session_playlists.h"
 #include "ardour/smf_source.h"
+#include "ardour/types.h"
 #include "ardour/utils.h"
 
 #include "midi++/types.h"
@@ -339,7 +335,7 @@ MidiDiskstream::process (framepos_t transport_frame, pframes_t nframes, framecnt
 	adjust_capture_position = 0;
 
 	if (nominally_recording || (re && was_recording && _session.get_record_enabled() && _session.config.get_punch_in())) {
-		OverlapType ot = coverage (first_recordable_frame, last_recordable_frame, transport_frame, transport_frame + nframes);
+		Evoral::OverlapType ot = Evoral::coverage (first_recordable_frame, last_recordable_frame, transport_frame, transport_frame + nframes);
 
 		calculate_record_range(ot, transport_frame, nframes, rec_nframes, rec_offset);
 

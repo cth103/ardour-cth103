@@ -40,7 +40,6 @@
 #include "pbd/file_utils.h"
 
 #include <gtkmm2ext/utils.h>
-#include "ardour/configuration.h"
 #include "ardour/rc_configuration.h"
 
 #include "ardour/filesystem_paths.h"
@@ -494,8 +493,7 @@ get_xpm (std::string name)
 {
 	if (!xpm_map[name]) {
 
-		SearchPath spath(ARDOUR::ardour_search_path());
-		spath += ARDOUR::system_data_search_path();
+		SearchPath spath(ARDOUR::ardour_data_search_path());
 
 		spath.add_subdirectory_to_paths("pixmaps");
 
@@ -521,15 +519,14 @@ get_icon_path (const char* cname)
 	string name = cname;
 	name += X_(".png");
 
-	SearchPath spath(ARDOUR::ardour_search_path());
-	spath += ARDOUR::system_data_search_path();
+	SearchPath spath(ARDOUR::ardour_data_search_path());
 
 	spath.add_subdirectory_to_paths("icons");
 
 	sys::path data_file_path;
 
 	if (!find_file_in_search_path (spath, name, data_file_path)) {
-		fatal << string_compose (_("cannot find icon image for %1"), name) << endmsg;
+		fatal << string_compose (_("cannot find icon image for %1 using %2"), name, spath.to_string()) << endmsg;
 	}
 
 	return data_file_path.to_string();

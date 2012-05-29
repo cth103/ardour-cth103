@@ -25,11 +25,8 @@
 
 #include <glibmm/thread.h>
 #include "pbd/xml++.h"
-#include "pbd/stacktrace.h"
-#include "pbd/enumwriter.h"
 
 #include "ardour/debug.h"
-#include "ardour/file_source.h"
 #include "ardour/filter.h"
 #include "ardour/playlist.h"
 #include "ardour/playlist_source.h"
@@ -38,9 +35,7 @@
 #include "ardour/region_factory.h"
 #include "ardour/session.h"
 #include "ardour/source.h"
-#include "ardour/source_factory.h"
 #include "ardour/tempo.h"
-#include "ardour/utils.h"
 
 #include "i18n.h"
 
@@ -49,6 +44,7 @@ using namespace ARDOUR;
 using namespace PBD;
 
 namespace ARDOUR {
+	class Progress;
 	namespace Properties {
 		PBD::PropertyDescriptor<bool> muted;
 		PBD::PropertyDescriptor<bool> opaque;
@@ -686,7 +682,7 @@ Region::set_start (framepos_t pos)
 			return;
 		}
 
-		_start = pos;
+		set_start_internal (pos);
 		_whole_file = false;
 		first_edit ();
 		invalidate_transients ();
@@ -701,6 +697,7 @@ Region::trim_start (framepos_t new_position)
 	if (locked() || position_locked()) {
 		return;
 	}
+
 	framepos_t new_start;
 	frameoffset_t const start_shift = new_position - _position;
 
@@ -732,7 +729,7 @@ Region::trim_start (framepos_t new_position)
 		return;
 	}
 
-	_start = new_start;
+	set_start_internal (new_start);
 	_whole_file = false;
 	first_edit ();
 
@@ -888,7 +885,7 @@ Region::trim_to_internal (framepos_t position, framecnt_t length)
 	PropertyChange what_changed;
 
 	if (_start != new_start) {
-		_start = new_start;
+		set_start_internal (new_start);
 		what_changed.add (Properties::start);
 	}
 
@@ -1311,7 +1308,7 @@ Region::send_change (const PropertyChange& what_changed)
 bool
 Region::overlap_equivalent (boost::shared_ptr<const Region> other) const
 {
-	return coverage (other->first_frame(), other->last_frame()) != OverlapNone;
+	return coverage (other->first_frame(), other->last_frame()) != Evoral::OverlapNone;
 }
 
 bool
@@ -1648,3 +1645,38 @@ Region::post_set (const PropertyChange& pc)
 	}
 }
 
+void
+Region::set_start_internal (framecnt_t s)
+{
+	_start = s;
+}
+
+framepos_t
+Region::earliest_possible_position () const
+{
+	if (_start > _position) {
+		return 0;
+	} else {
+		return _position - _start;
+	}
+}
+
+framecnt_t
+Region::latest_possible_frame () const
+{
+	framecnt_t minlen = max_framecnt;
+
+	for (SourceList::const_iterator i = _sources.begin(); i != _sources.end(); ++i) {
+		/* non-audio regions have a length that may vary based on their
+		 * position, so we have to pass it in the call.
+		 */
+		minlen = min (minlen, (*i)->length (_position));
+	}
+
+	/* the latest possible last frame is determined by the current
+	 * position, plus the shortest source extent past _start.
+	 */
+
+	return _position + (minlen - _start) - 1;
+}
+	

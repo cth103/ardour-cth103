@@ -627,26 +627,6 @@ bool_as_string (bool yn)
 	return (yn ? "yes" : "no");
 }
 
-bool
-string_is_affirmative (const std::string& str)
-{
-	/* to be used only with XML data - not intended to handle user input */
-
-	if (str.empty ()) {
-		return false;
-	}
-
-	/* the use of g_strncasecmp() is solely to get around issues with
-	 * charsets posed by trying to use C++ for the same
-	 * comparison. switching a std::string to its lower- or upper-case
-	 * version has several issues, but handled by default
-	 * in the way we desire when doing it in C.
-	 */
-
-	return str == "1" || str == "y" || str == "Y" || (!g_strncasecmp(str.c_str(), "yes", str.length())) ||
-		(!g_strncasecmp(str.c_str(), "true", str.length()));
-}
-
 const char*
 native_header_format_extension (HeaderFormat hf, const DataType& type)
 {
@@ -763,18 +743,6 @@ double gain_to_slider_position_with_max (double g, double max_gain)
 double slider_position_to_gain_with_max (double g, double max_gain)
 {
 	return slider_position_to_gain (g * max_gain/2.0);
-}
-
-/** @return true if files a and b have the same inode */
-bool
-inodes_same (const string& a, const string& b)
-{
-	struct stat bA;
-	int const rA = stat (a.c_str(), &bA);
-	struct stat bB;
-	int const rB = stat (b.c_str(), &bB);
-
-	return (rA == 0 && rB == 0 && bA.st_ino == bB.st_ino);
 }
 
 extern "C" {

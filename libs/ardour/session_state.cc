@@ -57,6 +57,8 @@
 #include "midi++/port.h"
 #include "midi++/manager.h"
 
+#include "evoral/SMF.hpp"
+
 #include "pbd/boost_debug.h"
 #include "pbd/basename.h"
 #include "pbd/controllable_descriptor.h"
@@ -71,35 +73,26 @@
 
 #include "ardour/amp.h"
 #include "ardour/audio_diskstream.h"
-#include "ardour/audio_playlist_source.h"
 #include "ardour/audio_track.h"
 #include "ardour/audioengine.h"
 #include "ardour/audiofilesource.h"
-#include "ardour/audioplaylist.h"
 #include "ardour/audioregion.h"
-#include "ardour/auditioner.h"
 #include "ardour/automation_control.h"
-#include "ardour/buffer.h"
 #include "ardour/butler.h"
-#include "ardour/configuration.h"
 #include "ardour/control_protocol_manager.h"
-#include "ardour/crossfade.h"
-#include "ardour/cycle_timer.h"
 #include "ardour/directory_names.h"
 #include "ardour/filename_extensions.h"
-#include "ardour/io_processor.h"
 #include "ardour/location.h"
-#include "ardour/midi_diskstream.h"
 #include "ardour/midi_model.h"
 #include "ardour/midi_patch_manager.h"
-#include "ardour/midi_playlist.h"
 #include "ardour/midi_region.h"
 #include "ardour/midi_source.h"
 #include "ardour/midi_track.h"
 #include "ardour/named_selection.h"
 #include "ardour/pannable.h"
-#include "ardour/processor.h"
+#include "ardour/playlist_factory.h"
 #include "ardour/port.h"
+#include "ardour/processor.h"
 #include "ardour/proxy_controllable.h"
 #include "ardour/recent_sessions.h"
 #include "ardour/region_factory.h"
@@ -108,13 +101,10 @@
 #include "ardour/session.h"
 #include "ardour/session_directory.h"
 #include "ardour/session_metadata.h"
-#include "ardour/session_state_utils.h"
 #include "ardour/session_playlists.h"
+#include "ardour/session_state_utils.h"
 #include "ardour/session_utils.h"
 #include "ardour/silentfilesource.h"
-#include "ardour/slave.h"
-#include "ardour/smf_source.h"
-#include "ardour/sndfile_helpers.h"
 #include "ardour/sndfilesource.h"
 #include "ardour/source_factory.h"
 #include "ardour/speakers.h"
@@ -122,10 +112,6 @@
 #include "ardour/tempo.h"
 #include "ardour/ticker.h"
 #include "ardour/user_bundle.h"
-#include "ardour/utils.h"
-#include "ardour/utils.h"
-#include "ardour/version.h"
-#include "ardour/playlist_factory.h"
 
 #include "control_protocol/control_protocol.h"
 
@@ -232,7 +218,6 @@ Session::first_stage_init (string fullpath, string snapshot_name)
 
 	/* default short fade = 15ms */
 
-	Crossfade::set_short_xfade_length ((framecnt_t) floor (config.get_short_xfade_seconds() * frame_rate()));
 	SndFileSource::setup_standard_crossfades (*this, frame_rate());
 
 	last_mmc_step.tv_sec = 0;
@@ -443,7 +428,7 @@ bool
 Session::path_is_within_session (const std::string& path)
 {
 	for (vector<space_and_path>::const_iterator i = session_dirs.begin(); i != session_dirs.end(); ++i) {
-		if (path.find ((*i).path) == 0) {
+		if (PBD::sys::path_is_within (i->path, path)) {
 			return true;
 		}
 	}
@@ -567,10 +552,6 @@ Session::create (const string& session_template, BusProfile* bus_profile)
 		}
 
 	}
-
-	/* Instantiate metadata */
-
-	_metadata = new SessionMetadata ();
 
 	/* set initial start + end point */
 
@@ -788,7 +769,7 @@ Session::save_state (string snapshot_name, bool pending, bool switch_to_snapshot
 		} catch (Evoral::SMF::FileError& e) {
 			error << string_compose ("Could not write to MIDI file %1; MIDI data not saved.", e.file_name ()) << endmsg;
 		}
-        }
+	}
 
 	tree.set_root (&get_state());
 
@@ -931,39 +912,42 @@ Session::load_state (string snapshot_name)
 		/* no version implies very old version of Ardour */
 		Stateful::loading_state_version = 1000;
 	} else {
-		int major;
-		int minor;
-		int micro;
-
-		sscanf (prop->value().c_str(), "%d.%d.%d", &major, &minor, &micro);
-		Stateful::loading_state_version = (major * 1000) + minor;
+		if (prop->value().find ('.') != string::npos) {
+			/* old school version format */
+			if (prop->value()[0] == '2') {
+				Stateful::loading_state_version = 2000;
+			} else {
+				Stateful::loading_state_version = 3000;
+			}
+		} else {
+			Stateful::loading_state_version = atoi (prop->value());
+		}
 	}
 
 	if (Stateful::loading_state_version < CURRENT_SESSION_FILE_VERSION) {
 
 		sys::path backup_path(_session_dir->root_path());
 
-		backup_path /= legalize_for_path (snapshot_name) + "-1" + statefile_suffix;
+		backup_path /= string_compose ("%1-%2%3", legalize_for_path (snapshot_name), Stateful::loading_state_version, statefile_suffix);
 
-		// only create a backup once
-		if (sys::exists (backup_path)) {
-			return 0;
-		}
+		// only create a backup for a given statefile version once
 
-		info << string_compose (_("Copying old session file %1 to %2\nUse %2 with %3 versions before 2.0 from now on"),
-					xmlpath.to_string(), backup_path.to_string(), PROGRAM_NAME)
-		     << endmsg;
-
-		try
-		{
-			sys::copy_file (xmlpath, backup_path);
-		}
-		catch(sys::filesystem_error& ex)
-		{
-			error << string_compose (_("Unable to make backup of state file %1 (%2)"),
-					xmlpath.to_string(), ex.what())
-				<< endmsg;
-			return -1;
+		if (!sys::exists (backup_path)) {
+			
+			info << string_compose (_("Copying old session file %1 to %2\nUse %2 with %3 versions before 2.0 from now on"),
+						xmlpath.to_string(), backup_path.to_string(), PROGRAM_NAME)
+			     << endmsg;
+			
+			try {
+				sys::copy_file (xmlpath, backup_path);
+				
+			} catch (sys::filesystem_error& ex) {
+				
+				error << string_compose (_("Unable to make backup of state file %1 (%2)"),
+							 xmlpath.to_string(), ex.what())
+				      << endmsg;
+				return -1;
+			}
 		}
 	}
 
@@ -998,15 +982,14 @@ Session::get_template()
 }
 
 XMLNode&
-Session::state(bool full_state)
+Session::state (bool full_state)
 {
 	XMLNode* node = new XMLNode("Session");
 	XMLNode* child;
 
-	// store libardour version, just in case
 	char buf[16];
-	snprintf(buf, sizeof(buf), "%d.%d.%d", libardour3_major_version, libardour3_minor_version, libardour3_micro_version);
-	node->add_property("version", string(buf));
+	snprintf(buf, sizeof(buf), "%d", CURRENT_SESSION_FILE_VERSION);
+	node->add_property("version", buf);
 
 	/* store configuration settings */
 
@@ -1060,7 +1043,7 @@ Session::state(bool full_state)
 
 	node->add_child_nocopy (config.get_variables ());
 
-	node->add_child_nocopy (_metadata->get_state());
+	node->add_child_nocopy (ARDOUR::SessionMetadata::Metadata()->get_state());
 
 	child = node->add_child ("Sources");
 
@@ -1222,10 +1205,6 @@ Session::set_state (const XMLNode& node, int version)
 		return -1;
 	}
 
-	if ((prop = node.property ("version")) != 0) {
-		version = atoi (prop->value ()) * 1000;
-	}
-
 	if ((prop = node.property ("name")) != 0) {
 		_name = prop->value ();
 	}
@@ -1277,7 +1256,7 @@ Session::set_state (const XMLNode& node, int version)
 	if (version >= 3000) {
 		if ((child = find_named_node (node, "Metadata")) == 0) {
 			warning << _("Session: XML state has no metadata section") << endmsg;
-		} else if (_metadata->set_state (*child, version)) {
+		} else if ( ARDOUR::SessionMetadata::Metadata()->set_state (*child, version) ) {
 			goto out;
 		}
 	}
@@ -3054,7 +3033,7 @@ struct null_deleter { void operator()(void const *) const {} };
 void
 Session::remove_controllable (Controllable* c)
 {
-	if (_state_of_the_state | Deletion) {
+	if (_state_of_the_state & Deletion) {
 		return;
 	}
 
@@ -3579,6 +3558,8 @@ Session::config_changed (std::string p, bool ours)
 		last_timecode_valid = false;
 	} else if (p == "playback-buffer-seconds") {
 		AudioSource::allocate_working_buffers (frame_rate());
+	} else if (p == "automation-thinning-factor") {
+		Evoral::ControlList::set_thinning_factor (Config->get_automation_thinning_factor());
 	}
 
 	set_dirty ();
@@ -3641,9 +3622,9 @@ Session::setup_midi_machine_control ()
 
 	/* also handle MIDI SPP because its so common */
 
-	mmc->SPPStart.connect_same_thread (*this, boost::bind (&Session::spp_start, this, _1, _2));
-	mmc->SPPContinue.connect_same_thread (*this, boost::bind (&Session::spp_continue, this, _1, _2));
-	mmc->SPPStop.connect_same_thread (*this, boost::bind (&Session::spp_stop, this, _1, _2));
+	mmc->SPPStart.connect_same_thread (*this, boost::bind (&Session::spp_start, this));
+	mmc->SPPContinue.connect_same_thread (*this, boost::bind (&Session::spp_continue, this));
+	mmc->SPPStop.connect_same_thread (*this, boost::bind (&Session::spp_stop, this));
 }
 
 boost::shared_ptr<Controllable>

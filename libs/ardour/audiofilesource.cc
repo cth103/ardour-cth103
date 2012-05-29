@@ -46,11 +46,8 @@
 
 #include "ardour/audiofilesource.h"
 #include "ardour/debug.h"
-#include "ardour/sndfile_helpers.h"
 #include "ardour/sndfilesource.h"
 #include "ardour/session.h"
-#include "ardour/session_directory.h"
-#include "ardour/source_factory.h"
 #include "ardour/filename_extensions.h"
 
 // if these headers come before sigc++ is included
@@ -71,7 +68,7 @@ using namespace Glib;
 string AudioFileSource::peak_dir = "";
 
 PBD::Signal0<void> AudioFileSource::HeaderPositionOffsetChanged;
-uint64_t           AudioFileSource::header_position_offset = 0;
+framecnt_t         AudioFileSource::header_position_offset = 0;
 
 /* XXX maybe this too */
 char AudioFileSource::bwf_serial_number[13] = "000000000000";

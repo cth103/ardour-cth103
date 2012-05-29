@@ -22,12 +22,13 @@
 
 #include "pbd/stacktrace.h"
 
-#include "ardour/session.h"
-#include "ardour/playlist.h"
-#include "ardour/route_group.h"
-#include "ardour/profile.h"
 #include "ardour/midi_region.h"
-#include "ardour/audioplaylist.h"
+#include "ardour/playlist.h"
+#include "ardour/profile.h"
+#include "ardour/route_group.h"
+#include "ardour/session.h"
+
+#include "control_protocol/control_protocol.h"
 
 #include "editor.h"
 #include "actions.h"
@@ -36,7 +37,6 @@
 #include "audio_streamview.h"
 #include "automation_line.h"
 #include "control_point.h"
-#include "crossfade_view.h"
 #include "editor_regions.h"
 #include "editor_cursors.h"
 #include "midi_region_view.h"
@@ -263,7 +263,6 @@ Editor::set_selected_track_as_side_effect (Selection::Operation op)
 
 	case Selection::Extend:
 		selection->clear();
-		cerr << ("Editor::set_selected_track_as_side_effect  case  Selection::Add  not yet implemented\n");
 		break;
 	}
 }
@@ -313,10 +312,14 @@ Editor::set_selected_track_from_click (bool press, Selection::Operation op, bool
 }
 
 bool
-Editor::set_selected_control_point_from_click (Selection::Operation op, bool /*no_remove*/)
+Editor::set_selected_control_point_from_click (bool press, Selection::Operation op)
 {
 	if (!clicked_control_point) {
 		return false;
+	}
+
+	if (!press) {
+		return true;
 	}
 
 	switch (op) {
@@ -477,32 +480,6 @@ Editor::mapped_get_equivalent_regions (RouteTimeAxisView& tv, uint32_t, RegionVi
 }
 
 void
-Editor::mapped_get_equivalent_crossfades (
-	RouteTimeAxisView& tv, uint32_t, boost::shared_ptr<Crossfade> basis, vector<boost::shared_ptr<Crossfade> >* equivs
-	) const
-{
-	boost::shared_ptr<Playlist> pl;
-	vector<boost::shared_ptr<Crossfade> > results;
-	boost::shared_ptr<Track> tr;
-
-	if ((tr = tv.track()) == 0) {
-		/* bus */
-		return;
-	}
-
-	if ((pl = tr->playlist()) != 0) {
-		boost::shared_ptr<AudioPlaylist> apl = boost::dynamic_pointer_cast<AudioPlaylist> (pl);
-		if (apl) {
-			apl->get_equivalent_crossfades (basis, *equivs);
-		}
-	}
-
-	/* We might have just checked basis for equivalency with itself, so we need to remove dupes */
-	sort (equivs->begin (), equivs->end ());
-	unique (equivs->begin (), equivs->end ());
-}
-
-void
 Editor::get_equivalent_regions (RegionView* basis, vector<RegionView*>& equivalent_regions, PBD::PropertyID property) const
 {
 	mapover_tracks_with_unique_playlists (sigc::bind (sigc::mem_fun (*this, &Editor::mapped_get_equivalent_regions), basis, &equivalent_regions), &basis->get_time_axis_view(), property);
@@ -533,19 +510,6 @@ Editor::get_equivalent_regions (RegionSelection & basis, PBD::PropertyID prop) c
 	}
 
 	return equivalent;
-}
-
-vector<boost::shared_ptr<Crossfade> >
-Editor::get_equivalent_crossfades (RouteTimeAxisView& v, boost::shared_ptr<Crossfade> c, PBD::PropertyID prop) const
-{
-	vector<boost::shared_ptr<Crossfade> > e;
-	mapover_tracks_with_unique_playlists (
-		sigc::bind (sigc::mem_fun (*this, &Editor::mapped_get_equivalent_crossfades), c, &e),
-		&v,
-		prop
-		);
-
-	return e;
 }
 
 int
@@ -698,7 +662,7 @@ Editor::set_selected_regionview_from_click (bool press, Selection::Operation op)
 			/* 2. figure out the boundaries for our search for new objects */
 
 			switch (clicked_regionview->region()->coverage (first_frame, last_frame)) {
-			case OverlapNone:
+			case Evoral::OverlapNone:
 				if (last_frame < clicked_regionview->region()->first_frame()) {
 					first_frame = last_frame;
 					last_frame = clicked_regionview->region()->last_frame();
@@ -708,7 +672,7 @@ Editor::set_selected_regionview_from_click (bool press, Selection::Operation op)
 				}
 				break;
 
-			case OverlapExternal:
+			case Evoral::OverlapExternal:
 				if (last_frame < clicked_regionview->region()->first_frame()) {
 					first_frame = last_frame;
 					last_frame = clicked_regionview->region()->last_frame();
@@ -718,7 +682,7 @@ Editor::set_selected_regionview_from_click (bool press, Selection::Operation op)
 				}
 				break;
 
-			case OverlapInternal:
+			case Evoral::OverlapInternal:
 				if (last_frame < clicked_regionview->region()->first_frame()) {
 					first_frame = last_frame;
 					last_frame = clicked_regionview->region()->last_frame();
@@ -728,8 +692,8 @@ Editor::set_selected_regionview_from_click (bool press, Selection::Operation op)
 				}
 				break;
 
-			case OverlapStart:
-			case OverlapEnd:
+			case Evoral::OverlapStart:
+			case Evoral::OverlapEnd:
 				/* nothing to do except add clicked region to selection, since it
 				   overlaps with the existing selection in this track.
 				*/
@@ -965,6 +929,8 @@ Editor::track_selection_changed ()
 		break;
 	}
 
+	RouteNotificationListPtr routes (new RouteNotificationList);
+
 	for (TrackViewList::iterator i = track_views.begin(); i != track_views.end(); ++i) {
 
 		bool yn = (find (selection->tracks.begin(), selection->tracks.end(), *i) != selection->tracks.end());
@@ -983,9 +949,21 @@ Editor::track_selection_changed ()
 		} else {
 			(*i)->hide_selection ();
 		}
+
+
+		if (yn) {
+			RouteTimeAxisView* rtav = dynamic_cast<RouteTimeAxisView*> (*i);
+			if (rtav) {
+				routes->push_back (rtav->route());
+			}
+		}
 	}
 
 	ActionManager::set_sensitive (ActionManager::track_selection_sensitive_actions, !selection->tracks.empty());
+
+	/* notify control protocols */
+	
+	ControlProtocol::TrackSelectionChanged (routes);
 }
 
 void
@@ -1075,6 +1053,10 @@ Editor::sensitize_the_right_region_actions ()
 	bool have_envelope_inactive = false;
 	bool have_non_unity_scale_amplitude = false;
 	bool have_compound_regions = false;
+	bool have_inactive_fade_in = false;
+	bool have_inactive_fade_out = false;
+	bool have_active_fade_in = false;
+	bool have_active_fade_out = false;
 
 	for (list<RegionView*>::const_iterator i = rs.begin(); i != rs.end(); ++i) {
 
@@ -1134,6 +1116,18 @@ Editor::sensitize_the_right_region_actions ()
 			if (ar->scale_amplitude() != 1) {
 				have_non_unity_scale_amplitude = true;
 			}
+
+			if (ar->fade_in_active ()) {
+				have_active_fade_in = true;
+			} else {
+				have_inactive_fade_in = true;
+			}
+
+			if (ar->fade_out_active ()) {
+				have_active_fade_out = true;
+			} else {
+				have_inactive_fade_out = true;
+			}
 		}
 	}
 
@@ -1188,7 +1182,7 @@ Editor::sensitize_the_right_region_actions ()
 		if (have_envelope_active && !have_envelope_inactive) {
 			Glib::RefPtr<ToggleAction>::cast_dynamic (_region_actions->get_action("toggle-region-gain-envelope-active"))->set_active ();
 		} else if (have_envelope_active && have_envelope_inactive) {
-			// _region_actions->get_action("toggle-region-gain-envelope-active")->set_inconsistent ();
+			// Glib::RefPtr<ToggleAction>::cast_dynamic (_region_actions->get_action("toggle-region-gain-envelope-active"))->set_inconsistent ();
 		}
 
 	} else {
@@ -1204,25 +1198,29 @@ Editor::sensitize_the_right_region_actions ()
 		_region_actions->get_action("reset-region-scale-amplitude")->set_sensitive (false);
 	}
 
-	Glib::RefPtr<ToggleAction>::cast_dynamic (_region_actions->get_action("toggle-region-lock"))->set_active (have_locked && !have_unlocked);
+	Glib::RefPtr<ToggleAction> a = Glib::RefPtr<ToggleAction>::cast_dynamic (_region_actions->get_action("toggle-region-lock"));
+	a->set_active (have_locked && !have_unlocked);
 	if (have_locked && have_unlocked) {
-		// _region_actions->get_action("toggle-region-lock")->set_inconsistent ();
+		// a->set_inconsistent ();
 	}
 
-	Glib::RefPtr<ToggleAction>::cast_dynamic (_region_actions->get_action("toggle-region-lock-style"))->set_active (have_position_lock_style_music && !have_position_lock_style_audio);
+	a = Glib::RefPtr<ToggleAction>::cast_dynamic (_region_actions->get_action("toggle-region-lock-style"));
+	a->set_active (have_position_lock_style_music && !have_position_lock_style_audio);
 
 	if (have_position_lock_style_music && have_position_lock_style_audio) {
-		// _region_actions->get_action("toggle-region-lock-style")->set_inconsistent ();
+		// a->set_inconsistent ();
 	}
 
-	Glib::RefPtr<ToggleAction>::cast_dynamic (_region_actions->get_action("toggle-region-mute"))->set_active (have_muted && !have_unmuted);
+	a = Glib::RefPtr<ToggleAction>::cast_dynamic (_region_actions->get_action("toggle-region-mute"));
+	a->set_active (have_muted && !have_unmuted);
 	if (have_muted && have_unmuted) {
-		// _region_actions->get_action("toggle-region-mute")->set_inconsistent ();
+		// a->set_inconsistent ();
 	}
 
-	Glib::RefPtr<ToggleAction>::cast_dynamic (_region_actions->get_action("toggle-opaque-region"))->set_active (have_opaque && !have_non_opaque);
+	a = Glib::RefPtr<ToggleAction>::cast_dynamic (_region_actions->get_action("toggle-opaque-region"));
+	a->set_active (have_opaque && !have_non_opaque);
 	if (have_opaque && have_non_opaque) {
-		// _region_actions->get_action("toggle-opaque-region")->set_inconsistent ();
+		// a->set_inconsistent ();
 	}
 
 	if (!have_not_at_natural_position) {
@@ -1236,6 +1234,29 @@ Editor::sensitize_the_right_region_actions ()
 		_region_actions->get_action("insert-region-from-region-list")->set_sensitive (true);
 	}
 
+	a = Glib::RefPtr<ToggleAction>::cast_dynamic (_region_actions->get_action("toggle-region-fade-in"));
+	a->set_active (have_active_fade_in && !have_inactive_fade_in);
+	if (have_active_fade_in && have_inactive_fade_in) {
+		// a->set_inconsistent ();
+	}
+
+	a = Glib::RefPtr<ToggleAction>::cast_dynamic (_region_actions->get_action("toggle-region-fade-out"));
+	a->set_active (have_active_fade_out && !have_inactive_fade_out);
+
+	if (have_active_fade_out && have_inactive_fade_out) {
+		// a->set_inconsistent ();
+	}
+	
+	bool const have_active_fade = have_active_fade_in || have_active_fade_out;
+	bool const have_inactive_fade = have_inactive_fade_in || have_inactive_fade_out;
+
+	a = Glib::RefPtr<ToggleAction>::cast_dynamic (_region_actions->get_action("toggle-region-fades"));
+	a->set_active (have_active_fade && !have_inactive_fade);
+
+	if (have_active_fade && have_inactive_fade) {
+		// a->set_inconsistent ();
+	}
+	
 	_ignore_region_action = false;
 
 	_all_region_actions_sensitized = false;

@@ -48,7 +48,8 @@ class MidiSource : virtual public Source, public boost::enable_shared_from_this<
 	MidiSource (Session& session, const XMLNode&);
 	virtual ~MidiSource ();
 
-	boost::shared_ptr<MidiSource> clone (Evoral::MusicalTime begin = Evoral::MinMusicalTime,
+	boost::shared_ptr<MidiSource> clone (const std::string& path,
+					     Evoral::MusicalTime begin = Evoral::MinMusicalTime,
 	                                     Evoral::MusicalTime end = Evoral::MaxMusicalTime);
 
 	/** Read the data in a given time range from the MIDI source.
@@ -76,7 +77,7 @@ class MidiSource : virtual public Source, public boost::enable_shared_from_this<
 
 	virtual bool       empty () const;
 	virtual framecnt_t length (framepos_t pos) const;
-	virtual void       update_length (framepos_t pos, framecnt_t cnt);
+	virtual void       update_length (framecnt_t);
 
 	virtual void mark_streaming_midi_write_started (NoteMode mode);
 	virtual void mark_streaming_write_started ();
@@ -142,12 +143,12 @@ class MidiSource : virtual public Source, public boost::enable_shared_from_this<
   protected:
 	virtual void flush_midi() = 0;
 
-	virtual framepos_t read_unlocked (Evoral::EventSink<framepos_t>& dst,
+	virtual framecnt_t read_unlocked (Evoral::EventSink<framepos_t>& dst,
 					  framepos_t position,
 					  framepos_t start, framecnt_t cnt,
 					  MidiStateTracker* tracker) const = 0;
 
-	virtual framepos_t write_unlocked (MidiRingBuffer<framepos_t>& dst,
+	virtual framecnt_t write_unlocked (MidiRingBuffer<framepos_t>& dst,
 					   framepos_t position,
 					   framecnt_t cnt) = 0;
 

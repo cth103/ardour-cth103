@@ -40,13 +40,10 @@
 #include <gtkmm2ext/doi.h>
 
 #include "ardour/amp.h"
-#include "ardour/ardour.h"
 #include "ardour/audio_track.h"
 #include "ardour/audioengine.h"
-#include "ardour/internal_send.h"
 #include "ardour/internal_return.h"
-#include "ardour/ladspa_plugin.h"
-#include "ardour/meter.h"
+#include "ardour/internal_send.h"
 #include "ardour/plugin_insert.h"
 #include "ardour/port_insert.h"
 #include "ardour/profile.h"
@@ -54,7 +51,7 @@
 #include "ardour/route.h"
 #include "ardour/send.h"
 #include "ardour/session.h"
-#include "ardour/dB.h"
+#include "ardour/types.h"
 
 #include "actions.h"
 #include "ardour_dialog.h"
@@ -119,7 +116,7 @@ ProcessorEntry::ProcessorEntry (ProcessorBox* parent, boost::shared_ptr<Processo
 		_button.show ();
 		
 		_processor->ActiveChanged.connect (active_connection, invalidator (*this), boost::bind (&ProcessorEntry::processor_active_changed, this), gui_context());
-		_processor->PropertyChanged.connect (name_connection, invalidator (*this), ui_bind (&ProcessorEntry::processor_property_changed, this, _1), gui_context());
+		_processor->PropertyChanged.connect (name_connection, invalidator (*this), boost::bind (&ProcessorEntry::processor_property_changed, this, _1), gui_context());
 
 		set<Evoral::Parameter> p = _processor->what_can_be_automated ();
 		for (set<Evoral::Parameter>::iterator i = p.begin(); i != p.end(); ++i) {
@@ -445,6 +442,29 @@ ProcessorEntry::Control::Control (Glib::RefPtr<Gdk::Pixbuf> s, boost::shared_ptr
 	}
 
 	control_changed ();
+	set_tooltip ();
+}
+
+void
+ProcessorEntry::Control::set_tooltip ()
+{
+	boost::shared_ptr<AutomationControl> c = _control.lock ();
+
+	if (!c) {
+		return;
+	}
+	
+	stringstream s;
+	s << _name << ": ";
+	if (c->toggled ()) {
+		s << (c->get_value() > 0.5 ? _("on") : _("off"));
+	} else {
+		s << c->internal_to_interface (c->get_value ());
+	}
+	
+	ARDOUR_UI::instance()->set_tip (_label, s.str ());
+	ARDOUR_UI::instance()->set_tip (_slider, s.str ());
+	ARDOUR_UI::instance()->set_tip (_button, s.str ());
 }
 
 void
@@ -582,7 +602,7 @@ PluginInsertProcessorEntry::PluginInsertProcessorEntry (ProcessorBox* b, boost::
 	, _plugin_insert (p)
 {
 	p->SplittingChanged.connect (
-		_splitting_connection, invalidator (*this), ui_bind (&PluginInsertProcessorEntry::plugin_insert_splitting_changed, this), gui_context()
+		_splitting_connection, invalidator (*this), boost::bind (&PluginInsertProcessorEntry::plugin_insert_splitting_changed, this), gui_context()
 		);
 
 	_splitting_icon.set_size_request (-1, 12);
@@ -700,7 +720,7 @@ ProcessorBox::ProcessorBox (ARDOUR::Session* sess, boost::function<PluginSelecto
 
 	if (parent) {
 		parent->DeliveryChanged.connect (
-			_mixer_strip_connections, invalidator (*this), ui_bind (&ProcessorBox::mixer_strip_delivery_changed, this, _1), gui_context ()
+			_mixer_strip_connections, invalidator (*this), boost::bind (&ProcessorBox::mixer_strip_delivery_changed, this, _1), gui_context ()
 			);
 	}
 
@@ -734,7 +754,7 @@ ProcessorBox::set_route (boost::shared_ptr<Route> r)
 	_route = r;
 
 	_route->processors_changed.connect (
-		_route_connections, invalidator (*this), ui_bind (&ProcessorBox::route_processors_changed, this, _1), gui_context()
+		_route_connections, invalidator (*this), boost::bind (&ProcessorBox::route_processors_changed, this, _1), gui_context()
 		);
 
 	_route->DropReferences.connect (
@@ -742,7 +762,7 @@ ProcessorBox::set_route (boost::shared_ptr<Route> r)
 		);
 
 	_route->PropertyChanged.connect (
-		_route_connections, invalidator (*this), ui_bind (&ProcessorBox::route_property_changed, this, _1), gui_context()
+		_route_connections, invalidator (*this), boost::bind (&ProcessorBox::route_property_changed, this, _1), gui_context()
 		);
 
 	redisplay_processors ();
@@ -942,7 +962,7 @@ ProcessorBox::enter_notify (GdkEventCrossing*)
 }
 
 bool
-ProcessorBox::leave_notify (GdkEventCrossing* ev)
+ProcessorBox::leave_notify (GdkEventCrossing*)
 {
 	return false;
 }

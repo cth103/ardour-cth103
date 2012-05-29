@@ -33,40 +33,30 @@
 #include "pbd/convert.h"
 #include "pbd/boost_debug.h"
 
-#include "evoral/Curve.hpp"
-
 #include "ardour/amp.h"
-#include "ardour/audio_port.h"
+#include "ardour/audio_buffer.h"
 #include "ardour/audioengine.h"
 #include "ardour/buffer.h"
 #include "ardour/buffer_set.h"
-#include "ardour/configuration.h"
-#include "ardour/cycle_timer.h"
+#include "ardour/capturing_processor.h"
 #include "ardour/debug.h"
 #include "ardour/delivery.h"
-#include "ardour/dB.h"
-#include "ardour/internal_send.h"
 #include "ardour/internal_return.h"
-#include "ardour/ladspa_plugin.h"
+#include "ardour/internal_send.h"
 #include "ardour/meter.h"
-#include "ardour/mix.h"
 #include "ardour/monitor_processor.h"
 #include "ardour/pannable.h"
-#include "ardour/panner.h"
 #include "ardour/panner_shell.h"
 #include "ardour/plugin_insert.h"
 #include "ardour/port.h"
 #include "ardour/port_insert.h"
 #include "ardour/processor.h"
-#include "ardour/profile.h"
 #include "ardour/route.h"
 #include "ardour/route_group.h"
 #include "ardour/send.h"
 #include "ardour/session.h"
-#include "ardour/timestamps.h"
-#include "ardour/utils.h"
 #include "ardour/unknown_processor.h"
-#include "ardour/capturing_processor.h"
+#include "ardour/utils.h"
 
 #include "i18n.h"
 
@@ -522,10 +512,13 @@ Route::process_output_buffers (BufferSet& bufs,
 		/* if it has any inputs, make sure they match */
 		if (boost::dynamic_pointer_cast<UnknownProcessor> (*i) == 0 && (*i)->input_streams() != ChanCount::ZERO) {
 			if (bufs.count() != (*i)->input_streams()) {
-				cerr << _name << " bufs = " << bufs.count()
-				     << " input for " << (*i)->name() << " = " << (*i)->input_streams()
-				     << endl;
-				abort ();
+				DEBUG_TRACE (
+					DEBUG::Processors, string_compose (
+						"%1 bufs = %2 input for %3 = %4\n",
+						_name, bufs.count(), (*i)->name(), (*i)->input_streams()
+						)
+					);
+				continue;
 			}
 		}
 #endif
@@ -2606,7 +2599,6 @@ Route::add_send_to_internal_return (InternalSend* send)
 void
 Route::remove_send_from_internal_return (InternalSend* send)
 {
-	Glib::Mutex::Lock lm (AudioEngine::instance()->process_lock ());
 	Glib::RWLock::ReaderLock rm (_processor_lock);
 
 	for (ProcessorList::const_iterator x = _processors.begin(); x != _processors.end(); ++x) {
@@ -2965,7 +2957,7 @@ Route::roll (pframes_t nframes, framepos_t start_frame, framepos_t end_frame, in
 		return 0;
 	}
 
-	framecnt_t unused = 0;
+	framepos_t unused = 0;
 
 	if ((nframes = check_initial_delay (nframes, unused)) == 0) {
 		return 0;
@@ -4052,3 +4044,15 @@ Route::has_external_redirects () const
 	return false;
 }
 
+boost::shared_ptr<Processor>
+Route::the_instrument () const
+{
+	Glib::RWLock::WriterLock lm (_processor_lock);
+	for (ProcessorList::const_iterator i = _processors.begin(); i != _processors.end(); ++i) {
+		if ((*i)->input_streams().n_midi() > 0 &&
+		    (*i)->output_streams().n_audio() > 0) {
+			return (*i);
+		}
+	}
+	return boost::shared_ptr<Processor>();
+}

@@ -19,9 +19,6 @@
 
 #include <limits.h>
 
-#include "ardour/session.h"
-#include "ardour/session_route.h"
-#include "ardour/dB.h"
 #include "ardour/meter.h"
 
 #include <gtkmm2ext/utils.h>
@@ -38,8 +35,6 @@
 #include "gui_thread.h"
 #include "keyboard.h"
 #include "public_editor.h"
-
-#include "ardour/session.h"
 
 #include "i18n.h"
 
@@ -59,7 +54,7 @@ LevelMeter::LevelMeter (Session* s)
 {
 	set_session (s);
 	set_spacing (1);
-	Config->ParameterChanged.connect (_parameter_connection, invalidator (*this), ui_bind (&LevelMeter::parameter_changed, this, _1), gui_context());
+	Config->ParameterChanged.connect (_parameter_connection, invalidator (*this), boost::bind (&LevelMeter::parameter_changed, this, _1), gui_context());
 	UI::instance()->theme_changed.connect (sigc::mem_fun(*this, &LevelMeter::on_theme_changed));
 	ColorsChanged.connect (sigc::mem_fun (*this, &LevelMeter::color_handler));
 	max_peak = minus_infinity();
@@ -85,7 +80,7 @@ LevelMeter::set_meter (PeakMeter* meter)
 	_meter = meter;
 
 	if (_meter) {
-		_meter->ConfigurationChanged.connect (_configuration_connection, invalidator (*this), ui_bind (&LevelMeter::configuration_changed, this, _1, _2), gui_context());
+		_meter->ConfigurationChanged.connect (_configuration_connection, invalidator (*this), boost::bind (&LevelMeter::configuration_changed, this, _1, _2), gui_context());
 	}
 }
 

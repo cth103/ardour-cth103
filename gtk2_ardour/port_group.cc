@@ -24,16 +24,13 @@
 #include "midi++/manager.h"
 #include "midi++/mmc.h"
 
-#include "ardour/audio_track.h"
 #include "ardour/audioengine.h"
-#include "ardour/bundle.h"
-#include "ardour/user_bundle.h"
-#include "ardour/io_processor.h"
-#include "ardour/midi_track.h"
-#include "ardour/port.h"
-#include "ardour/session.h"
 #include "ardour/auditioner.h"
+#include "ardour/bundle.h"
 #include "ardour/control_protocol_manager.h"
+#include "ardour/io_processor.h"
+#include "ardour/session.h"
+#include "ardour/user_bundle.h"
 #include "control_protocol/control_protocol.h"
 
 #include "gui_thread.h"
@@ -123,7 +120,7 @@ PortGroup::add_bundle_internal (boost::shared_ptr<Bundle> b, boost::shared_ptr<I
 	}
 
 	BundleRecord* br = new BundleRecord (b, io, colour, has_colour);
-	b->Changed.connect (br->changed_connection, invalidator (*this), ui_bind (&PortGroup::bundle_changed, this, _1), gui_context());
+	b->Changed.connect (br->changed_connection, invalidator (*this), boost::bind (&PortGroup::bundle_changed, this, _1), gui_context());
 	_bundles.push_back (br);
 
 	Changed ();
@@ -321,9 +318,12 @@ public:
 
 /** Gather ports from around the system and put them in this PortGroupList.
  *  @param type Type of ports to collect, or NIL for all types.
+ *  @param use_session_bundles true to use the session's non-user bundles.  Doing this will mean that
+ *  hardware ports will be gathered into stereo pairs, as the session sets up bundles for these pairs.
+ *  Not using the session bundles will mean that all hardware IO will be presented separately.
  */
 void
-PortGroupList::gather (ARDOUR::Session* session, ARDOUR::DataType type, bool inputs, bool allow_dups)
+PortGroupList::gather (ARDOUR::Session* session, ARDOUR::DataType type, bool inputs, bool allow_dups, bool use_session_bundles)
 {
 	clear ();
 
@@ -408,9 +408,12 @@ PortGroupList::gather (ARDOUR::Session* session, ARDOUR::DataType type, bool inp
 		}
 	}
 
-	for (BundleList::iterator i = b->begin(); i != b->end(); ++i) {
-		if (boost::dynamic_pointer_cast<UserBundle> (*i) == 0 && (*i)->ports_are_inputs() == inputs) {
-			system->add_bundle (*i, allow_dups);
+	/* Only look for non-user bundles if instructed to do so */
+	if (use_session_bundles) {
+		for (BundleList::iterator i = b->begin(); i != b->end(); ++i) {
+			if (boost::dynamic_pointer_cast<UserBundle> (*i) == 0 && (*i)->ports_are_inputs() == inputs) {
+				system->add_bundle (*i, allow_dups);
+			}
 		}
 	}
 
@@ -695,7 +698,7 @@ PortGroupList::add_group (boost::shared_ptr<PortGroup> g)
 	_groups.push_back (g);
 
 	g->Changed.connect (_changed_connections, invalidator (*this), boost::bind (&PortGroupList::emit_changed, this), gui_context());
-	g->BundleChanged.connect (_bundle_changed_connections, invalidator (*this), ui_bind (&PortGroupList::emit_bundle_changed, this, _1), gui_context());
+	g->BundleChanged.connect (_bundle_changed_connections, invalidator (*this), boost::bind (&PortGroupList::emit_bundle_changed, this, _1), gui_context());
 
 	emit_changed ();
 }

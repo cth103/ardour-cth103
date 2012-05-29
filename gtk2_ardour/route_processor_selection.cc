@@ -21,10 +21,6 @@
 #include <sigc++/bind.h>
 #include "pbd/error.h"
 
-#include "ardour/playlist.h"
-#include "ardour/processor.h"
-#include "ardour/route.h"
-
 #include "gui_thread.h"
 #include "mixer_strip.h"
 #include "route_processor_selection.h"
@@ -111,7 +107,7 @@ RouteProcessorSelection::add (RouteUI* r)
 			MixerStrip* ms = dynamic_cast<MixerStrip*> (r);
 			
 			if (ms) {
-				ms->CatchDeletion.connect (*this, invalidator (*this), ui_bind (&RouteProcessorSelection::remove, this, _1), gui_context());
+				ms->CatchDeletion.connect (*this, invalidator (*this), boost::bind (&RouteProcessorSelection::remove, this, _1), gui_context());
 			}
 			
 			if (!_no_route_change_signal) {

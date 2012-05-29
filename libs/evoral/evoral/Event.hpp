@@ -44,7 +44,8 @@ void init_event_id_counter(event_id_t n);
  * Template parameter Time is the type of the time stamp used for this event.
  */
 template<typename Time>
-struct Event {
+class Event {
+public:
 #ifdef EVORAL_EVENT_ALLOC
 	Event (EventType type=0, Time time=0, uint32_t size=0, uint8_t* buf=NULL, bool alloc=false);
 
@@ -60,7 +61,7 @@ struct Event {
 
 	const Event& operator=(const Event& copy);
 
-	void set(uint8_t* buf, uint32_t size, Time t);
+	void set(const uint8_t* buf, uint32_t size, Time t);
 
 	inline bool operator==(const Event& other) const {
 		if (_type != other._type)

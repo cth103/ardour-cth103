@@ -24,18 +24,17 @@
 #include <glib/gstdio.h> /* for g_stat() */
 #include <glibmm/miscutils.h>
 
-#include "pbd/failed_constructor.h"
 #include "pbd/xml++.h"
 #include "pbd/filesystem.h"
 #include "pbd/file_utils.h"
 
 #include "midi++/manager.h"
 
-#include "ardour/ardour.h"
-#include "ardour/rc_configuration.h"
-#include "ardour/audio_diskstream.h"
 #include "ardour/control_protocol_manager.h"
+#include "ardour/diskstream.h"
 #include "ardour/filesystem_paths.h"
+#include "ardour/rc_configuration.h"
+#include "ardour/session_metadata.h"
 
 #include "i18n.h"
 
@@ -83,7 +82,7 @@ RCConfiguration::load_state ()
 
 	/* load system configuration first */
 
-	if (find_file_in_search_path (ardour_search_path() + system_config_search_path(), "ardour_system.rc", system_rc_file)) {
+	if (find_file_in_search_path (ardour_config_search_path(), "ardour_system.rc", system_rc_file)) {
 		string rcfile = system_rc_file.to_string();
 
 		/* stupid XML Parser hates empty files */
@@ -114,7 +113,7 @@ RCConfiguration::load_state ()
 
 	sys::path user_rc_file;
 
-	if (find_file_in_search_path (ardour_search_path() + user_config_directory(), "ardour.rc", user_rc_file)) {
+	if (find_file_in_search_path (ardour_config_search_path(), "ardour.rc", user_rc_file)) {
 		string rcfile = user_rc_file.to_string();
 
 		/* stupid XML parser hates empty files */
@@ -208,6 +207,8 @@ RCConfiguration::get_state ()
 
 	root->add_child_nocopy (get_variables ());
 
+	root->add_child_nocopy (SessionMetadata::Metadata()->get_user_state());
+
 	if (_extra_xml) {
 		root->add_child_copy (*_extra_xml);
 	}
@@ -239,7 +240,7 @@ RCConfiguration::get_variables ()
 }
 
 int
-RCConfiguration::set_state (const XMLNode& root, int /*version*/)
+RCConfiguration::set_state (const XMLNode& root, int version)
 {
 	if (root.name() != "Ardour") {
 		return -1;
@@ -263,6 +264,8 @@ RCConfiguration::set_state (const XMLNode& root, int /*version*/)
 
 		if (node->name() == "Config") {
 			set_variables (*node);
+		} else if (node->name() == "Metadata") {
+			SessionMetadata::Metadata()->set_state (*node, version);
 		} else if (node->name() == ControlProtocolManager::state_node_name) {
 			_control_protocol_state = new XMLNode (*node);
 		} else if (node->name() == MIDI::Port::state_node_name) {

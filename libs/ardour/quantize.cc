@@ -20,13 +20,8 @@
 
 #include "pbd/basename.h"
 
-#include "ardour/types.h"
 #include "ardour/quantize.h"
-#include "ardour/session.h"
-#include "ardour/smf_source.h"
 #include "ardour/midi_model.h"
-#include "ardour/midi_region.h"
-#include "ardour/tempo.h"
 
 #include "i18n.h"
 
@@ -40,8 +35,7 @@ using namespace ARDOUR;
  * 0.25 = quantize to beats/4, etc.
  */
 
-Quantize::Quantize (Session& s, QuantizeType /* type */,
-		    bool snap_start, bool snap_end,
+Quantize::Quantize (Session& s, bool snap_start, bool snap_end,
 		    double start_grid, double end_grid,
 		    float strength, float swing, float threshold)
 	: session (s)

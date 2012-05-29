@@ -20,12 +20,10 @@
 
 #include <gtkmm/button.h>
 
-#include "ardour/session_playlist.h"
-#include "ardour/audio_diskstream.h"
-#include "ardour/playlist.h"
 #include "ardour/audio_track.h"
 #include "ardour/audioplaylist.h"
-#include "ardour/configuration.h"
+#include "ardour/playlist.h"
+#include "ardour/session_playlist.h"
 
 #include <gtkmm2ext/gtk_ui.h>
 
@@ -145,7 +143,8 @@ PlaylistSelector::show_for (RouteUI* ruix)
 		}
 
 		TreeModel::Row row;
-		TreeModel::Row* selected_row = 0;
+		TreeModel::Row selected_row;
+		bool have_selected = false;
 		TreePath this_path;
 
 		if (tr == this_track) {
@@ -173,12 +172,13 @@ PlaylistSelector::show_for (RouteUI* ruix)
 			child_row[columns.playlist] = *p;
 
 			if (*p == this_track->playlist()) {
-				selected_row = &child_row;
+				selected_row = child_row;
+				have_selected = true;
 			}
 		}
 
-		if (selected_row != 0) {
-			tree.get_selection()->select (*selected_row);
+		if (have_selected) {
+			tree.get_selection()->select (selected_row);
 		}
 	}
 
@@ -187,7 +187,8 @@ PlaylistSelector::show_for (RouteUI* ruix)
 	_session->playlists->unassigned (unassigned);
 
 	TreeModel::Row row;
-	TreeModel::Row* selected_row = 0;
+	TreeModel::Row selected_row;
+	bool have_selected = false;
 	TreePath this_path;
 
 	row = *(model->append (others.children()));
@@ -203,11 +204,12 @@ PlaylistSelector::show_for (RouteUI* ruix)
 		child_row[columns.playlist] = *p;
 
 		if (*p == this_track->playlist()) {
-			selected_row = &child_row;
+			selected_row = child_row;
+			have_selected = true;
 		}
 
-		if (selected_row != 0) {
-			tree.get_selection()->select (*selected_row);
+		if (have_selected) {
+			tree.get_selection()->select (selected_row);
 		}
 	}
 

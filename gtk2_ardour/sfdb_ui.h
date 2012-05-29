@@ -55,6 +55,7 @@ namespace ARDOUR {
 };
 
 class GainMeter;
+class Mootcher;
 
 class SoundFileBox : public Gtk::VBox, public ARDOUR::SessionHandlePtr
 {
@@ -167,15 +168,21 @@ class SoundFileBrowser : public ArdourDialog
 	
 	Gtk::Button freesound_search_btn;
 	Gtk::TreeView freesound_list_view;
-	Gtk::ProgressBar progress_bar;
+	Gtk::ProgressBar freesound_progress_bar;
 
-	bool freesound_stop;
+	bool freesound_search_cancel;
+	bool freesound_download_cancel;
 
 	void freesound_search();
+	
+#ifdef FREESOUND
+	Mootcher *mootcher;
+#endif
 
   protected:
 	bool resetting_ourselves;
 
+	Gtk::FileFilter audio_and_midi_filter;
 	Gtk::FileFilter audio_filter;
 	Gtk::FileFilter midi_filter;
 	Gtk::FileFilter custom_filter;
@@ -210,6 +217,7 @@ class SoundFileBrowser : public ArdourDialog
 
 	bool on_audio_filter (const Gtk::FileFilter::Info& filter_info);
 	bool on_midi_filter (const Gtk::FileFilter::Info& filter_info);
+	bool on_audio_and_midi_filter (const Gtk::FileFilter::Info& filter_info);
 
 	virtual bool reset_options() { return true; }
 

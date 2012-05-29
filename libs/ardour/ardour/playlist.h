@@ -32,11 +32,11 @@
 
 #include <glib.h>
 
-
 #include "pbd/undo.h"
 #include "pbd/stateful.h"
 #include "pbd/statefuldestructible.h"
 #include "pbd/sequence_property.h"
+#include "pbd/stacktrace.h"
 
 #include "evoral/types.hpp"
 
@@ -152,9 +152,9 @@ public:
 
 	boost::shared_ptr<RegionList> regions_at (framepos_t frame);
 	uint32_t                   count_regions_at (framepos_t) const;
-	uint32_t                   count_joined_regions () const;
 	boost::shared_ptr<RegionList> regions_touched (framepos_t start, framepos_t end);
-	boost::shared_ptr<RegionList> regions_to_read (framepos_t start, framepos_t end);
+	boost::shared_ptr<RegionList> regions_with_start_within (Evoral::Range<framepos_t>);
+	boost::shared_ptr<RegionList> regions_with_end_within (Evoral::Range<framepos_t>);
 	uint32_t                   region_use_count (boost::shared_ptr<Region>) const;
 	boost::shared_ptr<Region>  find_region (const PBD::ID&) const;
 	boost::shared_ptr<Region>  top_region_at (framepos_t frame);
@@ -171,7 +171,7 @@ public:
 	void foreach_region (boost::function<void (boost::shared_ptr<Region>)>);
 
 	XMLNode& get_state ();
-	int set_state (const XMLNode&, int version);
+	virtual int set_state (const XMLNode&, int version);
 	XMLNode& get_template ();
 
 	PBD::Signal1<void,bool> InUse;
@@ -221,32 +221,40 @@ public:
 	framepos_t find_next_top_layer_position (framepos_t) const;
 	uint32_t combine_ops() const { return _combine_ops; }
 
-	uint64_t highest_layering_index () const;
-
 	void set_layer (boost::shared_ptr<Region>, double);
+
+	void set_capture_insertion_in_progress (bool yn);
 	
   protected:
 	friend class Session;
 
   protected:
-	struct RegionLock {
-		RegionLock (Playlist *pl, bool do_block_notify = true) : playlist (pl), block_notify (do_block_notify) {
-			playlist->region_lock.lock();
-			if (block_notify) {
-				playlist->delay_notifications();
-			}
-		}
-		~RegionLock() {
-			playlist->region_lock.unlock();
-			if (block_notify) {
-				playlist->release_notifications ();
-			}
-		}
-		Playlist *playlist;
-		bool block_notify;
-	};
+    class RegionReadLock : public Glib::RWLock::ReaderLock {
+    public:
+        RegionReadLock (Playlist *pl) : Glib::RWLock::ReaderLock (pl->region_lock) {}
+        ~RegionReadLock() {}
+    };
 
-	friend class RegionLock;
+    class RegionWriteLock : public Glib::RWLock::WriterLock {
+    public:
+	    RegionWriteLock (Playlist *pl, bool do_block_notify = true) 
+                    : Glib::RWLock::WriterLock (pl->region_lock)
+                    , playlist (pl)
+                    , block_notify (do_block_notify) {
+                    if (block_notify) {
+                            playlist->delay_notifications();
+                    }
+            }
+
+        ~RegionWriteLock() {
+                Glib::RWLock::WriterLock::release ();
+                if (block_notify) {
+                        playlist->release_notifications ();
+                }
+        }
+        Playlist *playlist;
+        bool block_notify;
+    };
 
 	RegionListProperty   regions;  /* the current list of regions in the playlist */
 	std::set<boost::shared_ptr<Region> > all_regions; /* all regions ever added to this playlist */
@@ -255,7 +263,6 @@ public:
 	int             _sort_id;
 	mutable gint    block_notifications;
 	mutable gint    ignore_state_changes;
-	mutable Glib::RecMutex region_lock;
 	std::set<boost::shared_ptr<Region> > pending_adds;
 	std::set<boost::shared_ptr<Region> > pending_removes;
 	RegionList       pending_bounds;
@@ -269,8 +276,6 @@ public:
 	std::list< Evoral::RangeMove<framepos_t> > pending_range_moves;
 	/** Extra sections added to regions during trims */
 	std::list< Evoral::Range<framepos_t> >     pending_region_extensions;
-	bool             save_on_thaw;
-	std::string      last_save_reason;
 	uint32_t         in_set_state;
 	bool             in_undo;
 	bool             first_set_state;
@@ -283,9 +288,9 @@ public:
 	bool             in_flush;
 	bool             in_partition;
 	bool            _frozen;
+	bool            _capture_insertion_underway;
 	uint32_t         subcnt;
 	PBD::ID         _orig_track_id;
-	bool             auto_partition;
 	uint32_t        _combine_ops;
 
 	void init (bool hide);
@@ -301,6 +306,8 @@ public:
 	void clear_pending ();
 
 	void _set_sort_id ();
+
+	boost::shared_ptr<RegionList> regions_touched_locked (framepos_t start, framepos_t end);
 
 	void notify_region_removed (boost::shared_ptr<Region>);
 	void notify_region_added (boost::shared_ptr<Region>);
@@ -328,10 +335,7 @@ public:
 	void splice_locked (framepos_t at, framecnt_t distance, boost::shared_ptr<Region> exclude);
 	void splice_unlocked (framepos_t at, framecnt_t distance, boost::shared_ptr<Region> exclude);
 
-	virtual void finalize_split_region (boost::shared_ptr<Region> /*original*/, boost::shared_ptr<Region> /*left*/, boost::shared_ptr<Region> /*right*/) {}
-
-	virtual void check_dependents (boost::shared_ptr<Region> /*region*/, bool /*norefresh*/) {}
-	virtual void refresh_dependents (boost::shared_ptr<Region> /*region*/) {}
+	virtual void check_crossfades (Evoral::Range<framepos_t>) {}
 	virtual void remove_dependents (boost::shared_ptr<Region> /*region*/) {}
 
 	virtual XMLNode& state (bool);
@@ -353,20 +357,10 @@ public:
 
 	void begin_undo ();
 	void end_undo ();
-	void unset_freeze_parent (Playlist*);
-	void unset_freeze_child (Playlist*);
 
 	void _split_region (boost::shared_ptr<Region>, framepos_t position);
 
 	typedef std::pair<boost::shared_ptr<Region>, boost::shared_ptr<Region> > TwoRegions;
-	virtual void copy_dependents (const std::vector<TwoRegions>&, Playlist*) const { }
-
-	struct RegionInfo {
-	    boost::shared_ptr<Region> region;
-	    framepos_t position;
-	    framecnt_t length;
-	    framepos_t start;
-	};
 
 	/* this is called before we create a new compound region */
 	virtual void pre_combine (std::vector<boost::shared_ptr<Region> >&) {}
@@ -377,9 +371,14 @@ public:
 	*/
 	virtual void pre_uncombine (std::vector<boost::shared_ptr<Region> >&, boost::shared_ptr<Region>) {}
 
-private:
+  private:
+	friend class RegionReadLock;
+	friend class RegionWriteLock;
+	mutable Glib::RWLock region_lock;
 
-	void setup_layering_indices (RegionList const &) const;
+  private:
+	void setup_layering_indices (RegionList const &);
+	void coalesce_and_check_crossfades (std::list<Evoral::Range<framepos_t> >);
 	boost::shared_ptr<RegionList> find_regions_at (framepos_t);
 };
 

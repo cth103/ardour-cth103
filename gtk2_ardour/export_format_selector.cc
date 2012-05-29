@@ -24,7 +24,6 @@
 
 #include "ardour/export_format_specification.h"
 #include "ardour/export_profile_manager.h"
-#include "ardour/session.h"
 
 #include "i18n.h"
 
@@ -96,7 +95,7 @@ ExportFormatSelector::update_format_list ()
 		tree_it->set_value (format_cols.label, (*it)->description());
 	}
 
-	if (format_combo.get_active_row_number() == -1) {
+	if (format_combo.get_active_row_number() == -1 && format_combo.get_model()->children().size() > 0) {
 		format_combo.set_active (0);
 	}
 

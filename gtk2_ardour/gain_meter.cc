@@ -20,10 +20,7 @@
 #include <limits.h>
 
 #include "ardour/amp.h"
-#include "ardour/io.h"
-#include "ardour/route.h"
 #include "ardour/route_group.h"
-#include "ardour/session.h"
 #include "ardour/session_route.h"
 #include "ardour/dB.h"
 #include "ardour/utils.h"
@@ -192,7 +189,7 @@ GainMeterBase::set_controls (boost::shared_ptr<Route> r,
 
 	if (amp) {
 		amp->ConfigurationChanged.connect (
-			model_connections, invalidator (*this), ui_bind (&GainMeterBase::setup_gain_adjustment, this), gui_context ()
+			model_connections, invalidator (*this), boost::bind (&GainMeterBase::setup_gain_adjustment, this), gui_context ()
 			);
 	}
 
@@ -905,7 +902,7 @@ GainMeter::set_controls (boost::shared_ptr<Route> r,
 
 	if (_meter) {
 		_meter->ConfigurationChanged.connect (
-			model_connections, invalidator (*this), ui_bind (&GainMeter::meter_configuration_changed, this, _1), gui_context()
+			model_connections, invalidator (*this), boost::bind (&GainMeter::meter_configuration_changed, this, _1), gui_context()
 			);
 
 		meter_configuration_changed (_meter->input_streams ());

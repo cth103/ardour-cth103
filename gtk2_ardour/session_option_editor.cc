@@ -18,10 +18,6 @@
 */
 
 #include "ardour/session.h"
-#include "ardour/io.h"
-#include "ardour/auditioner.h"
-#include "ardour/audioengine.h"
-#include "ardour/port.h"
 
 #include "gui_thread.h"
 #include "session_option_editor.h"
@@ -115,7 +111,7 @@ SessionOptionEditor::SessionOptionEditor (Session* s)
 
 	ClockOption* co = new ClockOption (
 		"timecode-offset",
-		_("Timecode Offset"),
+		_("Timecode offset"),
 		sigc::mem_fun (*_session_config, &SessionConfiguration::get_timecode_offset),
 		sigc::mem_fun (*_session_config, &SessionConfiguration::set_timecode_offset)
 		);
@@ -154,6 +150,19 @@ SessionOptionEditor::SessionOptionEditor (Session* s)
 
 	add_option (_("Fades"), cfm);
 
+	ComboOption<CrossfadeChoice>* cfc = new ComboOption<CrossfadeChoice> (
+		"xfade-choice",
+		_("Crossfade type"),
+		sigc::mem_fun (*_session_config, &SessionConfiguration::get_xfade_choice),
+		sigc::mem_fun (*_session_config, &SessionConfiguration::set_xfade_choice)
+		);
+
+	cfc->add (ConstantPowerMinus3dB, _("constant power (-3dB)"));
+	cfc->add (ConstantPowerMinus6dB, _("constant power (-6dB)"));
+	cfc->add (RegionFades, _("use existing region fade shape"));
+
+	add_option (_("Fades"), cfc);
+
 	add_option (_("Fades"), new SpinOption<float> (
 		_("short-xfade-seconds"),
 		_("Short crossfade length"),
@@ -177,20 +186,6 @@ SessionOptionEditor::SessionOptionEditor (Session* s)
 			    _("Create crossfades automatically"),
 			    sigc::mem_fun (*_session_config, &SessionConfiguration::get_auto_xfade),
 			    sigc::mem_fun (*_session_config, &SessionConfiguration::set_auto_xfade)
-			    ));
-
-        add_option (_("Fades"), new BoolOption (
-			    "xfades-active",
-			    _("Crossfades active"),
-			    sigc::mem_fun (*_session_config, &SessionConfiguration::get_xfades_active),
-			    sigc::mem_fun (*_session_config, &SessionConfiguration::set_xfades_active)
-			    ));
-
-	add_option (_("Fades"), new BoolOption (
-			    "xfades-visible",
-			    _("Crossfades visible"),
-			    sigc::mem_fun (*_session_config, &SessionConfiguration::get_xfades_visible),
-			    sigc::mem_fun (*_session_config, &SessionConfiguration::set_xfades_visible)
 			    ));
 
 	add_option (_("Fades"), new BoolOption (
@@ -293,22 +288,6 @@ SessionOptionEditor::SessionOptionEditor (Session* s)
         li->add (InsertMergeExtend, _("replace both overlapping notes with a single note"));
 
 	add_option (_("Misc"), li);
-
-	add_option (_("Misc"), new OptionEditorHeading (_("Broadcast WAVE metadata")));
-
-	add_option (_("Misc"), new EntryOption (
-			    "bwf-country-code",
-			    _("Country code"),
-			    sigc::mem_fun (*_session_config, &SessionConfiguration::get_bwf_country_code),
-			    sigc::mem_fun (*_session_config, &SessionConfiguration::set_bwf_country_code)
-			    ));
-
-	add_option (_("Misc"), new EntryOption (
-			    "bwf-organization-code",
-			    _("Organization code"),
-			    sigc::mem_fun (*_session_config, &SessionConfiguration::get_bwf_organization_code),
-			    sigc::mem_fun (*_session_config, &SessionConfiguration::set_bwf_organization_code)
-			    ));
 
 	add_option (_("Misc"), new OptionEditorHeading (_("Glue to bars and beats")));
 

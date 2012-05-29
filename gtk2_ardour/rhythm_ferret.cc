@@ -4,13 +4,10 @@
 #include "pbd/memento_command.h"
 #include "pbd/convert.h"
 
-#include "ardour/transient_detector.h"
-#include "ardour/onset_detector.h"
-#include "ardour/audiosource.h"
 #include "ardour/audioregion.h"
-#include "ardour/playlist.h"
-#include "ardour/region_factory.h"
+#include "ardour/onset_detector.h"
 #include "ardour/session.h"
+#include "ardour/transient_detector.h"
 
 #include "rhythm_ferret.h"
 #include "audio_region_view.h"
@@ -216,7 +213,7 @@ RhythmFerret::run_analysis ()
 }
 
 int
-RhythmFerret::run_percussion_onset_analysis (boost::shared_ptr<Readable> readable, framepos_t /*offset*/, AnalysisFeatureList& results)
+RhythmFerret::run_percussion_onset_analysis (boost::shared_ptr<Readable> readable, frameoffset_t /*offset*/, AnalysisFeatureList& results)
 {
 	TransientDetector t (_session->frame_rate());
 
@@ -263,7 +260,7 @@ RhythmFerret::get_note_onset_function ()
 }
 
 int
-RhythmFerret::run_note_onset_analysis (boost::shared_ptr<Readable> readable, framepos_t /*offset*/, AnalysisFeatureList& results)
+RhythmFerret::run_note_onset_analysis (boost::shared_ptr<Readable> readable, frameoffset_t /*offset*/, AnalysisFeatureList& results)
 {
 	try {
 		OnsetDetector t (_session->frame_rate());

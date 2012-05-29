@@ -34,17 +34,12 @@
 
 #include "ardour/audioengine.h"
 #include "ardour/buffer.h"
+#include "ardour/buffer_set.h"
 #include "ardour/debug.h"
 #include "ardour/io.h"
-#include "ardour/route.h"
 #include "ardour/port.h"
-#include "ardour/audio_port.h"
-#include "ardour/midi_port.h"
+#include "ardour/route.h"
 #include "ardour/session.h"
-#include "ardour/cycle_timer.h"
-#include "ardour/buffer_set.h"
-#include "ardour/meter.h"
-#include "ardour/amp.h"
 #include "ardour/user_bundle.h"
 
 #include "i18n.h"
@@ -256,8 +251,8 @@ IO::remove_port (boost::shared_ptr<Port> port, void* src)
 	ChanCount after = before;
 	after.set (port->type(), after.get (port->type()) - 1);
 
-	bool const r = PortCountChanging (after); /* EMIT SIGNAL */
-	if (r) {
+	boost::optional<bool> const r = PortCountChanging (after); /* EMIT SIGNAL */
+	if (r.get_value_or (false)) {
 		return -1;
 	}
 

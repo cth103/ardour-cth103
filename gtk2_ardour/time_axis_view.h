@@ -157,11 +157,8 @@ class TimeAxisView : public virtual AxisView
 	virtual void show_selection (TimeSelection&);
 	virtual void hide_selection ();
 	virtual void reshow_selection (TimeSelection&);
-	virtual void show_timestretch (framepos_t start, framepos_t end);
+	virtual void show_timestretch (framepos_t start, framepos_t end, int layers, int layer);
 	virtual void hide_timestretch ();
-
-	virtual void hide_dependent_views (TimeAxisViewItem&) {}
-	virtual void reveal_dependent_views (TimeAxisViewItem&) {}
 
 	/* editing operations */
 
@@ -286,7 +283,6 @@ class TimeAxisView : public virtual AxisView
 	bool in_destructor;
 	NamePackingBits name_packing;
 
-	void set_heights (uint32_t h);
 	void color_handler ();
 
 	void conditionally_add_to_selection ();

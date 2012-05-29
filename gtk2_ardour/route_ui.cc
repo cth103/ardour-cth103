@@ -46,16 +46,13 @@
 #include "route_time_axis.h"
 #include "group_tabs.h"
 
-#include "ardour/route.h"
-#include "ardour/event_type_map.h"
-#include "ardour/session.h"
-#include "ardour/audioengine.h"
 #include "ardour/audio_track.h"
-#include "ardour/midi_track.h"
-#include "ardour/template_utils.h"
+#include "ardour/audioengine.h"
 #include "ardour/filename_extensions.h"
-#include "ardour/directory_names.h"
-#include "ardour/profile.h"
+#include "ardour/midi_track.h"
+#include "ardour/route.h"
+#include "ardour/session.h"
+#include "ardour/template_utils.h"
 
 #include "i18n.h"
 using namespace Gtk;
@@ -145,8 +142,8 @@ RouteUI::init ()
 	_session->TransportStateChange.connect (_session_connections, invalidator (*this), boost::bind (&RouteUI::check_rec_enable_sensitivity, this), gui_context());
 	_session->RecordStateChanged.connect (_session_connections, invalidator (*this), boost::bind (&RouteUI::session_rec_enable_changed, this), gui_context());
 
-	_session->config.ParameterChanged.connect (*this, invalidator (*this), ui_bind (&RouteUI::parameter_changed, this, _1), gui_context());
-	Config->ParameterChanged.connect (*this, invalidator (*this), ui_bind (&RouteUI::parameter_changed, this, _1), gui_context());
+	_session->config.ParameterChanged.connect (*this, invalidator (*this), boost::bind (&RouteUI::parameter_changed, this, _1), gui_context());
+	Config->ParameterChanged.connect (*this, invalidator (*this), boost::bind (&RouteUI::parameter_changed, this, _1), gui_context());
 
 	rec_enable_button->signal_button_press_event().connect (sigc::mem_fun(*this, &RouteUI::rec_enable_press), false);
 	rec_enable_button->signal_button_release_event().connect (sigc::mem_fun(*this, &RouteUI::rec_enable_release), false);
@@ -210,7 +207,7 @@ RouteUI::set_route (boost::shared_ptr<Route> rp)
 	solo_button->set_controllable (_route->solo_control());
 
 	_route->active_changed.connect (route_connections, invalidator (*this), boost::bind (&RouteUI::route_active_changed, this), gui_context());
-	_route->mute_changed.connect (route_connections, invalidator (*this), ui_bind (&RouteUI::mute_changed, this, _1), gui_context());
+	_route->mute_changed.connect (route_connections, invalidator (*this), boost::bind (&RouteUI::mute_changed, this, _1), gui_context());
 
 	_route->solo_changed.connect (route_connections, invalidator (*this), boost::bind (&RouteUI::update_solo_display, this), gui_context());
 	_route->solo_safe_changed.connect (route_connections, invalidator (*this), boost::bind (&RouteUI::update_solo_display, this), gui_context());
@@ -218,10 +215,10 @@ RouteUI::set_route (boost::shared_ptr<Route> rp)
 	_route->solo_isolated_changed.connect (route_connections, invalidator (*this), boost::bind (&RouteUI::update_solo_display, this), gui_context());
 
         _route->phase_invert_changed.connect (route_connections, invalidator (*this), boost::bind (&RouteUI::polarity_changed, this), gui_context());
-	_route->PropertyChanged.connect (route_connections, invalidator (*this), ui_bind (&RouteUI::property_changed, this, _1), gui_context());
+	_route->PropertyChanged.connect (route_connections, invalidator (*this), boost::bind (&RouteUI::property_changed, this, _1), gui_context());
 
-	_route->io_changed.connect (route_connections, invalidator (*this), ui_bind (&RouteUI::setup_invert_buttons, this), gui_context ());
-	_route->gui_changed.connect (route_connections, invalidator (*this), ui_bind (&RouteUI::route_gui_changed, this, _1), gui_context ());
+	_route->io_changed.connect (route_connections, invalidator (*this), boost::bind (&RouteUI::setup_invert_buttons, this), gui_context ());
+	_route->gui_changed.connect (route_connections, invalidator (*this), boost::bind (&RouteUI::route_gui_changed, this, _1), gui_context ());
 
 	if (_session->writable() && is_track()) {
 		boost::shared_ptr<Track> t = boost::dynamic_pointer_cast<Track>(_route);
@@ -235,7 +232,7 @@ RouteUI::set_route (boost::shared_ptr<Route> rp)
 
                 if (is_midi_track()) {
                         midi_track()->StepEditStatusChange.connect (route_connections, invalidator (*this),
-                                                                    ui_bind (&RouteUI::step_edit_changed, this, _1), gui_context());
+                                                                    boost::bind (&RouteUI::step_edit_changed, this, _1), gui_context());
                 }
 
 	}
@@ -629,7 +626,7 @@ RouteUI::update_monitoring_display ()
 }
 
 bool
-RouteUI::monitor_input_press(GdkEventButton* ev)
+RouteUI::monitor_input_press(GdkEventButton*)
 {
 	return true;
 }
@@ -641,7 +638,7 @@ RouteUI::monitor_input_release(GdkEventButton* ev)
 }
 
 bool
-RouteUI::monitor_disk_press (GdkEventButton* ev)
+RouteUI::monitor_disk_press (GdkEventButton*)
 {
 	return true;
 }
@@ -1287,10 +1284,13 @@ RouteUI::solo_isolate_button_release (GdkEventButton* ev)
 }
 
 bool
-RouteUI::solo_safe_button_release (GdkEventButton*)
+RouteUI::solo_safe_button_release (GdkEventButton* ev)
 {
-        _route->set_solo_safe (!solo_safe_led->active_state(), this);
-        return true;
+	if (ev->button == 1) {
+		_route->set_solo_safe (!solo_safe_led->active_state(), this);
+		return true;
+	}
+	return false;
 }
 
 void
@@ -1344,7 +1344,7 @@ RouteUI::set_color (const Gdk::Color & c)
 	   the time axis view and the mixer strip
 	*/
 	
-	gui_object_state().set<string> (route_state_id(), X_("color"), buf);
+	gui_object_state().set_property<string> (route_state_id(), X_("color"), buf);
 	_route->gui_changed ("color", (void *) 0); /* EMIT_SIGNAL */
 }
 

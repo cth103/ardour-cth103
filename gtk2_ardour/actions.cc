@@ -31,7 +31,6 @@
 #include "pbd/error.h"
 #include "pbd/file_utils.h"
 
-#include "ardour/ardour.h"
 #include "ardour/filesystem_paths.h"
 #include "ardour/rc_configuration.h"
 
@@ -72,9 +71,7 @@ ActionManager::init ()
 
 	ui_manager = UIManager::create ();
 
-	SearchPath spath = ardour_search_path() + user_config_directory() + system_config_search_path();
-
-	find_file_in_search_path (spath, "ardour.menus", ui_file);
+	find_file_in_search_path (ardour_config_search_path(), "ardour.menus", ui_file);
 
 	bool loaded = false;
 
@@ -159,11 +156,7 @@ ActionManager::map_some_state (const char* group, const char* action, bool (RCCo
 			if (tact->get_active() != x) {
 				tact->set_active (x);
 			}
-		} else {
-			cerr << group << ':' << action << " is not a toggle\n";
 		}
-	} else {
-		cerr << group << ':' << action << " not an action\n";
 	}
 }
 

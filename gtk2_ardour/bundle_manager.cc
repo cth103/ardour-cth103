@@ -27,7 +27,6 @@
 
 #include "ardour/session.h"
 #include "ardour/user_bundle.h"
-#include "ardour/audioengine.h"
 #include "bundle_manager.h"
 #include "gui_thread.h"
 #include "i18n.h"
@@ -60,7 +59,7 @@ BundleEditorMatrix::setup_ports (int dim)
 		   otherwise in some cases the basic system IO ports may be hidden, making
 		   the bundle editor useless */
 
-		_ports[OTHER].gather (_session, DataType::NIL, _bundle->ports_are_inputs(), true);
+		_ports[OTHER].gather (_session, DataType::NIL, _bundle->ports_are_inputs(), true, show_only_bundles ());
 		_ports[OTHER].remove_bundle (_bundle);
 		_ports[OTHER].resume_signals ();
 	}
@@ -101,13 +100,13 @@ BundleEditorMatrix::get_state (BundleChannel c[2]) const
 }
 
 bool
-BundleEditorMatrix::can_add_channel (boost::shared_ptr<Bundle> b) const
+BundleEditorMatrix::can_add_channels (boost::shared_ptr<Bundle> b) const
 {
 	if (b == _bundle) {
 		return true;
 	}
 
-	return PortMatrix::can_add_channel (b);
+	return PortMatrix::can_add_channels (b);
 }
 
 void
@@ -377,7 +376,7 @@ BundleManager::add_bundle (boost::shared_ptr<Bundle> b)
 	(*i)[_list_model_columns.name] = u->name ();
 	(*i)[_list_model_columns.bundle] = u;
 
-	u->Changed.connect (bundle_connections, invalidator (*this), ui_bind (&BundleManager::bundle_changed, this, _1, u), gui_context());
+	u->Changed.connect (bundle_connections, invalidator (*this), boost::bind (&BundleManager::bundle_changed, this, _1, u), gui_context());
 }
 
 void

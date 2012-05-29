@@ -37,29 +37,24 @@
 #include "pbd/stateful_diff_command.h"
 
 #include "ardour/analyser.h"
-#include "ardour/ardour.h"
 #include "ardour/audio_buffer.h"
 #include "ardour/audio_diskstream.h"
 #include "ardour/audio_port.h"
 #include "ardour/audioengine.h"
 #include "ardour/audiofilesource.h"
-
 #include "ardour/audioplaylist.h"
 #include "ardour/audioregion.h"
 #include "ardour/butler.h"
-#include "ardour/configuration.h"
-#include "ardour/cycle_timer.h"
 #include "ardour/debug.h"
 #include "ardour/io.h"
 #include "ardour/playlist_factory.h"
 #include "ardour/region_factory.h"
-#include "ardour/send.h"
 #include "ardour/session.h"
+#include "ardour/session_playlists.h"
 #include "ardour/source_factory.h"
 #include "ardour/track.h"
+#include "ardour/types.h"
 #include "ardour/utils.h"
-#include "ardour/session_playlists.h"
-#include "ardour/route.h"
 
 #include "i18n.h"
 #include <locale.h>
@@ -457,7 +452,7 @@ AudioDiskstream::process (framepos_t transport_frame, pframes_t nframes, framecn
 
 	if (record_enabled()) {
 
-		OverlapType ot = coverage (first_recordable_frame, last_recordable_frame, transport_frame, transport_frame + nframes);
+		Evoral::OverlapType ot = Evoral::coverage (first_recordable_frame, last_recordable_frame, transport_frame, transport_frame + nframes);
 		calculate_record_range (ot, transport_frame, nframes, rec_nframes, rec_offset);
 
 		if (rec_nframes && !was_recording) {
@@ -1481,6 +1476,7 @@ AudioDiskstream::transport_stopped_wallclock (struct tm& when, time_t twhen, boo
 		// cerr << _name << ": there are " << capture_info.size() << " capture_info records\n";
 
 		_playlist->clear_changes ();
+		_playlist->set_capture_insertion_in_progress (true);
 		_playlist->freeze ();
 
 		for (buffer_position = c->front()->write_source->last_capture_start_frame(), ci = capture_info.begin(); ci != capture_info.end(); ++ci) {
@@ -1519,6 +1515,7 @@ AudioDiskstream::transport_stopped_wallclock (struct tm& when, time_t twhen, boo
 		}
 
 		_playlist->thaw ();
+		_playlist->set_capture_insertion_in_progress (false);
 		_session.add_command (new StatefulDiffCommand (_playlist));
 	}
 

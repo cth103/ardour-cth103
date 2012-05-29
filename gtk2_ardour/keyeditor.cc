@@ -23,8 +23,6 @@
 
 #include <map>
 
-#include "ardour/profile.h"
-
 #include <gtkmm/stock.h>
 #include <gtkmm/label.h>
 #include <gtkmm/accelkey.h>
@@ -109,8 +107,6 @@ KeyEditor::unbind ()
 
 	unbind_button.set_sensitive (false);
 
-	cerr << "trying to unbind\n";
-
 	if (i != model->children().end()) {
 		string path = (*i)[columns.path];
 
@@ -193,17 +189,13 @@ KeyEditor::on_key_release_event (GdkEventKey* ev)
 			goto out;
 		}
 
-		cerr << "real lkeyval: " << ev->keyval << endl;
                 Gtkmm2ext::possibly_translate_keyval_to_make_legal_accelerator (ev->keyval);
-		cerr << "using keyval = " << ev->keyval << endl;
 
 
 		bool result = AccelMap::change_entry (path,
 						      ev->keyval,
 						      ModifierType (Keyboard::RelevantModifierKeyMask & ev->state),
 						      true);
-
-		cerr << "New binding to " << ev->keyval << " worked: " << result << endl;
 
 		if (result) {
 			AccelKey key;

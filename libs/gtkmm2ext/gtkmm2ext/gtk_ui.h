@@ -86,8 +86,21 @@ struct UIRequest : public BaseUI::BaseRequestObject {
     }
 };
 
-class UI : public Receiver, public AbstractUI<UIRequest>
+class UI : public AbstractUI<UIRequest>
 {
+  private:
+	class MyReceiver : public Receiver {
+	  public:
+		MyReceiver (UI& ui) : _ui (ui) {}
+		void receive (Transmitter::Channel chn, const char *msg) {
+			_ui.receive (chn, msg);
+		}
+	  private:
+		UI& _ui;
+	};
+
+	MyReceiver _receiver;
+
   public:
 	UI (std::string name, int *argc, char **argv[]);
 	virtual ~UI ();

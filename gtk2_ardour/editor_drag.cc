@@ -453,7 +453,7 @@ RegionDrag::RegionDrag (Editor* e, ArdourCanvas::Item* i, RegionView* p, list<Re
 		_views.push_back (DraggingView (*i, this));
 	}
 
-	RegionView::RegionViewGoingAway.connect (death_connection, invalidator (*this), ui_bind (&RegionDrag::region_going_away, this, _1), gui_context());
+	RegionView::RegionViewGoingAway.connect (death_connection, invalidator (*this), boost::bind (&RegionDrag::region_going_away, this, _1), gui_context());
 }
 
 void
@@ -663,7 +663,7 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 
 		if (first_move) {
 
-			rv->get_time_axis_view().hide_dependent_views (*rv);
+			rv->drag_start (); 
 
 			/* Absolutely no idea why this is necessary, but it is; without
 			   it, the region view disappears after the reparent.
@@ -698,15 +698,15 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 		if (tv->view()->layer_display() == Stacked) {
 			tv->view()->set_layer_display (Expanded);
 		}
-
+		
 		/* We're only allowed to go -ve in layer on Expanded views */
 		if (tv->view()->layer_display() != Expanded && (i->layer + this_delta_layer) < 0) {
 			this_delta_layer = - i->layer;
 		}
-			
+		
 		/* Set height */
 		rv->set_height (tv->view()->child_height ());
-
+		
 		/* Update show/hidden status as the region view may have come from a hidden track,
 		   or have moved to one.
 		*/
@@ -1063,7 +1063,7 @@ RegionMoveDrag::finished_no_copy (
 
 			rv->get_canvas_group()->reparent (*dest_rtv->view()->canvas_item());
 			rv->get_canvas_group()->property_y() = i->initial_y;
-			rv->get_time_axis_view().reveal_dependent_views (*rv);
+			rv->drag_end ();
 
 			/* just change the model */
 
@@ -1277,7 +1277,7 @@ RegionMotionDrag::aborted (bool)
 		assert (rtv);
 		rv->get_canvas_group()->reparent (*rtv->view()->canvas_item());
 		rv->get_canvas_group()->property_y() = 0;
-		rv->get_time_axis_view().reveal_dependent_views (*rv);
+		rv->drag_end ();
 		rv->fake_set_opaque (false);
 		rv->move (-_total_x_delta, 0);
 		rv->set_height (rtv->view()->child_height ());
@@ -1706,6 +1706,7 @@ TrimDrag::motion (GdkEvent* event, bool first_move)
 
 			if (arv) {
 				arv->temporarily_hide_envelope ();
+				arv->drag_start ();
 			}
 
 			boost::shared_ptr<Playlist> pl = rv->region()->playlist();
@@ -2817,6 +2818,10 @@ ControlPointDrag::start_grab (GdkEvent* event, Gdk::Cursor* /*cursor*/)
 					event->button.x + 10, event->button.y + 10);
 
 	_editor->verbose_cursor()->show ();
+
+	if (!_point->can_slide ()) {
+		_x_constrained = true;
+	}
 }
 
 void
@@ -2981,14 +2986,7 @@ LineDrag::motion (GdkEvent* event, bool)
 	cy = min ((double) _line->height(), cy);
 
 	double const fraction = 1.0 - (cy / _line->height());
-
-	bool push;
-
-	if (Keyboard::modifier_state_contains (event->button.state, Keyboard::PrimaryModifier)) {
-		push = false;
-	} else {
-		push = true;
-	}
+	bool const push = !Keyboard::modifier_state_contains (event->button.state, Keyboard::PrimaryModifier);
 
 	/* we are ignoring x position for this drag, so we can just pass in anything */
 	_line->drag_motion (0, fraction, true, push);
@@ -3251,11 +3249,16 @@ void
 TimeFXDrag::motion (GdkEvent* event, bool)
 {
 	RegionView* rv = _primary;
+	StreamView* cv = rv->get_time_axis_view().view ();
+
+	pair<TimeAxisView*, double> const tv = _editor->trackview_by_y_position (grab_y());
+	int layer = tv.first->layer_display() == Overlaid ? 0 : tv.second;
+	int layers = tv.first->layer_display() == Overlaid ? 1 : cv->layers();
 
 	framepos_t const pf = adjusted_current_frame (event);
 
 	if (pf > rv->region()->position()) {
-		rv->get_time_axis_view().show_timestretch (rv->region()->position(), pf);
+		rv->get_time_axis_view().show_timestretch (rv->region()->position(), pf, layers, layer);
 	}
 
 	show_verbose_cursor_time (pf);
@@ -3915,9 +3918,9 @@ MouseZoomDrag::finished (GdkEvent* event, bool movement_occurred)
 		motion (event, false);
 
 		if (grab_frame() < last_pointer_frame()) {
-			_editor->temporal_zoom_by_frame (grab_frame(), last_pointer_frame(), "mouse zoom");
+			_editor->temporal_zoom_by_frame (grab_frame(), last_pointer_frame());
 		} else {
-			_editor->temporal_zoom_by_frame (last_pointer_frame(), grab_frame(), "mouse zoom");
+			_editor->temporal_zoom_by_frame (last_pointer_frame(), grab_frame());
 		}
 	} else {
 		if (Keyboard::the_keyboard().key_is_down (GDK_Shift_L)) {
@@ -4076,31 +4079,48 @@ NoteDrag::aborted (bool)
 	/* XXX: TODO */
 }
 
-AutomationRangeDrag::AutomationRangeDrag (Editor* editor, ArdourCanvas::Item* item, list<AudioRange> const & r)
-	: Drag (editor, item)
+/** Make an AutomationRangeDrag for lines in an AutomationTimeAxisView */
+AutomationRangeDrag::AutomationRangeDrag (Editor* editor, AutomationTimeAxisView* atv, list<AudioRange> const & r)
+	: Drag (editor, atv->base_item ())
 	, _ranges (r)
 	, _nothing_to_drag (false)
 {
 	DEBUG_TRACE (DEBUG::Drags, "New AutomationRangeDrag\n");
 
-	_atav = reinterpret_cast<AutomationTimeAxisView*> (_item->get_data ("trackview"));
-	assert (_atav);
+	setup (atv->lines ());
+}
 
-	/* get all lines in the automation view */
-	list<boost::shared_ptr<AutomationLine> > lines = _atav->lines ();
+/** Make an AutomationRangeDrag for region gain lines */
+AutomationRangeDrag::AutomationRangeDrag (Editor* editor, AudioRegionView* rv, list<AudioRange> const & r)
+	: Drag (editor, rv->get_canvas_group ())
+	, _ranges (r)
+	, _nothing_to_drag (false)
+{
+	DEBUG_TRACE (DEBUG::Drags, "New AutomationRangeDrag\n");
 
-	/* find those that overlap the ranges being dragged */
-	list<boost::shared_ptr<AutomationLine> >::iterator i = lines.begin ();
+	list<boost::shared_ptr<AutomationLine> > lines;
+	lines.push_back (rv->get_gain_line ());
+	setup (lines);
+}
+
+/** @param lines AutomationLines to drag.
+ *  @param offset Offset from the session start to the points in the AutomationLines.
+ */
+void
+AutomationRangeDrag::setup (list<boost::shared_ptr<AutomationLine> > const & lines)
+{
+	/* find the lines that overlap the ranges being dragged */
+	list<boost::shared_ptr<AutomationLine> >::const_iterator i = lines.begin ();
 	while (i != lines.end ()) {
-		list<boost::shared_ptr<AutomationLine> >::iterator j = i;
+		list<boost::shared_ptr<AutomationLine> >::const_iterator j = i;
 		++j;
 
-		pair<framepos_t, framepos_t> const r = (*i)->get_point_x_range ();
+		pair<framepos_t, framepos_t> r = (*i)->get_point_x_range ();
 
 		/* check this range against all the AudioRanges that we are using */
 		list<AudioRange>::const_iterator k = _ranges.begin ();
 		while (k != _ranges.end()) {
-			if (k->coverage (r.first, r.second) != OverlapNone) {
+			if (k->coverage (r.first, r.second) != Evoral::OverlapNone) {
 				break;
 			}
 			++k;
@@ -4169,9 +4189,7 @@ AutomationRangeDrag::start_grab (GdkEvent* event, Gdk::Cursor* cursor)
 				double const q = j->line->time_converter().from (a - j->line->time_converter().origin_b ());
 
 				the_list->add (p, the_list->eval (p));
-				j->line->add_always_in_view (p);
 				the_list->add (q, the_list->eval (q));
-				j->line->add_always_in_view (q);
 			}
 
 			/* same thing for the end */
@@ -4197,9 +4215,7 @@ AutomationRangeDrag::start_grab (GdkEvent* event, Gdk::Cursor* cursor)
 				double const q = j->line->time_converter().from (i->end - j->line->time_converter().origin_b ());
 
 				the_list->add (p, the_list->eval (p));
-				j->line->add_always_in_view (p);
 				the_list->add (q, the_list->eval (q));
-				j->line->add_always_in_view (q);
 			}
 		}
 
@@ -4267,7 +4283,6 @@ AutomationRangeDrag::finished (GdkEvent* event, bool)
 	motion (event, false);
 	for (list<Line>::iterator i = _lines.begin(); i != _lines.end(); ++i) {
 		i->line->end_drag ();
-		i->line->clear_always_in_view ();
 	}
 
 	_editor->session()->commit_reversible_command ();
@@ -4277,7 +4292,6 @@ void
 AutomationRangeDrag::aborted (bool)
 {
 	for (list<Line>::iterator i = _lines.begin(); i != _lines.end(); ++i) {
-		i->line->clear_always_in_view ();
 		i->line->reset ();
 	}
 }
@@ -4356,7 +4370,7 @@ MidiRubberbandSelectDrag::MidiRubberbandSelectDrag (Editor* e, MidiRegionView* r
 }
 
 void
-MidiRubberbandSelectDrag::select_things (int button_state, framepos_t x1, framepos_t x2, double y1, double y2, bool drag_in_progress)
+MidiRubberbandSelectDrag::select_things (int button_state, framepos_t x1, framepos_t x2, double y1, double y2, bool /*drag_in_progress*/)
 {
 	framepos_t const p = _region_view->region()->position ();
 	double const y = _region_view->midi_view()->y_position ();
@@ -4389,7 +4403,7 @@ MidiVerticalSelectDrag::MidiVerticalSelectDrag (Editor* e, MidiRegionView* rv)
 }
 
 void
-MidiVerticalSelectDrag::select_things (int button_state, framepos_t x1, framepos_t x2, double y1, double y2, bool drag_in_progress)
+MidiVerticalSelectDrag::select_things (int button_state, framepos_t /*x1*/, framepos_t /*x2*/, double y1, double y2, bool /*drag_in_progress*/)
 {
 	double const y = _region_view->midi_view()->y_position ();
 
@@ -4512,7 +4526,7 @@ NoteCreateDrag::motion (GdkEvent* event, bool)
 }
 
 void
-NoteCreateDrag::finished (GdkEvent* event, bool had_movement)
+NoteCreateDrag::finished (GdkEvent*, bool had_movement)
 {
 	if (!had_movement) {
 		return;
@@ -4546,3 +4560,100 @@ NoteCreateDrag::aborted (bool)
 {
 	
 }
+
+/*------------*/
+
+CrossfadeEdgeDrag::CrossfadeEdgeDrag (Editor* e, AudioRegionView* rv, ArdourCanvas::Item* i, bool start_yn)
+	: Drag (e, i)
+	, arv (rv)
+	, start (start_yn)
+{
+}
+
+void
+CrossfadeEdgeDrag::start_grab (GdkEvent* event, Gdk::Cursor *cursor)
+{
+	Drag::start_grab (event, cursor);
+}
+
+void
+CrossfadeEdgeDrag::motion (GdkEvent*, bool)
+{
+	double distance;
+	double new_length;
+	framecnt_t len;
+
+	boost::shared_ptr<AudioRegion> ar (arv->audio_region());
+
+	if (start) {
+		distance = _drags->current_pointer_x() - grab_x();
+		len = ar->fade_in()->back()->when;
+	} else {
+		distance = grab_x() - _drags->current_pointer_x();
+		len = ar->fade_out()->back()->when;
+	}
+
+	/* how long should it be ? */
+
+	new_length = len + _editor->unit_to_frame (distance);
+
+	/* now check with the region that this is legal */
+
+	new_length = ar->verify_xfade_bounds (new_length, start);
+
+	if (start) {
+		arv->redraw_start_xfade_to (ar, new_length);
+	} else {
+		arv->redraw_end_xfade_to (ar, new_length);
+	}
+}
+
+void
+CrossfadeEdgeDrag::finished (GdkEvent*, bool)
+{
+	double distance;
+	double new_length;
+	framecnt_t len;
+
+	boost::shared_ptr<AudioRegion> ar (arv->audio_region());
+
+	if (start) {
+		distance = _drags->current_pointer_x() - grab_x();
+		len = ar->fade_in()->back()->when;
+	} else {
+		distance = grab_x() - _drags->current_pointer_x();
+		len = ar->fade_out()->back()->when;
+	}
+
+	new_length = ar->verify_xfade_bounds (len + _editor->unit_to_frame (distance), start);
+	
+	_editor->begin_reversible_command ("xfade trim");
+	ar->playlist()->clear_owned_changes ();	
+
+	if (start) {
+		ar->set_fade_in_length (new_length);
+	} else {
+		ar->set_fade_out_length (new_length);
+	}
+
+	/* Adjusting the xfade may affect other regions in the playlist, so we need
+	   to get undo Commands from the whole playlist rather than just the
+	   region.
+	*/
+
+	vector<Command*> cmds;
+	ar->playlist()->rdiff (cmds);
+	_editor->session()->add_commands (cmds);
+
+}
+
+void
+CrossfadeEdgeDrag::aborted (bool)
+{
+	if (start) {
+		arv->redraw_start_xfade ();
+	} else {
+		arv->redraw_end_xfade ();
+	}
+}
+

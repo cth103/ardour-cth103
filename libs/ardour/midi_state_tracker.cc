@@ -22,9 +22,10 @@
 #include "pbd/compose.h"
 #include "pbd/stacktrace.h"
 
+#include "evoral/EventSink.hpp"
+
 #include "ardour/debug.h"
 #include "ardour/event_type_map.h"
-#include "ardour/midi_ring_buffer.h"
 #include "ardour/midi_source.h"
 #include "ardour/midi_state_tracker.h"
 
@@ -131,7 +132,7 @@ MidiStateTracker::resolve_notes (MidiBuffer &dst, framepos_t time)
 	for (int channel = 0; channel < 16; ++channel) {
 		for (int note = 0; note < 128; ++note) {
 			while (_active_notes[note + 128 * channel]) {
-				uint8_t buffer[3] = { MIDI_CMD_NOTE_OFF | channel, note, 0 };
+				uint8_t buffer[3] = { ((uint8_t) (MIDI_CMD_NOTE_OFF | channel)), uint8_t (note), 0 };
 				Evoral::MIDIEvent<MidiBuffer::TimeType> noteoff
 					(MIDI_CMD_NOTE_OFF, time, 3, buffer, false);
 				/* note that we do not care about failure from

@@ -39,7 +39,6 @@
 #include <alsa/asoundlib.h>
 #endif
 
-#include "ardour/profile.h"
 #include <jack/jack.h>
 
 #include <gtkmm/stock.h>
@@ -1065,6 +1064,9 @@ EngineControl::find_jack_servers (vector<string>& strings)
 #endif
 
 	jack_servers = scanner (path, jack_server_filter, 0, false, true);
+	if (!jack_servers) {
+		return;
+	}
 
 	vector<string *>::iterator iter;
 

@@ -43,22 +43,12 @@
 #include <gtkmm2ext/utils.h>
 
 #include "ardour/amp.h"
-#include "ardour/audioplaylist.h"
-#include "ardour/diskstream.h"
 #include "ardour/event_type_map.h"
-#include "ardour/ladspa_plugin.h"
-#include "ardour/location.h"
-#include "ardour/panner.h"
-#include "ardour/playlist.h"
-#include "ardour/playlist.h"
 #include "ardour/processor.h"
 #include "ardour/profile.h"
-#include "ardour/region_factory.h"
 #include "ardour/route_group.h"
 #include "ardour/session.h"
-#include "ardour/session_playlist.h"
-#include "ardour/debug.h"
-#include "ardour/utils.h"
+#include "ardour/session_playlists.h"
 #include "evoral/Parameter.hpp"
 
 #include "ardour_ui.h"
@@ -68,7 +58,6 @@
 #include "route_time_axis.h"
 #include "automation_time_axis.h"
 #include "canvas_impl.h"
-#include "crossfade_view.h"
 #include "enums.h"
 #include "gui_thread.h"
 #include "keyboard.h"
@@ -194,8 +183,8 @@ RouteTimeAxisView::set_route (boost::shared_ptr<Route> rt)
 	
 	controls_hbox.pack_start(gm.get_level_meter(), false, false);
 	_route->meter_change.connect (*this, invalidator (*this), bind (&RouteTimeAxisView::meter_changed, this), gui_context());
-	_route->input()->changed.connect (*this, invalidator (*this), ui_bind (&RouteTimeAxisView::io_changed, this, _1, _2), gui_context());
-	_route->output()->changed.connect (*this, invalidator (*this), ui_bind (&RouteTimeAxisView::io_changed, this, _1, _2), gui_context());
+	_route->input()->changed.connect (*this, invalidator (*this), boost::bind (&RouteTimeAxisView::io_changed, this, _1, _2), gui_context());
+	_route->output()->changed.connect (*this, invalidator (*this), boost::bind (&RouteTimeAxisView::io_changed, this, _1, _2), gui_context());
 
 	controls_table.attach (*mute_button, 6, 7, 0, 1, Gtk::FILL|Gtk::EXPAND, Gtk::FILL|Gtk::EXPAND, 0, 0);
 
@@ -225,8 +214,8 @@ RouteTimeAxisView::set_route (boost::shared_ptr<Route> rt)
 
 	_y_position = -1;
 
-	_route->processors_changed.connect (*this, invalidator (*this), ui_bind (&RouteTimeAxisView::processors_changed, this, _1), gui_context());
-	_route->PropertyChanged.connect (*this, invalidator (*this), ui_bind (&RouteTimeAxisView::route_property_changed, this, _1), gui_context());
+	_route->processors_changed.connect (*this, invalidator (*this), boost::bind (&RouteTimeAxisView::processors_changed, this, _1), gui_context());
+	_route->PropertyChanged.connect (*this, invalidator (*this), boost::bind (&RouteTimeAxisView::route_property_changed, this, _1), gui_context());
 
 	if (is_track()) {
 
@@ -670,30 +659,30 @@ RouteTimeAxisView::build_display_menu ()
 		build_playlist_menu ();
 		items.push_back (MenuElem (_("Playlist"), *playlist_action_menu));
 		items.back().set_sensitive (_editor.get_selection().tracks.size() <= 1);
-
-		route_group_menu->detach ();
-
-		WeakRouteList r;
-		for (TrackSelection::iterator i = _editor.get_selection().tracks.begin(); i != _editor.get_selection().tracks.end(); ++i) {
-			RouteTimeAxisView* rtv = dynamic_cast<RouteTimeAxisView*> (*i);
-			if (rtv) {
-				r.push_back (rtv->route ());
-			}
-		}
-
-		if (r.empty ()) {
-			r.push_back (route ());
-		}
-
-		route_group_menu->build (r);
-		items.push_back (MenuElem (_("Route Group"), *route_group_menu->menu ()));
-
-		build_automation_action_menu (true);
-		items.push_back (MenuElem (_("Automation"), *automation_action_menu));
-
-		items.push_back (SeparatorElem());
 	}
 
+	route_group_menu->detach ();
+	
+	WeakRouteList r;
+	for (TrackSelection::iterator i = _editor.get_selection().tracks.begin(); i != _editor.get_selection().tracks.end(); ++i) {
+		RouteTimeAxisView* rtv = dynamic_cast<RouteTimeAxisView*> (*i);
+		if (rtv) {
+			r.push_back (rtv->route ());
+		}
+	}
+	
+	if (r.empty ()) {
+		r.push_back (route ());
+	}
+
+	route_group_menu->build (r);
+	items.push_back (MenuElem (_("Group"), *route_group_menu->menu ()));
+	
+	build_automation_action_menu (true);
+	items.push_back (MenuElem (_("Automation"), *automation_action_menu));
+	
+	items.push_back (SeparatorElem());
+	
 	int active = 0;
 	int inactive = 0;
 	TrackSelection const & s = _editor.get_selection().tracks;
@@ -772,13 +761,9 @@ RouteTimeAxisView::set_track_mode (TrackMode mode, bool apply_to_selection)
 }
 
 void
-RouteTimeAxisView::show_timestretch (framepos_t start, framepos_t end)
+RouteTimeAxisView::show_timestretch (framepos_t start, framepos_t end, int layers, int layer)
 {
-	double x1;
-	double x2;
-	double y2;
-
-	TimeAxisView::show_timestretch (start, end);
+	TimeAxisView::show_timestretch (start, end, layers, layer);
 
 	hide_timestretch ();
 
@@ -817,14 +802,13 @@ RouteTimeAxisView::show_timestretch (framepos_t start, framepos_t end)
 	timestretch_rect->show ();
 	timestretch_rect->raise_to_top ();
 
-	x1 = start / _editor.get_current_zoom();
-	x2 = (end - 1) / _editor.get_current_zoom();
-	y2 = current_height() - 2;
+	double const x1 = start / _editor.get_current_zoom();
+	double const x2 = (end - 1) / _editor.get_current_zoom();
 
 	timestretch_rect->property_x1() = x1;
-	timestretch_rect->property_y1() = 1.0;
+	timestretch_rect->property_y1() = current_height() * (layers - layer - 1) / layers;
 	timestretch_rect->property_x2() = x2;
-	timestretch_rect->property_y2() = y2;
+	timestretch_rect->property_y2() = current_height() * (layers - layer) / layers;
 }
 
 void
@@ -2367,13 +2351,16 @@ RouteTimeAxisView::set_button_names ()
                         switch (Config->get_listen_position()) {
                         case AfterFaderListen:
                                 solo_button->set_text (_("A"));
+				ARDOUR_UI::instance()->set_tip (*solo_button, _("After-fade listen (AFL)"));
                                 break;
                         case PreFaderListen:
                                 solo_button->set_text (_("P"));
+				ARDOUR_UI::instance()->set_tip (*solo_button, _("Pre-fade listen (PFL)"));
                                 break;
                         }
                 } else {
                         solo_button->set_text (_("s"));
+			ARDOUR_UI::instance()->set_tip (*solo_button, _("Solo"));
                 }
         }
 	mute_button->set_text (_("m"));
